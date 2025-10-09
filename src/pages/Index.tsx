@@ -3,10 +3,17 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Trophy, LogOut } from "lucide-react";
+import { Plus, Trophy, LogOut, User } from "lucide-react";
 import PoolCard from "@/components/PoolCard";
 import PoolStats from "@/components/PoolStats";
 import { Session } from "@supabase/supabase-js";
+import { NotificationService } from "@/services/NotificationService";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 const Index = () => {
   const navigate = useNavigate();
@@ -31,6 +38,10 @@ const Index = () => {
       setSession(session);
       if (!session) {
         navigate("/auth");
+      } else {
+        // Setup notifications
+        NotificationService.requestPermissions();
+        NotificationService.setupRealtimeNotifications(session.user.id);
       }
     });
 
@@ -110,10 +121,16 @@ const Index = () => {
               Bolão App
             </h1>
           </div>
-          <Button variant="outline" size="sm" onClick={handleSignOut}>
-            <LogOut className="w-4 h-4 mr-2" />
-            Sair
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button variant="outline" size="sm" onClick={() => navigate("/profile")}>
+              <User className="w-4 h-4 mr-2" />
+              Perfil
+            </Button>
+            <Button variant="outline" size="sm" onClick={handleSignOut}>
+              <LogOut className="w-4 h-4 mr-2" />
+              Sair
+            </Button>
+          </div>
         </div>
       </header>
 
@@ -135,14 +152,29 @@ const Index = () => {
           <p className="text-muted-foreground text-lg">
             Crie bolões e divirta-se com seus amigos
           </p>
-          <Button
-            size="lg"
-            onClick={() => navigate("/create")}
-            className="shadow-lg hover:shadow-xl transition-all"
-          >
-            <Plus className="w-5 h-5 mr-2" />
-            Criar Novo Bolão
-          </Button>
+          <div className="flex flex-col sm:flex-row gap-3 justify-center">
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  size="lg"
+                  className="shadow-lg hover:shadow-xl transition-all"
+                >
+                  <Plus className="w-5 h-5 mr-2" />
+                  Criar Novo Bolão
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="center" className="w-56">
+                <DropdownMenuItem onClick={() => navigate("/create")}>
+                  <span className="mr-2">🎯</span>
+                  Bolão Customizado
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => navigate("/create-football")}>
+                  <span className="mr-2">⚽</span>
+                  Bolão de Futebol
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
         </div>
 
         {/* My Pools Section */}
