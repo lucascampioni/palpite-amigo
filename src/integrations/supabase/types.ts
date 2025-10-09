@@ -14,6 +14,104 @@ export type Database = {
   }
   public: {
     Tables: {
+      football_matches: {
+        Row: {
+          away_score: number | null
+          away_team: string
+          championship: string
+          created_at: string
+          home_score: number | null
+          home_team: string
+          id: string
+          match_date: string
+          pool_id: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          away_score?: number | null
+          away_team: string
+          championship: string
+          created_at?: string
+          home_score?: number | null
+          home_team: string
+          id?: string
+          match_date: string
+          pool_id: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          away_score?: number | null
+          away_team?: string
+          championship?: string
+          created_at?: string
+          home_score?: number | null
+          home_team?: string
+          id?: string
+          match_date?: string
+          pool_id?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "football_matches_pool_id_fkey"
+            columns: ["pool_id"]
+            isOneToOne: false
+            referencedRelation: "pools"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      football_predictions: {
+        Row: {
+          away_score_prediction: number
+          created_at: string
+          home_score_prediction: number
+          id: string
+          match_id: string
+          participant_id: string
+          points_earned: number | null
+          updated_at: string
+        }
+        Insert: {
+          away_score_prediction: number
+          created_at?: string
+          home_score_prediction: number
+          id?: string
+          match_id: string
+          participant_id: string
+          points_earned?: number | null
+          updated_at?: string
+        }
+        Update: {
+          away_score_prediction?: number
+          created_at?: string
+          home_score_prediction?: number
+          id?: string
+          match_id?: string
+          participant_id?: string
+          points_earned?: number | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "football_predictions_match_id_fkey"
+            columns: ["match_id"]
+            isOneToOne: false
+            referencedRelation: "football_matches"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "football_predictions_participant_id_fkey"
+            columns: ["participant_id"]
+            isOneToOne: false
+            referencedRelation: "participants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       participants: {
         Row: {
           created_at: string
@@ -146,12 +244,61 @@ export type Database = {
         }
         Relationships: []
       }
+      user_stats: {
+        Row: {
+          created_at: string
+          id: string
+          total_points: number
+          total_pools_created: number
+          total_pools_joined: number
+          total_wins: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          total_points?: number
+          total_pools_created?: number
+          total_pools_joined?: number
+          total_wins?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          total_points?: number
+          total_pools_created?: number
+          total_pools_joined?: number
+          total_wins?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_stats_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: true
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      calculate_football_points: {
+        Args: {
+          actual_away: number
+          actual_home: number
+          predicted_away: number
+          predicted_home: number
+        }
+        Returns: number
+      }
     }
     Enums: {
       measurement_unit: "kg" | "cm" | "reais" | "units" | "score"
