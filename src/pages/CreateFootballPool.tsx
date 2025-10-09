@@ -47,6 +47,7 @@ const CreateFootballPool = () => {
     const title = formData.get("title") as string;
     const description = formData.get("description") as string;
     const deadline = formData.get("deadline") as string;
+    const pixKey = formData.get("pix_key") as string;
 
     const { data: { user } } = await supabase.auth.getUser();
 
@@ -84,6 +85,7 @@ const CreateFootballPool = () => {
         deadline: new Date(deadline).toISOString(),
         status: "active" as any,
         pool_type: "football" as any,
+        pix_key: pixKey || null,
       }])
       .select()
       .single();
@@ -192,6 +194,15 @@ const CreateFootballPool = () => {
                   name="deadline"
                   type="datetime-local"
                   required
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="pix_key">Chave PIX (opcional)</Label>
+                <Input
+                  id="pix_key"
+                  name="pix_key"
+                  placeholder="Digite sua chave PIX para receber pagamentos"
                 />
               </div>
 

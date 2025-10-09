@@ -169,6 +169,7 @@ export type Database = {
           id: string
           measurement_unit: Database["public"]["Enums"]["measurement_unit"]
           owner_id: string
+          pix_key: string | null
           pool_type: Database["public"]["Enums"]["pool_type"]
           result_value: string | null
           status: Database["public"]["Enums"]["pool_status"]
@@ -184,6 +185,7 @@ export type Database = {
           id?: string
           measurement_unit?: Database["public"]["Enums"]["measurement_unit"]
           owner_id: string
+          pix_key?: string | null
           pool_type?: Database["public"]["Enums"]["pool_type"]
           result_value?: string | null
           status?: Database["public"]["Enums"]["pool_status"]
@@ -199,6 +201,7 @@ export type Database = {
           id?: string
           measurement_unit?: Database["public"]["Enums"]["measurement_unit"]
           owner_id?: string
+          pix_key?: string | null
           pool_type?: Database["public"]["Enums"]["pool_type"]
           result_value?: string | null
           status?: Database["public"]["Enums"]["pool_status"]

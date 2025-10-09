@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
-import { ArrowLeft, Calendar, Trophy, Users, Share2, Award } from "lucide-react";
+import { ArrowLeft, Calendar, Trophy, Users, Share2, Award, Copy } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { Input } from "@/components/ui/input";
@@ -13,6 +13,8 @@ import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import DeclareResultDialog from "@/components/DeclareResultDialog";
 import WinnerDisplay from "@/components/WinnerDisplay";
+import FootballPredictionForm from "@/components/FootballPredictionForm";
+import FootballRanking from "@/components/FootballRanking";
 
 const PoolDetail = () => {
   const { id } = useParams();
@@ -188,6 +190,16 @@ const PoolDetail = () => {
     });
   };
 
+  const handleCopyPixKey = () => {
+    if (pool.pix_key) {
+      navigator.clipboard.writeText(pool.pix_key);
+      toast({
+        title: "Chave PIX copiada!",
+        description: "Cole para fazer o pagamento.",
+      });
+    }
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -298,23 +310,53 @@ const PoolDetail = () => {
               </div>
             </div>
 
+            {pool.pix_key && (
+              <>
+                <Separator />
+                <div className="p-4 rounded-lg bg-primary/10 border border-primary/20">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm font-medium mb-1">💰 Chave PIX para pagamento</p>
+                      <p className="text-sm font-mono text-muted-foreground">{pool.pix_key}</p>
+                    </div>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={handleCopyPixKey}
+                    >
+                      <Copy className="w-4 h-4 mr-2" />
+                      Copiar
+                    </Button>
+                  </div>
+                </div>
+              </>
+            )}
+
             {!isOwner && !hasJoined && pool.status === "active" && !isPastDeadline && (
               <>
                 <Separator />
-                <div className="space-y-4">
-                  <h3 className="font-semibold text-lg">Enviar seu palpite</h3>
-                  <div className="space-y-2">
-                    <Label>{pool.guess_label}</Label>
-                    <Input
-                      value={guessValue}
-                      onChange={(e) => setGuessValue(e.target.value)}
-                      placeholder="Digite seu palpite"
-                    />
+                {pool.pool_type === "football" ? (
+                  <FootballPredictionForm
+                    poolId={pool.id}
+                    userId={userId!}
+                    onSuccess={loadPoolData}
+                  />
+                ) : (
+                  <div className="space-y-4">
+                    <h3 className="font-semibold text-lg">Enviar seu palpite</h3>
+                    <div className="space-y-2">
+                      <Label>{pool.guess_label}</Label>
+                      <Input
+                        value={guessValue}
+                        onChange={(e) => setGuessValue(e.target.value)}
+                        placeholder="Digite seu palpite"
+                      />
+                    </div>
+                    <Button onClick={handleJoinPool} disabled={submitting} className="w-full">
+                      {submitting ? "Enviando..." : "Enviar Palpite"}
+                    </Button>
                   </div>
-                  <Button onClick={handleJoinPool} disabled={submitting} className="w-full">
-                    {submitting ? "Enviando..." : "Enviar Palpite"}
-                  </Button>
-                </div>
+                )}
               </>
             )}
 
@@ -393,7 +435,14 @@ const PoolDetail = () => {
               </>
             )}
 
-            {approvedParticipants.length > 0 && (
+            {pool.pool_type === "football" && pool.status === "finished" && (
+              <>
+                <Separator />
+                <FootballRanking poolId={pool.id} />
+              </>
+            )}
+
+            {approvedParticipants.length > 0 && pool.pool_type !== "football" && (
               <>
                 <Separator />
                 <div className="space-y-4">
