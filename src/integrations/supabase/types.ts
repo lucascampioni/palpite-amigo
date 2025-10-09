@@ -299,6 +299,10 @@ export type Database = {
         }
         Returns: number
       }
+      is_pool_finished: {
+        Args: { pool_uuid: string }
+        Returns: boolean
+      }
     }
     Enums: {
       measurement_unit: "kg" | "cm" | "reais" | "units" | "score"
