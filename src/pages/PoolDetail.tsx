@@ -30,6 +30,7 @@ const PoolDetail = () => {
   const [submitting, setSubmitting] = useState(false);
   const [showResultDialog, setShowResultDialog] = useState(false);
   const [winner, setWinner] = useState<any>(null);
+  const [hasFootballMatches, setHasFootballMatches] = useState(false);
 
   useEffect(() => {
     loadPoolData();
@@ -67,6 +68,13 @@ const PoolDetail = () => {
 
     setParticipants(participantsData || []);
     setHasJoined(participantsData?.some(p => p.user_id === user?.id) || false);
+    
+    // Detect if this pool has football matches (even if pool_type is not set)
+    const { data: matchesData } = await supabase
+      .from("football_matches")
+      .select("id")
+      .eq("pool_id", id);
+    setHasFootballMatches((matchesData?.length || 0) > 0);
     
     // Load winner if pool is finished
     if (poolData.winner_id) {
@@ -335,7 +343,7 @@ const PoolDetail = () => {
             {!isOwner && !hasJoined && pool.status === "active" && !isPastDeadline && (
               <>
                 <Separator />
-                {pool.pool_type === "football" ? (
+                {(pool.pool_type === "football" || hasFootballMatches) ? (
                   <FootballPredictionForm
                     poolId={pool.id}
                     userId={userId!}
@@ -435,14 +443,14 @@ const PoolDetail = () => {
               </>
             )}
 
-            {pool.pool_type === "football" && pool.status === "finished" && (
+            {(pool.status === "finished") && (pool.pool_type === "football" || hasFootballMatches) && (
               <>
                 <Separator />
                 <FootballRanking poolId={pool.id} />
               </>
             )}
 
-            {approvedParticipants.length > 0 && pool.pool_type !== "football" && (
+            {approvedParticipants.length > 0 && !(pool.pool_type === "football" || hasFootballMatches) && (
               <>
                 <Separator />
                 <div className="space-y-4">

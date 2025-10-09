@@ -44,7 +44,7 @@ const DeclareResultDialog = ({
   const [matchResults, setMatchResults] = useState<MatchResult[]>([]);
 
   useEffect(() => {
-    if (open && pool.pool_type === "football") {
+    if (open) {
       loadMatches();
     }
   }, [open, pool]);
@@ -108,7 +108,7 @@ const DeclareResultDialog = ({
   };
 
   const handleSubmit = async () => {
-    if (pool.pool_type === "football") {
+    if (matches.length > 0) {
       return handleFootballSubmit();
     }
 
@@ -246,7 +246,7 @@ const DeclareResultDialog = ({
     }
   };
 
-  if (pool.pool_type === "football") {
+  if (matches.length > 0) {
     return (
       <Dialog open={open} onOpenChange={onOpenChange}>
         <DialogContent className="max-w-2xl max-h-[80vh]">
