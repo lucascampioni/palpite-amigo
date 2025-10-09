@@ -302,8 +302,16 @@ export type Database = {
         }
         Returns: number
       }
+      is_approved_participant: {
+        Args: { pool_uuid: string; user_uuid: string }
+        Returns: boolean
+      }
       is_pool_finished: {
         Args: { pool_uuid: string }
+        Returns: boolean
+      }
+      is_pool_owner: {
+        Args: { pool_uuid: string; user_uuid: string }
         Returns: boolean
       }
     }
