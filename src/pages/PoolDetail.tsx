@@ -15,6 +15,7 @@ import DeclareResultDialog from "@/components/DeclareResultDialog";
 import WinnerDisplay from "@/components/WinnerDisplay";
 import FootballPredictionForm from "@/components/FootballPredictionForm";
 import FootballRanking from "@/components/FootballRanking";
+import FootballParticipantsPredictions from "@/components/FootballParticipantsPredictions";
 
 const PoolDetail = () => {
   const { id } = useParams();
@@ -447,6 +448,13 @@ const PoolDetail = () => {
               <>
                 <Separator />
                 <FootballRanking poolId={pool.id} />
+              </>
+            )}
+
+            {approvedParticipants.length > 0 && (pool.pool_type === "football" || hasFootballMatches) && (
+              <>
+                <Separator />
+                <FootballParticipantsPredictions poolId={pool.id} participants={approvedParticipants} />
               </>
             )}
 
