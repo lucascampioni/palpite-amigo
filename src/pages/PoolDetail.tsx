@@ -318,7 +318,7 @@ const PoolDetail = () => {
               </div>
             </div>
 
-            {pool.pix_key && (
+            {pool.pix_key && !(pool.pool_type === "football" || hasFootballMatches) && !hasJoined && pool.status === "active" && !isPastDeadline && (
               <>
                 <Separator />
                 <div className="p-4 rounded-lg bg-primary/10 border border-primary/20">
