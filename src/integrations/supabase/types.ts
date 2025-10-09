@@ -160,6 +160,38 @@ export type Database = {
           },
         ]
       }
+      pool_payment_info: {
+        Row: {
+          created_at: string
+          id: string
+          pix_key: string | null
+          pool_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          pix_key?: string | null
+          pool_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          pix_key?: string | null
+          pool_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pool_payment_info_pool_id_fkey"
+            columns: ["pool_id"]
+            isOneToOne: true
+            referencedRelation: "pools"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       pools: {
         Row: {
           created_at: string
@@ -169,7 +201,6 @@ export type Database = {
           id: string
           measurement_unit: Database["public"]["Enums"]["measurement_unit"]
           owner_id: string
-          pix_key: string | null
           pool_type: Database["public"]["Enums"]["pool_type"]
           result_value: string | null
           status: Database["public"]["Enums"]["pool_status"]
@@ -185,7 +216,6 @@ export type Database = {
           id?: string
           measurement_unit?: Database["public"]["Enums"]["measurement_unit"]
           owner_id: string
-          pix_key?: string | null
           pool_type?: Database["public"]["Enums"]["pool_type"]
           result_value?: string | null
           status?: Database["public"]["Enums"]["pool_status"]
@@ -201,7 +231,6 @@ export type Database = {
           id?: string
           measurement_unit?: Database["public"]["Enums"]["measurement_unit"]
           owner_id?: string
-          pix_key?: string | null
           pool_type?: Database["public"]["Enums"]["pool_type"]
           result_value?: string | null
           status?: Database["public"]["Enums"]["pool_status"]

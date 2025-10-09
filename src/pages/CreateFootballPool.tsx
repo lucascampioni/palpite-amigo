@@ -85,7 +85,6 @@ const CreateFootballPool = () => {
         deadline: new Date(deadline).toISOString(),
         status: "active" as any,
         pool_type: "football" as any,
-        pix_key: pixKey || null,
       }])
       .select()
       .single();
@@ -98,6 +97,21 @@ const CreateFootballPool = () => {
       });
       setLoading(false);
       return;
+    }
+
+    // Save PIX key to separate payment info table if provided
+    if (pixKey) {
+      const { error: paymentError } = await supabase
+        .from("pool_payment_info")
+        .insert({
+          pool_id: pool.id,
+          pix_key: pixKey,
+        });
+
+      if (paymentError) {
+        console.error("Error saving PIX key:", paymentError);
+        // Don't block pool creation if PIX key save fails
+      }
     }
 
     // Create matches

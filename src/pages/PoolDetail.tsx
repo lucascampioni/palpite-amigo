@@ -32,6 +32,7 @@ const PoolDetail = () => {
   const [showResultDialog, setShowResultDialog] = useState(false);
   const [winner, setWinner] = useState<any>(null);
   const [hasFootballMatches, setHasFootballMatches] = useState(false);
+  const [pixKey, setPixKey] = useState<string | null>(null);
 
   useEffect(() => {
     loadPoolData();
@@ -76,6 +77,14 @@ const PoolDetail = () => {
       .select("id")
       .eq("pool_id", id);
     setHasFootballMatches((matchesData?.length || 0) > 0);
+    
+    // Load PIX key from separate payment info table
+    const { data: paymentData } = await supabase
+      .from("pool_payment_info")
+      .select("pix_key")
+      .eq("pool_id", id)
+      .maybeSingle();
+    setPixKey(paymentData?.pix_key || null);
     
     // Load winner if pool is finished
     if (poolData.winner_id) {
@@ -200,8 +209,8 @@ const PoolDetail = () => {
   };
 
   const handleCopyPixKey = () => {
-    if (pool.pix_key) {
-      navigator.clipboard.writeText(pool.pix_key);
+    if (pixKey) {
+      navigator.clipboard.writeText(pixKey);
       toast({
         title: "Chave PIX copiada!",
         description: "Cole para fazer o pagamento.",
@@ -319,14 +328,14 @@ const PoolDetail = () => {
               </div>
             </div>
 
-            {pool.pix_key && !(pool.pool_type === "football" || hasFootballMatches) && !hasJoined && pool.status === "active" && !isPastDeadline && (
+            {pixKey && !(pool.pool_type === "football" || hasFootballMatches) && !hasJoined && pool.status === "active" && !isPastDeadline && (
               <>
                 <Separator />
                 <div className="p-4 rounded-lg bg-primary/10 border border-primary/20">
                   <div className="flex items-center justify-between">
                     <div>
                       <p className="text-sm font-medium mb-1">💰 Chave PIX para pagamento</p>
-                      <p className="text-sm font-mono text-muted-foreground">{pool.pix_key}</p>
+                      <p className="text-sm font-mono text-muted-foreground">{pixKey}</p>
                     </div>
                     <Button
                       variant="outline"

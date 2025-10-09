@@ -59,13 +59,13 @@ const FootballPredictionForm = ({ poolId, userId, onSuccess }: FootballPredictio
       setPredictions(data.map(m => ({ matchId: m.id, homeScore: 0, awayScore: 0 })));
     }
 
-    // Load PIX key for this pool
-    const { data: poolData } = await supabase
-      .from("pools")
+    // Load PIX key from payment info table
+    const { data: paymentData } = await supabase
+      .from("pool_payment_info")
       .select("pix_key")
-      .eq("id", poolId)
-      .single();
-    setPixKey(poolData?.pix_key ?? null);
+      .eq("pool_id", poolId)
+      .maybeSingle();
+    setPixKey(paymentData?.pix_key ?? null);
 
     setLoading(false);
   };
