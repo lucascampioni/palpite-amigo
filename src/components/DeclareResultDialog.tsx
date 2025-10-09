@@ -180,7 +180,7 @@ const DeclareResultDialog = ({
       // Get all predictions for this match
       const { data: predictions, error: predictionsError } = await supabase
         .from("football_predictions")
-        .select("*")
+        .select("id, home_score_prediction, away_score_prediction")
         .eq("match_id", result.matchId);
 
       if (predictionsError || !predictions) continue;

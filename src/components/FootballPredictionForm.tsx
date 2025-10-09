@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { Copy } from "lucide-react";
 
 interface FootballPredictionFormProps {
   poolId: string;
@@ -34,6 +35,7 @@ const FootballPredictionForm = ({ poolId, userId, onSuccess }: FootballPredictio
   const [predictions, setPredictions] = useState<Prediction[]>([]);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
+  const [pixKey, setPixKey] = useState<string | null>(null);
 
   useEffect(() => {
     loadMatches();
@@ -56,6 +58,15 @@ const FootballPredictionForm = ({ poolId, userId, onSuccess }: FootballPredictio
       setMatches(data);
       setPredictions(data.map(m => ({ matchId: m.id, homeScore: 0, awayScore: 0 })));
     }
+
+    // Load PIX key for this pool
+    const { data: poolData } = await supabase
+      .from("pools")
+      .select("pix_key")
+      .eq("id", poolId)
+      .single();
+    setPixKey(poolData?.pix_key ?? null);
+
     setLoading(false);
   };
 
@@ -64,6 +75,13 @@ const FootballPredictionForm = ({ poolId, userId, onSuccess }: FootballPredictio
     setPredictions(prev =>
       prev.map(p => p.matchId === matchId ? { ...p, [field]: numValue } : p)
     );
+  };
+
+  const handleCopyPixKey = () => {
+    if (pixKey) {
+      navigator.clipboard.writeText(pixKey);
+      toast({ title: "Chave PIX copiada!" });
+    }
   };
 
   const handleSubmit = async () => {
@@ -139,6 +157,19 @@ const FootballPredictionForm = ({ poolId, userId, onSuccess }: FootballPredictio
 
   return (
     <div className="space-y-4">
+      {pixKey && (
+        <div className="p-4 rounded-lg bg-primary/10 border border-primary/20 flex items-center justify-between">
+          <div>
+            <p className="text-sm font-medium mb-1">💰 Chave PIX para pagamento</p>
+            <p className="text-sm font-mono text-muted-foreground">{pixKey}</p>
+          </div>
+          <Button variant="outline" size="sm" onClick={handleCopyPixKey}>
+            <Copy className="w-4 h-4 mr-2" />
+            Copiar
+          </Button>
+        </div>
+      )}
+
       <h3 className="font-semibold text-lg">Faça seus palpites</h3>
       
       {matches.map((match, index) => {
