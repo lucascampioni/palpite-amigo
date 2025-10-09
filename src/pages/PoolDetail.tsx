@@ -5,12 +5,14 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
-import { ArrowLeft, Calendar, Trophy, Users, Share2 } from "lucide-react";
+import { ArrowLeft, Calendar, Trophy, Users, Share2, Award } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
+import DeclareResultDialog from "@/components/DeclareResultDialog";
+import WinnerDisplay from "@/components/WinnerDisplay";
 
 const PoolDetail = () => {
   const { id } = useParams();
@@ -24,6 +26,8 @@ const PoolDetail = () => {
   const [hasJoined, setHasJoined] = useState(false);
   const [guessValue, setGuessValue] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [showResultDialog, setShowResultDialog] = useState(false);
+  const [winner, setWinner] = useState<any>(null);
 
   useEffect(() => {
     loadPoolData();
@@ -61,6 +65,13 @@ const PoolDetail = () => {
 
     setParticipants(participantsData || []);
     setHasJoined(participantsData?.some(p => p.user_id === user?.id) || false);
+    
+    // Load winner if pool is finished
+    if (poolData.winner_id) {
+      const winnerData = participantsData?.find(p => p.user_id === poolData.winner_id);
+      setWinner(winnerData);
+    }
+    
     setLoading(false);
   };
 
@@ -83,9 +94,18 @@ const PoolDetail = () => {
       return;
     }
 
+    // Check if deadline has passed
+    if (new Date() > new Date(pool.deadline)) {
+      toast({
+        variant: "destructive",
+        title: "Prazo expirado",
+        description: "O prazo para palpites já passou.",
+      });
+      return;
+    }
+
     setSubmitting(true);
 
-    const { data: { user } } = await supabase.auth.getUser();
     const { data: profile } = await supabase
       .from("profiles")
       .select("full_name")
@@ -191,6 +211,7 @@ const PoolDetail = () => {
 
   const approvedParticipants = participants.filter(p => p.status === "approved");
   const pendingParticipants = participants.filter(p => p.status === "pending");
+  const isPastDeadline = new Date() > new Date(pool.deadline);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-muted to-background p-4">
@@ -211,19 +232,53 @@ const PoolDetail = () => {
             <div className="flex items-start justify-between">
               <div className="space-y-2">
                 <CardTitle className="text-3xl">{pool.title}</CardTitle>
-                <div className="flex gap-2">
+                <div className="flex gap-2 flex-wrap">
                   <Badge className={getStatusColor(pool.status)}>
                     {pool.status === "active" ? "Ativo" : "Finalizado"}
                   </Badge>
                   <Badge variant="outline">
                     {pool.pool_type === "custom" ? "🎯 Customizado" : "⚽ Futebol"}
                   </Badge>
+                  {isPastDeadline && pool.status === "active" && (
+                    <Badge variant="destructive">
+                      Prazo Expirado
+                    </Badge>
+                  )}
                 </div>
               </div>
             </div>
             <CardDescription className="text-base mt-4">{pool.description}</CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
+            {/* Winner Display */}
+            {pool.status === "finished" && winner && pool.result_value && (
+              <>
+                <WinnerDisplay 
+                  winner={winner} 
+                  resultValue={pool.result_value}
+                  measurementUnit={pool.measurement_unit}
+                />
+                <Separator />
+              </>
+            )}
+
+            {/* No winner message */}
+            {pool.status === "finished" && !winner && pool.result_value && (
+              <>
+                <Card className="border-2 border-muted">
+                  <CardContent className="p-6 text-center">
+                    <p className="text-muted-foreground">
+                      Resultado: <strong>{pool.result_value}</strong>
+                    </p>
+                    <p className="text-sm text-muted-foreground mt-2">
+                      Nenhum participante acertou exatamente ou chegou próximo o suficiente.
+                    </p>
+                  </CardContent>
+                </Card>
+                <Separator />
+              </>
+            )}
+
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="flex items-center gap-3 p-3 rounded-lg bg-muted/50">
                 <Calendar className="w-5 h-5 text-primary" />
@@ -243,7 +298,7 @@ const PoolDetail = () => {
               </div>
             </div>
 
-            {!isOwner && !hasJoined && pool.status === "active" && (
+            {!isOwner && !hasJoined && pool.status === "active" && !isPastDeadline && (
               <>
                 <Separator />
                 <div className="space-y-4">
@@ -263,12 +318,35 @@ const PoolDetail = () => {
               </>
             )}
 
+            {isPastDeadline && !hasJoined && pool.status === "active" && (
+              <div className="p-4 rounded-lg bg-destructive/10 border border-destructive/20">
+                <p className="text-sm font-medium text-destructive">
+                  ⏰ O prazo para palpites expirou
+                </p>
+              </div>
+            )}
+
             {hasJoined && (
               <div className="p-4 rounded-lg bg-primary/10 border border-primary/20">
                 <p className="text-sm font-medium text-primary">
                   ✓ Você já enviou seu palpite. Aguarde a aprovação!
                 </p>
               </div>
+            )}
+
+            {isOwner && pool.status === "active" && (
+              <>
+                <Separator />
+                <Button 
+                  onClick={() => setShowResultDialog(true)}
+                  variant="secondary"
+                  className="w-full"
+                  size="lg"
+                >
+                  <Award className="w-5 h-5 mr-2" />
+                  Declarar Resultado e Vencedor
+                </Button>
+              </>
             )}
 
             {isOwner && pendingParticipants.length > 0 && (
@@ -336,6 +414,15 @@ const PoolDetail = () => {
             )}
           </CardContent>
         </Card>
+
+        {/* Declare Result Dialog */}
+        <DeclareResultDialog
+          pool={pool}
+          participants={participants}
+          open={showResultDialog}
+          onOpenChange={setShowResultDialog}
+          onSuccess={loadPoolData}
+        />
       </div>
     </div>
   );

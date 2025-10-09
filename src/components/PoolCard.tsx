@@ -1,7 +1,8 @@
+import { cn } from "@/lib/utils";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Calendar, Trophy, Users } from "lucide-react";
-import { format } from "date-fns";
+import { Calendar, Trophy, Users, Clock } from "lucide-react";
+import { format, isPast } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
 interface PoolCardProps {
@@ -50,9 +51,14 @@ const PoolCard = ({ pool, onClick }: PoolCardProps) => {
     return type === "football" ? "⚽" : "🎯";
   };
 
+  const isExpired = isPast(new Date(pool.deadline)) && pool.status === "active";
+
   return (
     <Card 
-      className="cursor-pointer transition-all duration-300 hover:shadow-lg hover:-translate-y-1 border-2 hover:border-primary/50"
+      className={cn(
+        "cursor-pointer transition-all duration-300 hover:shadow-lg hover:-translate-y-1 border-2 hover:border-primary/50",
+        isExpired && "opacity-75"
+      )}
       onClick={onClick}
     >
       <CardHeader>
@@ -61,9 +67,17 @@ const PoolCard = ({ pool, onClick }: PoolCardProps) => {
             <span className="text-2xl">{getTypeIcon(pool.pool_type)}</span>
             <CardTitle className="text-xl">{pool.title}</CardTitle>
           </div>
-          <Badge className={getStatusColor(pool.status)}>
-            {getStatusText(pool.status)}
-          </Badge>
+          <div className="flex flex-col gap-1">
+            <Badge className={getStatusColor(pool.status)}>
+              {getStatusText(pool.status)}
+            </Badge>
+            {isExpired && (
+              <Badge variant="destructive" className="text-xs">
+                <Clock className="w-3 h-3 mr-1" />
+                Expirado
+              </Badge>
+            )}
+          </div>
         </div>
         <CardDescription className="line-clamp-2">{pool.description}</CardDescription>
       </CardHeader>

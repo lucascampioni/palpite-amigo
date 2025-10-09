@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { Plus, Trophy, LogOut } from "lucide-react";
 import PoolCard from "@/components/PoolCard";
+import PoolStats from "@/components/PoolStats";
 import { Session } from "@supabase/supabase-js";
 
 const Index = () => {
@@ -14,6 +15,7 @@ const Index = () => {
   const [myPools, setMyPools] = useState<any[]>([]);
   const [availablePools, setAvailablePools] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [pendingApprovalsCount, setPendingApprovalsCount] = useState(0);
 
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
@@ -63,6 +65,19 @@ const Index = () => {
 
     setMyPools(ownedPools || []);
     setAvailablePools(activePools || []);
+    
+    // Count pending approvals for owned pools
+    const poolIds = ownedPools?.map(p => p.id) || [];
+    if (poolIds.length > 0) {
+      const { count } = await supabase
+        .from("participants")
+        .select("*", { count: "exact", head: true })
+        .in("pool_id", poolIds)
+        .eq("status", "pending");
+      
+      setPendingApprovalsCount(count || 0);
+    }
+    
     setLoading(false);
   };
 
@@ -104,6 +119,14 @@ const Index = () => {
 
       {/* Main Content */}
       <main className="max-w-6xl mx-auto px-4 py-8 space-y-8">
+        {/* Stats */}
+        <PoolStats
+          myPoolsCount={myPools.length}
+          activePoolsCount={myPools.filter(p => p.status === "active").length}
+          finishedPoolsCount={myPools.filter(p => p.status === "finished").length}
+          pendingApprovalsCount={pendingApprovalsCount}
+        />
+
         {/* Create Pool CTA */}
         <div className="text-center space-y-4">
           <h2 className="text-3xl md:text-4xl font-bold">
