@@ -35,8 +35,21 @@ const PoolDetail = () => {
   const [pixKey, setPixKey] = useState<string | null>(null);
 
   useEffect(() => {
-    loadPoolData();
-  }, [id]);
+    const checkAuthAndLoadData = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      if (!user) {
+        // Save the current URL to redirect back after login
+        const redirectUrl = `/pool/${id}`;
+        navigate(`/auth?redirect=${encodeURIComponent(redirectUrl)}`);
+        return;
+      }
+      
+      loadPoolData();
+    };
+    
+    checkAuthAndLoadData();
+  }, [id, navigate]);
 
   const loadPoolData = async () => {
     setLoading(true);
