@@ -36,6 +36,7 @@ const FootballPredictionForm = ({ poolId, userId, onSuccess }: FootballPredictio
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [pixKey, setPixKey] = useState<string | null>(null);
+  const [submitted, setSubmitted] = useState(false);
 
   useEffect(() => {
     loadMatches();
@@ -59,15 +60,17 @@ const FootballPredictionForm = ({ poolId, userId, onSuccess }: FootballPredictio
       setPredictions(data.map(m => ({ matchId: m.id, homeScore: 0, awayScore: 0 })));
     }
 
-    // Load PIX key from payment info table
+    setLoading(false);
+  };
+
+  const loadPixKey = async () => {
+    // Load PIX key from payment info table (only visible after submitting)
     const { data: paymentData } = await supabase
       .from("pool_payment_info")
       .select("pix_key")
       .eq("pool_id", poolId)
       .maybeSingle();
     setPixKey(paymentData?.pix_key ?? null);
-
-    setLoading(false);
   };
 
   const handlePredictionChange = (matchId: string, field: 'homeScore' | 'awayScore', value: string) => {
@@ -141,11 +144,43 @@ const FootballPredictionForm = ({ poolId, userId, onSuccess }: FootballPredictio
         title: "Palpites enviados!",
         description: "Aguarde a aprovação do criador do bolão.",
       });
+      setSubmitted(true);
+      await loadPixKey(); // Load PIX key after successful submission
       onSuccess();
     }
 
     setSubmitting(false);
   };
+
+  if (submitted) {
+    return (
+      <div className="space-y-4">
+        <div className="p-4 rounded-lg bg-primary/10 border border-primary/20">
+          <p className="text-sm font-medium text-primary mb-2">
+            ✓ Palpites enviados com sucesso!
+          </p>
+          <p className="text-xs text-muted-foreground">
+            {pixKey ? "Use a chave PIX abaixo para fazer o pagamento e aguarde a aprovação." : "Aguarde a aprovação do criador do bolão."}
+          </p>
+        </div>
+
+        {pixKey && (
+          <div className="p-4 rounded-lg bg-primary/10 border border-primary/20">
+            <div className="flex items-center justify-between">
+              <div className="flex-1">
+                <p className="text-sm font-medium mb-1">💰 Chave PIX para pagamento</p>
+                <p className="text-sm font-mono text-muted-foreground">{pixKey}</p>
+              </div>
+              <Button variant="outline" size="sm" onClick={handleCopyPixKey}>
+                <Copy className="w-4 h-4 mr-2" />
+                Copiar
+              </Button>
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  }
 
   if (loading) {
     return <p className="text-muted-foreground">Carregando jogos...</p>;
@@ -157,19 +192,6 @@ const FootballPredictionForm = ({ poolId, userId, onSuccess }: FootballPredictio
 
   return (
     <div className="space-y-4">
-      {pixKey && (
-        <div className="p-4 rounded-lg bg-primary/10 border border-primary/20 flex items-center justify-between">
-          <div>
-            <p className="text-sm font-medium mb-1">💰 Chave PIX para pagamento</p>
-            <p className="text-sm font-mono text-muted-foreground">{pixKey}</p>
-          </div>
-          <Button variant="outline" size="sm" onClick={handleCopyPixKey}>
-            <Copy className="w-4 h-4 mr-2" />
-            Copiar
-          </Button>
-        </div>
-      )}
-
       <h3 className="font-semibold text-lg">Faça seus palpites</h3>
       
       {matches.map((match, index) => {

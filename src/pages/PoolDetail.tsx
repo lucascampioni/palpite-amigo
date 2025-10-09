@@ -328,7 +328,7 @@ const PoolDetail = () => {
               </div>
             </div>
 
-            {pixKey && !(pool.pool_type === "football" || hasFootballMatches) && !hasJoined && pool.status === "active" && !isPastDeadline && (
+            {pixKey && !(pool.pool_type === "football" || hasFootballMatches) && hasJoined && pool.status === "active" && (
               <>
                 <Separator />
                 <div className="p-4 rounded-lg bg-primary/10 border border-primary/20">
@@ -336,6 +336,9 @@ const PoolDetail = () => {
                     <div>
                       <p className="text-sm font-medium mb-1">💰 Chave PIX para pagamento</p>
                       <p className="text-sm font-mono text-muted-foreground">{pixKey}</p>
+                      <p className="text-xs text-muted-foreground mt-2">
+                        Faça o pagamento e aguarde a aprovação do criador.
+                      </p>
                     </div>
                     <Button
                       variant="outline"
@@ -387,11 +390,40 @@ const PoolDetail = () => {
             )}
 
             {hasJoined && (
-              <div className="p-4 rounded-lg bg-primary/10 border border-primary/20">
-                <p className="text-sm font-medium text-primary">
-                  ✓ Você já enviou seu palpite. Aguarde a aprovação!
-                </p>
-              </div>
+              <>
+                {pixKey && (
+                  <>
+                    <Separator />
+                    <div className="p-4 rounded-lg bg-primary/10 border border-primary/20">
+                      <div className="flex items-center justify-between">
+                        <div className="flex-1">
+                          <p className="text-sm font-medium mb-1">💰 Chave PIX para pagamento</p>
+                          <p className="text-sm font-mono text-muted-foreground">{pixKey}</p>
+                          <p className="text-xs text-muted-foreground mt-2">
+                            Faça o pagamento e aguarde a aprovação do criador.
+                          </p>
+                        </div>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={handleCopyPixKey}
+                        >
+                          <Copy className="w-4 h-4 mr-2" />
+                          Copiar
+                        </Button>
+                      </div>
+                    </div>
+                  </>
+                )}
+                <div className="p-4 rounded-lg bg-primary/10 border border-primary/20">
+                  <p className="text-sm font-medium text-primary">
+                    ✓ Palpite enviado com sucesso!
+                  </p>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    {pixKey ? "Faça o pagamento usando a chave PIX acima e aguarde a aprovação." : "Aguarde a aprovação do criador do bolão."}
+                  </p>
+                </div>
+              </>
             )}
 
             {isOwner && pool.status === "active" && (
