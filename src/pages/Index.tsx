@@ -66,11 +66,12 @@ const Index = () => {
       .eq("owner_id", session.user.id)
       .order("created_at", { ascending: false });
 
-    // Load active pools that user can join
+    // Load active pools that user can join (only public pools)
     const { data: activePools } = await supabase
       .from("pools")
       .select("*, participants(count)")
       .eq("status", "active")
+      .eq("is_private", false)
       .neq("owner_id", session.user.id)
       .order("created_at", { ascending: false });
 

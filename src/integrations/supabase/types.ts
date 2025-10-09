@@ -199,6 +199,7 @@ export type Database = {
           description: string
           guess_label: string
           id: string
+          is_private: boolean
           measurement_unit: Database["public"]["Enums"]["measurement_unit"]
           owner_id: string
           pool_type: Database["public"]["Enums"]["pool_type"]
@@ -214,6 +215,7 @@ export type Database = {
           description: string
           guess_label: string
           id?: string
+          is_private?: boolean
           measurement_unit?: Database["public"]["Enums"]["measurement_unit"]
           owner_id: string
           pool_type?: Database["public"]["Enums"]["pool_type"]
@@ -229,6 +231,7 @@ export type Database = {
           description?: string
           guess_label?: string
           id?: string
+          is_private?: boolean
           measurement_unit?: Database["public"]["Enums"]["measurement_unit"]
           owner_id?: string
           pool_type?: Database["public"]["Enums"]["pool_type"]

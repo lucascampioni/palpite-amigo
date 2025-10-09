@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
 import { ArrowLeft } from "lucide-react";
 
@@ -15,6 +16,7 @@ const CreatePool = () => {
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
   const [measurementUnit, setMeasurementUnit] = useState("units");
+  const [isPrivate, setIsPrivate] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -49,6 +51,7 @@ const CreatePool = () => {
         deadline: new Date(deadline).toISOString(),
         status: "active" as any,
         pool_type: "custom" as any,
+        is_private: isPrivate,
       }]);
 
     if (error) {
@@ -143,6 +146,20 @@ const CreatePool = () => {
                   name="deadline"
                   type="datetime-local"
                   required
+                />
+              </div>
+
+              <div className="flex items-center justify-between rounded-lg border p-4">
+                <div className="space-y-0.5">
+                  <Label htmlFor="is-private">Bolão Privado</Label>
+                  <p className="text-sm text-muted-foreground">
+                    Se ativado, apenas pessoas com o link poderão acessar
+                  </p>
+                </div>
+                <Switch
+                  id="is-private"
+                  checked={isPrivate}
+                  onCheckedChange={setIsPrivate}
                 />
               </div>
 

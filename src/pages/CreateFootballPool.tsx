@@ -9,6 +9,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { useToast } from "@/hooks/use-toast";
 import { ArrowLeft, Plus, Trash2 } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
 
 interface Match {
   homeTeam: string;
@@ -21,6 +22,7 @@ const CreateFootballPool = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
+  const [isPrivate, setIsPrivate] = useState(false);
   const [matches, setMatches] = useState<Match[]>([
     { homeTeam: "", awayTeam: "", matchDate: "", championship: "brasileirao-serie-a" }
   ]);
@@ -85,6 +87,7 @@ const CreateFootballPool = () => {
         deadline: new Date(deadline).toISOString(),
         status: "active" as any,
         pool_type: "football" as any,
+        is_private: isPrivate,
       }])
       .select()
       .single();
@@ -217,6 +220,20 @@ const CreateFootballPool = () => {
                   id="pix_key"
                   name="pix_key"
                   placeholder="Digite sua chave PIX para receber pagamentos"
+                />
+              </div>
+
+              <div className="flex items-center justify-between rounded-lg border p-4">
+                <div className="space-y-0.5">
+                  <Label htmlFor="is-private">Bolão Privado</Label>
+                  <p className="text-sm text-muted-foreground">
+                    Se ativado, apenas pessoas com o link poderão acessar
+                  </p>
+                </div>
+                <Switch
+                  id="is-private"
+                  checked={isPrivate}
+                  onCheckedChange={setIsPrivate}
                 />
               </div>
 
