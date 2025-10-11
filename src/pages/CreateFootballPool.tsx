@@ -23,6 +23,7 @@ const CreateFootballPool = () => {
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
   const [isPrivate, setIsPrivate] = useState(false);
+  const [loadingGE, setLoadingGE] = useState(false);
   const [matches, setMatches] = useState<Match[]>([
     { homeTeam: "", awayTeam: "", matchDate: "", championship: "brasileirao-serie-a" }
   ]);
@@ -39,6 +40,39 @@ const CreateFootballPool = () => {
     const newMatches = [...matches];
     newMatches[index][field] = value;
     setMatches(newMatches);
+  };
+
+  const handleFetchGEMatches = async () => {
+    setLoadingGE(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('fetch-ge-matches', {
+        body: { championship: 'Brasileirão Série A' }
+      });
+
+      if (error) throw error;
+
+      if (data?.matches && data.matches.length > 0) {
+        setMatches(data.matches);
+        toast({
+          title: "Jogos carregados!",
+          description: `${data.matches.length} jogos foram importados do Globo Esporte.`,
+        });
+      } else {
+        toast({
+          title: "Aviso",
+          description: "Nenhum jogo encontrado. Você pode adicionar manualmente.",
+        });
+      }
+    } catch (error) {
+      console.error('Error fetching GE matches:', error);
+      toast({
+        variant: "destructive",
+        title: "Erro ao buscar jogos",
+        description: "Não foi possível carregar os jogos do Globo Esporte. Adicione manualmente.",
+      });
+    } finally {
+      setLoadingGE(false);
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -240,15 +274,26 @@ const CreateFootballPool = () => {
               <div className="space-y-4">
                 <div className="flex items-center justify-between">
                   <Label className="text-lg">Jogos do Bolão</Label>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={handleAddMatch}
-                  >
-                    <Plus className="w-4 h-4 mr-2" />
-                    Adicionar Jogo
-                  </Button>
+                  <div className="flex gap-2">
+                    <Button
+                      type="button"
+                      variant="secondary"
+                      size="sm"
+                      onClick={handleFetchGEMatches}
+                      disabled={loadingGE}
+                    >
+                      {loadingGE ? "Carregando..." : "⚽ Importar do GE"}
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={handleAddMatch}
+                    >
+                      <Plus className="w-4 h-4 mr-2" />
+                      Adicionar Jogo
+                    </Button>
+                  </div>
                 </div>
 
                 {matches.map((match, index) => (

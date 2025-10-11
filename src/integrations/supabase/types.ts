@@ -20,9 +20,12 @@ export type Database = {
           away_team: string
           championship: string
           created_at: string
+          external_id: string | null
+          external_source: string | null
           home_score: number | null
           home_team: string
           id: string
+          last_sync_at: string | null
           match_date: string
           pool_id: string
           status: string
@@ -33,9 +36,12 @@ export type Database = {
           away_team: string
           championship: string
           created_at?: string
+          external_id?: string | null
+          external_source?: string | null
           home_score?: number | null
           home_team: string
           id?: string
+          last_sync_at?: string | null
           match_date: string
           pool_id: string
           status?: string
@@ -46,9 +52,12 @@ export type Database = {
           away_team?: string
           championship?: string
           created_at?: string
+          external_id?: string | null
+          external_source?: string | null
           home_score?: number | null
           home_team?: string
           id?: string
+          last_sync_at?: string | null
           match_date?: string
           pool_id?: string
           status?: string
