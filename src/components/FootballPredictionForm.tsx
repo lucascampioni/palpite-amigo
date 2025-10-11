@@ -24,6 +24,8 @@ interface Match {
   championship: string;
   home_team_crest?: string;
   away_team_crest?: string;
+  external_id?: string;
+  external_source?: string;
 }
 
 interface Prediction {
@@ -62,6 +64,25 @@ const FootballPredictionForm = ({ poolId, userId, onSuccess, entryFee }: Footbal
     } else if (data) {
       setMatches(data);
       setPredictions(data.map(m => ({ matchId: m.id, homeScore: '', awayScore: '' })));
+
+      // Enrich with crests if missing using edge function
+      const needsCrests = data.filter(m => (!m.home_team_crest || !m.away_team_crest) && m.external_source === 'apifb' && (m.external_id || '').startsWith('fd_'));
+      if (needsCrests.length > 0) {
+        try {
+          const results = await Promise.all(needsCrests.map(async (m) => {
+            const matchId = (m.external_id || '').replace(/^fd_/, '');
+            const { data: crestData } = await supabase.functions.invoke('get-match-crests', {
+              body: { matchId }
+            });
+            return { id: m.id, ...crestData } as any;
+          }));
+          const crestMap = new Map(results.map((r: any) => [r.id, r]));
+          setMatches(prev => prev.map(m => crestMap.has(m.id)
+            ? { ...m, home_team_crest: crestMap.get(m.id).homeTeamCrest, away_team_crest: crestMap.get(m.id).awayTeamCrest }
+            : m
+          ));
+        } catch {}
+      }
     }
 
     setLoading(false);
