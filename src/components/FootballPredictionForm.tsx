@@ -207,6 +207,13 @@ const FootballPredictionForm = ({ poolId, userId, onSuccess, entryFee }: Footbal
 
   return (
     <div className="space-y-4">
+      {entryFee && (
+        <div className="p-4 rounded-lg bg-primary/10 border border-primary/20">
+          <p className="text-sm font-medium">💵 Valor de Entrada</p>
+          <p className="text-lg font-bold">R$ {entryFee.toFixed(2)}</p>
+        </div>
+      )}
+
       <h3 className="font-semibold text-lg">Faça seus palpites</h3>
       
       {matches.map((match, index) => {
@@ -229,7 +236,7 @@ const FootballPredictionForm = ({ poolId, userId, onSuccess, entryFee }: Footbal
                     type="number"
                     min="0"
                     max="99"
-                    placeholder="0"
+                    placeholder=""
                     value={prediction?.homeScore || ''}
                     onChange={(e) => handlePredictionChange(match.id, 'homeScore', e.target.value)}
                     required
@@ -241,7 +248,7 @@ const FootballPredictionForm = ({ poolId, userId, onSuccess, entryFee }: Footbal
                     type="number"
                     min="0"
                     max="99"
-                    placeholder="0"
+                    placeholder=""
                     value={prediction?.awayScore || ''}
                     onChange={(e) => handlePredictionChange(match.id, 'awayScore', e.target.value)}
                     required
@@ -253,28 +260,9 @@ const FootballPredictionForm = ({ poolId, userId, onSuccess, entryFee }: Footbal
         );
       })}
 
-      {(entryFee || pixKey) && (
-        <div className="p-4 rounded-lg bg-primary/10 border border-primary/20">
-          {entryFee && (
-            <p className="text-sm font-medium mb-2">💵 Valor de Entrada: R$ {entryFee.toFixed(2)}</p>
-          )}
-          {pixKey && (
-            <div className="flex items-center justify-between">
-              <div className="flex-1">
-                <p className="text-sm font-medium mb-1">💰 Chave PIX para pagamento</p>
-                <p className="text-sm font-mono text-muted-foreground">{pixKey}</p>
-                <p className="text-xs text-muted-foreground mt-2">
-                  Após enviar seus palpites, faça o pagamento e aguarde a aprovação.
-                </p>
-              </div>
-              <Button variant="outline" size="sm" onClick={handleCopyPixKey}>
-                <Copy className="w-4 h-4 mr-2" />
-                Copiar
-              </Button>
-            </div>
-          )}
-        </div>
-      )}
+      <p className="text-sm text-muted-foreground text-center">
+        Envie todos os palpites para ter acesso as informações de pagamento.
+      </p>
 
       <Button onClick={handleSubmit} disabled={submitting} className="w-full" size="lg">
         {submitting ? "Enviando..." : "Enviar Todos os Palpites"}
