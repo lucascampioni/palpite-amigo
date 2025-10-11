@@ -118,7 +118,7 @@ export function MaskedPixKey({ pixKey, pixKeyType, participantId, poolId }: Mask
           <Button
             variant="ghost"
             size="icon"
-            onClick={() => setShowConfirmDialog(true)}
+            onClick={() => isRevealed ? setIsRevealed(false) : setShowConfirmDialog(true)}
             title={isRevealed ? "Ocultar chave" : "Revelar chave"}
           >
             {isRevealed ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
