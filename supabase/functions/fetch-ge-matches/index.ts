@@ -129,6 +129,18 @@ serve(async (req) => {
 
   try {
     console.log('=== Starting fetch-ge-matches ===');
+    
+    // Verify authentication
+    const authHeader = req.headers.get('Authorization');
+    if (!authHeader) {
+      console.error('❌ Missing authorization header');
+      return new Response(
+        JSON.stringify({ error: 'Unauthorized - authentication required', success: false }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+    
+    console.log('✅ Authenticated request');
     console.log('Fetching matches from football-data.org...');
 
     if (!FOOTBALL_DATA_API_KEY) {

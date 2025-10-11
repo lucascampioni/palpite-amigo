@@ -1,7 +1,7 @@
 project_id = "aqpkkdhkbklhmjjiicsn"
 
 [functions.fetch-ge-matches]
-verify_jwt = false
+verify_jwt = true
 
 [functions.sync-match-results]
-verify_jwt = false
+verify_jwt = true

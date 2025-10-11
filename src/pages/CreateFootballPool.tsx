@@ -12,6 +12,13 @@ import { Switch } from "@/components/ui/switch";
 import { GEMatchSelector } from "@/components/GEMatchSelector";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { z } from "zod";
+
+const footballPoolSchema = z.object({
+  title: z.string().trim().min(1, "Título é obrigatório").max(200, "Título muito longo"),
+  description: z.string().trim().max(2000, "Descrição muito longa").optional(),
+  pixKey: z.string().trim().max(100, "Chave PIX muito longa").optional(),
+});
 
 interface Match {
   homeTeam: string;
@@ -87,6 +94,21 @@ const CreateFootballPool = () => {
     const title = formData.get("title") as string;
     const description = formData.get("description") as string;
     const pixKey = formData.get("pix_key") as string;
+
+    // Validate input
+    try {
+      footballPoolSchema.parse({ title, description, pixKey });
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        toast({
+          variant: "destructive",
+          title: "Erro de validação",
+          description: error.errors[0].message,
+        });
+        setLoading(false);
+        return;
+      }
+    }
 
     const { data: { user } } = await supabase.auth.getUser();
 

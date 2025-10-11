@@ -75,7 +75,7 @@ const FootballPredictionForm = ({ poolId, userId, onSuccess }: FootballPredictio
   };
 
   const handlePredictionChange = (matchId: string, field: 'homeScore' | 'awayScore', value: string) => {
-    const numValue = parseInt(value) || 0;
+    const numValue = Math.min(Math.max(parseInt(value) || 0, 0), 99); // Clamp between 0-99
     setPredictions(prev =>
       prev.map(p => p.matchId === matchId ? { ...p, [field]: numValue } : p)
     );
@@ -214,6 +214,7 @@ const FootballPredictionForm = ({ poolId, userId, onSuccess }: FootballPredictio
                   <Input
                     type="number"
                     min="0"
+                    max="99"
                     value={prediction?.homeScore || 0}
                     onChange={(e) => handlePredictionChange(match.id, 'homeScore', e.target.value)}
                   />
@@ -223,6 +224,7 @@ const FootballPredictionForm = ({ poolId, userId, onSuccess }: FootballPredictio
                   <Input
                     type="number"
                     min="0"
+                    max="99"
                     value={prediction?.awayScore || 0}
                     onChange={(e) => handlePredictionChange(match.id, 'awayScore', e.target.value)}
                   />

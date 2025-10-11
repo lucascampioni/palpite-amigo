@@ -10,6 +10,13 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
 import { ArrowLeft } from "lucide-react";
+import { z } from "zod";
+
+const poolSchema = z.object({
+  title: z.string().trim().min(1, "Título é obrigatório").max(200, "Título muito longo"),
+  description: z.string().trim().max(2000, "Descrição muito longa"),
+  guessLabel: z.string().trim().min(1, "Pergunta do palpite é obrigatória").max(200, "Pergunta muito longa"),
+});
 
 const CreatePool = () => {
   const navigate = useNavigate();
@@ -27,6 +34,21 @@ const CreatePool = () => {
     const description = formData.get("description") as string;
     const guessLabel = formData.get("guess-label") as string;
     const deadline = formData.get("deadline") as string;
+
+    // Validate input
+    try {
+      poolSchema.parse({ title, description, guessLabel });
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        toast({
+          variant: "destructive",
+          title: "Erro de validação",
+          description: error.errors[0].message,
+        });
+        setLoading(false);
+        return;
+      }
+    }
 
     const { data: { user } } = await supabase.auth.getUser();
 

@@ -8,6 +8,18 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import { Trophy } from "lucide-react";
+import { z } from "zod";
+
+const signUpSchema = z.object({
+  email: z.string().email("Email inválido").max(255, "Email muito longo"),
+  password: z.string().min(6, "Senha deve ter no mínimo 6 caracteres").max(128, "Senha muito longa"),
+  fullName: z.string().trim().min(1, "Nome é obrigatório").max(100, "Nome muito longo"),
+});
+
+const signInSchema = z.object({
+  email: z.string().email("Email inválido").max(255, "Email muito longo"),
+  password: z.string().min(1, "Senha é obrigatória").max(128, "Senha muito longa"),
+});
 
 const Auth = () => {
   const navigate = useNavigate();
@@ -44,6 +56,21 @@ const Auth = () => {
     const password = formData.get("signup-password") as string;
     const fullName = formData.get("full-name") as string;
 
+    // Validate input
+    try {
+      signUpSchema.parse({ email, password, fullName });
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        toast({
+          variant: "destructive",
+          title: "Erro de validação",
+          description: error.errors[0].message,
+        });
+        setLoading(false);
+        return;
+      }
+    }
+
     const { error } = await supabase.auth.signUp({
       email,
       password,
@@ -78,6 +105,21 @@ const Auth = () => {
     const formData = new FormData(e.currentTarget);
     const email = formData.get("login-email") as string;
     const password = formData.get("login-password") as string;
+
+    // Validate input
+    try {
+      signInSchema.parse({ email, password });
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        toast({
+          variant: "destructive",
+          title: "Erro de validação",
+          description: error.errors[0].message,
+        });
+        setLoading(false);
+        return;
+      }
+    }
 
     const { error } = await supabase.auth.signInWithPassword({
       email,
