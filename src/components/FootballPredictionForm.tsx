@@ -159,7 +159,7 @@ const FootballPredictionForm = ({ poolId, userId, onSuccess, entryFee }: Footbal
         user_id: userId,
         participant_name: profile?.full_name || "Usuário",
         guess_value: "Palpites de futebol",
-        status: "pending",
+        status: "awaiting_proof",
       })
       .select()
       .single();
@@ -197,11 +197,11 @@ const FootballPredictionForm = ({ poolId, userId, onSuccess, entryFee }: Footbal
     } else {
       toast({
         title: "Palpites enviados!",
-        description: "Aguarde a aprovação do criador do bolão.",
+        description: "Agora anexe o comprovante de pagamento para enviar para aprovação.",
       });
       setSubmitted(true);
       setParticipantId(participant.id);
-      await loadPixKey(); // Load PIX key after successful submission
+      await loadPixKey();
       onSuccess();
     }
 
@@ -246,10 +246,13 @@ const FootballPredictionForm = ({ poolId, userId, onSuccess, entryFee }: Footbal
 
       if (uploadError) throw uploadError;
 
-      // Update participant with payment proof path
+      // Update participant with payment proof path and change status to pending
       const { error: updateError } = await supabase
         .from('participants')
-        .update({ payment_proof: fileName })
+        .update({ 
+          payment_proof: fileName,
+          status: 'pending'
+        })
         .eq('id', participantId);
 
       if (updateError) throw updateError;
@@ -257,8 +260,9 @@ const FootballPredictionForm = ({ poolId, userId, onSuccess, entryFee }: Footbal
       setPaymentProofUploaded(true);
       toast({
         title: "Comprovante enviado!",
-        description: "O criador do bolão poderá ver seu comprovante.",
+        description: "Sua solicitação foi enviada para aprovação do criador.",
       });
+      onSuccess(); // Refresh parent to update status
     } catch (error) {
       console.error('Error uploading payment proof:', error);
       toast({

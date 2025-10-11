@@ -384,7 +384,7 @@ export type Database = {
     }
     Enums: {
       measurement_unit: "kg" | "cm" | "reais" | "units" | "score"
-      participant_status: "pending" | "approved" | "rejected"
+      participant_status: "pending" | "approved" | "rejected" | "awaiting_proof"
       pool_status: "draft" | "active" | "closed" | "finished"
       pool_type: "custom" | "football"
     }
@@ -515,7 +515,7 @@ export const Constants = {
   public: {
     Enums: {
       measurement_unit: ["kg", "cm", "reais", "units", "score"],
-      participant_status: ["pending", "approved", "rejected"],
+      participant_status: ["pending", "approved", "rejected", "awaiting_proof"],
       pool_status: ["draft", "active", "closed", "finished"],
       pool_type: ["custom", "football"],
     },

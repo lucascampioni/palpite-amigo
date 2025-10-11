@@ -17,6 +17,7 @@ import WinnerDisplay from "@/components/WinnerDisplay";
 import FootballPredictionForm from "@/components/FootballPredictionForm";
 import FootballRanking from "@/components/FootballRanking";
 import FootballParticipantsPredictions from "@/components/FootballParticipantsPredictions";
+import PaymentProofUpload from "@/components/PaymentProofUpload";
 
 const PoolDetail = () => {
   const { id } = useParams();
@@ -36,6 +37,7 @@ const PoolDetail = () => {
   const [pixKey, setPixKey] = useState<string | null>(null);
   const [entryFee, setEntryFee] = useState<number | null>(null);
   const [maxParticipants, setMaxParticipants] = useState<number | null>(null);
+  const [awaitingProofParticipant, setAwaitingProofParticipant] = useState<any>(null);
 
   useEffect(() => {
     const checkAuthAndLoadData = async () => {
@@ -88,6 +90,10 @@ const PoolDetail = () => {
 
     setParticipants(participantsData || []);
     setHasJoined(participantsData?.some(p => p.user_id === user?.id) || false);
+    
+    // Check if user has a participant awaiting proof
+    const userAwaitingProof = participantsData?.find(p => p.user_id === user?.id && p.status === 'awaiting_proof');
+    setAwaitingProofParticipant(userAwaitingProof || null);
     
     // Detect if this pool has football matches (even if pool_type is not set)
     const { data: matchesData } = await supabase
@@ -507,7 +513,29 @@ const PoolDetail = () => {
               </div>
             )}
 
-            {hasJoined && (
+            {awaitingProofParticipant && (
+              <>
+                <Separator />
+                <div className="space-y-4">
+                  <div className="p-4 rounded-lg bg-orange-50 dark:bg-orange-950 border border-orange-200 dark:border-orange-800">
+                    <p className="text-sm font-medium text-orange-700 dark:text-orange-300 mb-2">
+                      ⏳ Aguardando Comprovante
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      Seus palpites foram registrados. Agora envie o comprovante de pagamento para que sua participação seja aprovada.
+                    </p>
+                  </div>
+                  <PaymentProofUpload
+                    participantId={awaitingProofParticipant.id}
+                    userId={userId!}
+                    poolId={pool.id}
+                    onSuccess={loadPoolData}
+                  />
+                </div>
+              </>
+            )}
+
+            {hasJoined && !awaitingProofParticipant && (
               <>
                 {pixKey && (
                   <>

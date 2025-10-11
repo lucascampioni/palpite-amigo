@@ -15,6 +15,7 @@ const Index = () => {
   const [session, setSession] = useState<Session | null>(null);
   const [myCreatedPools, setMyCreatedPools] = useState<any[]>([]);
   const [myParticipatingPools, setMyParticipatingPools] = useState<any[]>([]);
+  const [myAwaitingProofPools, setMyAwaitingProofPools] = useState<any[]>([]);
   const [officialPools, setOfficialPools] = useState<any[]>([]);
   const [availablePools, setAvailablePools] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -64,7 +65,7 @@ const Index = () => {
       .eq("owner_id", session.user.id)
       .order("created_at", { ascending: false });
 
-    // Load pools where user is a participant
+    // Load pools where user is a participant (approved)
     const { data: participantRecords } = await supabase
       .from("participants")
       .select("pool_id, status")
@@ -79,9 +80,28 @@ const Index = () => {
         .from("pools")
         .select("*, participants(count)")
         .in("id", participantPoolIds)
-        .neq("owner_id", session.user.id) // Exclude pools user owns
+        .neq("owner_id", session.user.id)
         .order("created_at", { ascending: false });
       participatingPoolsData = data || [];
+    }
+
+    // Load pools where user is awaiting proof upload
+    const { data: awaitingProofRecords } = await supabase
+      .from("participants")
+      .select("pool_id, id, status")
+      .eq("user_id", session.user.id)
+      .eq("status", "awaiting_proof");
+    
+    const awaitingProofPoolIds = awaitingProofRecords?.map(p => p.pool_id) || [];
+    
+    let awaitingProofPoolsData: any[] = [];
+    if (awaitingProofPoolIds.length > 0) {
+      const { data } = await supabase
+        .from("pools")
+        .select("*, participants(count)")
+        .in("id", awaitingProofPoolIds)
+        .order("created_at", { ascending: false });
+      awaitingProofPoolsData = data || [];
     }
 
     // Load official pools (marked as official by app admin)
@@ -123,6 +143,7 @@ const Index = () => {
 
     setMyCreatedPools(ownedPools || []);
     setMyParticipatingPools(participatingPoolsData);
+    setMyAwaitingProofPools(awaitingProofPoolsData);
     setOfficialPools(officialPoolsData || []);
     setAvailablePools(activePools);
     
@@ -230,6 +251,36 @@ const Index = () => {
                   onClick={() => navigate(`/pool/${pool.id}`)}
                 />
               ))}
+            </div>
+          </section>
+        )}
+
+        {/* Awaiting Proof Section */}
+        {myAwaitingProofPools.length > 0 && (
+          <section className="space-y-4">
+            <div className="flex items-center gap-2">
+              <div className="w-8 h-8 rounded-lg bg-orange-500 flex items-center justify-center">
+                <span className="text-lg">📎</span>
+              </div>
+              <h3 className="text-2xl font-bold">⏳ Aguardando Comprovante</h3>
+            </div>
+            <div className="p-4 rounded-lg bg-orange-50 dark:bg-orange-950 border border-orange-200 dark:border-orange-800">
+              <p className="text-sm text-muted-foreground mb-4">
+                Clique no bolão abaixo para anexar o comprovante de pagamento e enviar para aprovação.
+              </p>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {myAwaitingProofPools.map((pool) => (
+                  <div key={pool.id} className="relative">
+                    <PoolCard
+                      pool={pool}
+                      onClick={() => navigate(`/pool/${pool.id}`)}
+                    />
+                    <div className="absolute top-2 right-2 bg-orange-500 text-white text-xs px-2 py-1 rounded-full font-semibold">
+                      Pendente
+                    </div>
+                  </div>
+                ))}
+              </div>
             </div>
           </section>
         )}
