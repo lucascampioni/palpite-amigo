@@ -37,6 +37,7 @@ const PoolDetail = () => {
   const [pixKey, setPixKey] = useState<string | null>(null);
   const [entryFee, setEntryFee] = useState<number | null>(null);
   const [maxParticipants, setMaxParticipants] = useState<number | null>(null);
+  const [currentUserParticipant, setCurrentUserParticipant] = useState<any>(null);
   const [awaitingProofParticipant, setAwaitingProofParticipant] = useState<any>(null);
 
   useEffect(() => {
@@ -89,11 +90,13 @@ const PoolDetail = () => {
       .eq("pool_id", id);
 
     setParticipants(participantsData || []);
-    setHasJoined(participantsData?.some(p => p.user_id === user?.id) || false);
+    const myParticipant = participantsData?.find(p => p.user_id === user?.id) || null;
+    setCurrentUserParticipant(myParticipant);
+    setHasJoined(!!myParticipant);
     
     // Check if user has a participant awaiting proof
-    const userAwaitingProof = participantsData?.find(p => p.user_id === user?.id && p.status === 'awaiting_proof');
-    setAwaitingProofParticipant(userAwaitingProof || null);
+    const userAwaitingProof = myParticipant && myParticipant.status === 'awaiting_proof' ? myParticipant : null;
+    setAwaitingProofParticipant(userAwaitingProof);
     
     // Detect if this pool has football matches (even if pool_type is not set)
     const { data: matchesData } = await supabase
@@ -535,7 +538,19 @@ const PoolDetail = () => {
               </>
             )}
 
-            {hasJoined && !awaitingProofParticipant && (
+            {currentUserParticipant && currentUserParticipant.status === 'pending' && (
+              <>
+                <Separator />
+                <div className="p-4 rounded-lg bg-primary/10 border border-primary/20">
+                  <p className="text-sm font-medium text-primary">⏳ Aguardando Aprovação</p>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Seu comprovante foi enviado. Aguarde o criador aprovar sua entrada.
+                  </p>
+                </div>
+              </>
+            )}
+
+            {hasJoined && !awaitingProofParticipant && currentUserParticipant?.status !== 'pending' && (
               <>
                 {pixKey && (
                   <>

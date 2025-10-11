@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
-import { Upload, Check } from "lucide-react";
+import { Upload, Check, File as FileIcon } from "lucide-react";
 
 interface PaymentProofUploadProps {
   participantId: string;
@@ -18,10 +18,18 @@ const PaymentProofUpload = ({ participantId, userId, poolId, onSuccess }: Paymen
   const { toast } = useToast();
   const [uploading, setUploading] = useState(false);
   const [uploaded, setUploaded] = useState(false);
+  const [file, setFile] = useState<File | null>(null);
 
-  const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+  const onFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const f = e.target.files?.[0] || null;
+    setFile(f);
+  };
+
+  const handleSubmitUpload = async () => {
+    if (!file) {
+      toast({ variant: "destructive", title: "Selecione um arquivo" });
+      return;
+    }
 
     // Validate file size (5MB)
     if (file.size > 5 * 1024 * 1024) {
@@ -74,10 +82,9 @@ const PaymentProofUpload = ({ participantId, userId, poolId, onSuccess }: Paymen
         description: "Sua solicitação foi enviada para aprovação do criador.",
       });
       
-      // Call onSuccess after a short delay to allow user to see the success message
       setTimeout(() => {
         onSuccess();
-      }, 1500);
+      }, 1000);
     } catch (error) {
       console.error('Error uploading payment proof:', error);
       toast({
@@ -124,23 +131,32 @@ const PaymentProofUpload = ({ participantId, userId, poolId, onSuccess }: Paymen
               <Upload className="w-6 h-6" />
               <div className="flex-1">
                 <p className="font-medium">
-                  {uploading ? "Enviando..." : "Clique para selecionar arquivo"}
+                  {file ? 'Arquivo selecionado' : 'Clique para selecionar arquivo'}
                 </p>
                 <p className="text-xs text-muted-foreground">
                   Formatos: JPG, PNG, WEBP, PDF (máx. 5MB)
                 </p>
               </div>
+              {file && (
+                <div className="flex items-center gap-2 text-sm">
+                  <FileIcon className="w-4 h-4" />
+                  <span className="truncate max-w-[240px]">{file.name}</span>
+                </div>
+              )}
             </div>
           </Label>
           <Input
             id="payment-proof-upload"
             type="file"
             accept="image/jpeg,image/png,image/jpg,image/webp,application/pdf"
-            onChange={handleUpload}
+            onChange={onFileChange}
             disabled={uploading}
             className="hidden"
           />
         </div>
+        <Button onClick={handleSubmitUpload} disabled={uploading || !file} className="w-full">
+          {uploading ? 'Enviando...' : 'Enviar Comprovante'}
+        </Button>
       </CardContent>
     </Card>
   );
