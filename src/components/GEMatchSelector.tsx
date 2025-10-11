@@ -197,10 +197,10 @@ export const GEMatchSelector = ({ open, onOpenChange, onMatchesSelected }: GEMat
           </div>
         ) : (
           <Tabs defaultValue={championships[0]?.id} className="w-full">
-            <TabsList className="w-full grid grid-cols-2">
+            <TabsList className="w-full grid" style={{ gridTemplateColumns: `repeat(${championships.length}, 1fr)` }}>
               {championships.map((champ) => (
                 <TabsTrigger key={champ.id} value={champ.id}>
-                  {champ.name}
+                  {champ.name === 'Premier League' ? '🏴󠁧󠁢󠁥󠁮󠁧󠁿 Premier League' : '🇧🇷 Brasileirão'}
                 </TabsTrigger>
               ))}
             </TabsList>

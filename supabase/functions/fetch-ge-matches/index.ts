@@ -30,12 +30,17 @@ interface Championship {
 const FOOTBALL_DATA_API_KEY = Deno.env.get('FOOTBALL_DATA_API_KEY');
 const BASE_URL = 'https://api.football-data.org/v4';
 
-// Competition IDs for Brazilian competitions
+// Competition IDs for championships
 const COMPETITIONS = {
   brasileirao: {
     id: 2013,
     code: 'BSA',
     name: 'Campeonato Brasileiro Série A'
+  },
+  premierLeague: {
+    id: 2021,
+    code: 'PL',
+    name: 'Premier League'
   }
 };
 
@@ -81,9 +86,10 @@ function organizeMatchesByRound(matches: any[], competitionName: string, competi
   const roundsMap = new Map<string, Match[]>();
 
   matches.forEach((match: any) => {
-    // Use matchday for Brazilian league
+    // Use matchday for round number
     const matchday = match.matchday || 1;
-    const round = `Rodada ${matchday}`;
+    // Different naming for different leagues
+    const round = competitionCode === 'PL' ? `Rodada ${matchday}` : `Rodada ${matchday}`;
     
     const matchObj: Match = {
       homeTeam: match.homeTeam?.name || match.homeTeam?.shortName || 'Time Casa',
@@ -174,6 +180,26 @@ serve(async (req) => {
       }
     } catch (error) {
       console.error('❌ Error fetching Brasileirão:', error);
+      console.error('Error details:', error instanceof Error ? error.message : String(error));
+    }
+
+    // Fetch Premier League
+    try {
+      console.log(`📡 Fetching ${COMPETITIONS.premierLeague.name} (ID ${COMPETITIONS.premierLeague.id})...`);
+      const matches = await fetchMatches(COMPETITIONS.premierLeague.id);
+      console.log(`📊 Received ${matches.length} matches for Premier League`);
+      
+      if (matches.length > 0) {
+        const premierLeagueChamp = organizeMatchesByRound(
+          matches,
+          COMPETITIONS.premierLeague.name,
+          COMPETITIONS.premierLeague.code
+        );
+        championships.push(premierLeagueChamp);
+        console.log(`✅ Organized into ${premierLeagueChamp.rounds.length} rounds`);
+      }
+    } catch (error) {
+      console.error('❌ Error fetching Premier League:', error);
       console.error('Error details:', error instanceof Error ? error.message : String(error));
     }
 
