@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
@@ -76,43 +77,47 @@ const FootballParticipantsPredictions = ({ poolId, participants }: FootballParti
     <div className="space-y-4">
       <h3 className="font-semibold text-lg">Palpites dos Participantes</h3>
       
-      {participants.map((participant) => (
-        <Card key={participant.id}>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-base">{participant.participant_name}</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            {matches.map((match) => {
-              const prediction = getPrediction(participant.id, match.id);
-              return (
-                <div key={match.id} className="flex items-center justify-between p-3 rounded-lg bg-muted/50">
-                  <div className="flex-1">
-                    <p className="text-sm font-medium">
-                      {match.home_team} vs {match.away_team}
-                    </p>
-                    <p className="text-xs text-muted-foreground">
-                      {format(new Date(match.match_date), "dd/MM/yyyy", { locale: ptBR })}
-                    </p>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <Badge variant="secondary" className="font-mono">
-                      {prediction ? `${prediction.home_score_prediction} x ${prediction.away_score_prediction}` : "—"}
-                    </Badge>
-                    {match.home_score !== null && match.away_score !== null && prediction && (
-                      <Badge 
-                        variant={prediction.points_earned > 0 ? "default" : "outline"}
-                        className="font-semibold"
-                      >
-                        {prediction.points_earned} pts
-                      </Badge>
-                    )}
-                  </div>
-                </div>
-              );
-            })}
-          </CardContent>
-        </Card>
-      ))}
+      <Accordion type="single" collapsible className="space-y-2">
+        {participants.map((participant) => (
+          <AccordionItem key={participant.id} value={participant.id} className="border rounded-lg">
+            <AccordionTrigger className="px-4 hover:no-underline">
+              <span className="font-medium">{participant.participant_name}</span>
+            </AccordionTrigger>
+            <AccordionContent className="px-4 pb-4">
+              <div className="space-y-3">
+                {matches.map((match) => {
+                  const prediction = getPrediction(participant.id, match.id);
+                  return (
+                    <div key={match.id} className="flex items-center justify-between p-3 rounded-lg bg-muted/50">
+                      <div className="flex-1">
+                        <p className="text-sm font-medium">
+                          {match.home_team} vs {match.away_team}
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          {format(new Date(match.match_date), "dd/MM/yyyy", { locale: ptBR })}
+                        </p>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <Badge variant="secondary" className="font-mono">
+                          {prediction ? `${prediction.home_score_prediction} x ${prediction.away_score_prediction}` : "—"}
+                        </Badge>
+                        {match.home_score !== null && match.away_score !== null && prediction && (
+                          <Badge 
+                            variant={prediction.points_earned > 0 ? "default" : "outline"}
+                            className="font-semibold"
+                          >
+                            {prediction.points_earned} pts
+                          </Badge>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </AccordionContent>
+          </AccordionItem>
+        ))}
+      </Accordion>
     </div>
   );
 };
