@@ -15,143 +15,86 @@ interface Match {
   round: string;
 }
 
-interface Championship {
-  id: string;
-  name: string;
-  rounds: Round[];
-}
-
 interface Round {
   number: number;
   name: string;
   matches: Match[];
 }
 
-// Simulate real matches data (replace with actual API/scraping in production)
-function getSimulatedMatches(): Championship[] {
-  const now = new Date();
-  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-  
-  return [
+interface Championship {
+  id: string;
+  name: string;
+  rounds: Round[];
+}
+
+const API_FOOTBALL_KEY = Deno.env.get('API_FOOTBALL_KEY');
+
+// League IDs for Brazilian competitions
+const LEAGUES = {
+  brasileirao: 71,  // Brasileirão Série A
+  copa_brasil: 73,  // Copa do Brasil
+};
+
+async function fetchFixtures(leagueId: number, season: number = 2025): Promise<any[]> {
+  if (!API_FOOTBALL_KEY) {
+    throw new Error('API_FOOTBALL_KEY not configured');
+  }
+
+  const response = await fetch(
+    `https://v3.football.api-sports.io/fixtures?league=${leagueId}&season=${season}&next=50`,
     {
-      id: 'brasileirao-serie-a',
-      name: 'Brasileirão Série A',
-      rounds: [
-        {
-          number: 26,
-          name: 'Rodada 26',
-          matches: [
-            {
-              homeTeam: 'Flamengo',
-              awayTeam: 'Bahia',
-              matchDate: new Date(today.getTime() + 2 * 24 * 60 * 60 * 1000).toISOString(),
-              championship: 'Brasileirão Série A',
-              externalId: 'ge_flabah_26',
-              round: 'Rodada 26'
-            },
-            {
-              homeTeam: 'Palmeiras',
-              awayTeam: 'Corinthians',
-              matchDate: new Date(today.getTime() + 2 * 24 * 60 * 60 * 1000).toISOString(),
-              championship: 'Brasileirão Série A',
-              externalId: 'ge_palcor_26',
-              round: 'Rodada 26'
-            },
-            {
-              homeTeam: 'São Paulo',
-              awayTeam: 'Santos',
-              matchDate: new Date(today.getTime() + 3 * 24 * 60 * 60 * 1000).toISOString(),
-              championship: 'Brasileirão Série A',
-              externalId: 'ge_saoSan_26',
-              round: 'Rodada 26'
-            },
-            {
-              homeTeam: 'Internacional',
-              awayTeam: 'Grêmio',
-              matchDate: new Date(today.getTime() + 3 * 24 * 60 * 60 * 1000).toISOString(),
-              championship: 'Brasileirão Série A',
-              externalId: 'ge_intgre_26',
-              round: 'Rodada 26'
-            },
-            {
-              homeTeam: 'Atlético-MG',
-              awayTeam: 'Cruzeiro',
-              matchDate: new Date(today.getTime() + 3 * 24 * 60 * 60 * 1000).toISOString(),
-              championship: 'Brasileirão Série A',
-              externalId: 'ge_camcru_26',
-              round: 'Rodada 26'
-            },
-          ]
-        },
-        {
-          number: 27,
-          name: 'Rodada 27',
-          matches: [
-            {
-              homeTeam: 'Botafogo',
-              awayTeam: 'Vasco',
-              matchDate: new Date(today.getTime() + 7 * 24 * 60 * 60 * 1000).toISOString(),
-              championship: 'Brasileirão Série A',
-              externalId: 'ge_botvas_27',
-              round: 'Rodada 27'
-            },
-            {
-              homeTeam: 'Fluminense',
-              awayTeam: 'Flamengo',
-              matchDate: new Date(today.getTime() + 7 * 24 * 60 * 60 * 1000).toISOString(),
-              championship: 'Brasileirão Série A',
-              externalId: 'ge_flufla_27',
-              round: 'Rodada 27'
-            },
-            {
-              homeTeam: 'Fortaleza',
-              awayTeam: 'Ceará',
-              matchDate: new Date(today.getTime() + 8 * 24 * 60 * 60 * 1000).toISOString(),
-              championship: 'Brasileirão Série A',
-              externalId: 'ge_forcea_27',
-              round: 'Rodada 27'
-            },
-            {
-              homeTeam: 'Sport',
-              awayTeam: 'Vitória',
-              matchDate: new Date(today.getTime() + 8 * 24 * 60 * 60 * 1000).toISOString(),
-              championship: 'Brasileirão Série A',
-              externalId: 'ge_spovit_27',
-              round: 'Rodada 27'
-            },
-          ]
-        }
-      ]
-    },
-    {
-      id: 'copa-do-brasil',
-      name: 'Copa do Brasil',
-      rounds: [
-        {
-          number: 1,
-          name: 'Quartas de Final - Ida',
-          matches: [
-            {
-              homeTeam: 'Flamengo',
-              awayTeam: 'Palmeiras',
-              matchDate: new Date(today.getTime() + 5 * 24 * 60 * 60 * 1000).toISOString(),
-              championship: 'Copa do Brasil',
-              externalId: 'ge_copa_flapal',
-              round: 'Quartas de Final - Ida'
-            },
-            {
-              homeTeam: 'Atlético-MG',
-              awayTeam: 'São Paulo',
-              matchDate: new Date(today.getTime() + 5 * 24 * 60 * 60 * 1000).toISOString(),
-              championship: 'Copa do Brasil',
-              externalId: 'ge_copa_camsao',
-              round: 'Quartas de Final - Ida'
-            },
-          ]
-        }
-      ]
+      headers: {
+        'x-rapidapi-host': 'v3.football.api-sports.io',
+        'x-rapidapi-key': API_FOOTBALL_KEY,
+      },
     }
-  ];
+  );
+
+  if (!response.ok) {
+    throw new Error(`API Football error: ${response.status}`);
+  }
+
+  const data = await response.json();
+  return data.response || [];
+}
+
+function organizeFixturesByRound(fixtures: any[], leagueName: string, leagueId: string): Championship {
+  const roundsMap = new Map<string, Match[]>();
+
+  fixtures.forEach((fixture: any) => {
+    const round = fixture.league?.round || 'Rodada 1';
+    
+    const match: Match = {
+      homeTeam: fixture.teams?.home?.name || 'Time Casa',
+      awayTeam: fixture.teams?.away?.name || 'Time Visitante',
+      matchDate: fixture.fixture?.date || new Date().toISOString(),
+      championship: leagueName,
+      externalId: `apifb_${fixture.fixture?.id || Math.random()}`,
+      round: round,
+    };
+
+    if (!roundsMap.has(round)) {
+      roundsMap.set(round, []);
+    }
+    roundsMap.get(round)!.push(match);
+  });
+
+  const rounds: Round[] = [];
+  let roundNumber = 1;
+
+  roundsMap.forEach((matches, roundName) => {
+    rounds.push({
+      number: roundNumber++,
+      name: roundName,
+      matches: matches,
+    });
+  });
+
+  return {
+    id: leagueId,
+    name: leagueName,
+    rounds: rounds,
+  };
 }
 
 serve(async (req) => {
@@ -160,17 +103,70 @@ serve(async (req) => {
   }
 
   try {
-    console.log('Fetching matches data...');
-    
-    // Get simulated data organized by championship and rounds
-    const championships = getSimulatedMatches();
-    
-    console.log(`Found ${championships.length} championships with matches`);
-    
+    console.log('Fetching matches from API-FOOTBALL...');
+
+    if (!API_FOOTBALL_KEY) {
+      console.error('API_FOOTBALL_KEY not found');
+      return new Response(JSON.stringify({ 
+        error: 'API key not configured. Please add API_FOOTBALL_KEY in secrets.',
+        success: false 
+      }), {
+        status: 500,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    const championships: Championship[] = [];
+
+    // Fetch Brasileirão Série A
+    try {
+      console.log('Fetching Brasileirão Série A...');
+      const brasileiraoFixtures = await fetchFixtures(LEAGUES.brasileirao);
+      if (brasileiraoFixtures.length > 0) {
+        const brasileiraoChamp = organizeFixturesByRound(
+          brasileiraoFixtures,
+          'Brasileirão Série A',
+          'brasileirao-serie-a'
+        );
+        championships.push(brasileiraoChamp);
+        console.log(`Found ${brasileiraoFixtures.length} matches for Brasileirão`);
+      }
+    } catch (error) {
+      console.error('Error fetching Brasileirão:', error);
+    }
+
+    // Fetch Copa do Brasil
+    try {
+      console.log('Fetching Copa do Brasil...');
+      const copaFixtures = await fetchFixtures(LEAGUES.copa_brasil);
+      if (copaFixtures.length > 0) {
+        const copaChamp = organizeFixturesByRound(
+          copaFixtures,
+          'Copa do Brasil',
+          'copa-do-brasil'
+        );
+        championships.push(copaChamp);
+        console.log(`Found ${copaFixtures.length} matches for Copa do Brasil`);
+      }
+    } catch (error) {
+      console.error('Error fetching Copa do Brasil:', error);
+    }
+
+    if (championships.length === 0) {
+      return new Response(JSON.stringify({ 
+        success: true,
+        championships: [],
+        message: 'No upcoming matches found for the selected competitions.'
+      }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    console.log(`Returning ${championships.length} championships with matches`);
+
     return new Response(JSON.stringify({ 
       success: true,
       championships,
-      note: 'Using simulated data. For production, integrate with a sports data API like API-FOOTBALL, FootballData.org, or similar services for real-time match data.'
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });

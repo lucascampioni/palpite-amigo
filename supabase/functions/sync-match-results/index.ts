@@ -7,6 +7,31 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+const API_FOOTBALL_KEY = Deno.env.get('API_FOOTBALL_KEY');
+
+async function getFixtureById(fixtureId: string): Promise<any> {
+  if (!API_FOOTBALL_KEY) {
+    throw new Error('API_FOOTBALL_KEY not configured');
+  }
+
+  const response = await fetch(
+    `https://v3.football.api-sports.io/fixtures?id=${fixtureId}`,
+    {
+      headers: {
+        'x-rapidapi-host': 'v3.football.api-sports.io',
+        'x-rapidapi-key': API_FOOTBALL_KEY,
+      },
+    }
+  );
+
+  if (!response.ok) {
+    throw new Error(`API Football error: ${response.status}`);
+  }
+
+  const data = await response.json();
+  return data.response?.[0] || null;
+}
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -17,13 +42,24 @@ serve(async (req) => {
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    console.log('Starting match results sync...');
+    console.log('Starting match results sync from API-FOOTBALL...');
 
-    // Get all matches from GE source that are not finished
+    if (!API_FOOTBALL_KEY) {
+      console.error('API_FOOTBALL_KEY not found');
+      return new Response(JSON.stringify({ 
+        error: 'API key not configured',
+        success: false 
+      }), {
+        status: 500,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    // Get all matches from API-FOOTBALL source that are not finished
     const { data: matches, error: fetchError } = await supabase
       .from('football_matches')
       .select('*')
-      .eq('external_source', 'ge')
+      .or('external_source.eq.ge,external_source.eq.apifb')
       .neq('status', 'finished');
 
     if (fetchError) {
@@ -33,37 +69,43 @@ serve(async (req) => {
     console.log(`Found ${matches?.length || 0} matches to check`);
 
     let updatedCount = 0;
+    let finishedPoolIds = new Set<string>();
 
     for (const match of matches || []) {
       try {
-        // Fetch match result from GE
-        // In a real implementation, you'd scrape the specific match page
-        // For now, we'll check if the match date has passed
-        const matchDate = new Date(match.match_date);
-        const now = new Date();
+        // Extract fixture ID from external_id (format: apifb_123456)
+        if (!match.external_id || !match.external_id.startsWith('apifb_')) {
+          console.log(`Skipping match without valid external_id: ${match.id}`);
+          continue;
+        }
+
+        const fixtureId = match.external_id.replace('apifb_', '');
+        console.log(`Checking fixture ${fixtureId} for match: ${match.home_team} vs ${match.away_team}`);
+
+        // Fetch fixture data from API-FOOTBALL
+        const fixture = await getFixtureById(fixtureId);
         
-        // If match date is in the past and no score yet, try to fetch result
-        if (matchDate < now && match.home_score === null) {
-          console.log(`Checking result for match: ${match.home_team} vs ${match.away_team}`);
-          
-          // Fetch the GE match page (simplified - you'd need the specific match URL)
-          const geUrl = `https://ge.globo.com/futebol/brasileirao-serie-a/`;
-          const response = await fetch(geUrl);
-          const html = await response.text();
-          
-          // Try to find score data
-          // This is highly simplified and would need proper implementation
-          // based on GE's actual HTML structure
-          
-          // For demonstration, we'll mark old matches as finished with dummy scores
-          // In production, you'd parse actual scores from the HTML/API
-          const hoursSinceMatch = (now.getTime() - matchDate.getTime()) / (1000 * 60 * 60);
-          
-          if (hoursSinceMatch > 2) { // Match finished if more than 2 hours ago
-            // Update match with result (in production, parse actual score)
+        if (!fixture) {
+          console.log(`No data found for fixture ${fixtureId}`);
+          continue;
+        }
+
+        const status = fixture.fixture?.status?.short;
+        const isFinished = ['FT', 'AET', 'PEN'].includes(status); // Full Time, After Extra Time, Penalties
+
+        if (isFinished) {
+          const homeScore = fixture.goals?.home;
+          const awayScore = fixture.goals?.away;
+
+          if (homeScore !== null && awayScore !== null) {
+            console.log(`Match finished: ${match.home_team} ${homeScore} x ${awayScore} ${match.away_team}`);
+
+            // Update match with result
             const { error: updateError } = await supabase
               .from('football_matches')
               .update({
+                home_score: homeScore,
+                away_score: awayScore,
                 status: 'finished',
                 last_sync_at: new Date().toISOString()
               })
@@ -71,12 +113,105 @@ serve(async (req) => {
 
             if (!updateError) {
               updatedCount++;
+              finishedPoolIds.add(match.pool_id);
+              
+              // Calculate points for all predictions for this match
+              const { data: predictions } = await supabase
+                .from('football_predictions')
+                .select('*')
+                .eq('match_id', match.id);
+
+              if (predictions) {
+                for (const prediction of predictions) {
+                  const { data: points } = await supabase.rpc('calculate_football_points', {
+                    predicted_home: prediction.home_score_prediction,
+                    predicted_away: prediction.away_score_prediction,
+                    actual_home: homeScore,
+                    actual_away: awayScore
+                  });
+
+                  await supabase
+                    .from('football_predictions')
+                    .update({ points_earned: points || 0 })
+                    .eq('id', prediction.id);
+                }
+              }
+              
               console.log(`Updated match: ${match.home_team} vs ${match.away_team}`);
             }
           }
+        } else {
+          console.log(`Match not finished yet (status: ${status}): ${match.home_team} vs ${match.away_team}`);
         }
+
+        // Small delay to respect API rate limits
+        await new Promise(resolve => setTimeout(resolve, 100));
+        
       } catch (error) {
         console.error(`Error processing match ${match.id}:`, error);
+      }
+    }
+
+    // Check if any pools are now complete and calculate winners
+    for (const poolId of finishedPoolIds) {
+      try {
+        // Check if all matches in the pool are finished
+        const { data: poolMatches } = await supabase
+          .from('football_matches')
+          .select('status')
+          .eq('pool_id', poolId);
+
+        const allFinished = poolMatches?.every(m => m.status === 'finished');
+
+        if (allFinished) {
+          console.log(`All matches finished for pool ${poolId}, calculating winner...`);
+
+          // Get all participants with their total points
+          const { data: participants } = await supabase
+            .from('participants')
+            .select(`
+              id,
+              user_id,
+              participant_name,
+              football_predictions!inner(points_earned)
+            `)
+            .eq('pool_id', poolId)
+            .eq('status', 'approved');
+
+          if (participants && participants.length > 0) {
+            // Calculate total points for each participant
+            const participantPoints = participants.map(p => {
+              const totalPoints = (p.football_predictions as any[])
+                .reduce((sum: number, pred: any) => sum + (pred.points_earned || 0), 0);
+              
+              return {
+                participant_id: p.id,
+                user_id: p.user_id,
+                name: p.participant_name,
+                points: totalPoints
+              };
+            });
+
+            // Find winner (highest points)
+            const winner = participantPoints.reduce((max, p) => 
+              p.points > max.points ? p : max
+            );
+
+            console.log(`Winner: ${winner.name} with ${winner.points} points`);
+
+            // Update pool with winner
+            await supabase
+              .from('pools')
+              .update({
+                status: 'finished',
+                winner_id: winner.user_id,
+                result_value: `Vencedor: ${winner.name} com ${winner.points} pontos`
+              })
+              .eq('id', poolId);
+          }
+        }
+      } catch (error) {
+        console.error(`Error calculating winner for pool ${poolId}:`, error);
       }
     }
 
@@ -86,7 +221,7 @@ serve(async (req) => {
       success: true,
       checkedMatches: matches?.length || 0,
       updatedMatches: updatedCount,
-      note: 'This is a basic implementation. For production use, integrate with a reliable sports data API.'
+      finishedPools: finishedPoolIds.size
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });

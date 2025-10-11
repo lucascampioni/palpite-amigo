@@ -48,12 +48,12 @@ const CreateFootballPool = () => {
   const handleGEMatchesSelected = (geMatches: Match[]) => {
     const newMatches = geMatches.map(m => ({
       ...m,
-      externalSource: 'ge' as const
+      externalSource: m.externalId?.startsWith('apifb_') ? 'apifb' as const : 'ge' as const
     }));
     setMatches([...matches.filter(m => m.homeTeam || m.awayTeam), ...newMatches]);
     toast({
       title: "Jogos adicionados!",
-      description: `${geMatches.length} jogos do Globo Esporte foram adicionados ao bolão.`,
+      description: `${geMatches.length} jogos foram adicionados ao bolão.`,
     });
   };
 
@@ -280,11 +280,11 @@ const CreateFootballPool = () => {
                 </div>
 
                 {matches.map((match, index) => (
-                  <Card key={index} className={`relative ${match.externalSource === 'ge' ? 'border-green-500/50 bg-green-500/5' : ''}`}>
+                  <Card key={index} className={`relative ${(match.externalSource === 'ge' || match.externalSource === 'apifb') ? 'border-green-500/50 bg-green-500/5' : ''}`}>
                     <CardContent className="pt-6 space-y-4">
-                      {match.externalSource === 'ge' && (
+                      {(match.externalSource === 'ge' || match.externalSource === 'apifb') && (
                         <div className="absolute top-2 left-2 text-xs bg-green-500 text-white px-2 py-1 rounded">
-                          Globo Esporte
+                          API-Football
                         </div>
                       )}
                       {matches.length > 1 && (
@@ -304,7 +304,7 @@ const CreateFootballPool = () => {
                         <Select
                           value={match.championship}
                           onValueChange={(value) => handleMatchChange(index, "championship", value)}
-                          disabled={match.externalSource === 'ge'}
+                          disabled={match.externalSource === 'ge' || match.externalSource === 'apifb'}
                         >
                           <SelectTrigger>
                             <SelectValue />
@@ -327,7 +327,7 @@ const CreateFootballPool = () => {
                             onChange={(e) => handleMatchChange(index, "homeTeam", e.target.value)}
                             placeholder="Ex: Flamengo"
                             required
-                            disabled={match.externalSource === 'ge'}
+                            disabled={match.externalSource === 'ge' || match.externalSource === 'apifb'}
                           />
                         </div>
                         <div className="space-y-2">
@@ -337,7 +337,7 @@ const CreateFootballPool = () => {
                             onChange={(e) => handleMatchChange(index, "awayTeam", e.target.value)}
                             placeholder="Ex: Palmeiras"
                             required
-                            disabled={match.externalSource === 'ge'}
+                            disabled={match.externalSource === 'ge' || match.externalSource === 'apifb'}
                           />
                         </div>
                       </div>
@@ -349,7 +349,7 @@ const CreateFootballPool = () => {
                           value={match.matchDate}
                           onChange={(e) => handleMatchChange(index, "matchDate", e.target.value)}
                           required
-                          disabled={match.externalSource === 'ge'}
+                          disabled={match.externalSource === 'ge' || match.externalSource === 'apifb'}
                         />
                       </div>
                     </CardContent>
