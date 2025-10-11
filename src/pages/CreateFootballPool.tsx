@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
-import { ArrowLeft, Trash2 } from "lucide-react";
+import { ArrowLeft, Trash2, Plus } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { GEMatchSelector } from "@/components/GEMatchSelector";
 import { format } from "date-fns";
@@ -224,29 +224,34 @@ const CreateFootballPool = () => {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="description">Descrição *</Label>
+                <Label htmlFor="description">Descrição</Label>
                 <Textarea
                   id="description"
                   name="description"
                   placeholder="Descreva o bolão, regras de pontuação, etc."
                   rows={4}
-                  required
                 />
               </div>
 
-              {deadline && (
-                <div className="space-y-2">
-                  <Label>Prazo Final para Palpites</Label>
-                  <div className="p-3 rounded-lg border bg-muted/50">
-                    <p className="text-sm font-medium">
-                      📅 {format(new Date(deadline), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
+              <div className="space-y-2">
+                <Label>Prazo para Apostas</Label>
+                <div className="p-3 rounded-lg border bg-muted/50">
+                  {deadline ? (
+                    <>
+                      <p className="text-sm font-medium">
+                        📅 {format(new Date(deadline), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
+                      </p>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        30 minutos antes do primeiro jogo
+                      </p>
+                    </>
+                  ) : (
+                    <p className="text-sm text-muted-foreground">
+                      O horário limite das apostas será até 30min antes do início dos jogos
                     </p>
-                    <p className="text-xs text-muted-foreground mt-1">
-                      30 minutos antes do primeiro jogo
-                    </p>
-                  </div>
+                  )}
                 </div>
-              )}
+              </div>
 
               <div className="space-y-2">
                 <Label htmlFor="pix_key">Chave PIX (opcional)</Label>
@@ -326,23 +331,17 @@ const CreateFootballPool = () => {
                     size="sm"
                     onClick={() => setShowGESelector(true)}
                   >
-                    ⚽ Selecionar Jogos
+                    <Plus className="w-4 h-4 mr-2" />
+                    Adicionar Jogos
                   </Button>
                 </div>
 
                 {matches.length === 0 ? (
                   <Card className="border-dashed">
                     <CardContent className="py-12 text-center">
-                      <p className="text-muted-foreground mb-4">
+                      <p className="text-muted-foreground">
                         Nenhum jogo selecionado ainda
                       </p>
-                      <Button
-                        type="button"
-                        variant="outline"
-                        onClick={() => setShowGESelector(true)}
-                      >
-                        ⚽ Selecionar Jogos
-                      </Button>
                     </CardContent>
                   </Card>
                 ) : (
