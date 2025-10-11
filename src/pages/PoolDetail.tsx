@@ -94,7 +94,7 @@ const PoolDetail = () => {
     setCurrentUserParticipant(myParticipant);
     setHasJoined(!!myParticipant);
     
-    // Check if user has a participant awaiting proof
+    // Check if user has a participant awaiting proof (and has no PIX key yet)
     const userAwaitingProof = myParticipant && myParticipant.status === 'awaiting_proof' ? myParticipant : null;
     setAwaitingProofParticipant(userAwaitingProof);
     
@@ -508,10 +508,10 @@ const PoolDetail = () => {
                 <div className="space-y-4">
                   <div className="p-4 rounded-lg bg-orange-50 dark:bg-orange-950 border border-orange-200 dark:border-orange-800">
                     <p className="text-sm font-medium text-orange-700 dark:text-orange-300 mb-2">
-                      ⏳ Aguardando Comprovante
+                      ⏳ Aguardando Comprovante e Chave PIX
                     </p>
                     <p className="text-xs text-muted-foreground">
-                      Seus palpites foram registrados. Agora envie o comprovante de pagamento para que sua participação seja aprovada.
+                      Seus palpites foram registrados. Agora envie o comprovante de pagamento e sua chave PIX para receber prêmios.
                     </p>
                   </div>
                   <PaymentProofUpload
@@ -519,6 +519,7 @@ const PoolDetail = () => {
                     userId={userId!}
                     poolId={pool.id}
                     onSuccess={loadPoolData}
+                    hasPixKey={!!awaitingProofParticipant.participant_pix_key}
                   />
                 </div>
               </>
@@ -633,6 +634,26 @@ const PoolDetail = () => {
                                 >
                                   📎 Ver Comprovante de Pagamento
                                 </Button>
+                              </div>
+                            )}
+                            {participant.participant_pix_key && (
+                              <div className="pt-2 border-t">
+                                <p className="text-xs text-muted-foreground mb-1">Chave PIX do participante:</p>
+                                <div className="flex items-center gap-2">
+                                  <code className="text-xs bg-muted px-2 py-1 rounded flex-1 break-all">
+                                    {participant.participant_pix_key}
+                                  </code>
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    onClick={() => {
+                                      navigator.clipboard.writeText(participant.participant_pix_key);
+                                      toast({ title: "Chave PIX copiada!" });
+                                    }}
+                                  >
+                                    <Copy className="w-4 h-4" />
+                                  </Button>
+                                </div>
                               </div>
                             )}
                           </div>

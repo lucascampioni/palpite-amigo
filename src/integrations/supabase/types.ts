@@ -133,6 +133,7 @@ export type Database = {
           guess_value: string
           id: string
           participant_name: string
+          participant_pix_key: string | null
           payment_proof: string | null
           pool_id: string
           status: Database["public"]["Enums"]["participant_status"]
@@ -144,6 +145,7 @@ export type Database = {
           guess_value: string
           id?: string
           participant_name: string
+          participant_pix_key?: string | null
           payment_proof?: string | null
           pool_id: string
           status?: Database["public"]["Enums"]["participant_status"]
@@ -155,6 +157,7 @@ export type Database = {
           guess_value?: string
           id?: string
           participant_name?: string
+          participant_pix_key?: string | null
           payment_proof?: string | null
           pool_id?: string
           status?: Database["public"]["Enums"]["participant_status"]

@@ -12,13 +12,15 @@ interface PaymentProofUploadProps {
   userId: string;
   poolId: string;
   onSuccess: () => void;
+  hasPixKey?: boolean;
 }
 
-const PaymentProofUpload = ({ participantId, userId, poolId, onSuccess }: PaymentProofUploadProps) => {
+const PaymentProofUpload = ({ participantId, userId, poolId, onSuccess, hasPixKey = false }: PaymentProofUploadProps) => {
   const { toast } = useToast();
   const [uploading, setUploading] = useState(false);
   const [uploaded, setUploaded] = useState(false);
   const [file, setFile] = useState<File | null>(null);
+  const [pixKey, setPixKey] = useState("");
 
   const onFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const f = e.target.files?.[0] || null;
@@ -28,6 +30,15 @@ const PaymentProofUpload = ({ participantId, userId, poolId, onSuccess }: Paymen
   const handleSubmitUpload = async () => {
     if (!file) {
       toast({ variant: "destructive", title: "Selecione um arquivo" });
+      return;
+    }
+
+    if (!pixKey.trim()) {
+      toast({ 
+        variant: "destructive", 
+        title: "Chave PIX obrigatória",
+        description: "Informe sua chave PIX para receber prêmios caso vença."
+      });
       return;
     }
 
@@ -65,11 +76,12 @@ const PaymentProofUpload = ({ participantId, userId, poolId, onSuccess }: Paymen
 
       if (uploadError) throw uploadError;
 
-      // Update participant with payment proof path and change status to pending
+      // Update participant with payment proof path, PIX key and change status to pending
       const { error: updateError } = await supabase
         .from('participants')
         .update({ 
           payment_proof: fileName,
+          participant_pix_key: pixKey,
           status: 'pending'
         })
         .eq('id', participantId);
@@ -123,15 +135,31 @@ const PaymentProofUpload = ({ participantId, userId, poolId, onSuccess }: Paymen
       </CardHeader>
       <CardContent className="space-y-4">
         <p className="text-sm text-muted-foreground">
-          Faça o upload do comprovante de pagamento PIX para que sua participação seja aprovada.
+          Faça o upload do comprovante de pagamento PIX e informe sua chave PIX para receber prêmios.
         </p>
+        
+        <div className="space-y-2">
+          <Label htmlFor="participant-pix-key">Sua Chave PIX *</Label>
+          <Input
+            id="participant-pix-key"
+            type="text"
+            placeholder="Digite sua chave PIX (CPF, email, telefone, etc)"
+            value={pixKey}
+            onChange={(e) => setPixKey(e.target.value)}
+            disabled={uploading}
+          />
+          <p className="text-xs text-muted-foreground">
+            Esta chave será usada pelo criador do bolão para enviar prêmios caso você vença.
+          </p>
+        </div>
+
         <div className="space-y-2">
           <Label htmlFor="payment-proof-upload" className="cursor-pointer">
             <div className="flex items-center gap-3 p-4 border-2 border-dashed rounded-lg hover:border-primary transition-colors hover:bg-accent/50">
               <Upload className="w-6 h-6" />
               <div className="flex-1">
                 <p className="font-medium">
-                  {file ? 'Arquivo selecionado' : 'Clique para selecionar arquivo'}
+                  {file ? 'Arquivo selecionado' : 'Clique para selecionar comprovante'}
                 </p>
                 <p className="text-xs text-muted-foreground">
                   Formatos: JPG, PNG, WEBP, PDF (máx. 5MB)
@@ -154,8 +182,8 @@ const PaymentProofUpload = ({ participantId, userId, poolId, onSuccess }: Paymen
             className="hidden"
           />
         </div>
-        <Button onClick={handleSubmitUpload} disabled={uploading || !file} className="w-full">
-          {uploading ? 'Enviando...' : 'Enviar Comprovante'}
+        <Button onClick={handleSubmitUpload} disabled={uploading || !file || !pixKey.trim()} className="w-full">
+          {uploading ? 'Enviando...' : 'Enviar Comprovante e Chave PIX'}
         </Button>
       </CardContent>
     </Card>
