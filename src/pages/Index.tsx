@@ -177,6 +177,10 @@ const Index = () => {
         .order("created_at", { ascending: false });
       officialPoolsData = data || [];
     }
+    
+    // Filter out pools with expired deadline where user hasn't participated
+    const now = new Date();
+    officialPoolsData = officialPoolsData.filter(pool => new Date(pool.deadline) > now);
 
     // Load other public pools (excluding owned, participating, official, awaiting proof, and pending approval)
     const excludeIds = [
@@ -206,6 +210,9 @@ const Index = () => {
         .order("created_at", { ascending: false });
       activePools = data || [];
     }
+    
+    // Filter out pools with expired deadline where user hasn't participated
+    activePools = activePools.filter(pool => new Date(pool.deadline) > now);
 
     setMyCreatedPools(ownedPools || []);
     setMyParticipatingPools(participatingPoolsData);
