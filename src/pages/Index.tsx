@@ -488,6 +488,7 @@ const Index = () => {
                   key={pool.id}
                   pool={pool}
                   onClick={() => navigate(`/pool/${pool.id}`)}
+                  isUserParticipating={true}
                 />
               ))}
             </div>
@@ -517,6 +518,7 @@ const Index = () => {
                         key={pool.id}
                         pool={pool}
                         onClick={() => navigate(`/pool/${pool.id}`)}
+                        isUserParticipating={true}
                       />
                     ))}
                   </div>

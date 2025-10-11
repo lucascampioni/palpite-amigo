@@ -18,10 +18,17 @@ interface PoolCardProps {
     entry_fee?: number | null;
   };
   onClick: () => void;
+  isUserParticipating?: boolean;
 }
 
-const PoolCard = ({ pool, onClick }: PoolCardProps) => {
+const PoolCard = ({ pool, onClick, isUserParticipating = false }: PoolCardProps) => {
+  const isExpired = isPast(new Date(pool.deadline));
+  const isInProgress = pool.status === "active" && isExpired && isUserParticipating;
+
   const getStatusColor = (status: string) => {
+    if (isInProgress) {
+      return "bg-orange-500 text-white";
+    }
     switch (status) {
       case "active":
         return "bg-primary text-primary-foreground";
@@ -35,6 +42,9 @@ const PoolCard = ({ pool, onClick }: PoolCardProps) => {
   };
 
   const getStatusText = (status: string) => {
+    if (isInProgress) {
+      return "Em andamento";
+    }
     switch (status) {
       case "active":
         return "Ativo";
@@ -53,13 +63,10 @@ const getTypeIcon = (type: string) => {
     return "⚽";
   };
 
-  const isExpired = isPast(new Date(pool.deadline)) && pool.status === "active";
-
   return (
     <Card 
       className={cn(
-        "cursor-pointer transition-all duration-300 hover:shadow-lg hover:-translate-y-1 border-2 hover:border-primary/50",
-        isExpired && "opacity-75"
+        "cursor-pointer transition-all duration-300 hover:shadow-lg hover:-translate-y-1 border-2 hover:border-primary/50"
       )}
       onClick={onClick}
     >
