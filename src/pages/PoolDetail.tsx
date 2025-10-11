@@ -303,8 +303,6 @@ const PoolDetail = () => {
             <div className="flex items-start justify-between">
               <div className="space-y-2">
                 <CardTitle className="text-3xl">{pool.title}</CardTitle>
-              <div className="space-y-2">
-                <CardTitle className="text-3xl">{pool.title}</CardTitle>
                 <div className="flex gap-2 flex-wrap">
                   <Badge className={getStatusColor(pool.status)}>
                     {pool.status === "active" ? "Ativo" : "Finalizado"}
@@ -326,7 +324,6 @@ const PoolDetail = () => {
                     </Badge>
                   )}
                 </div>
-              </div>
               </div>
             </div>
             <CardDescription className="text-base mt-4">{pool.description}</CardDescription>
@@ -486,6 +483,7 @@ const PoolDetail = () => {
                         poolId={pool.id}
                         userId={userId!}
                         onSuccess={loadPoolData}
+                        entryFee={entryFee}
                       />
                     ) : (
                       <div className="space-y-4">

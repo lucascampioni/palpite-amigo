@@ -13,6 +13,7 @@ interface FootballPredictionFormProps {
   poolId: string;
   userId: string;
   onSuccess: () => void;
+  entryFee?: number | null;
 }
 
 interface Match {
@@ -25,11 +26,11 @@ interface Match {
 
 interface Prediction {
   matchId: string;
-  homeScore: number;
-  awayScore: number;
+  homeScore: string;
+  awayScore: string;
 }
 
-const FootballPredictionForm = ({ poolId, userId, onSuccess }: FootballPredictionFormProps) => {
+const FootballPredictionForm = ({ poolId, userId, onSuccess, entryFee }: FootballPredictionFormProps) => {
   const { toast } = useToast();
   const [matches, setMatches] = useState<Match[]>([]);
   const [predictions, setPredictions] = useState<Prediction[]>([]);
@@ -58,7 +59,7 @@ const FootballPredictionForm = ({ poolId, userId, onSuccess }: FootballPredictio
       });
     } else if (data) {
       setMatches(data);
-      setPredictions(data.map(m => ({ matchId: m.id, homeScore: 0, awayScore: 0 })));
+      setPredictions(data.map(m => ({ matchId: m.id, homeScore: '', awayScore: '' })));
     }
 
     setLoading(false);
@@ -75,10 +76,12 @@ const FootballPredictionForm = ({ poolId, userId, onSuccess }: FootballPredictio
   };
 
   const handlePredictionChange = (matchId: string, field: 'homeScore' | 'awayScore', value: string) => {
-    const numValue = Math.min(Math.max(parseInt(value) || 0, 0), 99); // Clamp between 0-99
-    setPredictions(prev =>
-      prev.map(p => p.matchId === matchId ? { ...p, [field]: numValue } : p)
-    );
+    // Allow empty string or valid number between 0-99
+    if (value === '' || (/^\d+$/.test(value) && parseInt(value) <= 99)) {
+      setPredictions(prev =>
+        prev.map(p => p.matchId === matchId ? { ...p, [field]: value } : p)
+      );
+    }
   };
 
   const handleCopyPixKey = () => {
@@ -89,6 +92,17 @@ const FootballPredictionForm = ({ poolId, userId, onSuccess }: FootballPredictio
   };
 
   const handleSubmit = async () => {
+    // Validate all predictions are filled
+    const hasEmptyPredictions = predictions.some(p => p.homeScore === '' || p.awayScore === '');
+    if (hasEmptyPredictions) {
+      toast({
+        variant: "destructive",
+        title: "Erro",
+        description: "Por favor, preencha todos os placares.",
+      });
+      return;
+    }
+
     setSubmitting(true);
 
     // First, create participant
@@ -124,8 +138,8 @@ const FootballPredictionForm = ({ poolId, userId, onSuccess }: FootballPredictio
     const predictionsData = predictions.map(p => ({
       participant_id: participant.id,
       match_id: p.matchId,
-      home_score_prediction: p.homeScore,
-      away_score_prediction: p.awayScore,
+      home_score_prediction: parseInt(p.homeScore),
+      away_score_prediction: parseInt(p.awayScore),
     }));
 
     const { error: predictionsError } = await supabase
@@ -215,8 +229,10 @@ const FootballPredictionForm = ({ poolId, userId, onSuccess }: FootballPredictio
                     type="number"
                     min="0"
                     max="99"
-                    value={prediction?.homeScore || 0}
+                    placeholder="0"
+                    value={prediction?.homeScore || ''}
                     onChange={(e) => handlePredictionChange(match.id, 'homeScore', e.target.value)}
+                    required
                   />
                 </div>
                 <div className="space-y-2">
@@ -225,8 +241,10 @@ const FootballPredictionForm = ({ poolId, userId, onSuccess }: FootballPredictio
                     type="number"
                     min="0"
                     max="99"
-                    value={prediction?.awayScore || 0}
+                    placeholder="0"
+                    value={prediction?.awayScore || ''}
                     onChange={(e) => handlePredictionChange(match.id, 'awayScore', e.target.value)}
+                    required
                   />
                 </div>
               </div>
@@ -235,21 +253,26 @@ const FootballPredictionForm = ({ poolId, userId, onSuccess }: FootballPredictio
         );
       })}
 
-      {pixKey && (
+      {(entryFee || pixKey) && (
         <div className="p-4 rounded-lg bg-primary/10 border border-primary/20">
-          <div className="flex items-center justify-between">
-            <div className="flex-1">
-              <p className="text-sm font-medium mb-1">💰 Chave PIX para pagamento</p>
-              <p className="text-sm font-mono text-muted-foreground">{pixKey}</p>
-              <p className="text-xs text-muted-foreground mt-2">
-                Após enviar seus palpites, faça o pagamento e aguarde a aprovação.
-              </p>
+          {entryFee && (
+            <p className="text-sm font-medium mb-2">💵 Valor de Entrada: R$ {entryFee.toFixed(2)}</p>
+          )}
+          {pixKey && (
+            <div className="flex items-center justify-between">
+              <div className="flex-1">
+                <p className="text-sm font-medium mb-1">💰 Chave PIX para pagamento</p>
+                <p className="text-sm font-mono text-muted-foreground">{pixKey}</p>
+                <p className="text-xs text-muted-foreground mt-2">
+                  Após enviar seus palpites, faça o pagamento e aguarde a aprovação.
+                </p>
+              </div>
+              <Button variant="outline" size="sm" onClick={handleCopyPixKey}>
+                <Copy className="w-4 h-4 mr-2" />
+                Copiar
+              </Button>
             </div>
-            <Button variant="outline" size="sm" onClick={handleCopyPixKey}>
-              <Copy className="w-4 h-4 mr-2" />
-              Copiar
-            </Button>
-          </div>
+          )}
         </div>
       )}
 
