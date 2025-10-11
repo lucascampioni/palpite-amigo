@@ -439,7 +439,7 @@ const PoolDetail = () => {
               </>
             )}
 
-            {isOwner && pool.status === "active" && (
+            {isOwner && pool.status === "active" && !(pool.pool_type === "football" || hasFootballMatches) && (
               <>
                 <Separator />
                 <Button 
@@ -451,6 +451,20 @@ const PoolDetail = () => {
                   <Award className="w-5 h-5 mr-2" />
                   Declarar Resultado e Vencedor
                 </Button>
+              </>
+            )}
+
+            {(pool.pool_type === "football" || hasFootballMatches) && pool.status === "active" && (
+              <>
+                <Separator />
+                <div className="p-4 rounded-lg bg-secondary/10 border border-secondary/20">
+                  <p className="text-sm font-medium mb-2">
+                    🤖 Resultados Automáticos
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    Os resultados dos jogos e o vencedor do bolão serão determinados automaticamente através da API de futebol.
+                  </p>
+                </div>
               </>
             )}
 
@@ -494,6 +508,26 @@ const PoolDetail = () => {
                       </Card>
                     ))}
                   </div>
+                </div>
+              </>
+            )}
+
+            {(pool.pool_type === "football" || hasFootballMatches) && (
+              <>
+                <Separator />
+                <div className="p-4 rounded-lg bg-muted/50 border">
+                  <p className="text-sm font-medium mb-2">
+                    📊 Sistema de Pontuação
+                  </p>
+                  {pool.scoring_system === "exact_only" ? (
+                    <p className="text-xs text-muted-foreground">
+                      <strong>Placar Exato Apenas:</strong> 1 ponto por placar exato acertado. Qualquer outro resultado não dá pontos.
+                    </p>
+                  ) : (
+                    <p className="text-xs text-muted-foreground">
+                      <strong>Sistema Completo:</strong> 5 pontos por placar exato, 3 pontos por resultado correto, 1 ponto por diferença de gols correta.
+                    </p>
+                  )}
                 </div>
               </>
             )}

@@ -40,6 +40,7 @@ const FootballPredictionForm = ({ poolId, userId, onSuccess }: FootballPredictio
 
   useEffect(() => {
     loadMatches();
+    loadPixKey(); // Load PIX key immediately when component mounts
   }, [poolId]);
 
   const loadMatches = async () => {
@@ -64,7 +65,7 @@ const FootballPredictionForm = ({ poolId, userId, onSuccess }: FootballPredictio
   };
 
   const loadPixKey = async () => {
-    // Load PIX key from payment info table (only visible after submitting)
+    // Load PIX key from payment info table
     const { data: paymentData } = await supabase
       .from("pool_payment_info")
       .select("pix_key")
@@ -231,6 +232,24 @@ const FootballPredictionForm = ({ poolId, userId, onSuccess }: FootballPredictio
           </Card>
         );
       })}
+
+      {pixKey && (
+        <div className="p-4 rounded-lg bg-primary/10 border border-primary/20">
+          <div className="flex items-center justify-between">
+            <div className="flex-1">
+              <p className="text-sm font-medium mb-1">💰 Chave PIX para pagamento</p>
+              <p className="text-sm font-mono text-muted-foreground">{pixKey}</p>
+              <p className="text-xs text-muted-foreground mt-2">
+                Após enviar seus palpites, faça o pagamento e aguarde a aprovação.
+              </p>
+            </div>
+            <Button variant="outline" size="sm" onClick={handleCopyPixKey}>
+              <Copy className="w-4 h-4 mr-2" />
+              Copiar
+            </Button>
+          </div>
+        </div>
+      )}
 
       <Button onClick={handleSubmit} disabled={submitting} className="w-full" size="lg">
         {submitting ? "Enviando..." : "Enviar Todos os Palpites"}
