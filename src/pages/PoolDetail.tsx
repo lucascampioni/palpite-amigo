@@ -625,9 +625,14 @@ const PoolDetail = () => {
                                   variant="secondary"
                                   className="w-full"
                                   onClick={async () => {
+                                    // Extract the path from the full URL
+                                    const url = participant.payment_proof;
+                                    const pathMatch = url.match(/\/payment-proofs\/(.+)$/);
+                                    const filePath = pathMatch ? pathMatch[1] : url;
+                                    
                                     const { data } = await supabase.storage
                                       .from('payment-proofs')
-                                      .createSignedUrl(participant.payment_proof, 60);
+                                      .createSignedUrl(filePath, 60);
                                     if (data?.signedUrl) {
                                       window.open(data.signedUrl, '_blank');
                                     }
