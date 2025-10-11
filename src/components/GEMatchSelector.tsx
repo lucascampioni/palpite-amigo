@@ -20,16 +20,16 @@ interface GEMatch {
   round: string;
 }
 
-interface Round {
-  number: number;
-  name: string;
+interface DayGroup {
+  date: string;
+  displayDate: string;
   matches: GEMatch[];
 }
 
 interface Championship {
   id: string;
   name: string;
-  rounds: Round[];
+  days: DayGroup[];
 }
 
 interface GEMatchSelectorProps {
@@ -69,15 +69,49 @@ export const GEMatchSelector = ({ open, onOpenChange, onMatchesSelected }: GEMat
 
       if (data?.championships && data.championships.length > 0) {
         console.log(`✅ Found ${data.championships.length} championships`);
-        data.championships.forEach((champ: Championship) => {
-          console.log(`  - ${champ.name}: ${champ.rounds.length} rounds`);
+        
+        // Reorganize by day instead of round
+        const reorganizedChampionships = data.championships.map((champ: any) => {
+          const dayMap = new Map<string, GEMatch[]>();
+          
+          // Flatten all matches from all rounds
+          champ.rounds?.forEach((round: any) => {
+            round.matches?.forEach((match: any) => {
+              const matchDate = new Date(match.matchDate);
+              const dateKey = matchDate.toISOString().split('T')[0];
+              
+              if (!dayMap.has(dateKey)) {
+                dayMap.set(dateKey, []);
+              }
+              dayMap.get(dateKey)!.push(match);
+            });
+          });
+          
+          // Convert to array and sort by date
+          const days: DayGroup[] = Array.from(dayMap.entries())
+            .sort((a, b) => a[0].localeCompare(b[0]))
+            .map(([date, matches]) => ({
+              date,
+              displayDate: format(new Date(date), "EEEE, dd/MM/yyyy", { locale: ptBR }),
+              matches: matches.sort((a, b) => 
+                new Date(a.matchDate).getTime() - new Date(b.matchDate).getTime()
+              ),
+            }));
+          
+          return {
+            id: champ.id,
+            name: champ.name,
+            days,
+          };
         });
-        setChampionships(data.championships);
+        
+        console.log(`✅ Reorganized into days`);
+        setChampionships(reorganizedChampionships);
       } else {
         console.log('⚠️ No championships in response');
         toast({
           title: "Nenhum campeonato encontrado",
-          description: data?.message || "Não há jogos disponíveis no momento. Verifique sua API key da API-FOOTBALL.",
+          description: data?.message || "Não há jogos disponíveis no momento.",
           variant: "destructive",
         });
       }
@@ -120,8 +154,8 @@ export const GEMatchSelector = ({ open, onOpenChange, onMatchesSelected }: GEMat
   const handleConfirm = () => {
     const selected: GEMatch[] = [];
     championships.forEach(champ => {
-      champ.rounds.forEach(round => {
-        round.matches.forEach(match => {
+      champ.days.forEach(day => {
+        day.matches.forEach(match => {
           if (selectedMatches.has(match.externalId)) {
             selected.push(match);
           }
@@ -173,19 +207,19 @@ export const GEMatchSelector = ({ open, onOpenChange, onMatchesSelected }: GEMat
             {championships.map((champ) => (
               <TabsContent key={champ.id} value={champ.id} className="mt-4">
                 <Accordion type="single" collapsible className="w-full">
-                  {champ.rounds.map((round) => (
-                    <AccordionItem key={`${champ.id}-${round.number}`} value={`round-${round.number}`}>
+                  {champ.days.map((day, index) => (
+                    <AccordionItem key={`${champ.id}-${day.date}`} value={`day-${index}`}>
                       <AccordionTrigger className="hover:no-underline">
                         <div className="flex items-center justify-between w-full pr-4">
-                          <span className="font-semibold">{round.name}</span>
+                          <span className="font-semibold capitalize">{day.displayDate}</span>
                           <span className="text-sm text-muted-foreground">
-                            {round.matches.length} jogos
+                            {day.matches.length} jogos
                           </span>
                         </div>
                       </AccordionTrigger>
                       <AccordionContent>
                         <div className="space-y-2 pt-2">
-                          {round.matches.map((match) => (
+                          {day.matches.map((match) => (
                             <Card 
                               key={match.externalId}
                               className={`cursor-pointer transition-colors ${
@@ -201,13 +235,16 @@ export const GEMatchSelector = ({ open, onOpenChange, onMatchesSelected }: GEMat
                                     onClick={(e) => e.stopPropagation()}
                                   />
                                   <div className="flex-1">
-                                    <div className="flex items-center justify-between">
+                                    <div className="flex items-center justify-between mb-1">
                                       <span className="font-medium">
                                         {match.homeTeam} <span className="text-muted-foreground">x</span> {match.awayTeam}
                                       </span>
                                       <span className="text-sm text-muted-foreground">
-                                        {format(new Date(match.matchDate), "dd/MM 'às' HH:mm", { locale: ptBR })}
+                                        {format(new Date(match.matchDate), "HH:mm", { locale: ptBR })}
                                       </span>
+                                    </div>
+                                    <div className="text-xs text-muted-foreground">
+                                      📍 {match.round}
                                     </div>
                                   </div>
                                 </div>

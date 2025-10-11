@@ -7,29 +7,28 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-const API_FOOTBALL_KEY = Deno.env.get('API_FOOTBALL_KEY');
+const FOOTBALL_DATA_API_KEY = Deno.env.get('FOOTBALL_DATA_API_KEY');
 
-async function getFixtureById(fixtureId: string): Promise<any> {
-  if (!API_FOOTBALL_KEY) {
-    throw new Error('API_FOOTBALL_KEY not configured');
+async function getMatchById(matchId: string): Promise<any> {
+  if (!FOOTBALL_DATA_API_KEY) {
+    throw new Error('FOOTBALL_DATA_API_KEY not configured');
   }
 
   const response = await fetch(
-    `https://v3.football.api-sports.io/fixtures?id=${fixtureId}`,
+    `https://api.football-data.org/v4/matches/${matchId}`,
     {
       headers: {
-        'x-rapidapi-host': 'v3.football.api-sports.io',
-        'x-rapidapi-key': API_FOOTBALL_KEY,
+        'X-Auth-Token': FOOTBALL_DATA_API_KEY,
       },
     }
   );
 
   if (!response.ok) {
-    throw new Error(`API Football error: ${response.status}`);
+    throw new Error(`Football-Data API error: ${response.status}`);
   }
 
   const data = await response.json();
-  return data.response?.[0] || null;
+  return data || null;
 }
 
 serve(async (req) => {
@@ -42,10 +41,10 @@ serve(async (req) => {
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    console.log('Starting match results sync from API-FOOTBALL...');
+    console.log('Starting match results sync from football-data.org...');
 
-    if (!API_FOOTBALL_KEY) {
-      console.error('API_FOOTBALL_KEY not found');
+    if (!FOOTBALL_DATA_API_KEY) {
+      console.error('FOOTBALL_DATA_API_KEY not found');
       return new Response(JSON.stringify({ 
         error: 'API key not configured',
         success: false 
@@ -55,10 +54,10 @@ serve(async (req) => {
       });
     }
 
-    // Get all matches from API-FOOTBALL source that are not finished
+    // Get all matches from football-data source that are not finished
     const { data: matches, error: fetchError } = await supabase
       .from('football_matches')
-      .select('*')
+      .select('*, pools!inner(scoring_system)')
       .or('external_source.eq.ge,external_source.eq.apifb')
       .neq('status', 'finished');
 
@@ -73,29 +72,29 @@ serve(async (req) => {
 
     for (const match of matches || []) {
       try {
-        // Extract fixture ID from external_id (format: apifb_123456)
-        if (!match.external_id || !match.external_id.startsWith('apifb_')) {
+        // Extract match ID from external_id (format: fd_123456)
+        if (!match.external_id || !match.external_id.startsWith('fd_')) {
           console.log(`Skipping match without valid external_id: ${match.id}`);
           continue;
         }
 
-        const fixtureId = match.external_id.replace('apifb_', '');
-        console.log(`Checking fixture ${fixtureId} for match: ${match.home_team} vs ${match.away_team}`);
+        const matchId = match.external_id.replace('fd_', '');
+        console.log(`Checking match ${matchId}: ${match.home_team} vs ${match.away_team}`);
 
-        // Fetch fixture data from API-FOOTBALL
-        const fixture = await getFixtureById(fixtureId);
+        // Fetch match data from football-data.org
+        const matchData = await getMatchById(matchId);
         
-        if (!fixture) {
-          console.log(`No data found for fixture ${fixtureId}`);
+        if (!matchData) {
+          console.log(`No data found for match ${matchId}`);
           continue;
         }
 
-        const status = fixture.fixture?.status?.short;
-        const isFinished = ['FT', 'AET', 'PEN'].includes(status); // Full Time, After Extra Time, Penalties
+        const status = matchData.status;
+        const isFinished = status === 'FINISHED';
 
         if (isFinished) {
-          const homeScore = fixture.goals?.home;
-          const awayScore = fixture.goals?.away;
+          const homeScore = matchData.score?.fullTime?.home;
+          const awayScore = matchData.score?.fullTime?.away;
 
           if (homeScore !== null && awayScore !== null) {
             console.log(`Match finished: ${match.home_team} ${homeScore} x ${awayScore} ${match.away_team}`);
@@ -115,6 +114,9 @@ serve(async (req) => {
               updatedCount++;
               finishedPoolIds.add(match.pool_id);
               
+              // Get scoring system from pool
+              const scoringSystem = (match.pools as any)?.scoring_system || 'standard';
+              
               // Calculate points for all predictions for this match
               const { data: predictions } = await supabase
                 .from('football_predictions')
@@ -127,7 +129,8 @@ serve(async (req) => {
                     predicted_home: prediction.home_score_prediction,
                     predicted_away: prediction.away_score_prediction,
                     actual_home: homeScore,
-                    actual_away: awayScore
+                    actual_away: awayScore,
+                    scoring_system: scoringSystem
                   });
 
                   await supabase

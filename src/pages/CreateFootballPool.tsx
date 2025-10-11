@@ -30,6 +30,7 @@ const CreateFootballPool = () => {
   const [isPrivate, setIsPrivate] = useState(false);
   const [showGESelector, setShowGESelector] = useState(false);
   const [matches, setMatches] = useState<Match[]>([]);
+  const [scoringSystem, setScoringSystem] = useState<'standard' | 'exact_only'>('standard');
 
   const handleAddMatch = () => {
     // Removed - now only API matches are allowed
@@ -82,7 +83,7 @@ const CreateFootballPool = () => {
       toast({
         variant: "destructive",
         title: "Erro",
-        description: "Selecione pelo menos um jogo da API.",
+        description: "Selecione pelo menos um jogo.",
       });
       setLoading(false);
       return;
@@ -101,6 +102,7 @@ const CreateFootballPool = () => {
         status: "active" as any,
         pool_type: "football" as any,
         is_private: isPrivate,
+        scoring_system: scoringSystem,
       }])
       .select()
       .single();
@@ -242,6 +244,52 @@ const CreateFootballPool = () => {
                 />
               </div>
 
+              <div className="space-y-3 rounded-lg border p-4">
+                <Label>Sistema de Pontuação</Label>
+                <div className="space-y-2">
+                  <label className={`flex items-start gap-3 p-3 rounded-lg border-2 cursor-pointer transition-colors ${
+                    scoringSystem === 'standard' ? 'border-primary bg-primary/5' : 'border-border hover:border-primary/50'
+                  }`}>
+                    <input
+                      type="radio"
+                      name="scoring"
+                      value="standard"
+                      checked={scoringSystem === 'standard'}
+                      onChange={(e) => setScoringSystem(e.target.value as 'standard')}
+                      className="mt-1"
+                    />
+                    <div className="flex-1">
+                      <div className="font-medium mb-1">Sistema Completo (Padrão)</div>
+                      <ul className="text-sm text-muted-foreground space-y-0.5">
+                        <li>• 5 pontos: Placar exato</li>
+                        <li>• 3 pontos: Resultado correto</li>
+                        <li>• 1 ponto: Diferença de gols correta</li>
+                      </ul>
+                    </div>
+                  </label>
+
+                  <label className={`flex items-start gap-3 p-3 rounded-lg border-2 cursor-pointer transition-colors ${
+                    scoringSystem === 'exact_only' ? 'border-primary bg-primary/5' : 'border-border hover:border-primary/50'
+                  }`}>
+                    <input
+                      type="radio"
+                      name="scoring"
+                      value="exact_only"
+                      checked={scoringSystem === 'exact_only'}
+                      onChange={(e) => setScoringSystem(e.target.value as 'exact_only')}
+                      className="mt-1"
+                    />
+                    <div className="flex-1">
+                      <div className="font-medium mb-1">Placar Exato Apenas</div>
+                      <ul className="text-sm text-muted-foreground space-y-0.5">
+                        <li>• 1 ponto: Apenas para placar exato</li>
+                        <li>• 0 pontos: Qualquer outro resultado</li>
+                      </ul>
+                    </div>
+                  </label>
+                </div>
+              </div>
+
               <div className="space-y-4">
                 <div className="flex items-center justify-between">
                   <Label className="text-lg">Jogos do Bolão</Label>
@@ -251,7 +299,7 @@ const CreateFootballPool = () => {
                     size="sm"
                     onClick={() => setShowGESelector(true)}
                   >
-                    ⚽ Selecionar Jogos da API
+                    ⚽ Selecionar Jogos
                   </Button>
                 </div>
 
@@ -287,9 +335,6 @@ const CreateFootballPool = () => {
 
                           <div className="space-y-2 pr-10">
                             <div className="flex items-center gap-2">
-                              <span className="text-xs bg-primary text-primary-foreground px-2 py-1 rounded">
-                                API-Football
-                              </span>
                               <span className="text-xs text-muted-foreground">
                                 {match.championship}
                               </span>
@@ -314,19 +359,10 @@ const CreateFootballPool = () => {
               <div className="bg-muted/50 p-4 rounded-lg text-sm space-y-2">
                 <p className="font-semibold">⚡ Funcionalidades Automáticas:</p>
                 <ul className="list-disc list-inside space-y-1 text-muted-foreground">
-                  <li>Jogos do GE são atualizados automaticamente a cada hora</li>
-                  <li>Resultados são sincronizados direto do Globo Esporte</li>
+                  <li>Jogos são atualizados automaticamente</li>
+                  <li>Resultados são sincronizados automaticamente</li>
                   <li>Pontuação dos participantes é calculada automaticamente</li>
                   <li>Vencedor é determinado ao final de todos os jogos</li>
-                </ul>
-              </div>
-
-              <div className="bg-muted/50 p-4 rounded-lg text-sm space-y-2">
-                <p className="font-semibold">📊 Sistema de Pontuação:</p>
-                <ul className="list-disc list-inside space-y-1 text-muted-foreground">
-                  <li><strong>5 pontos</strong>: Placar exato</li>
-                  <li><strong>3 pontos</strong>: Resultado correto (vitória, empate ou derrota)</li>
-                  <li><strong>1 ponto</strong>: Diferença de gols correta</li>
                 </ul>
               </div>
 

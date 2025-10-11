@@ -213,6 +213,7 @@ export type Database = {
           owner_id: string
           pool_type: Database["public"]["Enums"]["pool_type"]
           result_value: string | null
+          scoring_system: string
           status: Database["public"]["Enums"]["pool_status"]
           title: string
           updated_at: string
@@ -229,6 +230,7 @@ export type Database = {
           owner_id: string
           pool_type?: Database["public"]["Enums"]["pool_type"]
           result_value?: string | null
+          scoring_system?: string
           status?: Database["public"]["Enums"]["pool_status"]
           title: string
           updated_at?: string
@@ -245,6 +247,7 @@ export type Database = {
           owner_id?: string
           pool_type?: Database["public"]["Enums"]["pool_type"]
           result_value?: string | null
+          scoring_system?: string
           status?: Database["public"]["Enums"]["pool_status"]
           title?: string
           updated_at?: string
@@ -340,6 +343,7 @@ export type Database = {
           actual_home: number
           predicted_away: number
           predicted_home: number
+          scoring_system?: string
         }
         Returns: number
       }
