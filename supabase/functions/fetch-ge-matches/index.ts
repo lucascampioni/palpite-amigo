@@ -46,7 +46,7 @@ async function fetchFixtures(leagueId: number, season: number = CURRENT_SEASON):
 
   const today = new Date();
   const from = today.toISOString().split('T')[0];
-  const toDate = new Date(today.getTime() + 45 * 24 * 60 * 60 * 1000);
+  const toDate = new Date(today.getTime() + 31 * 24 * 60 * 60 * 1000);
   const to = toDate.toISOString().split('T')[0];
 
   let url = `https://v3.football.api-sports.io/fixtures?league=${leagueId}&season=${season}&from=${from}&to=${to}`;

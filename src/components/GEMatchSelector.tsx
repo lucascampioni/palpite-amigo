@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -99,6 +99,13 @@ export const GEMatchSelector = ({ open, onOpenChange, onMatchesSelected }: GEMat
     }
     onOpenChange(newOpen);
   };
+
+  // Ensure we fetch when parent opens the dialog programmatically
+  useEffect(() => {
+    if (open && championships.length === 0 && !loading) {
+      fetchMatches();
+    }
+  }, [open]);
 
   const toggleMatch = (externalId: string) => {
     const newSelected = new Set(selectedMatches);
