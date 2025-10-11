@@ -13,6 +13,8 @@ interface Match {
   championship: string;
   externalId: string;
   round: string;
+  homeTeamCrest?: string;
+  awayTeamCrest?: string;
 }
 
 interface Round {
@@ -98,6 +100,8 @@ function organizeMatchesByRound(matches: any[], competitionName: string, competi
       championship: competitionName,
       externalId: `fd_${match.id || Math.random()}`,
       round: round,
+      homeTeamCrest: match.homeTeam?.crest || undefined,
+      awayTeamCrest: match.awayTeam?.crest || undefined,
     };
 
     if (!roundsMap.has(round)) {

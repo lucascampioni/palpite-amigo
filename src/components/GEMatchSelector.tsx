@@ -18,6 +18,8 @@ interface GEMatch {
   championship: string;
   externalId: string;
   round: string;
+  homeTeamCrest?: string;
+  awayTeamCrest?: string;
 }
 
 interface DayGroup {
@@ -237,10 +239,32 @@ export const GEMatchSelector = ({ open, onOpenChange, onMatchesSelected }: GEMat
                                   />
                                   <div className="flex-1">
                                     <div className="flex items-center justify-between mb-1">
-                                      <span className="font-medium">
-                                        {match.homeTeam} <span className="text-muted-foreground">x</span> {match.awayTeam}
-                                      </span>
-                                      <span className="text-sm text-muted-foreground">
+                                      <div className="flex items-center gap-2 flex-1">
+                                        {match.homeTeamCrest && (
+                                          <img 
+                                            src={match.homeTeamCrest} 
+                                            alt={match.homeTeam}
+                                            className="w-6 h-6 object-contain"
+                                            onError={(e) => {
+                                              e.currentTarget.style.display = 'none';
+                                            }}
+                                          />
+                                        )}
+                                        <span className="font-medium">{match.homeTeam}</span>
+                                        <span className="text-muted-foreground mx-1">x</span>
+                                        <span className="font-medium">{match.awayTeam}</span>
+                                        {match.awayTeamCrest && (
+                                          <img 
+                                            src={match.awayTeamCrest} 
+                                            alt={match.awayTeam}
+                                            className="w-6 h-6 object-contain"
+                                            onError={(e) => {
+                                              e.currentTarget.style.display = 'none';
+                                            }}
+                                          />
+                                        )}
+                                      </div>
+                                      <span className="text-sm text-muted-foreground ml-2">
                                         {format(new Date(match.matchDate), "HH:mm", { locale: ptBR })}
                                       </span>
                                     </div>

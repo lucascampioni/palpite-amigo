@@ -30,6 +30,8 @@ interface Match {
   externalId?: string;
   externalSource?: string;
   round?: string;
+  homeTeamCrest?: string;
+  awayTeamCrest?: string;
 }
 
 const CreateFootballPool = () => {
@@ -454,9 +456,31 @@ const CreateFootballPool = () => {
                               </span>
                             </div>
                             <div className="flex items-center justify-between">
-                              <span className="font-semibold text-lg">
-                                {match.homeTeam} <span className="text-muted-foreground">x</span> {match.awayTeam}
-                              </span>
+                              <div className="flex items-center gap-2">
+                                {match.homeTeamCrest && (
+                                  <img 
+                                    src={match.homeTeamCrest} 
+                                    alt={match.homeTeam}
+                                    className="w-6 h-6 object-contain"
+                                    onError={(e) => {
+                                      e.currentTarget.style.display = 'none';
+                                    }}
+                                  />
+                                )}
+                                <span className="font-semibold text-lg">{match.homeTeam}</span>
+                                <span className="text-muted-foreground">x</span>
+                                <span className="font-semibold text-lg">{match.awayTeam}</span>
+                                {match.awayTeamCrest && (
+                                  <img 
+                                    src={match.awayTeamCrest} 
+                                    alt={match.awayTeam}
+                                    className="w-6 h-6 object-contain"
+                                    onError={(e) => {
+                                      e.currentTarget.style.display = 'none';
+                                    }}
+                                  />
+                                )}
+                              </div>
                             </div>
                             <div className="flex items-center gap-2 text-sm text-muted-foreground">
                               {match.round && <span>📍 {match.round}</span>}
