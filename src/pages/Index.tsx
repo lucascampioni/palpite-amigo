@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Trophy, LogOut, User } from "lucide-react";
+import { Plus, Trophy, LogOut, User, ChevronDown, ChevronUp } from "lucide-react";
 import PoolCard from "@/components/PoolCard";
 import PoolStats from "@/components/PoolStats";
 import { Session } from "@supabase/supabase-js";
@@ -23,6 +23,7 @@ const Index = () => {
   const [availablePools, setAvailablePools] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [pendingApprovalsCount, setPendingApprovalsCount] = useState(0);
+  const [showFinished, setShowFinished] = useState(false);
 
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
@@ -185,8 +186,10 @@ const Index = () => {
               <Trophy className="w-6 h-6 text-primary" />
               <h3 className="text-2xl font-bold">Meus Bolões</h3>
             </div>
+            
+            {/* Active Pools */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {myPools.map((pool) => (
+              {myPools.filter(p => p.status === "active").map((pool) => (
                 <PoolCard
                   key={pool.id}
                   pool={pool}
@@ -194,6 +197,38 @@ const Index = () => {
                 />
               ))}
             </div>
+
+            {/* Finished Pools Collapsible */}
+            {myPools.filter(p => p.status === "finished").length > 0 && (
+              <div className="space-y-3 pt-4">
+                <Button
+                  variant="ghost"
+                  className="w-full justify-between"
+                  onClick={() => setShowFinished(!showFinished)}
+                >
+                  <span className="text-sm font-medium text-muted-foreground">
+                    Bolões Finalizados ({myPools.filter(p => p.status === "finished").length})
+                  </span>
+                  {showFinished ? (
+                    <ChevronUp className="w-4 h-4" />
+                  ) : (
+                    <ChevronDown className="w-4 h-4" />
+                  )}
+                </Button>
+                
+                {showFinished && (
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {myPools.filter(p => p.status === "finished").map((pool) => (
+                      <PoolCard
+                        key={pool.id}
+                        pool={pool}
+                        onClick={() => navigate(`/pool/${pool.id}`)}
+                      />
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
           </section>
         )}
 

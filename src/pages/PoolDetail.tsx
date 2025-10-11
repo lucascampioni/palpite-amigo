@@ -462,7 +462,7 @@ const PoolDetail = () => {
                     🤖 Resultados Automáticos
                   </p>
                   <p className="text-xs text-muted-foreground">
-                    Os resultados dos jogos e o vencedor do bolão serão determinados automaticamente através da API de futebol.
+                    O vencedor do bolão será determinado automaticamente de acordo com o resultado dos jogos.
                   </p>
                 </div>
               </>
