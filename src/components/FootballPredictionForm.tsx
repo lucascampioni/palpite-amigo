@@ -22,6 +22,8 @@ interface Match {
   away_team: string;
   match_date: string;
   championship: string;
+  home_team_crest?: string;
+  away_team_crest?: string;
 }
 
 interface Prediction {
@@ -231,7 +233,19 @@ const FootballPredictionForm = ({ poolId, userId, onSuccess, entryFee }: Footbal
             <CardContent>
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label>{match.home_team}</Label>
+                  <div className="flex items-center gap-2">
+                    {match.home_team_crest && (
+                      <img 
+                        src={match.home_team_crest} 
+                        alt={match.home_team}
+                        className="w-6 h-6 object-contain"
+                        onError={(e) => {
+                          e.currentTarget.style.display = 'none';
+                        }}
+                      />
+                    )}
+                    <Label>{match.home_team}</Label>
+                  </div>
                   <Input
                     type="number"
                     min="0"
@@ -243,7 +257,19 @@ const FootballPredictionForm = ({ poolId, userId, onSuccess, entryFee }: Footbal
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label>{match.away_team}</Label>
+                  <div className="flex items-center gap-2">
+                    {match.away_team_crest && (
+                      <img 
+                        src={match.away_team_crest} 
+                        alt={match.away_team}
+                        className="w-6 h-6 object-contain"
+                        onError={(e) => {
+                          e.currentTarget.style.display = 'none';
+                        }}
+                      />
+                    )}
+                    <Label>{match.away_team}</Label>
+                  </div>
                   <Input
                     type="number"
                     min="0"

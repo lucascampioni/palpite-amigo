@@ -209,6 +209,8 @@ const CreateFootballPool = () => {
       status: "scheduled",
       external_id: match.externalId,
       external_source: 'apifb',
+      home_team_crest: match.homeTeamCrest || null,
+      away_team_crest: match.awayTeamCrest || null,
     }));
 
     const { error: matchesError } = await supabase

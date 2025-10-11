@@ -403,13 +403,6 @@ const PoolDetail = () => {
               </div>
             </div>
 
-            {entryFee && (
-              <div className="p-4 rounded-lg bg-primary/10 border border-primary/20">
-                <p className="text-sm font-medium">💵 Valor de Entrada</p>
-                <p className="text-lg font-bold">R$ {entryFee.toFixed(2)}</p>
-              </div>
-            )}
-
             {isOwner && pool.status === "active" && (
               <>
                 <Separator />

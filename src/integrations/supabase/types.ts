@@ -18,12 +18,14 @@ export type Database = {
         Row: {
           away_score: number | null
           away_team: string
+          away_team_crest: string | null
           championship: string
           created_at: string
           external_id: string | null
           external_source: string | null
           home_score: number | null
           home_team: string
+          home_team_crest: string | null
           id: string
           last_sync_at: string | null
           match_date: string
@@ -34,12 +36,14 @@ export type Database = {
         Insert: {
           away_score?: number | null
           away_team: string
+          away_team_crest?: string | null
           championship: string
           created_at?: string
           external_id?: string | null
           external_source?: string | null
           home_score?: number | null
           home_team: string
+          home_team_crest?: string | null
           id?: string
           last_sync_at?: string | null
           match_date: string
@@ -50,12 +54,14 @@ export type Database = {
         Update: {
           away_score?: number | null
           away_team?: string
+          away_team_crest?: string | null
           championship?: string
           created_at?: string
           external_id?: string | null
           external_source?: string | null
           home_score?: number | null
           home_team?: string
+          home_team_crest?: string | null
           id?: string
           last_sync_at?: string | null
           match_date?: string
