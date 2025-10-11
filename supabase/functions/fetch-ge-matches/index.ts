@@ -27,36 +27,36 @@ interface Championship {
   rounds: Round[];
 }
 
-const API_FOOTBALL_KEY = Deno.env.get('API_FOOTBALL_KEY');
+const FOOTBALL_DATA_API_KEY = Deno.env.get('FOOTBALL_DATA_API_KEY');
+const BASE_URL = 'https://api.football-data.org/v4';
 
-// League IDs for Brazilian competitions
-const LEAGUES = {
-  brasileirao: 71,  // Brasileirão Série A
-  copa_brasil: 73,  // Copa do Brasil
+// Competition IDs for Brazilian competitions
+const COMPETITIONS = {
+  brasileirao: {
+    id: 2013,
+    code: 'BSA',
+    name: 'Campeonato Brasileiro Série A'
+  }
 };
 
-const CURRENT_SEASON = new Date().getFullYear(); // Adjust this based on current year
-
-async function fetchFixtures(leagueId: number, season: number = CURRENT_SEASON): Promise<any[]> {
-  if (!API_FOOTBALL_KEY) {
-    throw new Error('API_FOOTBALL_KEY not configured');
+async function fetchMatches(competitionId: number): Promise<any[]> {
+  if (!FOOTBALL_DATA_API_KEY) {
+    throw new Error('FOOTBALL_DATA_API_KEY not configured');
   }
 
-  console.log(`  📞 Calling API-FOOTBALL for league ${leagueId}, season ${season}`);
+  console.log(`  📞 Calling football-data.org API for competition ${competitionId}`);
 
   const today = new Date();
-  const from = today.toISOString().split('T')[0];
+  const dateFrom = today.toISOString().split('T')[0];
   const toDate = new Date(today.getTime() + 31 * 24 * 60 * 60 * 1000);
-  const to = toDate.toISOString().split('T')[0];
+  const dateTo = toDate.toISOString().split('T')[0];
 
-  let url = `https://v3.football.api-sports.io/fixtures?league=${leagueId}&season=${season}&from=${from}&to=${to}`;
-  console.log(`  🔗 URL (date range): ${url}`);
+  const url = `${BASE_URL}/competitions/${competitionId}/matches?dateFrom=${dateFrom}&dateTo=${dateTo}`;
+  console.log(`  🔗 URL: ${url}`);
 
-  let response = await fetch(url, {
+  const response = await fetch(url, {
     headers: {
-      'x-rapidapi-host': 'v3.football.api-sports.io',
-      'x-rapidapi-key': API_FOOTBALL_KEY!,
-      'x-apisports-key': API_FOOTBALL_KEY!,
+      'X-Auth-Token': FOOTBALL_DATA_API_KEY,
     },
   });
 
@@ -65,123 +65,59 @@ async function fetchFixtures(leagueId: number, season: number = CURRENT_SEASON):
   if (!response.ok) {
     const errorText = await response.text();
     console.error(`  ❌ API error response: ${errorText}`);
-    throw new Error(`API Football error: ${response.status} - ${errorText}`);
+    throw new Error(`Football-Data API error: ${response.status} - ${errorText}`);
   }
 
-  let data = await response.json();
-  console.log(`  ✅ API response received (date range)`);
-  console.log(`  📊 Response structure:`, JSON.stringify(data, null, 2).substring(0, 500));
+  const data = await response.json();
+  console.log(`  ✅ API response received`);
 
-  let fixtures = data.response || [];
-  console.log(`  ✅ Extracted ${fixtures.length} fixtures from response`);
+  const matches = data.matches || [];
+  console.log(`  ✅ Extracted ${matches.length} matches from response`);
 
-  if (fixtures.length === 0) {
-    console.log('  ⚠️ No fixtures found in date range. Falling back to next=50');
-    url = `https://v3.football.api-sports.io/fixtures?league=${leagueId}&season=${season}&next=50`;
-    console.log(`  🔗 URL (fallback next): ${url}`);
-
-    response = await fetch(url, {
-      headers: {
-        'x-rapidapi-host': 'v3.football.api-sports.io',
-        'x-rapidapi-key': API_FOOTBALL_KEY!,
-        'x-apisports-key': API_FOOTBALL_KEY!,
-      },
-    });
-
-    console.log(`  📡 Response status (fallback): ${response.status}`);
-
-    if (!response.ok) {
-      const errorText2 = await response.text();
-      console.error(`  ❌ API error response (fallback): ${errorText2}`);
-      throw new Error(`API Football error: ${response.status} - ${errorText2}`);
-    }
-
-    data = await response.json();
-    fixtures = data.response || [];
-    console.log(`  ✅ Extracted ${fixtures.length} fixtures from fallback response`);
-  }
-  if (fixtures.length === 0) {
-    console.log('  ⚠️ No fixtures found after fallback. Trying date range WITHOUT season.');
-    url = `https://v3.football.api-sports.io/fixtures?league=${leagueId}&from=${from}&to=${to}`;
-    console.log(`  🔗 URL (no season, date range): ${url}`);
-    response = await fetch(url, {
-      headers: {
-        'x-rapidapi-host': 'v3.football.api-sports.io',
-        'x-rapidapi-key': API_FOOTBALL_KEY!,
-        'x-apisports-key': API_FOOTBALL_KEY!,
-      },
-    });
-    console.log(`  📡 Response status (no season, date range): ${response.status}`);
-    if (!response.ok) {
-      const errorText3 = await response.text();
-      console.error(`  ❌ API error response (no season, date range): ${errorText3}`);
-      throw new Error(`API Football error: ${response.status} - ${errorText3}`);
-    }
-    data = await response.json();
-    fixtures = data.response || [];
-    console.log(`  ✅ Extracted ${fixtures.length} fixtures (no season, date range)`);
-  }
-
-  if (fixtures.length === 0) {
-    console.log('  ⚠️ Still empty. Trying NEXT=100 WITHOUT season.');
-    url = `https://v3.football.api-sports.io/fixtures?league=${leagueId}&next=100`;
-    console.log(`  🔗 URL (no season, next=100): ${url}`);
-    response = await fetch(url, {
-      headers: {
-        'x-rapidapi-host': 'v3.football.api-sports.io',
-        'x-rapidapi-key': API_FOOTBALL_KEY!,
-        'x-apisports-key': API_FOOTBALL_KEY!,
-      },
-    });
-    console.log(`  📡 Response status (no season, next=100): ${response.status}`);
-    if (!response.ok) {
-      const errorText4 = await response.text();
-      console.error(`  ❌ API error response (no season, next=100): ${errorText4}`);
-      throw new Error(`API Football error: ${response.status} - ${errorText4}`);
-    }
-    data = await response.json();
-    fixtures = data.response || [];
-    console.log(`  ✅ Extracted ${fixtures.length} fixtures (no season, next=100)`);
-  }
-
-  return fixtures;
+  return matches;
 }
 
-function organizeFixturesByRound(fixtures: any[], leagueName: string, leagueId: string): Championship {
+function organizeMatchesByRound(matches: any[], competitionName: string, competitionCode: string): Championship {
   const roundsMap = new Map<string, Match[]>();
 
-  fixtures.forEach((fixture: any) => {
-    const round = fixture.league?.round || 'Rodada 1';
+  matches.forEach((match: any) => {
+    // Use matchday for Brazilian league
+    const matchday = match.matchday || 1;
+    const round = `Rodada ${matchday}`;
     
-    const match: Match = {
-      homeTeam: fixture.teams?.home?.name || 'Time Casa',
-      awayTeam: fixture.teams?.away?.name || 'Time Visitante',
-      matchDate: fixture.fixture?.date || new Date().toISOString(),
-      championship: leagueName,
-      externalId: `apifb_${fixture.fixture?.id || Math.random()}`,
+    const matchObj: Match = {
+      homeTeam: match.homeTeam?.name || match.homeTeam?.shortName || 'Time Casa',
+      awayTeam: match.awayTeam?.name || match.awayTeam?.shortName || 'Time Visitante',
+      matchDate: match.utcDate || new Date().toISOString(),
+      championship: competitionName,
+      externalId: `fd_${match.id || Math.random()}`,
       round: round,
     };
 
     if (!roundsMap.has(round)) {
       roundsMap.set(round, []);
     }
-    roundsMap.get(round)!.push(match);
+    roundsMap.get(round)!.push(matchObj);
   });
 
   const rounds: Round[] = [];
-  let roundNumber = 1;
+  const sortedRounds = Array.from(roundsMap.entries()).sort((a, b) => {
+    const numA = parseInt(a[0].replace('Rodada ', ''));
+    const numB = parseInt(b[0].replace('Rodada ', ''));
+    return numA - numB;
+  });
 
-  roundsMap.forEach((matches, roundName) => {
+  sortedRounds.forEach(([roundName, matches], index) => {
     rounds.push({
-      number: roundNumber++,
+      number: index + 1,
       name: roundName,
       matches: matches,
     });
   });
 
   return {
-    id: leagueId,
-    name: leagueName,
+    id: competitionCode.toLowerCase(),
+    name: competitionName,
     rounds: rounds,
   };
 }
@@ -193,12 +129,12 @@ serve(async (req) => {
 
   try {
     console.log('=== Starting fetch-ge-matches ===');
-    console.log('Fetching matches from API-FOOTBALL...');
+    console.log('Fetching matches from football-data.org...');
 
-    if (!API_FOOTBALL_KEY) {
-      console.error('❌ API_FOOTBALL_KEY not found');
+    if (!FOOTBALL_DATA_API_KEY) {
+      console.error('❌ FOOTBALL_DATA_API_KEY not found');
       return new Response(JSON.stringify({ 
-        error: 'API key not configured. Please add API_FOOTBALL_KEY in secrets.',
+        error: 'API key not configured. Please add FOOTBALL_DATA_API_KEY in secrets.',
         success: false 
       }), {
         status: 500,
@@ -211,41 +147,21 @@ serve(async (req) => {
 
     // Fetch Brasileirão Série A
     try {
-      console.log('📡 Fetching Brasileirão Série A (League 71)...');
-      const brasileiraoFixtures = await fetchFixtures(LEAGUES.brasileirao);
-      console.log(`📊 Received ${brasileiraoFixtures.length} fixtures for Brasileirão`);
+      console.log(`📡 Fetching ${COMPETITIONS.brasileirao.name} (ID ${COMPETITIONS.brasileirao.id})...`);
+      const matches = await fetchMatches(COMPETITIONS.brasileirao.id);
+      console.log(`📊 Received ${matches.length} matches for Brasileirão`);
       
-      if (brasileiraoFixtures.length > 0) {
-        const brasileiraoChamp = organizeFixturesByRound(
-          brasileiraoFixtures,
-          'Brasileirão Série A',
-          'brasileirao-serie-a'
+      if (matches.length > 0) {
+        const brasileiraoChamp = organizeMatchesByRound(
+          matches,
+          COMPETITIONS.brasileirao.name,
+          COMPETITIONS.brasileirao.code
         );
         championships.push(brasileiraoChamp);
         console.log(`✅ Organized into ${brasileiraoChamp.rounds.length} rounds`);
       }
     } catch (error) {
       console.error('❌ Error fetching Brasileirão:', error);
-      console.error('Error details:', error instanceof Error ? error.message : String(error));
-    }
-
-    // Fetch Copa do Brasil
-    try {
-      console.log('📡 Fetching Copa do Brasil (League 73)...');
-      const copaFixtures = await fetchFixtures(LEAGUES.copa_brasil);
-      console.log(`📊 Received ${copaFixtures.length} fixtures for Copa do Brasil`);
-      
-      if (copaFixtures.length > 0) {
-        const copaChamp = organizeFixturesByRound(
-          copaFixtures,
-          'Copa do Brasil',
-          'copa-do-brasil'
-        );
-        championships.push(copaChamp);
-        console.log(`✅ Organized into ${copaChamp.rounds.length} rounds`);
-      }
-    } catch (error) {
-      console.error('❌ Error fetching Copa do Brasil:', error);
       console.error('Error details:', error instanceof Error ? error.message : String(error));
     }
 
