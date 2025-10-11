@@ -10,12 +10,15 @@ import { useToast } from "@/hooks/use-toast";
 import { ArrowLeft, Plus, Trash2 } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
+import { GEMatchSelector } from "@/components/GEMatchSelector";
 
 interface Match {
   homeTeam: string;
   awayTeam: string;
   matchDate: string;
   championship: string;
+  externalId?: string;
+  externalSource?: string;
 }
 
 const CreateFootballPool = () => {
@@ -23,7 +26,7 @@ const CreateFootballPool = () => {
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
   const [isPrivate, setIsPrivate] = useState(false);
-  const [loadingGE, setLoadingGE] = useState(false);
+  const [showGESelector, setShowGESelector] = useState(false);
   const [matches, setMatches] = useState<Match[]>([
     { homeTeam: "", awayTeam: "", matchDate: "", championship: "brasileirao-serie-a" }
   ]);
@@ -42,37 +45,16 @@ const CreateFootballPool = () => {
     setMatches(newMatches);
   };
 
-  const handleFetchGEMatches = async () => {
-    setLoadingGE(true);
-    try {
-      const { data, error } = await supabase.functions.invoke('fetch-ge-matches', {
-        body: { championship: 'Brasileirão Série A' }
-      });
-
-      if (error) throw error;
-
-      if (data?.matches && data.matches.length > 0) {
-        setMatches(data.matches);
-        toast({
-          title: "Jogos carregados!",
-          description: `${data.matches.length} jogos foram importados do Globo Esporte.`,
-        });
-      } else {
-        toast({
-          title: "Aviso",
-          description: "Nenhum jogo encontrado. Você pode adicionar manualmente.",
-        });
-      }
-    } catch (error) {
-      console.error('Error fetching GE matches:', error);
-      toast({
-        variant: "destructive",
-        title: "Erro ao buscar jogos",
-        description: "Não foi possível carregar os jogos do Globo Esporte. Adicione manualmente.",
-      });
-    } finally {
-      setLoadingGE(false);
-    }
+  const handleGEMatchesSelected = (geMatches: Match[]) => {
+    const newMatches = geMatches.map(m => ({
+      ...m,
+      externalSource: 'ge' as const
+    }));
+    setMatches([...matches.filter(m => m.homeTeam || m.awayTeam), ...newMatches]);
+    toast({
+      title: "Jogos adicionados!",
+      description: `${geMatches.length} jogos do Globo Esporte foram adicionados ao bolão.`,
+    });
   };
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -159,6 +141,8 @@ const CreateFootballPool = () => {
       match_date: new Date(match.matchDate).toISOString(),
       championship: match.championship,
       status: "scheduled",
+      external_id: match.externalId || null,
+      external_source: match.externalSource || 'manual',
     }));
 
     const { error: matchesError } = await supabase
@@ -279,10 +263,9 @@ const CreateFootballPool = () => {
                       type="button"
                       variant="secondary"
                       size="sm"
-                      onClick={handleFetchGEMatches}
-                      disabled={loadingGE}
+                      onClick={() => setShowGESelector(true)}
                     >
-                      {loadingGE ? "Carregando..." : "⚽ Importar do GE"}
+                      ⚽ Buscar Jogos do GE
                     </Button>
                     <Button
                       type="button"
@@ -291,14 +274,19 @@ const CreateFootballPool = () => {
                       onClick={handleAddMatch}
                     >
                       <Plus className="w-4 h-4 mr-2" />
-                      Adicionar Jogo
+                      Adicionar Manual
                     </Button>
                   </div>
                 </div>
 
                 {matches.map((match, index) => (
-                  <Card key={index} className="relative">
+                  <Card key={index} className={`relative ${match.externalSource === 'ge' ? 'border-green-500/50 bg-green-500/5' : ''}`}>
                     <CardContent className="pt-6 space-y-4">
+                      {match.externalSource === 'ge' && (
+                        <div className="absolute top-2 left-2 text-xs bg-green-500 text-white px-2 py-1 rounded">
+                          Globo Esporte
+                        </div>
+                      )}
                       {matches.length > 1 && (
                         <Button
                           type="button"
@@ -316,6 +304,7 @@ const CreateFootballPool = () => {
                         <Select
                           value={match.championship}
                           onValueChange={(value) => handleMatchChange(index, "championship", value)}
+                          disabled={match.externalSource === 'ge'}
                         >
                           <SelectTrigger>
                             <SelectValue />
@@ -338,6 +327,7 @@ const CreateFootballPool = () => {
                             onChange={(e) => handleMatchChange(index, "homeTeam", e.target.value)}
                             placeholder="Ex: Flamengo"
                             required
+                            disabled={match.externalSource === 'ge'}
                           />
                         </div>
                         <div className="space-y-2">
@@ -347,6 +337,7 @@ const CreateFootballPool = () => {
                             onChange={(e) => handleMatchChange(index, "awayTeam", e.target.value)}
                             placeholder="Ex: Palmeiras"
                             required
+                            disabled={match.externalSource === 'ge'}
                           />
                         </div>
                       </div>
@@ -358,11 +349,22 @@ const CreateFootballPool = () => {
                           value={match.matchDate}
                           onChange={(e) => handleMatchChange(index, "matchDate", e.target.value)}
                           required
+                          disabled={match.externalSource === 'ge'}
                         />
                       </div>
                     </CardContent>
                   </Card>
                 ))}
+              </div>
+
+              <div className="bg-muted/50 p-4 rounded-lg text-sm space-y-2">
+                <p className="font-semibold">⚡ Funcionalidades Automáticas:</p>
+                <ul className="list-disc list-inside space-y-1 text-muted-foreground">
+                  <li>Jogos do GE são atualizados automaticamente a cada hora</li>
+                  <li>Resultados são sincronizados direto do Globo Esporte</li>
+                  <li>Pontuação dos participantes é calculada automaticamente</li>
+                  <li>Vencedor é determinado ao final de todos os jogos</li>
+                </ul>
               </div>
 
               <div className="bg-muted/50 p-4 rounded-lg text-sm space-y-2">
@@ -394,6 +396,12 @@ const CreateFootballPool = () => {
             </form>
           </CardContent>
         </Card>
+
+        <GEMatchSelector 
+          open={showGESelector}
+          onOpenChange={setShowGESelector}
+          onMatchesSelected={handleGEMatchesSelected}
+        />
       </div>
     </div>
   );
