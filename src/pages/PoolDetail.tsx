@@ -550,43 +550,15 @@ const PoolDetail = () => {
               </>
             )}
 
-            {hasJoined && !awaitingProofParticipant && currentUserParticipant?.status !== 'pending' && (
+            {hasJoined && !awaitingProofParticipant && currentUserParticipant?.status === 'approved' && (
               <>
-                {pixKey && (
-                  <>
-                    <Separator />
-                    <div className="p-4 rounded-lg bg-primary/10 border border-primary/20">
-                      <div className="flex items-center justify-between">
-                        <div className="flex-1">
-                          {entryFee && (
-                            <p className="text-sm font-medium mb-1">
-                              💵 Valor: R$ {entryFee.toFixed(2)}
-                            </p>
-                          )}
-                          <p className="text-sm font-medium mb-1">💰 Chave PIX para pagamento</p>
-                          <p className="text-sm font-mono text-muted-foreground">{pixKey}</p>
-                          <p className="text-xs text-muted-foreground mt-2">
-                            Faça o pagamento e aguarde a aprovação do criador.
-                          </p>
-                        </div>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={handleCopyPixKey}
-                        >
-                          <Copy className="w-4 h-4 mr-2" />
-                          Copiar
-                        </Button>
-                      </div>
-                    </div>
-                  </>
-                )}
-                <div className="p-4 rounded-lg bg-primary/10 border border-primary/20">
-                  <p className="text-sm font-medium text-primary">
-                    ✓ Palpite enviado com sucesso!
+                <Separator />
+                <div className="p-4 rounded-lg bg-green-50 dark:bg-green-950 border border-green-200 dark:border-green-800">
+                  <p className="text-sm font-medium text-green-700 dark:text-green-300">
+                    ✓ Você está participando deste bolão!
                   </p>
                   <p className="text-xs text-muted-foreground mt-1">
-                    {pixKey ? "Faça o pagamento usando a chave PIX acima e aguarde a aprovação." : "Aguarde a aprovação do criador do bolão."}
+                    Sua participação foi aprovada. Boa sorte!
                   </p>
                 </div>
               </>

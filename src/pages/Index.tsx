@@ -16,6 +16,7 @@ const Index = () => {
   const [myCreatedPools, setMyCreatedPools] = useState<any[]>([]);
   const [myParticipatingPools, setMyParticipatingPools] = useState<any[]>([]);
   const [myAwaitingProofPools, setMyAwaitingProofPools] = useState<any[]>([]);
+  const [myPendingApprovalPools, setMyPendingApprovalPools] = useState<any[]>([]);
   const [officialPools, setOfficialPools] = useState<any[]>([]);
   const [availablePools, setAvailablePools] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -104,6 +105,25 @@ const Index = () => {
       awaitingProofPoolsData = data || [];
     }
 
+    // Load pools where user is pending approval
+    const { data: pendingApprovalRecords } = await supabase
+      .from("participants")
+      .select("pool_id, id, status")
+      .eq("user_id", session.user.id)
+      .eq("status", "pending");
+    
+    const pendingApprovalPoolIds = pendingApprovalRecords?.map(p => p.pool_id) || [];
+    
+    let pendingApprovalPoolsData: any[] = [];
+    if (pendingApprovalPoolIds.length > 0) {
+      const { data } = await supabase
+        .from("pools")
+        .select("*, participants(count)")
+        .in("id", pendingApprovalPoolIds)
+        .order("created_at", { ascending: false });
+      pendingApprovalPoolsData = data || [];
+    }
+
     // Load official pools (marked as official by app admin)
     const { data: officialPoolsData } = await supabase
       .from("pools")
@@ -144,6 +164,7 @@ const Index = () => {
     setMyCreatedPools(ownedPools || []);
     setMyParticipatingPools(participatingPoolsData);
     setMyAwaitingProofPools(awaitingProofPoolsData);
+    setMyPendingApprovalPools(pendingApprovalPoolsData);
     setOfficialPools(officialPoolsData || []);
     setAvailablePools(activePools);
     
@@ -277,6 +298,36 @@ const Index = () => {
                     />
                     <div className="absolute top-2 right-2 bg-orange-500 text-white text-xs px-2 py-1 rounded-full font-semibold">
                       Pendente
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </section>
+        )}
+
+        {/* Pending Approval Section */}
+        {myPendingApprovalPools.length > 0 && (
+          <section className="space-y-4">
+            <div className="flex items-center gap-2">
+              <div className="w-8 h-8 rounded-lg bg-blue-500 flex items-center justify-center">
+                <span className="text-lg">⏳</span>
+              </div>
+              <h3 className="text-2xl font-bold">⏳ Aguardando Aprovação</h3>
+            </div>
+            <div className="p-4 rounded-lg bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-800">
+              <p className="text-sm text-muted-foreground mb-4">
+                Você enviou seu comprovante. Aguarde o criador aprovar sua participação nestes bolões.
+              </p>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {myPendingApprovalPools.map((pool) => (
+                  <div key={pool.id} className="relative">
+                    <PoolCard
+                      pool={pool}
+                      onClick={() => navigate(`/pool/${pool.id}`)}
+                    />
+                    <div className="absolute top-2 right-2 bg-blue-500 text-white text-xs px-2 py-1 rounded-full font-semibold">
+                      Em Análise
                     </div>
                   </div>
                 ))}

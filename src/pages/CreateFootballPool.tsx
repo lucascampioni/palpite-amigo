@@ -22,6 +22,16 @@ const footballPoolSchema = z.object({
   maxParticipants: z.string().optional(),
 });
 
+const createValidationSchema = (entryFee: string, pixKey: string) => {
+  const hasEntryFee = entryFee && parseFloat(entryFee) > 0;
+  
+  if (hasEntryFee && !pixKey.trim()) {
+    throw new Error("Chave PIX é obrigatória quando há valor de entrada");
+  }
+  
+  return footballPoolSchema.parse({ title: "", description: "", pixKey, entryFee, maxParticipants: "" });
+};
+
 interface Match {
   homeTeam: string;
   awayTeam: string;
@@ -54,7 +64,7 @@ const CreateFootballPool = () => {
   }, []);
   const [showGESelector, setShowGESelector] = useState(false);
   const [matches, setMatches] = useState<Match[]>([]);
-  const [scoringSystem, setScoringSystem] = useState<'standard' | 'exact_only'>('standard');
+  const [scoringSystem, setScoringSystem] = useState<'standard' | 'exact_only'>('exact_only');
   const [deadline, setDeadline] = useState<string>("");
 
   const handleAddMatch = () => {
@@ -117,12 +127,26 @@ const CreateFootballPool = () => {
     // Validate input
     try {
       footballPoolSchema.parse({ title, description, pixKey, entryFee, maxParticipants });
+      
+      // Additional validation for PIX key when entry fee is present
+      const hasEntryFee = entryFee && parseFloat(entryFee) > 0;
+      if (hasEntryFee && !pixKey.trim()) {
+        throw new Error("Chave PIX é obrigatória quando há valor de entrada");
+      }
     } catch (error) {
       if (error instanceof z.ZodError) {
         toast({
           variant: "destructive",
           title: "Erro de validação",
           description: error.errors[0].message,
+        });
+        setLoading(false);
+        return;
+      } else if (error instanceof Error) {
+        toast({
+          variant: "destructive",
+          title: "Erro de validação",
+          description: error.message,
         });
         setLoading(false);
         return;
@@ -330,12 +354,17 @@ const CreateFootballPool = () => {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="pix_key">Chave PIX (opcional)</Label>
+                <Label htmlFor="pix_key">
+                  Chave PIX {(document.getElementById('entry_fee') as HTMLInputElement)?.value && parseFloat((document.getElementById('entry_fee') as HTMLInputElement).value) > 0 ? '*' : '(opcional)'}
+                </Label>
                 <Input
                   id="pix_key"
                   name="pix_key"
                   placeholder="Digite sua chave PIX para receber pagamentos"
                 />
+                <p className="text-xs text-muted-foreground">
+                  * Obrigatório se houver valor de entrada
+                </p>
               </div>
 
               <div className="flex items-center justify-between rounded-lg border p-4">
@@ -372,27 +401,6 @@ const CreateFootballPool = () => {
                 <Label>Sistema de Pontuação</Label>
                 <div className="space-y-2">
                   <label className={`flex items-start gap-3 p-3 rounded-lg border-2 cursor-pointer transition-colors ${
-                    scoringSystem === 'standard' ? 'border-primary bg-primary/5' : 'border-border hover:border-primary/50'
-                  }`}>
-                    <input
-                      type="radio"
-                      name="scoring"
-                      value="standard"
-                      checked={scoringSystem === 'standard'}
-                      onChange={(e) => setScoringSystem(e.target.value as 'standard')}
-                      className="mt-1"
-                    />
-                    <div className="flex-1">
-                      <div className="font-medium mb-1">Sistema Completo (Padrão)</div>
-                      <ul className="text-sm text-muted-foreground space-y-0.5">
-                        <li>• 5 pontos: Placar exato</li>
-                        <li>• 3 pontos: Resultado correto</li>
-                        <li>• 1 ponto: Diferença de gols correta</li>
-                      </ul>
-                    </div>
-                  </label>
-
-                  <label className={`flex items-start gap-3 p-3 rounded-lg border-2 cursor-pointer transition-colors ${
                     scoringSystem === 'exact_only' ? 'border-primary bg-primary/5' : 'border-border hover:border-primary/50'
                   }`}>
                     <input
@@ -404,10 +412,31 @@ const CreateFootballPool = () => {
                       className="mt-1"
                     />
                     <div className="flex-1">
-                      <div className="font-medium mb-1">Placar Exato Apenas</div>
+                      <div className="font-medium mb-1">Placar Exato Apenas (Padrão)</div>
                       <ul className="text-sm text-muted-foreground space-y-0.5">
                         <li>• 1 ponto: Apenas para placar exato</li>
                         <li>• 0 pontos: Qualquer outro resultado</li>
+                      </ul>
+                    </div>
+                  </label>
+
+                  <label className={`flex items-start gap-3 p-3 rounded-lg border-2 cursor-pointer transition-colors ${
+                    scoringSystem === 'standard' ? 'border-primary bg-primary/5' : 'border-border hover:border-primary/50'
+                  }`}>
+                    <input
+                      type="radio"
+                      name="scoring"
+                      value="standard"
+                      checked={scoringSystem === 'standard'}
+                      onChange={(e) => setScoringSystem(e.target.value as 'standard')}
+                      className="mt-1"
+                    />
+                    <div className="flex-1">
+                      <div className="font-medium mb-1">Sistema com Pontuação Progressiva</div>
+                      <ul className="text-sm text-muted-foreground space-y-0.5">
+                        <li>• 5 pontos: Placar exato</li>
+                        <li>• 3 pontos: Resultado correto</li>
+                        <li>• 1 ponto: Diferença de gols correta</li>
                       </ul>
                     </div>
                   </label>
