@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -16,6 +16,8 @@ const poolSchema = z.object({
   title: z.string().trim().min(1, "Título é obrigatório").max(200, "Título muito longo"),
   description: z.string().trim().max(2000, "Descrição muito longa"),
   guessLabel: z.string().trim().min(1, "Pergunta do palpite é obrigatória").max(200, "Pergunta muito longa"),
+  entryFee: z.string().optional(),
+  maxParticipants: z.string().optional(),
 });
 
 const CreatePool = () => {
@@ -24,6 +26,19 @@ const CreatePool = () => {
   const [loading, setLoading] = useState(false);
   const [measurementUnit, setMeasurementUnit] = useState("units");
   const [isPrivate, setIsPrivate] = useState(false);
+  const [isOfficial, setIsOfficial] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false);
+
+  useEffect(() => {
+    // Check if user is admin
+    const checkAdmin = async () => {
+      const { data, error } = await supabase.rpc('is_app_admin');
+      if (!error && data) {
+        setIsAdmin(true);
+      }
+    };
+    checkAdmin();
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -34,10 +49,12 @@ const CreatePool = () => {
     const description = formData.get("description") as string;
     const guessLabel = formData.get("guess-label") as string;
     const deadline = formData.get("deadline") as string;
+    const entryFee = formData.get("entry_fee") as string;
+    const maxParticipants = formData.get("max_participants") as string;
 
     // Validate input
     try {
-      poolSchema.parse({ title, description, guessLabel });
+      poolSchema.parse({ title, description, guessLabel, entryFee, maxParticipants });
     } catch (error) {
       if (error instanceof z.ZodError) {
         toast({
@@ -74,6 +91,9 @@ const CreatePool = () => {
         status: "active" as any,
         pool_type: "custom" as any,
         is_private: isPrivate,
+        is_official: isOfficial,
+        entry_fee: entryFee ? parseFloat(entryFee) : null,
+        max_participants: maxParticipants && maxParticipants !== "unlimited" ? parseInt(maxParticipants) : null,
       }]);
 
     if (error) {
@@ -171,6 +191,36 @@ const CreatePool = () => {
                 />
               </div>
 
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="entry_fee">Valor de Entrada (opcional)</Label>
+                  <Input
+                    id="entry_fee"
+                    name="entry_fee"
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    placeholder="Ex: 10.00"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="max_participants">Máx. de Participantes</Label>
+                  <select
+                    id="max_participants"
+                    name="max_participants"
+                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    <option value="unlimited">Ilimitado</option>
+                    <option value="5">5 participantes</option>
+                    <option value="10">10 participantes</option>
+                    <option value="20">20 participantes</option>
+                    <option value="50">50 participantes</option>
+                    <option value="100">100 participantes</option>
+                  </select>
+                </div>
+              </div>
+
               <div className="flex items-center justify-between rounded-lg border p-4">
                 <div className="space-y-0.5">
                   <Label htmlFor="is-private">Bolão Privado</Label>
@@ -184,6 +234,22 @@ const CreatePool = () => {
                   onCheckedChange={setIsPrivate}
                 />
               </div>
+
+              {isAdmin && (
+                <div className="flex items-center justify-between rounded-lg border p-4 bg-primary/5">
+                  <div className="space-y-0.5">
+                    <Label htmlFor="is-official">⭐ Bolão Oficial</Label>
+                    <p className="text-sm text-muted-foreground">
+                      Marcar como bolão oficial do app (visível apenas para admin)
+                    </p>
+                  </div>
+                  <Switch
+                    id="is-official"
+                    checked={isOfficial}
+                    onCheckedChange={setIsOfficial}
+                  />
+                </div>
+              )}
 
               <div className="flex gap-3 pt-4">
                 <Button

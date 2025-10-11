@@ -209,7 +209,9 @@ export type Database = {
           entry_fee: number | null
           guess_label: string
           id: string
+          is_official: boolean | null
           is_private: boolean
+          max_participants: number | null
           measurement_unit: Database["public"]["Enums"]["measurement_unit"]
           owner_id: string
           pool_type: Database["public"]["Enums"]["pool_type"]
@@ -227,7 +229,9 @@ export type Database = {
           entry_fee?: number | null
           guess_label: string
           id?: string
+          is_official?: boolean | null
           is_private?: boolean
+          max_participants?: number | null
           measurement_unit?: Database["public"]["Enums"]["measurement_unit"]
           owner_id: string
           pool_type?: Database["public"]["Enums"]["pool_type"]
@@ -245,7 +249,9 @@ export type Database = {
           entry_fee?: number | null
           guess_label?: string
           id?: string
+          is_official?: boolean | null
           is_private?: boolean
+          max_participants?: number | null
           measurement_unit?: Database["public"]["Enums"]["measurement_unit"]
           owner_id?: string
           pool_type?: Database["public"]["Enums"]["pool_type"]
@@ -349,6 +355,10 @@ export type Database = {
           scoring_system?: string
         }
         Returns: number
+      }
+      is_app_admin: {
+        Args: Record<PropertyKey, never>
+        Returns: boolean
       }
       is_approved_participant: {
         Args: { pool_uuid: string; user_uuid: string }

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -19,6 +19,7 @@ const footballPoolSchema = z.object({
   description: z.string().trim().max(2000, "Descrição muito longa").optional(),
   pixKey: z.string().trim().max(100, "Chave PIX muito longa").optional(),
   entryFee: z.string().optional(),
+  maxParticipants: z.string().optional(),
 });
 
 interface Match {
@@ -36,6 +37,19 @@ const CreateFootballPool = () => {
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
   const [isPrivate, setIsPrivate] = useState(false);
+  const [isOfficial, setIsOfficial] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false);
+
+  useEffect(() => {
+    // Check if user is admin
+    const checkAdmin = async () => {
+      const { data, error } = await supabase.rpc('is_app_admin');
+      if (!error && data) {
+        setIsAdmin(true);
+      }
+    };
+    checkAdmin();
+  }, []);
   const [showGESelector, setShowGESelector] = useState(false);
   const [matches, setMatches] = useState<Match[]>([]);
   const [scoringSystem, setScoringSystem] = useState<'standard' | 'exact_only'>('standard');
@@ -96,10 +110,11 @@ const CreateFootballPool = () => {
     const description = formData.get("description") as string;
     const pixKey = formData.get("pix_key") as string;
     const entryFee = formData.get("entry_fee") as string;
+    const maxParticipants = formData.get("max_participants") as string;
 
     // Validate input
     try {
-      footballPoolSchema.parse({ title, description, pixKey, entryFee });
+      footballPoolSchema.parse({ title, description, pixKey, entryFee, maxParticipants });
     } catch (error) {
       if (error instanceof z.ZodError) {
         toast({
@@ -151,6 +166,8 @@ const CreateFootballPool = () => {
         is_private: isPrivate,
         scoring_system: scoringSystem,
         entry_fee: entryFee ? parseFloat(entryFee) : null,
+        max_participants: maxParticipants && maxParticipants !== "unlimited" ? parseInt(maxParticipants) : null,
+        is_official: isOfficial,
       }])
       .select()
       .single();
@@ -278,16 +295,34 @@ const CreateFootballPool = () => {
                 </div>
               </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="entry_fee">Valor de Entrada (opcional)</Label>
-                <Input
-                  id="entry_fee"
-                  name="entry_fee"
-                  type="number"
-                  step="0.01"
-                  min="0"
-                  placeholder="Ex: 10.00"
-                />
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="entry_fee">Valor de Entrada (opcional)</Label>
+                  <Input
+                    id="entry_fee"
+                    name="entry_fee"
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    placeholder="Ex: 10.00"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="max_participants">Máx. de Participantes</Label>
+                  <select
+                    id="max_participants"
+                    name="max_participants"
+                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    <option value="unlimited">Ilimitado</option>
+                    <option value="5">5 participantes</option>
+                    <option value="10">10 participantes</option>
+                    <option value="20">20 participantes</option>
+                    <option value="50">50 participantes</option>
+                    <option value="100">100 participantes</option>
+                  </select>
+                </div>
               </div>
 
               <div className="space-y-2">
@@ -312,6 +347,22 @@ const CreateFootballPool = () => {
                   onCheckedChange={setIsPrivate}
                 />
               </div>
+
+              {isAdmin && (
+                <div className="flex items-center justify-between rounded-lg border p-4 bg-primary/5">
+                  <div className="space-y-0.5">
+                    <Label htmlFor="is-official-football">⭐ Bolão Oficial</Label>
+                    <p className="text-sm text-muted-foreground">
+                      Marcar como bolão oficial do app (visível apenas para admin)
+                    </p>
+                  </div>
+                  <Switch
+                    id="is-official-football"
+                    checked={isOfficial}
+                    onCheckedChange={setIsOfficial}
+                  />
+                </div>
+              )}
 
               <div className="space-y-3 rounded-lg border p-4">
                 <Label>Sistema de Pontuação</Label>

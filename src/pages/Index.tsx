@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Trophy, LogOut, User, ChevronDown, ChevronUp } from "lucide-react";
+import { Plus, Trophy, LogOut, User, ChevronDown, ChevronUp, Users } from "lucide-react";
 import PoolCard from "@/components/PoolCard";
 import PoolStats from "@/components/PoolStats";
 import { Session } from "@supabase/supabase-js";
@@ -19,11 +19,14 @@ const Index = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const [session, setSession] = useState<Session | null>(null);
-  const [myPools, setMyPools] = useState<any[]>([]);
+  const [myCreatedPools, setMyCreatedPools] = useState<any[]>([]);
+  const [myParticipatingPools, setMyParticipatingPools] = useState<any[]>([]);
+  const [officialPools, setOfficialPools] = useState<any[]>([]);
   const [availablePools, setAvailablePools] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [pendingApprovalsCount, setPendingApprovalsCount] = useState(0);
-  const [showFinished, setShowFinished] = useState(false);
+  const [showFinishedCreated, setShowFinishedCreated] = useState(false);
+  const [showFinishedParticipating, setShowFinishedParticipating] = useState(false);
 
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
@@ -67,17 +70,67 @@ const Index = () => {
       .eq("owner_id", session.user.id)
       .order("created_at", { ascending: false });
 
-    // Load active pools that user can join (only public pools)
-    const { data: activePools } = await supabase
+    // Load pools where user is a participant
+    const { data: participantRecords } = await supabase
+      .from("participants")
+      .select("pool_id, status")
+      .eq("user_id", session.user.id)
+      .eq("status", "approved");
+    
+    const participantPoolIds = participantRecords?.map(p => p.pool_id) || [];
+    
+    let participatingPoolsData: any[] = [];
+    if (participantPoolIds.length > 0) {
+      const { data } = await supabase
+        .from("pools")
+        .select("*, participants(count)")
+        .in("id", participantPoolIds)
+        .neq("owner_id", session.user.id) // Exclude pools user owns
+        .order("created_at", { ascending: false });
+      participatingPoolsData = data || [];
+    }
+
+    // Load official pools (marked as official by app admin)
+    const { data: officialPoolsData } = await supabase
       .from("pools")
       .select("*, participants(count)")
-      .eq("status", "active")
+      .eq("is_official", true)
       .eq("is_private", false)
-      .neq("owner_id", session.user.id)
+      .eq("status", "active")
+      .neq("owner_id", session.user.id) // Exclude if user owns it
       .order("created_at", { ascending: false });
 
-    setMyPools(ownedPools || []);
-    setAvailablePools(activePools || []);
+    // Load other public pools (excluding owned, participating, and official)
+    const excludeIds = [
+      ...ownedPools?.map(p => p.id) || [],
+      ...participantPoolIds,
+      ...officialPoolsData?.map(p => p.id) || [],
+    ];
+    
+    let activePools: any[] = [];
+    if (excludeIds.length > 0) {
+      const { data } = await supabase
+        .from("pools")
+        .select("*, participants(count)")
+        .eq("status", "active")
+        .eq("is_private", false)
+        .not("id", "in", `(${excludeIds.join(',')})`)
+        .order("created_at", { ascending: false });
+      activePools = data || [];
+    } else {
+      const { data } = await supabase
+        .from("pools")
+        .select("*, participants(count)")
+        .eq("status", "active")
+        .eq("is_private", false)
+        .order("created_at", { ascending: false });
+      activePools = data || [];
+    }
+
+    setMyCreatedPools(ownedPools || []);
+    setMyParticipatingPools(participatingPoolsData);
+    setOfficialPools(officialPoolsData || []);
+    setAvailablePools(activePools);
     
     // Count pending approvals for owned pools
     const poolIds = ownedPools?.map(p => p.id) || [];
@@ -140,9 +193,9 @@ const Index = () => {
       <main className="max-w-6xl mx-auto px-4 py-8 space-y-8">
         {/* Stats */}
         <PoolStats
-          myPoolsCount={myPools.length}
-          activePoolsCount={myPools.filter(p => p.status === "active").length}
-          finishedPoolsCount={myPools.filter(p => p.status === "finished").length}
+          myPoolsCount={myCreatedPools.length + myParticipatingPools.length}
+          activePoolsCount={myCreatedPools.filter(p => p.status === "active").length + myParticipatingPools.filter(p => p.status === "active").length}
+          finishedPoolsCount={myCreatedPools.filter(p => p.status === "finished").length + myParticipatingPools.filter(p => p.status === "finished").length}
           pendingApprovalsCount={pendingApprovalsCount}
         />
 
@@ -179,17 +232,38 @@ const Index = () => {
           </div>
         </div>
 
-        {/* My Pools Section */}
-        {myPools.length > 0 && (
+        {/* Official Pools Section */}
+        {officialPools.length > 0 && (
+          <section className="space-y-4">
+            <div className="flex items-center gap-2">
+              <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-primary to-primary-glow flex items-center justify-center">
+                <Trophy className="w-5 h-5 text-primary-foreground" />
+              </div>
+              <h3 className="text-2xl font-bold">⭐ Bolões Oficiais</h3>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {officialPools.map((pool) => (
+                <PoolCard
+                  key={pool.id}
+                  pool={pool}
+                  onClick={() => navigate(`/pool/${pool.id}`)}
+                />
+              ))}
+            </div>
+          </section>
+        )}
+
+        {/* Pools I Created Section */}
+        {myCreatedPools.length > 0 && (
           <section className="space-y-4">
             <div className="flex items-center gap-2">
               <Trophy className="w-6 h-6 text-primary" />
-              <h3 className="text-2xl font-bold">Meus Bolões</h3>
+              <h3 className="text-2xl font-bold">Bolões que Criei</h3>
             </div>
             
             {/* Active Pools */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {myPools.filter(p => p.status === "active").map((pool) => (
+              {myCreatedPools.filter(p => p.status === "active").map((pool) => (
                 <PoolCard
                   key={pool.id}
                   pool={pool}
@@ -199,26 +273,79 @@ const Index = () => {
             </div>
 
             {/* Finished Pools Collapsible */}
-            {myPools.filter(p => p.status === "finished").length > 0 && (
+            {myCreatedPools.filter(p => p.status === "finished").length > 0 && (
               <div className="space-y-3 pt-4">
                 <Button
                   variant="ghost"
                   className="w-full justify-between"
-                  onClick={() => setShowFinished(!showFinished)}
+                  onClick={() => setShowFinishedCreated(!showFinishedCreated)}
                 >
                   <span className="text-sm font-medium text-muted-foreground">
-                    Bolões Finalizados ({myPools.filter(p => p.status === "finished").length})
+                    Bolões Finalizados ({myCreatedPools.filter(p => p.status === "finished").length})
                   </span>
-                  {showFinished ? (
+                  {showFinishedCreated ? (
                     <ChevronUp className="w-4 h-4" />
                   ) : (
                     <ChevronDown className="w-4 h-4" />
                   )}
                 </Button>
                 
-                {showFinished && (
+                {showFinishedCreated && (
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {myPools.filter(p => p.status === "finished").map((pool) => (
+                    {myCreatedPools.filter(p => p.status === "finished").map((pool) => (
+                      <PoolCard
+                        key={pool.id}
+                        pool={pool}
+                        onClick={() => navigate(`/pool/${pool.id}`)}
+                      />
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+          </section>
+        )}
+
+        {/* Pools I'm Participating Section */}
+        {myParticipatingPools.length > 0 && (
+          <section className="space-y-4">
+            <div className="flex items-center gap-2">
+              <Users className="w-6 h-6 text-primary" />
+              <h3 className="text-2xl font-bold">Bolões que Participo</h3>
+            </div>
+            
+            {/* Active Pools */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {myParticipatingPools.filter(p => p.status === "active").map((pool) => (
+                <PoolCard
+                  key={pool.id}
+                  pool={pool}
+                  onClick={() => navigate(`/pool/${pool.id}`)}
+                />
+              ))}
+            </div>
+
+            {/* Finished Pools Collapsible */}
+            {myParticipatingPools.filter(p => p.status === "finished").length > 0 && (
+              <div className="space-y-3 pt-4">
+                <Button
+                  variant="ghost"
+                  className="w-full justify-between"
+                  onClick={() => setShowFinishedParticipating(!showFinishedParticipating)}
+                >
+                  <span className="text-sm font-medium text-muted-foreground">
+                    Bolões Finalizados ({myParticipatingPools.filter(p => p.status === "finished").length})
+                  </span>
+                  {showFinishedParticipating ? (
+                    <ChevronUp className="w-4 h-4" />
+                  ) : (
+                    <ChevronDown className="w-4 h-4" />
+                  )}
+                </Button>
+                
+                {showFinishedParticipating && (
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {myParticipatingPools.filter(p => p.status === "finished").map((pool) => (
                       <PoolCard
                         key={pool.id}
                         pool={pool}
@@ -249,7 +376,7 @@ const Index = () => {
         )}
 
         {/* Empty State */}
-        {myPools.length === 0 && availablePools.length === 0 && (
+        {myCreatedPools.length === 0 && myParticipatingPools.length === 0 && availablePools.length === 0 && officialPools.length === 0 && (
           <div className="text-center py-16 space-y-4">
             <div className="w-24 h-24 mx-auto rounded-full bg-muted flex items-center justify-center">
               <Trophy className="w-12 h-12 text-muted-foreground" />

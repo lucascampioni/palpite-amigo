@@ -35,6 +35,7 @@ const PoolDetail = () => {
   const [hasFootballMatches, setHasFootballMatches] = useState(false);
   const [pixKey, setPixKey] = useState<string | null>(null);
   const [entryFee, setEntryFee] = useState<number | null>(null);
+  const [maxParticipants, setMaxParticipants] = useState<number | null>(null);
 
   useEffect(() => {
     const checkAuthAndLoadData = async () => {
@@ -78,6 +79,7 @@ const PoolDetail = () => {
     setPool(poolData);
     setIsOwner(user?.id === poolData.owner_id);
     setEntryFee(poolData.entry_fee || null);
+    setMaxParticipants(poolData.max_participants || null);
 
     const { data: participantsData } = await supabase
       .from("participants")
@@ -393,7 +395,13 @@ const PoolDetail = () => {
                 <Users className="w-5 h-5 text-primary" />
                 <div>
                   <p className="text-sm text-muted-foreground">Participantes</p>
-                  <p className="font-medium">{approvedParticipants.length} aprovado(s)</p>
+                  <p className="font-medium">
+                    {approvedParticipants.length}
+                    {maxParticipants ? ` / ${maxParticipants}` : ' aprovado(s)'}
+                    {maxParticipants && approvedParticipants.length >= maxParticipants && (
+                      <span className="ml-2 text-xs text-destructive">(Cheio)</span>
+                    )}
+                  </p>
                 </div>
               </div>
             </div>
@@ -464,28 +472,38 @@ const PoolDetail = () => {
 
             {!isOwner && !hasJoined && pool.status === "active" && !isPastDeadline && (
               <>
-                <Separator />
-                {(pool.pool_type === "football" || hasFootballMatches) ? (
-                  <FootballPredictionForm
-                    poolId={pool.id}
-                    userId={userId!}
-                    onSuccess={loadPoolData}
-                  />
-                ) : (
-                  <div className="space-y-4">
-                    <h3 className="font-semibold text-lg">Enviar seu palpite</h3>
-                    <div className="space-y-2">
-                      <Label>{pool.guess_label}</Label>
-                      <Input
-                        value={guessValue}
-                        onChange={(e) => setGuessValue(e.target.value)}
-                        placeholder="Digite seu palpite"
-                      />
-                    </div>
-                    <Button onClick={handleJoinPool} disabled={submitting} className="w-full">
-                      {submitting ? "Enviando..." : "Enviar Palpite"}
-                    </Button>
+                {maxParticipants && approvedParticipants.length >= maxParticipants ? (
+                  <div className="p-4 rounded-lg bg-destructive/10 border border-destructive/20">
+                    <p className="text-sm font-medium text-destructive">
+                      🚫 Bolão cheio - Limite de {maxParticipants} participantes atingido
+                    </p>
                   </div>
+                ) : (
+                  <>
+                    <Separator />
+                    {(pool.pool_type === "football" || hasFootballMatches) ? (
+                      <FootballPredictionForm
+                        poolId={pool.id}
+                        userId={userId!}
+                        onSuccess={loadPoolData}
+                      />
+                    ) : (
+                      <div className="space-y-4">
+                        <h3 className="font-semibold text-lg">Enviar seu palpite</h3>
+                        <div className="space-y-2">
+                          <Label>{pool.guess_label}</Label>
+                          <Input
+                            value={guessValue}
+                            onChange={(e) => setGuessValue(e.target.value)}
+                            placeholder="Digite seu palpite"
+                          />
+                        </div>
+                        <Button onClick={handleJoinPool} disabled={submitting} className="w-full">
+                          {submitting ? "Enviando..." : "Enviar Palpite"}
+                        </Button>
+                      </div>
+                    )}
+                  </>
                 )}
               </>
             )}
