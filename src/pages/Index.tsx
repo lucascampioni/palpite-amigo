@@ -125,20 +125,43 @@ const Index = () => {
     }
 
     // Load official pools (marked as official by app admin)
-    const { data: officialPoolsData } = await supabase
-      .from("pools")
-      .select("*, participants(count)")
-      .eq("is_official", true)
-      .eq("is_private", false)
-      .eq("status", "active")
-      .neq("owner_id", session.user.id) // Exclude if user owns it
-      .order("created_at", { ascending: false });
+    // Exclude pools where user is owner, participant, awaiting proof or pending approval
+    const excludeFromOfficialIds = [
+      ...ownedPools?.map(p => p.id) || [],
+      ...participantPoolIds,
+      ...awaitingProofPoolIds,
+      ...pendingApprovalPoolIds,
+    ];
+    
+    let officialPoolsData: any[] = [];
+    if (excludeFromOfficialIds.length > 0) {
+      const { data } = await supabase
+        .from("pools")
+        .select("*, participants(count)")
+        .eq("is_official", true)
+        .eq("is_private", false)
+        .eq("status", "active")
+        .not("id", "in", `(${excludeFromOfficialIds.join(',')})`)
+        .order("created_at", { ascending: false });
+      officialPoolsData = data || [];
+    } else {
+      const { data } = await supabase
+        .from("pools")
+        .select("*, participants(count)")
+        .eq("is_official", true)
+        .eq("is_private", false)
+        .eq("status", "active")
+        .order("created_at", { ascending: false });
+      officialPoolsData = data || [];
+    }
 
-    // Load other public pools (excluding owned, participating, and official)
+    // Load other public pools (excluding owned, participating, official, awaiting proof, and pending approval)
     const excludeIds = [
       ...ownedPools?.map(p => p.id) || [],
       ...participantPoolIds,
       ...officialPoolsData?.map(p => p.id) || [],
+      ...awaitingProofPoolIds,
+      ...pendingApprovalPoolIds,
     ];
     
     let activePools: any[] = [];

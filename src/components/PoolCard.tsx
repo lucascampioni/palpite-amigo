@@ -14,6 +14,7 @@ interface PoolCardProps {
     status: string;
     deadline: string;
     participant_count?: number;
+    is_official?: boolean;
   };
   onClick: () => void;
 }
@@ -65,7 +66,10 @@ const getTypeIcon = (type: string) => {
         <div className="flex items-start justify-between gap-2">
           <div className="flex items-center gap-2">
             <span className="text-2xl">{getTypeIcon(pool.pool_type)}</span>
-            <CardTitle className="text-xl">{pool.title}</CardTitle>
+            <CardTitle className="text-xl flex items-center gap-1">
+              {pool.title}
+              {pool.is_official && <span className="text-yellow-500">⭐</span>}
+            </CardTitle>
           </div>
           <Badge className={getStatusColor(pool.status)}>
             {getStatusText(pool.status)}
