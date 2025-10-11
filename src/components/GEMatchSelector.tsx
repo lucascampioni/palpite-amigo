@@ -47,25 +47,46 @@ export const GEMatchSelector = ({ open, onOpenChange, onMatchesSelected }: GEMat
   const fetchMatches = async () => {
     setLoading(true);
     try {
+      console.log('🎯 Calling fetch-ge-matches edge function...');
       const { data, error } = await supabase.functions.invoke('fetch-ge-matches');
 
-      if (error) throw error;
+      console.log('📡 Response received:', { data, error });
+
+      if (error) {
+        console.error('❌ Supabase function error:', error);
+        throw error;
+      }
+
+      if (data?.error) {
+        console.error('❌ Function returned error:', data.error);
+        toast({
+          title: "Erro na API",
+          description: data.error,
+          variant: "destructive",
+        });
+        return;
+      }
 
       if (data?.championships && data.championships.length > 0) {
+        console.log(`✅ Found ${data.championships.length} championships`);
+        data.championships.forEach((champ: Championship) => {
+          console.log(`  - ${champ.name}: ${champ.rounds.length} rounds`);
+        });
         setChampionships(data.championships);
       } else {
+        console.log('⚠️ No championships in response');
         toast({
           title: "Nenhum campeonato encontrado",
-          description: "Não há jogos disponíveis no momento.",
+          description: data?.message || "Não há jogos disponíveis no momento. Verifique sua API key da API-FOOTBALL.",
           variant: "destructive",
         });
       }
     } catch (error) {
-      console.error('Error fetching matches:', error);
+      console.error('❌ Error fetching matches:', error);
       toast({
         variant: "destructive",
         title: "Erro ao buscar jogos",
-        description: "Não foi possível carregar os jogos.",
+        description: error instanceof Error ? error.message : "Não foi possível carregar os jogos. Verifique sua API key da API-FOOTBALL.",
       });
     } finally {
       setLoading(false);
