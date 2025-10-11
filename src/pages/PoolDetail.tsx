@@ -303,12 +303,11 @@ const PoolDetail = () => {
             <div className="flex items-start justify-between">
               <div className="space-y-2">
                 <CardTitle className="text-3xl">{pool.title}</CardTitle>
+              <div className="space-y-2">
+                <CardTitle className="text-3xl">{pool.title}</CardTitle>
                 <div className="flex gap-2 flex-wrap">
                   <Badge className={getStatusColor(pool.status)}>
                     {pool.status === "active" ? "Ativo" : "Finalizado"}
-                  </Badge>
-                  <Badge variant="outline">
-                    {pool.pool_type === "custom" ? "🎯 Customizado" : "⚽ Futebol"}
                   </Badge>
                   {pool.is_private ? (
                     <Badge variant="secondary" className="text-sm">
@@ -327,6 +326,7 @@ const PoolDetail = () => {
                     </Badge>
                   )}
                 </div>
+              </div>
               </div>
             </div>
             <CardDescription className="text-base mt-4">{pool.description}</CardDescription>

@@ -47,8 +47,8 @@ const PoolCard = ({ pool, onClick }: PoolCardProps) => {
     }
   };
 
-  const getTypeIcon = (type: string) => {
-    return type === "football" ? "⚽" : "🎯";
+const getTypeIcon = (type: string) => {
+    return "⚽";
   };
 
   const isExpired = isPast(new Date(pool.deadline)) && pool.status === "active";

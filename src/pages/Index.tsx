@@ -8,12 +8,6 @@ import PoolCard from "@/components/PoolCard";
 import PoolStats from "@/components/PoolStats";
 import { Session } from "@supabase/supabase-js";
 import { NotificationService } from "@/services/NotificationService";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 
 const Index = () => {
   const navigate = useNavigate();
@@ -170,10 +164,10 @@ const Index = () => {
         <div className="max-w-6xl mx-auto px-4 py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary to-primary-glow flex items-center justify-center shadow-glow">
-              <Trophy className="w-6 h-6 text-primary-foreground" />
+              <span className="text-2xl">⚽</span>
             </div>
             <h1 className="text-2xl font-bold bg-gradient-to-r from-primary to-primary-glow bg-clip-text text-transparent">
-              Bolão App
+              Palpite Amigo
             </h1>
           </div>
           <div className="flex items-center gap-2">
@@ -202,33 +196,20 @@ const Index = () => {
         {/* Create Pool CTA */}
         <div className="text-center space-y-4">
           <h2 className="text-3xl md:text-4xl font-bold">
-            Bem-vindo aos seus bolões! 🎉
+            ⚽ Bem-vindo ao Palpite Amigo! 🏆
           </h2>
           <p className="text-muted-foreground text-lg">
-            Crie bolões e divirta-se com seus amigos
+            Crie bolões de futebol e divirta-se com seus amigos
           </p>
           <div className="flex flex-col sm:flex-row gap-3 justify-center">
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button
-                  size="lg"
-                  className="shadow-lg hover:shadow-xl transition-all"
-                >
-                  <Plus className="w-5 h-5 mr-2" />
-                  Criar Novo Bolão
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="center" className="w-56">
-                <DropdownMenuItem onClick={() => navigate("/create")}>
-                  <span className="mr-2">🎯</span>
-                  Bolão Customizado
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => navigate("/create-football")}>
-                  <span className="mr-2">⚽</span>
-                  Bolão de Futebol
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
+            <Button
+              size="lg"
+              className="shadow-lg hover:shadow-xl transition-all"
+              onClick={() => navigate("/create-football")}
+            >
+              <Plus className="w-5 h-5 mr-2" />
+              ⚽ Criar Bolão de Futebol
+            </Button>
           </div>
         </div>
 
@@ -237,7 +218,7 @@ const Index = () => {
           <section className="space-y-4">
             <div className="flex items-center gap-2">
               <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-primary to-primary-glow flex items-center justify-center">
-                <Trophy className="w-5 h-5 text-primary-foreground" />
+                <span className="text-lg">⚽</span>
               </div>
               <h3 className="text-2xl font-bold">⭐ Bolões Oficiais</h3>
             </div>
@@ -257,7 +238,7 @@ const Index = () => {
         {myCreatedPools.length > 0 && (
           <section className="space-y-4">
             <div className="flex items-center gap-2">
-              <Trophy className="w-6 h-6 text-primary" />
+              <span className="text-2xl">⚽</span>
               <h3 className="text-2xl font-bold">Bolões que Criei</h3>
             </div>
             
@@ -310,7 +291,7 @@ const Index = () => {
         {myParticipatingPools.length > 0 && (
           <section className="space-y-4">
             <div className="flex items-center gap-2">
-              <Users className="w-6 h-6 text-primary" />
+              <span className="text-2xl">🏆</span>
               <h3 className="text-2xl font-bold">Bolões que Participo</h3>
             </div>
             
@@ -362,7 +343,10 @@ const Index = () => {
         {/* Available Pools Section */}
         {availablePools.length > 0 && (
           <section className="space-y-4">
-            <h3 className="text-2xl font-bold">Bolões Públicos</h3>
+            <div className="flex items-center gap-2">
+              <span className="text-2xl">🌐</span>
+              <h3 className="text-2xl font-bold">Bolões Públicos</h3>
+            </div>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {availablePools.map((pool) => (
                 <PoolCard
@@ -379,13 +363,13 @@ const Index = () => {
         {myCreatedPools.length === 0 && myParticipatingPools.length === 0 && availablePools.length === 0 && officialPools.length === 0 && (
           <div className="text-center py-16 space-y-4">
             <div className="w-24 h-24 mx-auto rounded-full bg-muted flex items-center justify-center">
-              <Trophy className="w-12 h-12 text-muted-foreground" />
+              <span className="text-5xl">⚽</span>
             </div>
             <h3 className="text-xl font-semibold text-muted-foreground">
               Nenhum bolão encontrado
             </h3>
             <p className="text-muted-foreground">
-              Seja o primeiro a criar um bolão!
+              Seja o primeiro a criar um bolão de futebol!
             </p>
           </div>
         )}
