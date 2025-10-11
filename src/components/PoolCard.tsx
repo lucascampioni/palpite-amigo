@@ -65,10 +65,14 @@ const getTypeIcon = (type: string) => {
       <CardHeader>
         <div className="flex items-start justify-between gap-2">
           <div className="flex items-center gap-2">
-            <span className="text-2xl">{getTypeIcon(pool.pool_type)}</span>
-            <CardTitle className="text-xl flex items-center gap-1">
+            <div className="relative">
+              <span className="text-2xl">{getTypeIcon(pool.pool_type)}</span>
+              {pool.is_official && (
+                <span className="absolute -top-1 -right-1 text-sm">⭐</span>
+              )}
+            </div>
+            <CardTitle className="text-xl">
               {pool.title}
-              {pool.is_official && <span className="text-yellow-500">⭐</span>}
             </CardTitle>
           </div>
           <Badge className={getStatusColor(pool.status)}>

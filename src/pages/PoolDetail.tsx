@@ -379,7 +379,7 @@ const PoolDetail = () => {
                     </p>
                   ) : (
                     <p className="text-xs text-muted-foreground">
-                      <strong>Sistema Completo:</strong> 5 pontos por placar exato, 3 pontos por resultado correto, 1 ponto por diferença de gols correta.
+                      <strong>Sistema Progressivo:</strong> 5 pontos por placar exato, 3 pontos por acertar vencedor ou empate, 1 ponto por diferença de gols correta (apenas se acertar o resultado).
                     </p>
                   )}
                 </div>

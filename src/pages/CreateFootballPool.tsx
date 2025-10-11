@@ -435,8 +435,8 @@ const CreateFootballPool = () => {
                       <div className="font-medium mb-1">Sistema com Pontuação Progressiva</div>
                       <ul className="text-sm text-muted-foreground space-y-0.5">
                         <li>• 5 pontos: Placar exato</li>
-                        <li>• 3 pontos: Resultado correto</li>
-                        <li>• 1 ponto: Diferença de gols correta</li>
+                        <li>• 3 pontos: Acertar vencedor ou empate</li>
+                        <li>• 1 ponto: Diferença de gols correta (apenas se acertar o resultado)</li>
                       </ul>
                     </div>
                   </label>
