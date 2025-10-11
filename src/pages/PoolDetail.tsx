@@ -5,12 +5,13 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
-import { ArrowLeft, Calendar, Trophy, Users, Share2, Award, Copy } from "lucide-react";
+import { ArrowLeft, Calendar, Trophy, Users, Share2, Award, Copy, Lock, Unlock } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
+import { Switch } from "@/components/ui/switch";
 import DeclareResultDialog from "@/components/DeclareResultDialog";
 import WinnerDisplay from "@/components/WinnerDisplay";
 import FootballPredictionForm from "@/components/FootballPredictionForm";
@@ -231,6 +232,29 @@ const PoolDetail = () => {
     }
   };
 
+  const handleTogglePrivacy = async () => {
+    const { error } = await supabase
+      .from("pools")
+      .update({ is_private: !pool.is_private })
+      .eq("id", id!);
+
+    if (error) {
+      toast({
+        variant: "destructive",
+        title: "Erro",
+        description: error.message,
+      });
+    } else {
+      toast({
+        title: pool.is_private ? "Bolão agora é público" : "Bolão agora é privado",
+        description: pool.is_private 
+          ? "Qualquer pessoa poderá ver e participar do bolão" 
+          : "Apenas pessoas com o link poderão acessar",
+      });
+      loadPoolData();
+    }
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -282,6 +306,17 @@ const PoolDetail = () => {
                   <Badge variant="outline">
                     {pool.pool_type === "custom" ? "🎯 Customizado" : "⚽ Futebol"}
                   </Badge>
+                  {pool.is_private ? (
+                    <Badge variant="secondary">
+                      <Lock className="w-3 h-3 mr-1" />
+                      Privado
+                    </Badge>
+                  ) : (
+                    <Badge variant="outline">
+                      <Unlock className="w-3 h-3 mr-1" />
+                      Público
+                    </Badge>
+                  )}
                   {isPastDeadline && pool.status === "active" && (
                     <Badge variant="destructive">
                       Prazo Expirado
@@ -340,6 +375,28 @@ const PoolDetail = () => {
                 </div>
               </div>
             </div>
+
+            {isOwner && pool.status === "active" && (
+              <>
+                <Separator />
+                <div className="p-4 rounded-lg bg-muted/50 border">
+                  <div className="flex items-center justify-between">
+                    <div className="space-y-1">
+                      <p className="text-sm font-medium">Privacidade do Bolão</p>
+                      <p className="text-xs text-muted-foreground">
+                        {pool.is_private 
+                          ? "Apenas pessoas com o link podem acessar" 
+                          : "Visível na lista de bolões públicos"}
+                      </p>
+                    </div>
+                    <Switch
+                      checked={!pool.is_private}
+                      onCheckedChange={handleTogglePrivacy}
+                    />
+                  </div>
+                </div>
+              </>
+            )}
 
             {pixKey && !(pool.pool_type === "football" || hasFootballMatches) && hasJoined && pool.status === "active" && (
               <>
