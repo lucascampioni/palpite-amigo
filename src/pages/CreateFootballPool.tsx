@@ -7,10 +7,11 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
-import { ArrowLeft, Plus, Trash2 } from "lucide-react";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { ArrowLeft, Trash2 } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { GEMatchSelector } from "@/components/GEMatchSelector";
+import { format } from "date-fns";
+import { ptBR } from "date-fns/locale";
 
 interface Match {
   homeTeam: string;
@@ -19,6 +20,7 @@ interface Match {
   championship: string;
   externalId?: string;
   externalSource?: string;
+  round?: string;
 }
 
 const CreateFootballPool = () => {
@@ -27,12 +29,10 @@ const CreateFootballPool = () => {
   const [loading, setLoading] = useState(false);
   const [isPrivate, setIsPrivate] = useState(false);
   const [showGESelector, setShowGESelector] = useState(false);
-  const [matches, setMatches] = useState<Match[]>([
-    { homeTeam: "", awayTeam: "", matchDate: "", championship: "brasileirao-serie-a" }
-  ]);
+  const [matches, setMatches] = useState<Match[]>([]);
 
   const handleAddMatch = () => {
-    setMatches([...matches, { homeTeam: "", awayTeam: "", matchDate: "", championship: "brasileirao-serie-a" }]);
+    // Removed - now only API matches are allowed
   };
 
   const handleRemoveMatch = (index: number) => {
@@ -40,17 +40,14 @@ const CreateFootballPool = () => {
   };
 
   const handleMatchChange = (index: number, field: keyof Match, value: string) => {
-    const newMatches = [...matches];
-    newMatches[index][field] = value;
-    setMatches(newMatches);
+    // Removed - API matches can't be edited
   };
 
   const handleGEMatchesSelected = (geMatches: Match[]) => {
-    const newMatches = geMatches.map(m => ({
+    setMatches(geMatches.map(m => ({
       ...m,
-      externalSource: m.externalId?.startsWith('apifb_') ? 'apifb' as const : 'ge' as const
-    }));
-    setMatches([...matches.filter(m => m.homeTeam || m.awayTeam), ...newMatches]);
+      externalSource: 'apifb' as const
+    })));
     toast({
       title: "Jogos adicionados!",
       description: `${geMatches.length} jogos foram adicionados ao bolão.`,
@@ -80,12 +77,12 @@ const CreateFootballPool = () => {
     }
 
     // Validate matches
-    const validMatches = matches.filter(m => m.homeTeam && m.awayTeam && m.matchDate);
+    const validMatches = matches.filter(m => m.homeTeam && m.awayTeam && m.matchDate && m.externalSource === 'apifb');
     if (validMatches.length === 0) {
       toast({
         variant: "destructive",
         title: "Erro",
-        description: "Adicione pelo menos um jogo ao bolão.",
+        description: "Selecione pelo menos um jogo da API.",
       });
       setLoading(false);
       return;
@@ -141,8 +138,8 @@ const CreateFootballPool = () => {
       match_date: new Date(match.matchDate).toISOString(),
       championship: match.championship,
       status: "scheduled",
-      external_id: match.externalId || null,
-      external_source: match.externalSource || 'manual',
+      external_id: match.externalId,
+      external_source: 'apifb',
     }));
 
     const { error: matchesError } = await supabase
@@ -167,16 +164,6 @@ const CreateFootballPool = () => {
 
     setLoading(false);
   };
-
-  const championships = [
-    { value: "brasileirao-serie-a", label: "Brasileirão Série A" },
-    { value: "brasileirao-serie-b", label: "Brasileirão Série B" },
-    { value: "copa-do-brasil", label: "Copa do Brasil" },
-    { value: "libertadores", label: "Libertadores" },
-    { value: "champions-league", label: "Champions League" },
-    { value: "premier-league", label: "Premier League" },
-    { value: "la-liga", label: "La Liga" },
-  ];
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-muted to-background p-4">
@@ -258,103 +245,70 @@ const CreateFootballPool = () => {
               <div className="space-y-4">
                 <div className="flex items-center justify-between">
                   <Label className="text-lg">Jogos do Bolão</Label>
-                  <div className="flex gap-2">
-                    <Button
-                      type="button"
-                      variant="secondary"
-                      size="sm"
-                      onClick={() => setShowGESelector(true)}
-                    >
-                      ⚽ Buscar Jogos do GE
-                    </Button>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      onClick={handleAddMatch}
-                    >
-                      <Plus className="w-4 h-4 mr-2" />
-                      Adicionar Manual
-                    </Button>
-                  </div>
+                  <Button
+                    type="button"
+                    variant="default"
+                    size="sm"
+                    onClick={() => setShowGESelector(true)}
+                  >
+                    ⚽ Selecionar Jogos da API
+                  </Button>
                 </div>
 
-                {matches.map((match, index) => (
-                  <Card key={index} className={`relative ${(match.externalSource === 'ge' || match.externalSource === 'apifb') ? 'border-green-500/50 bg-green-500/5' : ''}`}>
-                    <CardContent className="pt-6 space-y-4">
-                      {(match.externalSource === 'ge' || match.externalSource === 'apifb') && (
-                        <div className="absolute top-2 left-2 text-xs bg-green-500 text-white px-2 py-1 rounded">
-                          API-Football
-                        </div>
-                      )}
-                      {matches.length > 1 && (
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="sm"
-                          className="absolute top-2 right-2"
-                          onClick={() => handleRemoveMatch(index)}
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </Button>
-                      )}
-
-                      <div className="space-y-2">
-                        <Label>Campeonato</Label>
-                        <Select
-                          value={match.championship}
-                          onValueChange={(value) => handleMatchChange(index, "championship", value)}
-                          disabled={match.externalSource === 'ge' || match.externalSource === 'apifb'}
-                        >
-                          <SelectTrigger>
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {championships.map(champ => (
-                              <SelectItem key={champ.value} value={champ.value}>
-                                {champ.label}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </div>
-
-                      <div className="grid grid-cols-2 gap-4">
-                        <div className="space-y-2">
-                          <Label>Time da Casa *</Label>
-                          <Input
-                            value={match.homeTeam}
-                            onChange={(e) => handleMatchChange(index, "homeTeam", e.target.value)}
-                            placeholder="Ex: Flamengo"
-                            required
-                            disabled={match.externalSource === 'ge' || match.externalSource === 'apifb'}
-                          />
-                        </div>
-                        <div className="space-y-2">
-                          <Label>Time Visitante *</Label>
-                          <Input
-                            value={match.awayTeam}
-                            onChange={(e) => handleMatchChange(index, "awayTeam", e.target.value)}
-                            placeholder="Ex: Palmeiras"
-                            required
-                            disabled={match.externalSource === 'ge' || match.externalSource === 'apifb'}
-                          />
-                        </div>
-                      </div>
-
-                      <div className="space-y-2">
-                        <Label>Data e Hora do Jogo *</Label>
-                        <Input
-                          type="datetime-local"
-                          value={match.matchDate}
-                          onChange={(e) => handleMatchChange(index, "matchDate", e.target.value)}
-                          required
-                          disabled={match.externalSource === 'ge' || match.externalSource === 'apifb'}
-                        />
-                      </div>
+                {matches.length === 0 ? (
+                  <Card className="border-dashed">
+                    <CardContent className="py-12 text-center">
+                      <p className="text-muted-foreground mb-4">
+                        Nenhum jogo selecionado ainda
+                      </p>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={() => setShowGESelector(true)}
+                      >
+                        ⚽ Selecionar Jogos
+                      </Button>
                     </CardContent>
                   </Card>
-                ))}
+                ) : (
+                  <>
+                    {matches.map((match, index) => (
+                      <Card key={index} className="relative border-primary/50 bg-primary/5">
+                        <CardContent className="py-4">
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            className="absolute top-2 right-2"
+                            onClick={() => handleRemoveMatch(index)}
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
+
+                          <div className="space-y-2 pr-10">
+                            <div className="flex items-center gap-2">
+                              <span className="text-xs bg-primary text-primary-foreground px-2 py-1 rounded">
+                                API-Football
+                              </span>
+                              <span className="text-xs text-muted-foreground">
+                                {match.championship}
+                              </span>
+                            </div>
+                            <div className="flex items-center justify-between">
+                              <span className="font-semibold text-lg">
+                                {match.homeTeam} <span className="text-muted-foreground">x</span> {match.awayTeam}
+                              </span>
+                            </div>
+                            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                              {match.round && <span>📍 {match.round}</span>}
+                              <span>📅 {format(new Date(match.matchDate), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}</span>
+                            </div>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </>
+                )}
               </div>
 
               <div className="bg-muted/50 p-4 rounded-lg text-sm space-y-2">
