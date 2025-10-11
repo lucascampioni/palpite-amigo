@@ -18,6 +18,7 @@ import FootballPredictionForm from "@/components/FootballPredictionForm";
 import FootballRanking from "@/components/FootballRanking";
 import FootballParticipantsPredictions from "@/components/FootballParticipantsPredictions";
 import PaymentProofUpload from "@/components/PaymentProofUpload";
+import { MaskedPixKey } from "@/components/MaskedPixKey";
 
 const PoolDetail = () => {
   const { id } = useParams();
@@ -636,24 +637,14 @@ const PoolDetail = () => {
                                 </Button>
                               </div>
                             )}
-                            {participant.participant_pix_key && (
+                            {participant.participant_pix_key && participant.pix_key_type && (
                               <div className="pt-2 border-t">
-                                <p className="text-xs text-muted-foreground mb-1">Chave PIX do participante:</p>
-                                <div className="flex items-center gap-2">
-                                  <code className="text-xs bg-muted px-2 py-1 rounded flex-1 break-all">
-                                    {participant.participant_pix_key}
-                                  </code>
-                                  <Button
-                                    size="sm"
-                                    variant="outline"
-                                    onClick={() => {
-                                      navigator.clipboard.writeText(participant.participant_pix_key);
-                                      toast({ title: "Chave PIX copiada!" });
-                                    }}
-                                  >
-                                    <Copy className="w-4 h-4" />
-                                  </Button>
-                                </div>
+                                <MaskedPixKey
+                                  pixKey={participant.participant_pix_key}
+                                  pixKeyType={participant.pix_key_type}
+                                  participantId={participant.id}
+                                  poolId={pool.id}
+                                />
                               </div>
                             )}
                           </div>
@@ -687,13 +678,26 @@ const PoolDetail = () => {
                   <h3 className="font-semibold text-lg">Participantes Aprovados</h3>
                   <div className="grid gap-3">
                     {approvedParticipants.map((participant) => (
-                      <div
-                        key={participant.id}
-                        className="flex items-center justify-between p-3 rounded-lg bg-muted/50"
-                      >
-                        <p className="font-medium">{participant.participant_name}</p>
-                        <Badge variant="secondary">{participant.guess_value}</Badge>
-                      </div>
+                      <Card key={participant.id}>
+                        <CardContent className="p-4">
+                          <div className="flex flex-col gap-3">
+                            <div className="flex items-center justify-between">
+                              <p className="font-medium">{participant.participant_name}</p>
+                              <Badge variant="secondary">{participant.guess_value}</Badge>
+                            </div>
+                            {isOwner && participant.participant_pix_key && participant.pix_key_type && (
+                              <div className="pt-2 border-t">
+                                <MaskedPixKey
+                                  pixKey={participant.participant_pix_key}
+                                  pixKeyType={participant.pix_key_type}
+                                  participantId={participant.id}
+                                  poolId={pool.id}
+                                />
+                              </div>
+                            )}
+                          </div>
+                        </CardContent>
+                      </Card>
                     ))}
                   </div>
                 </div>

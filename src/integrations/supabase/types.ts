@@ -135,6 +135,8 @@ export type Database = {
           participant_name: string
           participant_pix_key: string | null
           payment_proof: string | null
+          pix_consent: boolean | null
+          pix_key_type: string | null
           pool_id: string
           status: Database["public"]["Enums"]["participant_status"]
           updated_at: string
@@ -147,6 +149,8 @@ export type Database = {
           participant_name: string
           participant_pix_key?: string | null
           payment_proof?: string | null
+          pix_consent?: boolean | null
+          pix_key_type?: string | null
           pool_id: string
           status?: Database["public"]["Enums"]["participant_status"]
           updated_at?: string
@@ -159,6 +163,8 @@ export type Database = {
           participant_name?: string
           participant_pix_key?: string | null
           payment_proof?: string | null
+          pix_consent?: boolean | null
+          pix_key_type?: string | null
           pool_id?: string
           status?: Database["public"]["Enums"]["participant_status"]
           updated_at?: string
@@ -177,6 +183,51 @@ export type Database = {
             columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pix_key_access_logs: {
+        Row: {
+          accessed_at: string
+          accessed_by: string
+          id: string
+          ip_address: string | null
+          participant_id: string
+          pool_id: string
+          user_agent: string | null
+        }
+        Insert: {
+          accessed_at?: string
+          accessed_by: string
+          id?: string
+          ip_address?: string | null
+          participant_id: string
+          pool_id: string
+          user_agent?: string | null
+        }
+        Update: {
+          accessed_at?: string
+          accessed_by?: string
+          id?: string
+          ip_address?: string | null
+          participant_id?: string
+          pool_id?: string
+          user_agent?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pix_key_access_logs_participant_id_fkey"
+            columns: ["participant_id"]
+            isOneToOne: false
+            referencedRelation: "participants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pix_key_access_logs_pool_id_fkey"
+            columns: ["pool_id"]
+            isOneToOne: false
+            referencedRelation: "pools"
             referencedColumns: ["id"]
           },
         ]

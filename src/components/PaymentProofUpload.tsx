@@ -1,11 +1,14 @@
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
-import { Upload, Check, File as FileIcon } from "lucide-react";
+import { Upload, CheckCircle } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Link } from "react-router-dom";
 
 interface PaymentProofUploadProps {
   participantId: string;
@@ -21,44 +24,43 @@ const PaymentProofUpload = ({ participantId, userId, poolId, onSuccess, hasPixKe
   const [uploaded, setUploaded] = useState(false);
   const [file, setFile] = useState<File | null>(null);
   const [pixKey, setPixKey] = useState("");
+  const [pixKeyType, setPixKeyType] = useState<string>("");
+  const [pixConsent, setPixConsent] = useState(false);
 
   const onFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const f = e.target.files?.[0] || null;
-    setFile(f);
+    const selectedFile = e.target.files?.[0];
+    if (selectedFile) {
+      // Validate file size (5MB)
+      if (selectedFile.size > 5 * 1024 * 1024) {
+        toast({
+          variant: "destructive",
+          title: "Arquivo muito grande",
+          description: "O tamanho máximo é 5MB.",
+        });
+        return;
+      }
+
+      // Validate file type
+      const validTypes = ['image/jpeg', 'image/png', 'image/jpg', 'image/webp', 'application/pdf'];
+      if (!validTypes.includes(selectedFile.type)) {
+        toast({
+          variant: "destructive",
+          title: "Tipo de arquivo inválido",
+          description: "Use apenas JPG, PNG, WEBP ou PDF.",
+        });
+        return;
+      }
+
+      setFile(selectedFile);
+    }
   };
 
   const handleSubmitUpload = async () => {
-    if (!file) {
-      toast({ variant: "destructive", title: "Selecione um arquivo" });
-      return;
-    }
-
-    if (!pixKey.trim()) {
-      toast({ 
-        variant: "destructive", 
-        title: "Chave PIX obrigatória",
-        description: "Informe sua chave PIX para receber prêmios caso vença."
-      });
-      return;
-    }
-
-    // Validate file size (5MB)
-    if (file.size > 5 * 1024 * 1024) {
+    if (!file || !pixKey.trim() || !pixKeyType || !pixConsent) {
       toast({
+        title: "Campos obrigatórios",
+        description: "Por favor, preencha todos os campos e aceite os termos.",
         variant: "destructive",
-        title: "Erro",
-        description: "Arquivo muito grande. O limite é 5MB.",
-      });
-      return;
-    }
-
-    // Validate file type
-    const validTypes = ['image/jpeg', 'image/png', 'image/jpg', 'image/webp', 'application/pdf'];
-    if (!validTypes.includes(file.type)) {
-      toast({
-        variant: "destructive",
-        title: "Erro",
-        description: "Tipo de arquivo inválido. Use JPG, PNG, WEBP ou PDF.",
       });
       return;
     }
@@ -66,43 +68,50 @@ const PaymentProofUpload = ({ participantId, userId, poolId, onSuccess, hasPixKe
     setUploading(true);
 
     try {
-      // Upload to storage
+      // Upload file to storage
       const fileExt = file.name.split('.').pop();
-      const fileName = `${userId}/${Date.now()}.${fileExt}`;
-      
+      const fileName = `${userId}/${poolId}/${Date.now()}.${fileExt}`;
+
       const { error: uploadError } = await supabase.storage
-        .from('payment-proofs')
+        .from("payment-proofs")
         .upload(fileName, file);
 
       if (uploadError) throw uploadError;
 
-      // Update participant with payment proof path, PIX key and change status to pending
+      // Get public URL
+      const { data: { publicUrl } } = supabase.storage
+        .from("payment-proofs")
+        .getPublicUrl(fileName);
+
+      // Update participant with payment proof, PIX key info, and change status to pending
       const { error: updateError } = await supabase
-        .from('participants')
+        .from("participants")
         .update({ 
-          payment_proof: fileName,
-          participant_pix_key: pixKey,
-          status: 'pending'
+          payment_proof: publicUrl,
+          status: "pending",
+          participant_pix_key: pixKey.trim(),
+          pix_key_type: pixKeyType,
+          pix_consent: pixConsent
         })
-        .eq('id', participantId);
+        .eq("id", participantId);
 
       if (updateError) throw updateError;
 
       setUploaded(true);
       toast({
-        title: "Comprovante enviado!",
-        description: "Sua solicitação foi enviada para aprovação do criador.",
+        title: "Enviado com sucesso!",
+        description: "Aguarde a aprovação do criador do bolão.",
       });
-      
+
       setTimeout(() => {
         onSuccess();
-      }, 1000);
+      }, 1500);
     } catch (error) {
-      console.error('Error uploading payment proof:', error);
+      console.error("Error uploading payment proof:", error);
       toast({
         variant: "destructive",
-        title: "Erro ao enviar comprovante",
-        description: error instanceof Error ? error.message : "Tente novamente.",
+        title: "Erro ao enviar",
+        description: "Tente novamente mais tarde.",
       });
     } finally {
       setUploading(false);
@@ -111,15 +120,15 @@ const PaymentProofUpload = ({ participantId, userId, poolId, onSuccess, hasPixKe
 
   if (uploaded) {
     return (
-      <Card className="border-2 border-primary">
-        <CardContent className="p-6 text-center">
-          <Check className="w-12 h-12 text-primary mx-auto mb-3" />
-          <p className="text-lg font-semibold text-primary">
-            Comprovante enviado com sucesso!
-          </p>
-          <p className="text-sm text-muted-foreground mt-2">
-            Aguarde a aprovação do criador do bolão.
-          </p>
+      <Card className="border-success">
+        <CardContent className="pt-6 text-center space-y-3">
+          <CheckCircle className="w-12 h-12 text-success mx-auto" />
+          <div>
+            <p className="font-semibold text-lg">Comprovante enviado!</p>
+            <p className="text-sm text-muted-foreground">
+              Aguarde a aprovação do criador do bolão
+            </p>
+          </div>
         </CardContent>
       </Card>
     );
@@ -132,49 +141,58 @@ const PaymentProofUpload = ({ participantId, userId, poolId, onSuccess, hasPixKe
           <Upload className="w-5 h-5" />
           Enviar Comprovante de Pagamento
         </CardTitle>
+        <CardDescription>
+          Faça o upload do comprovante e informe sua chave PIX
+        </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
-        <p className="text-sm text-muted-foreground">
-          Faça o upload do comprovante de pagamento PIX e informe sua chave PIX para receber prêmios.
-        </p>
-        
         <div className="space-y-2">
-          <Label htmlFor="participant-pix-key">Sua Chave PIX *</Label>
+          <Label htmlFor="pixKeyType">Tipo de Chave PIX *</Label>
+          <Select value={pixKeyType} onValueChange={setPixKeyType} disabled={uploading}>
+            <SelectTrigger>
+              <SelectValue placeholder="Selecione o tipo de chave" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="cpf">CPF</SelectItem>
+              <SelectItem value="cnpj">CNPJ</SelectItem>
+              <SelectItem value="email">E-mail</SelectItem>
+              <SelectItem value="phone">Telefone</SelectItem>
+              <SelectItem value="random">Chave Aleatória</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+
+        <div className="space-y-2">
+          <Label htmlFor="pixKey">Sua Chave PIX *</Label>
           <Input
-            id="participant-pix-key"
+            id="pixKey"
             type="text"
-            placeholder="Digite sua chave PIX (CPF, email, telefone, etc)"
+            placeholder="Digite sua chave PIX"
             value={pixKey}
             onChange={(e) => setPixKey(e.target.value)}
             disabled={uploading}
           />
-          <p className="text-xs text-muted-foreground">
-            Esta chave será usada pelo criador do bolão para enviar prêmios caso você vença.
+          <p className="text-sm text-muted-foreground">
+            Esta chave será usada para receber o prêmio caso você ganhe
           </p>
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="payment-proof-upload" className="cursor-pointer">
-            <div className="flex items-center gap-3 p-4 border-2 border-dashed rounded-lg hover:border-primary transition-colors hover:bg-accent/50">
-              <Upload className="w-6 h-6" />
+          <Label htmlFor="file" className="cursor-pointer">
+            <div className="flex items-center gap-3 p-4 border-2 border-dashed rounded-lg hover:border-primary transition-colors">
+              <Upload className="w-5 h-5 text-muted-foreground" />
               <div className="flex-1">
-                <p className="font-medium">
-                  {file ? 'Arquivo selecionado' : 'Clique para selecionar comprovante'}
+                <p className="text-sm font-medium">
+                  {file ? file.name : "Selecionar comprovante"}
                 </p>
                 <p className="text-xs text-muted-foreground">
-                  Formatos: JPG, PNG, WEBP, PDF (máx. 5MB)
+                  JPG, PNG, WEBP ou PDF (máx. 5MB)
                 </p>
               </div>
-              {file && (
-                <div className="flex items-center gap-2 text-sm">
-                  <FileIcon className="w-4 h-4" />
-                  <span className="truncate max-w-[240px]">{file.name}</span>
-                </div>
-              )}
             </div>
           </Label>
           <Input
-            id="payment-proof-upload"
+            id="file"
             type="file"
             accept="image/jpeg,image/png,image/jpg,image/webp,application/pdf"
             onChange={onFileChange}
@@ -182,9 +200,39 @@ const PaymentProofUpload = ({ participantId, userId, poolId, onSuccess, hasPixKe
             className="hidden"
           />
         </div>
-        <Button onClick={handleSubmitUpload} disabled={uploading || !file || !pixKey.trim()} className="w-full">
-          {uploading ? 'Enviando...' : 'Enviar Comprovante e Chave PIX'}
-        </Button>
+
+        <div className="space-y-4">
+          <div className="flex items-start space-x-2 p-4 border rounded-lg bg-muted/50">
+            <Checkbox 
+              id="consent" 
+              checked={pixConsent}
+              onCheckedChange={(checked) => setPixConsent(checked === true)}
+              disabled={uploading}
+            />
+            <div className="space-y-1">
+              <label
+                htmlFor="consent"
+                className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
+              >
+                Autorizo o armazenamento da minha chave PIX
+              </label>
+              <p className="text-sm text-muted-foreground">
+                Concordo que minha chave PIX seja armazenada de forma segura para fins de pagamento do bolão.{" "}
+                <Link to="/privacy" className="text-primary hover:underline">
+                  Ver Política de Privacidade
+                </Link>
+              </p>
+            </div>
+          </div>
+
+          <Button
+            onClick={handleSubmitUpload}
+            disabled={!file || !pixKey.trim() || !pixKeyType || !pixConsent || uploading}
+            className="w-full"
+          >
+            {uploading ? "Enviando..." : "Enviar Comprovante"}
+          </Button>
+        </div>
       </CardContent>
     </Card>
   );
