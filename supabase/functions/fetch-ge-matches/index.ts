@@ -35,7 +35,7 @@ const LEAGUES = {
   copa_brasil: 73,  // Copa do Brasil
 };
 
-const CURRENT_SEASON = 2024; // Adjust this based on current year
+const CURRENT_SEASON = new Date().getFullYear(); // Adjust this based on current year
 
 async function fetchFixtures(leagueId: number, season: number = CURRENT_SEASON): Promise<any[]> {
   if (!API_FOOTBALL_KEY) {
@@ -43,11 +43,16 @@ async function fetchFixtures(leagueId: number, season: number = CURRENT_SEASON):
   }
 
   console.log(`  📞 Calling API-FOOTBALL for league ${leagueId}, season ${season}`);
-  
-  const url = `https://v3.football.api-sports.io/fixtures?league=${leagueId}&season=${season}&next=50`;
-  console.log(`  🔗 URL: ${url}`);
-  
-  const response = await fetch(url, {
+
+  const today = new Date();
+  const from = today.toISOString().split('T')[0];
+  const toDate = new Date(today.getTime() + 45 * 24 * 60 * 60 * 1000);
+  const to = toDate.toISOString().split('T')[0];
+
+  let url = `https://v3.football.api-sports.io/fixtures?league=${leagueId}&season=${season}&from=${from}&to=${to}`;
+  console.log(`  🔗 URL (date range): ${url}`);
+
+  let response = await fetch(url, {
     headers: {
       'x-rapidapi-host': 'v3.football.api-sports.io',
       'x-rapidapi-key': API_FOOTBALL_KEY,
@@ -55,20 +60,45 @@ async function fetchFixtures(leagueId: number, season: number = CURRENT_SEASON):
   });
 
   console.log(`  📡 Response status: ${response.status}`);
-  
+
   if (!response.ok) {
     const errorText = await response.text();
     console.error(`  ❌ API error response: ${errorText}`);
     throw new Error(`API Football error: ${response.status} - ${errorText}`);
   }
 
-  const data = await response.json();
-  console.log(`  ✅ API response received`);
+  let data = await response.json();
+  console.log(`  ✅ API response received (date range)`);
   console.log(`  📊 Response structure:`, JSON.stringify(data, null, 2).substring(0, 500));
-  
-  const fixtures = data.response || [];
+
+  let fixtures = data.response || [];
   console.log(`  ✅ Extracted ${fixtures.length} fixtures from response`);
-  
+
+  if (fixtures.length === 0) {
+    console.log('  ⚠️ No fixtures found in date range. Falling back to next=50');
+    url = `https://v3.football.api-sports.io/fixtures?league=${leagueId}&season=${season}&next=50`;
+    console.log(`  🔗 URL (fallback next): ${url}`);
+
+    response = await fetch(url, {
+      headers: {
+        'x-rapidapi-host': 'v3.football.api-sports.io',
+        'x-rapidapi-key': API_FOOTBALL_KEY,
+      },
+    });
+
+    console.log(`  📡 Response status (fallback): ${response.status}`);
+
+    if (!response.ok) {
+      const errorText2 = await response.text();
+      console.error(`  ❌ API error response (fallback): ${errorText2}`);
+      throw new Error(`API Football error: ${response.status} - ${errorText2}`);
+    }
+
+    data = await response.json();
+    fixtures = data.response || [];
+    console.log(`  ✅ Extracted ${fixtures.length} fixtures from fallback response`);
+  }
+
   return fixtures;
 }
 
