@@ -31,6 +31,7 @@ const CreateFootballPool = () => {
   const [showGESelector, setShowGESelector] = useState(false);
   const [matches, setMatches] = useState<Match[]>([]);
   const [scoringSystem, setScoringSystem] = useState<'standard' | 'exact_only'>('standard');
+  const [deadline, setDeadline] = useState<string>("");
 
   const handleAddMatch = () => {
     // Removed - now only API matches are allowed
@@ -45,10 +46,33 @@ const CreateFootballPool = () => {
   };
 
   const handleGEMatchesSelected = (geMatches: Match[]) => {
-    setMatches(geMatches.map(m => ({
+    const matchesWithSource = geMatches.map(m => ({
       ...m,
       externalSource: 'apifb' as const
-    })));
+    }));
+    
+    setMatches(matchesWithSource);
+    
+    // Calculate deadline: 30 minutes before first match
+    if (matchesWithSource.length > 0) {
+      const sortedMatches = [...matchesWithSource].sort((a, b) => 
+        new Date(a.matchDate).getTime() - new Date(b.matchDate).getTime()
+      );
+      const firstMatch = sortedMatches[0];
+      const firstMatchDate = new Date(firstMatch.matchDate);
+      const deadlineDate = new Date(firstMatchDate.getTime() - 30 * 60 * 1000); // 30 minutes before
+      
+      // Format for datetime-local input
+      const year = deadlineDate.getFullYear();
+      const month = String(deadlineDate.getMonth() + 1).padStart(2, '0');
+      const day = String(deadlineDate.getDate()).padStart(2, '0');
+      const hours = String(deadlineDate.getHours()).padStart(2, '0');
+      const minutes = String(deadlineDate.getMinutes()).padStart(2, '0');
+      const formattedDeadline = `${year}-${month}-${day}T${hours}:${minutes}`;
+      
+      setDeadline(formattedDeadline);
+    }
+    
     toast({
       title: "Jogos adicionados!",
       description: `${geMatches.length} jogos foram adicionados ao bolão.`,
@@ -62,7 +86,6 @@ const CreateFootballPool = () => {
     const formData = new FormData(e.currentTarget);
     const title = formData.get("title") as string;
     const description = formData.get("description") as string;
-    const deadline = formData.get("deadline") as string;
     const pixKey = formData.get("pix_key") as string;
 
     const { data: { user } } = await supabase.auth.getUser();
@@ -211,15 +234,19 @@ const CreateFootballPool = () => {
                 />
               </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="deadline">Prazo Final para Palpites *</Label>
-                <Input
-                  id="deadline"
-                  name="deadline"
-                  type="datetime-local"
-                  required
-                />
-              </div>
+              {deadline && (
+                <div className="space-y-2">
+                  <Label>Prazo Final para Palpites</Label>
+                  <div className="p-3 rounded-lg border bg-muted/50">
+                    <p className="text-sm font-medium">
+                      📅 {format(new Date(deadline), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
+                    </p>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      30 minutos antes do primeiro jogo
+                    </p>
+                  </div>
+                </div>
+              )}
 
               <div className="space-y-2">
                 <Label htmlFor="pix_key">Chave PIX (opcional)</Label>
