@@ -34,6 +34,7 @@ const PoolDetail = () => {
   const [winner, setWinner] = useState<any>(null);
   const [hasFootballMatches, setHasFootballMatches] = useState(false);
   const [pixKey, setPixKey] = useState<string | null>(null);
+  const [entryFee, setEntryFee] = useState<number | null>(null);
 
   useEffect(() => {
     const checkAuthAndLoadData = async () => {
@@ -76,6 +77,7 @@ const PoolDetail = () => {
 
     setPool(poolData);
     setIsOwner(user?.id === poolData.owner_id);
+    setEntryFee(poolData.entry_fee || null);
 
     const { data: participantsData } = await supabase
       .from("participants")
@@ -307,14 +309,14 @@ const PoolDetail = () => {
                     {pool.pool_type === "custom" ? "🎯 Customizado" : "⚽ Futebol"}
                   </Badge>
                   {pool.is_private ? (
-                    <Badge variant="secondary">
+                    <Badge variant="secondary" className="text-sm">
                       <Lock className="w-3 h-3 mr-1" />
-                      Privado
+                      Bolão Privado
                     </Badge>
                   ) : (
-                    <Badge variant="outline">
+                    <Badge variant="default" className="text-sm">
                       <Unlock className="w-3 h-3 mr-1" />
-                      Público
+                      Bolão Público
                     </Badge>
                   )}
                   {isPastDeadline && pool.status === "active" && (
@@ -357,6 +359,26 @@ const PoolDetail = () => {
               </>
             )}
 
+            {(pool.pool_type === "football" || hasFootballMatches) && (
+              <>
+                <div className="p-4 rounded-lg bg-muted/50 border">
+                  <p className="text-sm font-medium mb-2">
+                    📊 Sistema de Pontuação
+                  </p>
+                  {pool.scoring_system === "exact_only" ? (
+                    <p className="text-xs text-muted-foreground">
+                      <strong>Placar Exato Apenas:</strong> 1 ponto por placar exato acertado. Qualquer outro resultado não dá pontos.
+                    </p>
+                  ) : (
+                    <p className="text-xs text-muted-foreground">
+                      <strong>Sistema Completo:</strong> 5 pontos por placar exato, 3 pontos por resultado correto, 1 ponto por diferença de gols correta.
+                    </p>
+                  )}
+                </div>
+                <Separator />
+              </>
+            )}
+
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="flex items-center gap-3 p-3 rounded-lg bg-muted/50">
                 <Calendar className="w-5 h-5 text-primary" />
@@ -376,6 +398,13 @@ const PoolDetail = () => {
               </div>
             </div>
 
+            {entryFee && (
+              <div className="p-4 rounded-lg bg-primary/10 border border-primary/20">
+                <p className="text-sm font-medium">💵 Valor de Entrada</p>
+                <p className="text-lg font-bold">R$ {entryFee.toFixed(2)}</p>
+              </div>
+            )}
+
             {isOwner && pool.status === "active" && (
               <>
                 <Separator />
@@ -385,14 +414,19 @@ const PoolDetail = () => {
                       <p className="text-sm font-medium">Privacidade do Bolão</p>
                       <p className="text-xs text-muted-foreground">
                         {pool.is_private 
-                          ? "Apenas pessoas com o link podem acessar" 
-                          : "Visível na lista de bolões públicos"}
+                          ? "🔒 Bolão está PRIVADO - Apenas pessoas com o link podem acessar" 
+                          : "🌐 Bolão está PÚBLICO - Visível na lista de bolões públicos"}
                       </p>
                     </div>
-                    <Switch
-                      checked={!pool.is_private}
-                      onCheckedChange={handleTogglePrivacy}
-                    />
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs font-medium text-muted-foreground">
+                        {pool.is_private ? "Privado" : "Público"}
+                      </span>
+                      <Switch
+                        checked={!pool.is_private}
+                        onCheckedChange={handleTogglePrivacy}
+                      />
+                    </div>
                   </div>
                 </div>
               </>
@@ -404,6 +438,11 @@ const PoolDetail = () => {
                 <div className="p-4 rounded-lg bg-primary/10 border border-primary/20">
                   <div className="flex items-center justify-between">
                     <div>
+                      {entryFee && (
+                        <p className="text-sm font-medium mb-1">
+                          💵 Valor: R$ {entryFee.toFixed(2)}
+                        </p>
+                      )}
                       <p className="text-sm font-medium mb-1">💰 Chave PIX para pagamento</p>
                       <p className="text-sm font-mono text-muted-foreground">{pixKey}</p>
                       <p className="text-xs text-muted-foreground mt-2">
@@ -467,6 +506,11 @@ const PoolDetail = () => {
                     <div className="p-4 rounded-lg bg-primary/10 border border-primary/20">
                       <div className="flex items-center justify-between">
                         <div className="flex-1">
+                          {entryFee && (
+                            <p className="text-sm font-medium mb-1">
+                              💵 Valor: R$ {entryFee.toFixed(2)}
+                            </p>
+                          )}
                           <p className="text-sm font-medium mb-1">💰 Chave PIX para pagamento</p>
                           <p className="text-sm font-mono text-muted-foreground">{pixKey}</p>
                           <p className="text-xs text-muted-foreground mt-2">
@@ -569,25 +613,6 @@ const PoolDetail = () => {
               </>
             )}
 
-            {(pool.pool_type === "football" || hasFootballMatches) && (
-              <>
-                <Separator />
-                <div className="p-4 rounded-lg bg-muted/50 border">
-                  <p className="text-sm font-medium mb-2">
-                    📊 Sistema de Pontuação
-                  </p>
-                  {pool.scoring_system === "exact_only" ? (
-                    <p className="text-xs text-muted-foreground">
-                      <strong>Placar Exato Apenas:</strong> 1 ponto por placar exato acertado. Qualquer outro resultado não dá pontos.
-                    </p>
-                  ) : (
-                    <p className="text-xs text-muted-foreground">
-                      <strong>Sistema Completo:</strong> 5 pontos por placar exato, 3 pontos por resultado correto, 1 ponto por diferença de gols correta.
-                    </p>
-                  )}
-                </div>
-              </>
-            )}
 
             {(pool.status === "finished") && (pool.pool_type === "football" || hasFootballMatches) && (
               <>

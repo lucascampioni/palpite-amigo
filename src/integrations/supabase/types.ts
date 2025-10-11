@@ -206,6 +206,7 @@ export type Database = {
           created_at: string
           deadline: string
           description: string
+          entry_fee: number | null
           guess_label: string
           id: string
           is_private: boolean
@@ -223,6 +224,7 @@ export type Database = {
           created_at?: string
           deadline: string
           description: string
+          entry_fee?: number | null
           guess_label: string
           id?: string
           is_private?: boolean
@@ -240,6 +242,7 @@ export type Database = {
           created_at?: string
           deadline?: string
           description?: string
+          entry_fee?: number | null
           guess_label?: string
           id?: string
           is_private?: boolean

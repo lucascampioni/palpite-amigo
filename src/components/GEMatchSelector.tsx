@@ -149,31 +149,32 @@ export const GEMatchSelector = ({ open, onOpenChange, onMatchesSelected }: GEMat
       newSelected.add(externalId);
     }
     setSelectedMatches(newSelected);
-  };
-
-  const handleConfirm = () => {
+    
+    // Automatically update parent with current selection
     const selected: GEMatch[] = [];
     championships.forEach(champ => {
       champ.days.forEach(day => {
         day.matches.forEach(match => {
-          if (selectedMatches.has(match.externalId)) {
+          if (newSelected.has(match.externalId)) {
             selected.push(match);
           }
         });
       });
     });
-
-    if (selected.length === 0) {
-      toast({
-        title: "Selecione pelo menos um jogo",
-        variant: "destructive",
-      });
-      return;
-    }
-    
     onMatchesSelected(selected);
-    onOpenChange(false);
+  };
+
+  const handleClearAll = () => {
     setSelectedMatches(new Set());
+    onMatchesSelected([]);
+    toast({
+      title: "Seleção limpa",
+      description: "Todos os jogos foram removidos.",
+    });
+  };
+
+  const handleClose = () => {
+    onOpenChange(false);
   };
 
   return (
@@ -265,14 +266,13 @@ export const GEMatchSelector = ({ open, onOpenChange, onMatchesSelected }: GEMat
           <div className="flex-1 text-sm text-muted-foreground">
             {selectedMatches.size > 0 && `${selectedMatches.size} jogo(s) selecionado(s)`}
           </div>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>
-            Cancelar
-          </Button>
-          <Button 
-            onClick={handleConfirm}
-            disabled={selectedMatches.size === 0}
-          >
-            Adicionar ao Bolão
+          {selectedMatches.size > 0 && (
+            <Button variant="outline" onClick={handleClearAll}>
+              Limpar Tudo
+            </Button>
+          )}
+          <Button onClick={handleClose}>
+            Fechar
           </Button>
         </DialogFooter>
       </DialogContent>

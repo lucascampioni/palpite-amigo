@@ -18,6 +18,7 @@ const footballPoolSchema = z.object({
   title: z.string().trim().min(1, "Título é obrigatório").max(200, "Título muito longo"),
   description: z.string().trim().max(2000, "Descrição muito longa").optional(),
   pixKey: z.string().trim().max(100, "Chave PIX muito longa").optional(),
+  entryFee: z.string().optional(),
 });
 
 interface Match {
@@ -94,10 +95,11 @@ const CreateFootballPool = () => {
     const title = formData.get("title") as string;
     const description = formData.get("description") as string;
     const pixKey = formData.get("pix_key") as string;
+    const entryFee = formData.get("entry_fee") as string;
 
     // Validate input
     try {
-      footballPoolSchema.parse({ title, description, pixKey });
+      footballPoolSchema.parse({ title, description, pixKey, entryFee });
     } catch (error) {
       if (error instanceof z.ZodError) {
         toast({
@@ -148,6 +150,7 @@ const CreateFootballPool = () => {
         pool_type: "football" as any,
         is_private: isPrivate,
         scoring_system: scoringSystem,
+        entry_fee: entryFee ? parseFloat(entryFee) : null,
       }])
       .select()
       .single();
@@ -250,7 +253,7 @@ const CreateFootballPool = () => {
                 <Textarea
                   id="description"
                   name="description"
-                  placeholder="Descreva o bolão, regras de pontuação, etc."
+                  placeholder="Descreva o bolão e suas regras..."
                   rows={4}
                 />
               </div>
@@ -269,10 +272,22 @@ const CreateFootballPool = () => {
                     </>
                   ) : (
                     <p className="text-sm text-muted-foreground">
-                      O horário limite das apostas será até 30min antes do início dos jogos
+                      O horário limite das apostas será 30min antes do início do jogo mais cedo dos escolhidos
                     </p>
                   )}
                 </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="entry_fee">Valor de Entrada (opcional)</Label>
+                <Input
+                  id="entry_fee"
+                  name="entry_fee"
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  placeholder="Ex: 10.00"
+                />
               </div>
 
               <div className="space-y-2">

@@ -67,17 +67,9 @@ const PoolCard = ({ pool, onClick }: PoolCardProps) => {
             <span className="text-2xl">{getTypeIcon(pool.pool_type)}</span>
             <CardTitle className="text-xl">{pool.title}</CardTitle>
           </div>
-          <div className="flex flex-col gap-1">
-            <Badge className={getStatusColor(pool.status)}>
-              {getStatusText(pool.status)}
-            </Badge>
-            {isExpired && (
-              <Badge variant="destructive" className="text-xs">
-                <Clock className="w-3 h-3 mr-1" />
-                Expirado
-              </Badge>
-            )}
-          </div>
+          <Badge className={getStatusColor(pool.status)}>
+            {getStatusText(pool.status)}
+          </Badge>
         </div>
         <CardDescription className="line-clamp-2">{pool.description}</CardDescription>
       </CardHeader>
