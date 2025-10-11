@@ -64,7 +64,6 @@ const CreateFootballPool = () => {
   }, []);
   const [showGESelector, setShowGESelector] = useState(false);
   const [matches, setMatches] = useState<Match[]>([]);
-  const [scoringSystem, setScoringSystem] = useState<'standard' | 'exact_only'>('exact_only');
   const [deadline, setDeadline] = useState<string>("");
 
   const handleAddMatch = () => {
@@ -190,7 +189,7 @@ const CreateFootballPool = () => {
         status: "active" as any,
         pool_type: "football" as any,
         is_private: isPrivate,
-        scoring_system: scoringSystem,
+        scoring_system: 'exact_only',
         entry_fee: entryFee ? parseFloat(entryFee) : null,
         max_participants: maxParticipants && maxParticipants !== "unlimited" ? parseInt(maxParticipants) : null,
         is_official: isOfficial,
@@ -396,52 +395,6 @@ const CreateFootballPool = () => {
                   />
                 </div>
               )}
-
-              <div className="space-y-3 rounded-lg border p-4">
-                <Label>Sistema de Pontuação</Label>
-                <div className="space-y-2">
-                  <label className={`flex items-start gap-3 p-3 rounded-lg border-2 cursor-pointer transition-colors ${
-                    scoringSystem === 'exact_only' ? 'border-primary bg-primary/5' : 'border-border hover:border-primary/50'
-                  }`}>
-                    <input
-                      type="radio"
-                      name="scoring"
-                      value="exact_only"
-                      checked={scoringSystem === 'exact_only'}
-                      onChange={(e) => setScoringSystem(e.target.value as 'exact_only')}
-                      className="mt-1"
-                    />
-                    <div className="flex-1">
-                      <div className="font-medium mb-1">Placar Exato Apenas (Padrão)</div>
-                      <ul className="text-sm text-muted-foreground space-y-0.5">
-                        <li>• 1 ponto: Apenas para placar exato</li>
-                        <li>• 0 pontos: Qualquer outro resultado</li>
-                      </ul>
-                    </div>
-                  </label>
-
-                  <label className={`flex items-start gap-3 p-3 rounded-lg border-2 cursor-pointer transition-colors ${
-                    scoringSystem === 'standard' ? 'border-primary bg-primary/5' : 'border-border hover:border-primary/50'
-                  }`}>
-                    <input
-                      type="radio"
-                      name="scoring"
-                      value="standard"
-                      checked={scoringSystem === 'standard'}
-                      onChange={(e) => setScoringSystem(e.target.value as 'standard')}
-                      className="mt-1"
-                    />
-                    <div className="flex-1">
-                      <div className="font-medium mb-1">Sistema com Pontuação Progressiva</div>
-                      <ul className="text-sm text-muted-foreground space-y-0.5">
-                        <li>• 5 pontos: Placar exato</li>
-                        <li>• 3 pontos: Acertar vencedor ou empate</li>
-                        <li>• 1 ponto: Diferença de gols correta (apenas se acertar o resultado)</li>
-                      </ul>
-                    </div>
-                  </label>
-                </div>
-              </div>
 
               <div className="space-y-4">
                 <div className="flex items-center justify-between">

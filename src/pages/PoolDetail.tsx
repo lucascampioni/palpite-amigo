@@ -369,20 +369,6 @@ const PoolDetail = () => {
 
             {(pool.pool_type === "football" || hasFootballMatches) && (
               <>
-                <div className="p-4 rounded-lg bg-muted/50 border">
-                  <p className="text-sm font-medium mb-2">
-                    📊 Sistema de Pontuação
-                  </p>
-                  {pool.scoring_system === "exact_only" ? (
-                    <p className="text-xs text-muted-foreground">
-                      <strong>Placar Exato Apenas:</strong> 1 ponto por placar exato acertado. Qualquer outro resultado não dá pontos.
-                    </p>
-                  ) : (
-                    <p className="text-xs text-muted-foreground">
-                      <strong>Sistema Progressivo:</strong> 5 pontos por placar exato, 3 pontos por acertar vencedor ou empate, 1 ponto por diferença de gols correta (apenas se acertar o resultado).
-                    </p>
-                  )}
-                </div>
                 <Separator />
               </>
             )}

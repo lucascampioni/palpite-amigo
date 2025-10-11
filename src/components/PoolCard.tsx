@@ -15,6 +15,7 @@ interface PoolCardProps {
     deadline: string;
     participant_count?: number;
     is_official?: boolean;
+    entry_fee?: number | null;
   };
   onClick: () => void;
 }
@@ -75,9 +76,20 @@ const getTypeIcon = (type: string) => {
               {pool.title}
             </CardTitle>
           </div>
-          <Badge className={getStatusColor(pool.status)}>
-            {getStatusText(pool.status)}
-          </Badge>
+          <div className="flex gap-2">
+            <Badge className={getStatusColor(pool.status)}>
+              {getStatusText(pool.status)}
+            </Badge>
+            {pool.entry_fee && pool.entry_fee > 0 ? (
+              <Badge variant="secondary" className="bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300">
+                R$ {pool.entry_fee.toFixed(2)}
+              </Badge>
+            ) : (
+              <Badge variant="outline" className="border-green-500 text-green-600 dark:text-green-400">
+                Gratuito
+              </Badge>
+            )}
+          </div>
         </div>
         <CardDescription className="line-clamp-2">{pool.description}</CardDescription>
       </CardHeader>
