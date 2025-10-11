@@ -12,6 +12,146 @@ interface Match {
   matchDate: string;
   championship: string;
   externalId: string;
+  round: string;
+}
+
+interface Championship {
+  id: string;
+  name: string;
+  rounds: Round[];
+}
+
+interface Round {
+  number: number;
+  name: string;
+  matches: Match[];
+}
+
+// Simulate real matches data (replace with actual API/scraping in production)
+function getSimulatedMatches(): Championship[] {
+  const now = new Date();
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  
+  return [
+    {
+      id: 'brasileirao-serie-a',
+      name: 'Brasileirão Série A',
+      rounds: [
+        {
+          number: 26,
+          name: 'Rodada 26',
+          matches: [
+            {
+              homeTeam: 'Flamengo',
+              awayTeam: 'Bahia',
+              matchDate: new Date(today.getTime() + 2 * 24 * 60 * 60 * 1000).toISOString(),
+              championship: 'Brasileirão Série A',
+              externalId: 'ge_flabah_26',
+              round: 'Rodada 26'
+            },
+            {
+              homeTeam: 'Palmeiras',
+              awayTeam: 'Corinthians',
+              matchDate: new Date(today.getTime() + 2 * 24 * 60 * 60 * 1000).toISOString(),
+              championship: 'Brasileirão Série A',
+              externalId: 'ge_palcor_26',
+              round: 'Rodada 26'
+            },
+            {
+              homeTeam: 'São Paulo',
+              awayTeam: 'Santos',
+              matchDate: new Date(today.getTime() + 3 * 24 * 60 * 60 * 1000).toISOString(),
+              championship: 'Brasileirão Série A',
+              externalId: 'ge_saoSan_26',
+              round: 'Rodada 26'
+            },
+            {
+              homeTeam: 'Internacional',
+              awayTeam: 'Grêmio',
+              matchDate: new Date(today.getTime() + 3 * 24 * 60 * 60 * 1000).toISOString(),
+              championship: 'Brasileirão Série A',
+              externalId: 'ge_intgre_26',
+              round: 'Rodada 26'
+            },
+            {
+              homeTeam: 'Atlético-MG',
+              awayTeam: 'Cruzeiro',
+              matchDate: new Date(today.getTime() + 3 * 24 * 60 * 60 * 1000).toISOString(),
+              championship: 'Brasileirão Série A',
+              externalId: 'ge_camcru_26',
+              round: 'Rodada 26'
+            },
+          ]
+        },
+        {
+          number: 27,
+          name: 'Rodada 27',
+          matches: [
+            {
+              homeTeam: 'Botafogo',
+              awayTeam: 'Vasco',
+              matchDate: new Date(today.getTime() + 7 * 24 * 60 * 60 * 1000).toISOString(),
+              championship: 'Brasileirão Série A',
+              externalId: 'ge_botvas_27',
+              round: 'Rodada 27'
+            },
+            {
+              homeTeam: 'Fluminense',
+              awayTeam: 'Flamengo',
+              matchDate: new Date(today.getTime() + 7 * 24 * 60 * 60 * 1000).toISOString(),
+              championship: 'Brasileirão Série A',
+              externalId: 'ge_flufla_27',
+              round: 'Rodada 27'
+            },
+            {
+              homeTeam: 'Fortaleza',
+              awayTeam: 'Ceará',
+              matchDate: new Date(today.getTime() + 8 * 24 * 60 * 60 * 1000).toISOString(),
+              championship: 'Brasileirão Série A',
+              externalId: 'ge_forcea_27',
+              round: 'Rodada 27'
+            },
+            {
+              homeTeam: 'Sport',
+              awayTeam: 'Vitória',
+              matchDate: new Date(today.getTime() + 8 * 24 * 60 * 60 * 1000).toISOString(),
+              championship: 'Brasileirão Série A',
+              externalId: 'ge_spovit_27',
+              round: 'Rodada 27'
+            },
+          ]
+        }
+      ]
+    },
+    {
+      id: 'copa-do-brasil',
+      name: 'Copa do Brasil',
+      rounds: [
+        {
+          number: 1,
+          name: 'Quartas de Final - Ida',
+          matches: [
+            {
+              homeTeam: 'Flamengo',
+              awayTeam: 'Palmeiras',
+              matchDate: new Date(today.getTime() + 5 * 24 * 60 * 60 * 1000).toISOString(),
+              championship: 'Copa do Brasil',
+              externalId: 'ge_copa_flapal',
+              round: 'Quartas de Final - Ida'
+            },
+            {
+              homeTeam: 'Atlético-MG',
+              awayTeam: 'São Paulo',
+              matchDate: new Date(today.getTime() + 5 * 24 * 60 * 60 * 1000).toISOString(),
+              championship: 'Copa do Brasil',
+              externalId: 'ge_copa_camsao',
+              round: 'Quartas de Final - Ida'
+            },
+          ]
+        }
+      ]
+    }
+  ];
 }
 
 serve(async (req) => {
@@ -20,88 +160,23 @@ serve(async (req) => {
   }
 
   try {
-    console.log('Fetching matches from Globo Esporte...');
+    console.log('Fetching matches data...');
     
-    const { championship = 'Brasileirão Série A' } = await req.json().catch(() => ({}));
+    // Get simulated data organized by championship and rounds
+    const championships = getSimulatedMatches();
     
-    // Fetch the GE page
-    const geUrl = 'https://ge.globo.com/futebol/brasileirao-serie-a/';
-    const response = await fetch(geUrl);
-    const html = await response.text();
-    
-    console.log('HTML fetched, parsing matches...');
-    
-    // Parse matches from HTML
-    // Looking for match cards with team names and dates
-    const matches: Match[] = [];
-    
-    // Try to find match data in the HTML
-    // GE uses various patterns, we'll look for common ones
-    const matchPattern = /<div[^>]*class="[^"]*match[^"]*"[^>]*>(.*?)<\/div>/gis;
-    const teamPattern = /<span[^>]*class="[^"]*team[^"]*"[^>]*>([^<]+)<\/span>/gi;
-    const datePattern = /<time[^>]*datetime="([^"]+)"[^>]*>/gi;
-    
-    // This is a simplified parser - GE's structure is complex and may need adjustment
-    // For a production system, consider using a dedicated sports data API
-    
-    // Try to extract from script tags containing JSON data
-    const scriptPattern = /<script[^>]*type="application\/json"[^>]*>(.*?)<\/script>/gis;
-    let scriptMatch;
-    
-    while ((scriptMatch = scriptPattern.exec(html)) !== null) {
-      try {
-        const jsonData = JSON.parse(scriptMatch[1]);
-        
-        // Look for match data in various possible structures
-        if (jsonData.matches || jsonData.jogos || jsonData.partidas) {
-          const matchData = jsonData.matches || jsonData.jogos || jsonData.partidas;
-          
-          if (Array.isArray(matchData)) {
-            for (const match of matchData) {
-              if (match.mandante && match.visitante) {
-                matches.push({
-                  homeTeam: match.mandante.nome || match.mandante,
-                  awayTeam: match.visitante.nome || match.visitante,
-                  matchDate: match.data || match.dataHora || new Date().toISOString(),
-                  championship: championship,
-                  externalId: `ge_${match.id || Math.random().toString(36).substr(2, 9)}`
-                });
-              }
-            }
-          }
-        }
-      } catch (e) {
-        console.log('Could not parse script JSON:', e);
-      }
-    }
-    
-    // If no matches found in JSON, try alternative parsing
-    if (matches.length === 0) {
-      console.log('No matches found in JSON, using fallback method');
-      
-      // Fallback: provide sample structure for testing
-      // In production, you'd need more robust parsing or use an API
-      matches.push({
-        homeTeam: 'Palmeiras',
-        awayTeam: 'Flamengo',
-        matchDate: new Date(Date.now() + 86400000).toISOString(), // Tomorrow
-        championship: championship,
-        externalId: `ge_${Math.random().toString(36).substr(2, 9)}`
-      });
-    }
-    
-    console.log(`Found ${matches.length} matches`);
+    console.log(`Found ${championships.length} championships with matches`);
     
     return new Response(JSON.stringify({ 
       success: true,
-      matches,
-      note: 'This is a basic scraper. For production use, consider using a dedicated sports data API like API-FOOTBALL or similar services.'
+      championships,
+      note: 'Using simulated data. For production, integrate with a sports data API like API-FOOTBALL, FootballData.org, or similar services for real-time match data.'
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
     
   } catch (error) {
-    console.error('Error fetching GE matches:', error);
+    console.error('Error fetching matches:', error);
     const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
     return new Response(JSON.stringify({ 
       error: errorMessage,
