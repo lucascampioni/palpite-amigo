@@ -7,7 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { Copy } from "lucide-react";
+import { Copy, Upload } from "lucide-react";
 
 interface FootballPredictionFormProps {
   poolId: string;
@@ -42,6 +42,9 @@ const FootballPredictionForm = ({ poolId, userId, onSuccess, entryFee }: Footbal
   const [submitting, setSubmitting] = useState(false);
   const [pixKey, setPixKey] = useState<string | null>(null);
   const [submitted, setSubmitted] = useState(false);
+  const [uploadingProof, setUploadingProof] = useState(false);
+  const [paymentProofUploaded, setPaymentProofUploaded] = useState(false);
+  const [participantId, setParticipantId] = useState<string | null>(null);
 
   useEffect(() => {
     loadMatches();
@@ -197,11 +200,75 @@ const FootballPredictionForm = ({ poolId, userId, onSuccess, entryFee }: Footbal
         description: "Aguarde a aprovação do criador do bolão.",
       });
       setSubmitted(true);
+      setParticipantId(participant.id);
       await loadPixKey(); // Load PIX key after successful submission
       onSuccess();
     }
 
     setSubmitting(false);
+  };
+
+  const handleUploadPaymentProof = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !participantId) return;
+
+    // Validate file size (5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      toast({
+        variant: "destructive",
+        title: "Erro",
+        description: "Arquivo muito grande. O limite é 5MB.",
+      });
+      return;
+    }
+
+    // Validate file type
+    const validTypes = ['image/jpeg', 'image/png', 'image/jpg', 'image/webp', 'application/pdf'];
+    if (!validTypes.includes(file.type)) {
+      toast({
+        variant: "destructive",
+        title: "Erro",
+        description: "Tipo de arquivo inválido. Use JPG, PNG, WEBP ou PDF.",
+      });
+      return;
+    }
+
+    setUploadingProof(true);
+
+    try {
+      // Upload to storage
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${userId}/${Date.now()}.${fileExt}`;
+      
+      const { error: uploadError } = await supabase.storage
+        .from('payment-proofs')
+        .upload(fileName, file);
+
+      if (uploadError) throw uploadError;
+
+      // Update participant with payment proof path
+      const { error: updateError } = await supabase
+        .from('participants')
+        .update({ payment_proof: fileName })
+        .eq('id', participantId);
+
+      if (updateError) throw updateError;
+
+      setPaymentProofUploaded(true);
+      toast({
+        title: "Comprovante enviado!",
+        description: "O criador do bolão poderá ver seu comprovante.",
+      });
+    } catch (error) {
+      console.error('Error uploading payment proof:', error);
+      toast({
+        variant: "destructive",
+        title: "Erro ao enviar comprovante",
+        description: error instanceof Error ? error.message : "Tente novamente.",
+      });
+    } finally {
+      setUploadingProof(false);
+    }
   };
 
   if (submitted) {
@@ -212,23 +279,56 @@ const FootballPredictionForm = ({ poolId, userId, onSuccess, entryFee }: Footbal
             ✓ Palpites enviados com sucesso!
           </p>
           <p className="text-xs text-muted-foreground">
-            {pixKey ? "Use a chave PIX abaixo para fazer o pagamento e aguarde a aprovação." : "Aguarde a aprovação do criador do bolão."}
+            {pixKey ? "Use a chave PIX abaixo para fazer o pagamento e envie o comprovante." : "Aguarde a aprovação do criador do bolão."}
           </p>
         </div>
 
         {pixKey && (
-          <div className="p-4 rounded-lg bg-primary/10 border border-primary/20">
-            <div className="flex items-center justify-between">
-              <div className="flex-1">
-                <p className="text-sm font-medium mb-1">💰 Chave PIX para pagamento</p>
-                <p className="text-sm font-mono text-muted-foreground">{pixKey}</p>
+          <>
+            <div className="p-4 rounded-lg bg-primary/10 border border-primary/20">
+              <div className="flex items-center justify-between">
+                <div className="flex-1">
+                  <p className="text-sm font-medium mb-1">💰 Chave PIX para pagamento</p>
+                  <p className="text-sm font-mono text-muted-foreground">{pixKey}</p>
+                </div>
+                <Button variant="outline" size="sm" onClick={handleCopyPixKey}>
+                  <Copy className="w-4 h-4 mr-2" />
+                  Copiar
+                </Button>
               </div>
-              <Button variant="outline" size="sm" onClick={handleCopyPixKey}>
-                <Copy className="w-4 h-4 mr-2" />
-                Copiar
-              </Button>
             </div>
-          </div>
+
+            <div className="p-4 rounded-lg bg-muted border">
+              <p className="text-sm font-medium mb-3">📎 Enviar Comprovante de Pagamento</p>
+              {paymentProofUploaded ? (
+                <div className="text-sm text-primary">
+                  ✓ Comprovante enviado com sucesso!
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  <Label htmlFor="payment-proof" className="cursor-pointer">
+                    <div className="flex items-center gap-2 p-3 border-2 border-dashed rounded-lg hover:border-primary transition-colors">
+                      <Upload className="w-5 h-5" />
+                      <span className="text-sm">
+                        {uploadingProof ? "Enviando..." : "Clique para selecionar arquivo"}
+                      </span>
+                    </div>
+                  </Label>
+                  <Input
+                    id="payment-proof"
+                    type="file"
+                    accept="image/jpeg,image/png,image/jpg,image/webp,application/pdf"
+                    onChange={handleUploadPaymentProof}
+                    disabled={uploadingProof}
+                    className="hidden"
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Formatos aceitos: JPG, PNG, WEBP, PDF (máx. 5MB)
+                  </p>
+                </div>
+              )}
+            </div>
+          </>
         )}
       </div>
     );

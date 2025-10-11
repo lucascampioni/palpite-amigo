@@ -590,29 +590,50 @@ const PoolDetail = () => {
                     {pendingParticipants.map((participant) => (
                       <Card key={participant.id}>
                         <CardContent className="p-4">
-                          <div className="flex items-center justify-between">
-                            <div>
-                              <p className="font-medium">{participant.participant_name}</p>
-                              <p className="text-sm text-muted-foreground">
-                                Palpite: {participant.guess_value}
-                              </p>
+                          <div className="flex flex-col gap-3">
+                            <div className="flex items-center justify-between">
+                              <div>
+                                <p className="font-medium">{participant.participant_name}</p>
+                                <p className="text-sm text-muted-foreground">
+                                  Palpite: {participant.guess_value}
+                                </p>
+                              </div>
+                              <div className="flex gap-2">
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => handleApprove(participant.id)}
+                                >
+                                  Aprovar
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  variant="destructive"
+                                  onClick={() => handleReject(participant.id)}
+                                >
+                                  Rejeitar
+                                </Button>
+                              </div>
                             </div>
-                            <div className="flex gap-2">
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                onClick={() => handleApprove(participant.id)}
-                              >
-                                Aprovar
-                              </Button>
-                              <Button
-                                size="sm"
-                                variant="destructive"
-                                onClick={() => handleReject(participant.id)}
-                              >
-                                Rejeitar
-                              </Button>
-                            </div>
+                            {participant.payment_proof && (
+                              <div className="pt-2 border-t">
+                                <Button
+                                  size="sm"
+                                  variant="secondary"
+                                  className="w-full"
+                                  onClick={async () => {
+                                    const { data } = await supabase.storage
+                                      .from('payment-proofs')
+                                      .createSignedUrl(participant.payment_proof, 60);
+                                    if (data?.signedUrl) {
+                                      window.open(data.signedUrl, '_blank');
+                                    }
+                                  }}
+                                >
+                                  📎 Ver Comprovante de Pagamento
+                                </Button>
+                              </div>
+                            )}
                           </div>
                         </CardContent>
                       </Card>
