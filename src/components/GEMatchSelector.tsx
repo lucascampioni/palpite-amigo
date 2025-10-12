@@ -143,7 +143,21 @@ export const GEMatchSelector = ({ open, onOpenChange, onMatchesSelected }: GEMat
     }
   }, [open]);
 
-  const toggleMatch = (externalId: string) => {
+  const toggleMatch = (externalId: string, matchDate: string) => {
+    // Check if match starts in less than 30 minutes
+    const matchTime = new Date(matchDate);
+    const now = new Date();
+    const minutesUntilMatch = (matchTime.getTime() - now.getTime()) / (1000 * 60);
+    
+    if (minutesUntilMatch < 30) {
+      toast({
+        variant: "destructive",
+        title: "Jogo não disponível",
+        description: "Não é possível adicionar jogos que começam em menos de 30 minutos ou já iniciaram.",
+      });
+      return;
+    }
+    
     const newSelected = new Set(selectedMatches);
     if (newSelected.has(externalId)) {
       newSelected.delete(externalId);
@@ -222,21 +236,32 @@ export const GEMatchSelector = ({ open, onOpenChange, onMatchesSelected }: GEMat
                       </AccordionTrigger>
                       <AccordionContent>
                         <div className="space-y-2 pt-2">
-                          {day.matches.map((match) => (
-                            <Card 
-                              key={match.externalId}
-                              className={`cursor-pointer transition-colors ${
-                                selectedMatches.has(match.externalId) ? 'border-primary bg-primary/5' : ''
-                              }`}
-                              onClick={() => toggleMatch(match.externalId)}
-                            >
-                              <CardContent className="py-3 px-4">
-                                <div className="flex items-center gap-3">
-                                  <Checkbox
-                                    checked={selectedMatches.has(match.externalId)}
-                                    onCheckedChange={() => toggleMatch(match.externalId)}
-                                    onClick={(e) => e.stopPropagation()}
-                                  />
+                          {day.matches.map((match) => {
+                            const matchTime = new Date(match.matchDate);
+                            const now = new Date();
+                            const minutesUntilMatch = (matchTime.getTime() - now.getTime()) / (1000 * 60);
+                            const isUnavailable = minutesUntilMatch < 30;
+                            
+                            return (
+                              <Card 
+                                key={match.externalId}
+                                className={`transition-colors ${
+                                  isUnavailable 
+                                    ? 'opacity-50 cursor-not-allowed' 
+                                    : selectedMatches.has(match.externalId) 
+                                      ? 'border-primary bg-primary/5 cursor-pointer' 
+                                      : 'cursor-pointer'
+                                }`}
+                                onClick={() => !isUnavailable && toggleMatch(match.externalId, match.matchDate)}
+                              >
+                                <CardContent className="py-3 px-4">
+                                  <div className="flex items-center gap-3">
+                                    <Checkbox
+                                      checked={selectedMatches.has(match.externalId)}
+                                      disabled={isUnavailable}
+                                      onCheckedChange={() => !isUnavailable && toggleMatch(match.externalId, match.matchDate)}
+                                      onClick={(e) => e.stopPropagation()}
+                                    />
                                   <div className="flex-1">
                                     <div className="flex items-center justify-between mb-1">
                                       <div className="flex items-center gap-2 flex-1">
@@ -270,12 +295,14 @@ export const GEMatchSelector = ({ open, onOpenChange, onMatchesSelected }: GEMat
                                     </div>
                                     <div className="text-xs text-muted-foreground">
                                       📍 {match.round}
+                                      {isUnavailable && <span className="ml-2 text-destructive">⏰ Indisponível</span>}
                                     </div>
                                   </div>
                                 </div>
                               </CardContent>
                             </Card>
-                          ))}
+                          );
+                        })}
                         </div>
                       </AccordionContent>
                     </AccordionItem>

@@ -12,8 +12,15 @@ import { z } from "zod";
 
 const signUpSchema = z.object({
   email: z.string().email("Email inválido").max(255, "Email muito longo"),
-  password: z.string().min(6, "Senha deve ter no mínimo 6 caracteres").max(128, "Senha muito longa"),
+  password: z.string()
+    .min(8, "Senha deve ter no mínimo 8 caracteres")
+    .max(128, "Senha muito longa")
+    .regex(/[A-Z]/, "Senha deve conter pelo menos uma letra maiúscula")
+    .regex(/[a-z]/, "Senha deve conter pelo menos uma letra minúscula")
+    .regex(/[0-9]/, "Senha deve conter pelo menos um número")
+    .regex(/[^A-Za-z0-9]/, "Senha deve conter pelo menos um caractere especial"),
   fullName: z.string().trim().min(1, "Nome é obrigatório").max(100, "Nome muito longo"),
+  birthDate: z.string().min(1, "Data de nascimento é obrigatória"),
 });
 
 const signInSchema = z.object({
@@ -55,10 +62,30 @@ const Auth = () => {
     const email = formData.get("signup-email") as string;
     const password = formData.get("signup-password") as string;
     const fullName = formData.get("full-name") as string;
+    const birthDate = formData.get("birth-date") as string;
 
     // Validate input
     try {
-      signUpSchema.parse({ email, password, fullName });
+      signUpSchema.parse({ email, password, fullName, birthDate });
+      
+      // Check if user is 18 years or older
+      const birth = new Date(birthDate);
+      const today = new Date();
+      const age = today.getFullYear() - birth.getFullYear();
+      const monthDiff = today.getMonth() - birth.getMonth();
+      const dayDiff = today.getDate() - birth.getDate();
+      
+      const isOldEnough = age > 18 || (age === 18 && (monthDiff > 0 || (monthDiff === 0 && dayDiff >= 0)));
+      
+      if (!isOldEnough) {
+        toast({
+          variant: "destructive",
+          title: "Erro de validação",
+          description: "Você precisa ter 18 anos ou mais para criar uma conta.",
+        });
+        setLoading(false);
+        return;
+      }
     } catch (error) {
       if (error instanceof z.ZodError) {
         toast({
@@ -211,6 +238,17 @@ const Auth = () => {
                     />
                   </div>
                   <div className="space-y-2">
+                    <Label htmlFor="birth-date">Data de nascimento</Label>
+                    <Input
+                      id="birth-date"
+                      name="birth-date"
+                      type="date"
+                      required
+                      max={new Date(new Date().setFullYear(new Date().getFullYear() - 18)).toISOString().split('T')[0]}
+                    />
+                    <p className="text-xs text-muted-foreground">É necessário ter 18 anos ou mais</p>
+                  </div>
+                  <div className="space-y-2">
                     <Label htmlFor="signup-email">Email</Label>
                     <Input
                       id="signup-email"
@@ -228,8 +266,11 @@ const Auth = () => {
                       type="password"
                       placeholder="••••••••"
                       required
-                      minLength={6}
+                      minLength={8}
                     />
+                    <p className="text-xs text-muted-foreground">
+                      Mínimo 8 caracteres, incluindo maiúscula, minúscula, número e caractere especial
+                    </p>
                   </div>
                   <Button type="submit" className="w-full" disabled={loading}>
                     {loading ? "Criando conta..." : "Criar conta"}

@@ -572,11 +572,16 @@ const PoolDetail = () => {
                 <Separator />
                 <div className="p-4 rounded-lg bg-secondary/10 border border-secondary/20">
                   <p className="text-sm font-medium mb-2">
-                    🤖 Resultados Automáticos
+                    🤖 Funcionalidades Automáticas
                   </p>
-                  <p className="text-xs text-muted-foreground">
-                    O vencedor do bolão será determinado automaticamente de acordo com o resultado dos jogos.
-                  </p>
+                  <div className="space-y-1">
+                    <p className="text-xs text-muted-foreground">
+                      • O vencedor do bolão será determinado automaticamente de acordo com o resultado dos jogos.
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      • Prazo para apostas: {format(new Date(pool.deadline), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })} (30min antes do primeiro jogo)
+                    </p>
+                  </div>
                 </div>
               </>
             )}

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -26,6 +26,21 @@ const PaymentProofUpload = ({ participantId, userId, poolId, onSuccess, hasPixKe
   const [pixKey, setPixKey] = useState("");
   const [pixKeyType, setPixKeyType] = useState<string>("");
   const [pixConsent, setPixConsent] = useState(false);
+  const [isFreePool, setIsFreePool] = useState(false);
+
+  useEffect(() => {
+    // Check if pool is free (no entry fee)
+    const checkPoolFee = async () => {
+      const { data } = await supabase
+        .from("pools")
+        .select("entry_fee")
+        .eq("id", poolId)
+        .single();
+      
+      setIsFreePool(!data?.entry_fee || data.entry_fee === 0);
+    };
+    checkPoolFee();
+  }, [poolId]);
 
   const onFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFile = e.target.files?.[0];
@@ -56,43 +71,68 @@ const PaymentProofUpload = ({ participantId, userId, poolId, onSuccess, hasPixKe
   };
 
   const handleSubmitUpload = async () => {
-    if (!file || !pixKey.trim() || !pixKeyType || !pixConsent) {
-      toast({
-        title: "Campos obrigatórios",
-        description: "Por favor, preencha todos os campos e aceite os termos.",
-        variant: "destructive",
-      });
-      return;
+    // For free pools, only PIX key is required
+    if (isFreePool) {
+      if (!pixKey.trim() || !pixKeyType || !pixConsent) {
+        toast({
+          title: "Campos obrigatórios",
+          description: "Por favor, preencha sua chave PIX e aceite os termos.",
+          variant: "destructive",
+        });
+        return;
+      }
+    } else {
+      // For paid pools, both file and PIX key are required
+      if (!file || !pixKey.trim() || !pixKeyType || !pixConsent) {
+        toast({
+          title: "Campos obrigatórios",
+          description: "Por favor, preencha todos os campos e aceite os termos.",
+          variant: "destructive",
+        });
+        return;
+      }
     }
 
     setUploading(true);
 
     try {
-      // Upload file to storage
-      const fileExt = file.name.split('.').pop();
-      const fileName = `${userId}/${poolId}/${Date.now()}.${fileExt}`;
+      let publicUrl = null;
 
-      const { error: uploadError } = await supabase.storage
-        .from("payment-proofs")
-        .upload(fileName, file);
+      // Upload file only if pool is not free and file is provided
+      if (!isFreePool && file) {
+        const fileExt = file.name.split('.').pop();
+        const fileName = `${userId}/${poolId}/${Date.now()}.${fileExt}`;
 
-      if (uploadError) throw uploadError;
+        const { error: uploadError } = await supabase.storage
+          .from("payment-proofs")
+          .upload(fileName, file);
 
-      // Get public URL
-      const { data: { publicUrl } } = supabase.storage
-        .from("payment-proofs")
-        .getPublicUrl(fileName);
+        if (uploadError) throw uploadError;
 
-      // Update participant with payment proof, PIX key info, and change status to pending
+        // Get public URL
+        const { data: { publicUrl: url } } = supabase.storage
+          .from("payment-proofs")
+          .getPublicUrl(fileName);
+        
+        publicUrl = url;
+      }
+
+      // Update participant with payment proof URL and PIX key
+      const updateData: any = {
+        participant_pix_key: pixKey.trim(),
+        pix_key_type: pixKeyType,
+        pix_consent: pixConsent,
+        status: 'pending',
+      };
+
+      // Only add payment_proof if it exists (paid pools)
+      if (publicUrl) {
+        updateData.payment_proof = publicUrl;
+      }
+
       const { error: updateError } = await supabase
         .from("participants")
-        .update({ 
-          payment_proof: publicUrl,
-          status: "pending",
-          participant_pix_key: pixKey.trim(),
-          pix_key_type: pixKeyType,
-          pix_consent: pixConsent
-        })
+        .update(updateData)
         .eq("id", participantId);
 
       if (updateError) throw updateError;
@@ -139,10 +179,12 @@ const PaymentProofUpload = ({ participantId, userId, poolId, onSuccess, hasPixKe
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <Upload className="w-5 h-5" />
-          Enviar Comprovante de Pagamento
+          {isFreePool ? "Informar Chave PIX" : "Enviar Comprovante de Pagamento"}
         </CardTitle>
         <CardDescription>
-          Faça o upload do comprovante e informe sua chave PIX
+          {isFreePool 
+            ? "Informe sua chave PIX para receber prêmios caso ganhe"
+            : "Faça o upload do comprovante e informe sua chave PIX"}
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
@@ -173,33 +215,35 @@ const PaymentProofUpload = ({ participantId, userId, poolId, onSuccess, hasPixKe
             disabled={uploading}
           />
           <p className="text-sm text-muted-foreground">
-            Esta chave será usada para receber o prêmio caso você ganhe
-          </p>
+          Esta chave será usada para receber o prêmio caso você ganhe
+        </p>
         </div>
 
-        <div className="space-y-2">
-          <Label htmlFor="file" className="cursor-pointer">
-            <div className="flex items-center gap-3 p-4 border-2 border-dashed rounded-lg hover:border-primary transition-colors">
-              <Upload className="w-5 h-5 text-muted-foreground" />
-              <div className="flex-1">
-                <p className="text-sm font-medium">
-                  {file ? file.name : "Selecionar comprovante"}
-                </p>
-                <p className="text-xs text-muted-foreground">
-                  JPG, PNG, WEBP ou PDF (máx. 5MB)
-                </p>
+        {!isFreePool && (
+          <div className="space-y-2">
+            <Label htmlFor="file" className="cursor-pointer">
+              <div className="flex items-center gap-3 p-4 border-2 border-dashed rounded-lg hover:border-primary transition-colors">
+                <Upload className="w-5 h-5 text-muted-foreground" />
+                <div className="flex-1">
+                  <p className="text-sm font-medium">
+                    {file ? file.name : "Selecionar comprovante"}
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    JPG, PNG, WEBP ou PDF (máx. 5MB)
+                  </p>
+                </div>
               </div>
-            </div>
-          </Label>
-          <Input
-            id="file"
-            type="file"
-            accept="image/jpeg,image/png,image/jpg,image/webp,application/pdf"
-            onChange={onFileChange}
-            disabled={uploading}
-            className="hidden"
-          />
-        </div>
+            </Label>
+            <Input
+              id="file"
+              type="file"
+              accept="image/jpeg,image/png,image/jpg,image/webp,application/pdf"
+              onChange={onFileChange}
+              disabled={uploading}
+              className="hidden"
+            />
+          </div>
+        )}
 
         <div className="space-y-4">
           <div className="flex items-start space-x-2 p-4 border rounded-lg bg-muted/50">
@@ -227,10 +271,10 @@ const PaymentProofUpload = ({ participantId, userId, poolId, onSuccess, hasPixKe
 
           <Button
             onClick={handleSubmitUpload}
-            disabled={!file || !pixKey.trim() || !pixKeyType || !pixConsent || uploading}
+            disabled={(!isFreePool && !file) || !pixKey.trim() || !pixKeyType || !pixConsent || uploading}
             className="w-full"
           >
-            {uploading ? "Enviando..." : "Enviar Comprovante"}
+            {uploading ? "Enviando..." : (isFreePool ? "Enviar Chave PIX" : "Enviar Comprovante")}
           </Button>
         </div>
       </CardContent>

@@ -425,7 +425,7 @@ const Index = () => {
           <section className="space-y-4">
             <div className="flex items-center gap-2">
               <span className="text-2xl">⚽</span>
-              <h3 className="text-2xl font-bold">Bolões que Criei</h3>
+              <h3 className="text-2xl font-bold">Bolões que criei</h3>
             </div>
             
             {/* Active Pools */}
@@ -478,7 +478,7 @@ const Index = () => {
           <section className="space-y-4">
             <div className="flex items-center gap-2">
               <span className="text-2xl">🏆</span>
-              <h3 className="text-2xl font-bold">Bolões que Participo</h3>
+              <h3 className="text-2xl font-bold">Bolões que participo</h3>
             </div>
             
             {/* Active Pools */}
@@ -533,7 +533,7 @@ const Index = () => {
           <section className="space-y-4">
             <div className="flex items-center gap-2">
               <span className="text-2xl">🌐</span>
-              <h3 className="text-2xl font-bold">Bolões Públicos</h3>
+              <h3 className="text-2xl font-bold">Bolões públicos</h3>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {availablePools.map((pool) => (

@@ -302,26 +302,6 @@ const CreateFootballPool = () => {
                 />
               </div>
 
-              <div className="space-y-2">
-                <Label>Prazo para Apostas</Label>
-                <div className="p-3 rounded-lg border bg-muted/50">
-                  {deadline ? (
-                    <>
-                      <p className="text-sm font-medium">
-                        📅 {format(new Date(deadline), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
-                      </p>
-                      <p className="text-xs text-muted-foreground mt-1">
-                        30 minutos antes do primeiro jogo
-                      </p>
-                    </>
-                  ) : (
-                    <p className="text-sm text-muted-foreground">
-                      O horário limite das apostas será 30min antes do início do jogo mais cedo dos escolhidos
-                    </p>
-                  )}
-                </div>
-              </div>
-
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="entry_fee">Valor de Entrada (opcional)</Label>
@@ -481,6 +461,7 @@ const CreateFootballPool = () => {
               <div className="bg-muted/50 p-4 rounded-lg text-sm space-y-2">
                 <p className="font-semibold">⚡ Funcionalidades Automáticas:</p>
                 <ul className="list-disc list-inside space-y-1 text-muted-foreground">
+                  <li>Prazo para apostas: 30 minutos antes do primeiro jogo</li>
                   <li>Jogos são atualizados automaticamente</li>
                   <li>Resultados são sincronizados automaticamente</li>
                   <li>Pontuação dos participantes é calculada automaticamente</li>
