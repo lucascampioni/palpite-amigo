@@ -337,11 +337,14 @@ const Index = () => {
               <div className="w-8 h-8 rounded-lg bg-orange-500 flex items-center justify-center">
                 <span className="text-lg">📎</span>
               </div>
-              <h3 className="text-2xl font-bold">⏳ Aguardando Comprovante</h3>
+              <h3 className="text-2xl font-bold">⏳ Pendente de Envio</h3>
             </div>
             <div className="p-4 rounded-lg bg-orange-50 dark:bg-orange-950 border border-orange-200 dark:border-orange-800">
+              <p className="text-sm font-medium text-orange-700 dark:text-orange-300 mb-2">
+                ⚠️ Seus palpites ainda não foram enviados!
+              </p>
               <p className="text-sm text-muted-foreground mb-4">
-                Clique no bolão abaixo para anexar o comprovante de pagamento e sua chave PIX.
+                Clique no bolão abaixo para enviar o comprovante de pagamento e sua chave PIX (ou apenas a chave PIX para bolões gratuitos).
               </p>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {myAwaitingProofPools.map((pool) => (

@@ -509,10 +509,16 @@ const PoolDetail = () => {
                 <div className="space-y-4">
                   <div className="p-4 rounded-lg bg-orange-50 dark:bg-orange-950 border border-orange-200 dark:border-orange-800">
                     <p className="text-sm font-medium text-orange-700 dark:text-orange-300 mb-2">
-                      ⏳ Aguardando Comprovante e Chave PIX
+                      ⏳ {!pool.entry_fee || pool.entry_fee === 0 ? 'Aguardando Chave PIX' : 'Aguardando Comprovante e Chave PIX'}
+                    </p>
+                    <p className="text-xs text-muted-foreground mb-2">
+                      <strong>⚠️ ATENÇÃO:</strong> Seus palpites ainda não foram enviados!
                     </p>
                     <p className="text-xs text-muted-foreground">
-                      Seus palpites foram registrados. Agora envie o comprovante de pagamento e sua chave PIX para receber prêmios.
+                      {!pool.entry_fee || pool.entry_fee === 0 
+                        ? 'Envie sua chave PIX para confirmar sua participação e validar seus palpites.'
+                        : 'Envie o comprovante de pagamento e sua chave PIX para confirmar sua participação e validar seus palpites.'
+                      }
                     </p>
                   </div>
                   <PaymentProofUpload

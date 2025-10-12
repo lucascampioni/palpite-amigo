@@ -181,10 +181,15 @@ const PaymentProofUpload = ({ participantId, userId, poolId, onSuccess, hasPixKe
           <Upload className="w-5 h-5" />
           {isFreePool ? "Informar Chave PIX" : "Enviar Comprovante de Pagamento"}
         </CardTitle>
-        <CardDescription>
-          {isFreePool 
-            ? "Informe sua chave PIX para receber prêmios caso ganhe"
-            : "Faça o upload do comprovante e informe sua chave PIX"}
+        <CardDescription className="space-y-1">
+          <p className="font-semibold text-orange-600 dark:text-orange-400">
+            ⚠️ Seus palpites ainda não foram validados!
+          </p>
+          <p>
+            {isFreePool 
+              ? "Informe sua chave PIX para confirmar sua participação e validar seus palpites."
+              : "Envie o comprovante de pagamento e sua chave PIX para confirmar sua participação e validar seus palpites."}
+          </p>
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
