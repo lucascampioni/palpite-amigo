@@ -8,16 +8,16 @@ import PoolCard from "@/components/PoolCard";
 import PoolStats from "@/components/PoolStats";
 import { Session } from "@supabase/supabase-js";
 import { NotificationService } from "@/services/NotificationService";
+import { useUserRole } from "@/hooks/useUserRole";
 
 const Index = () => {
   const navigate = useNavigate();
+  const { data: userRole } = useUserRole();
   const { toast } = useToast();
   const [session, setSession] = useState<Session | null>(null);
   const [myCreatedPools, setMyCreatedPools] = useState<any[]>([]);
   const [myParticipatingPools, setMyParticipatingPools] = useState<any[]>([]);
-  const [myAwaitingProofPools, setMyAwaitingProofPools] = useState<any[]>([]);
-  const [myAwaitingPixKeyPools, setMyAwaitingPixKeyPools] = useState<any[]>([]);
-  const [myPendingApprovalPools, setMyPendingApprovalPools] = useState<any[]>([]);
+  const [myAwaitingProofPools, setMyAwaitingProofPools] = useState<any[]>([]); // Now holds winners awaiting PIX
   const [officialPools, setOfficialPools] = useState<any[]>([]);
   const [availablePools, setAvailablePools] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -70,90 +70,47 @@ const Index = () => {
     // Load pools where user is a participant (approved)
     const { data: participantRecords } = await supabase
       .from("participants")
-      .select("pool_id, status")
+      .select("pool_id, status, prize_status")
       .eq("user_id", session.user.id)
       .eq("status", "approved");
     
     const participantPoolIds = participantRecords?.map(p => p.pool_id) || [];
     
-    let participatingPoolsData: any[] = [];
-    if (participantPoolIds.length > 0) {
+    // Filter by prize_status to find pools where user won and needs to submit PIX
+    const awaitingPixParticipants = participantRecords?.filter(p => p.prize_status === 'awaiting_pix') || [];
+    const awaitingPixPoolIds = awaitingPixParticipants.map(p => p.pool_id);
+    
+    let awaitingPixPoolsData: any[] = [];
+    if (awaitingPixPoolIds.length > 0) {
       const { data } = await supabase
         .from("pools")
         .select("*, participants(count)")
-        .in("id", participantPoolIds)
+        .in("id", awaitingPixPoolIds)
+        .order("created_at", { ascending: false });
+      awaitingPixPoolsData = data || [];
+    }
+
+    // Regular participating pools (approved and not awaiting pix)
+    const regularParticipantPoolIds = participantPoolIds.filter(id => !awaitingPixPoolIds.includes(id));
+    
+    let participatingPoolsData: any[] = [];
+    if (regularParticipantPoolIds.length > 0) {
+      const { data } = await supabase
+        .from("pools")
+        .select("*, participants(count)")
+        .in("id", regularParticipantPoolIds)
         .neq("owner_id", session.user.id)
         .order("created_at", { ascending: false });
       participatingPoolsData = data || [];
     }
 
-    // Load pools where user is awaiting proof upload (with PIX key)
-    const { data: awaitingProofRecords } = await supabase
-      .from("participants")
-      .select("pool_id, id, status, participant_pix_key")
-      .eq("user_id", session.user.id)
-      .eq("status", "awaiting_proof")
-      .not("participant_pix_key", "is", null);
-    
-    const awaitingProofPoolIds = awaitingProofRecords?.map(p => p.pool_id) || [];
-    
-    let awaitingProofPoolsData: any[] = [];
-    if (awaitingProofPoolIds.length > 0) {
-      const { data } = await supabase
-        .from("pools")
-        .select("*, participants(count)")
-        .in("id", awaitingProofPoolIds)
-        .order("created_at", { ascending: false });
-      awaitingProofPoolsData = data || [];
-    }
-
-    // Load pools where user needs to provide PIX key
-    const { data: awaitingPixKeyRecords } = await supabase
-      .from("participants")
-      .select("pool_id, id, status, participant_pix_key")
-      .eq("user_id", session.user.id)
-      .or("status.eq.pending,status.eq.awaiting_proof")
-      .is("participant_pix_key", null);
-    
-    const awaitingPixKeyPoolIds = awaitingPixKeyRecords?.map(p => p.pool_id) || [];
-    
-    let awaitingPixKeyPoolsData: any[] = [];
-    if (awaitingPixKeyPoolIds.length > 0) {
-      const { data } = await supabase
-        .from("pools")
-        .select("*, participants(count)")
-        .in("id", awaitingPixKeyPoolIds)
-        .order("created_at", { ascending: false });
-      awaitingPixKeyPoolsData = data || [];
-    }
-
-    // Load pools where user is pending approval (already has PIX key)
-    const { data: pendingApprovalRecords } = await supabase
-      .from("participants")
-      .select("pool_id, id, status, participant_pix_key")
-      .eq("user_id", session.user.id)
-      .eq("status", "pending")
-      .not("participant_pix_key", "is", null);
-    
-    const pendingApprovalPoolIds = pendingApprovalRecords?.map(p => p.pool_id) || [];
-    
-    let pendingApprovalPoolsData: any[] = [];
-    if (pendingApprovalPoolIds.length > 0) {
-      const { data } = await supabase
-        .from("pools")
-        .select("*, participants(count)")
-        .in("id", pendingApprovalPoolIds)
-        .order("created_at", { ascending: false });
-      pendingApprovalPoolsData = data || [];
-    }
 
     // Load official pools (marked as official by app admin)
-    // Exclude pools where user is owner, participant, awaiting proof or pending approval
+    // Exclude pools where user is owner or participant
     const excludeFromOfficialIds = [
       ...ownedPools?.map(p => p.id) || [],
       ...participantPoolIds,
-      ...awaitingProofPoolIds,
-      ...pendingApprovalPoolIds,
+      ...awaitingPixPoolIds,
     ];
     
     let officialPoolsData: any[] = [];
@@ -182,13 +139,12 @@ const Index = () => {
     const now = new Date();
     officialPoolsData = officialPoolsData.filter(pool => new Date(pool.deadline) > now);
 
-    // Load other public pools (excluding owned, participating, official, awaiting proof, and pending approval)
+    // Load other public pools (excluding owned, participating, and official)
     const excludeIds = [
       ...ownedPools?.map(p => p.id) || [],
       ...participantPoolIds,
       ...officialPoolsData?.map(p => p.id) || [],
-      ...awaitingProofPoolIds,
-      ...pendingApprovalPoolIds,
+      ...awaitingPixPoolIds,
     ];
     
     let activePools: any[] = [];
@@ -207,7 +163,7 @@ const Index = () => {
         .select("*, participants(count)")
         .eq("status", "active")
         .eq("is_private", false)
-        .order("created_at", { ascending: false });
+        .order("created_at", { ascending: false});
       activePools = data || [];
     }
     
@@ -216,9 +172,7 @@ const Index = () => {
 
     setMyCreatedPools(ownedPools || []);
     setMyParticipatingPools(participatingPoolsData);
-    setMyAwaitingProofPools(awaitingProofPoolsData);
-    setMyAwaitingPixKeyPools(awaitingPixKeyPoolsData);
-    setMyPendingApprovalPools(pendingApprovalPoolsData);
+    setMyAwaitingProofPools(awaitingPixPoolsData); // Now holds prize winners awaiting PIX
     setOfficialPools(officialPoolsData || []);
     setAvailablePools(activePools);
     
@@ -363,60 +317,27 @@ const Index = () => {
           </section>
         )}
 
-        {/* Awaiting PIX Key Section */}
-        {myAwaitingPixKeyPools.length > 0 && (
+        {/* Awaiting Prize PIX Section */}
+        {myAwaitingProofPools.length > 0 && (
           <section className="space-y-4">
             <div className="flex items-center gap-2">
               <div className="w-8 h-8 rounded-lg bg-yellow-500 flex items-center justify-center">
-                <span className="text-lg">🔑</span>
+                <span className="text-lg">🏆</span>
               </div>
-              <h3 className="text-2xl font-bold">⏳ Aguardando Chave PIX</h3>
+              <h3 className="text-2xl font-bold">🎉 Você Ganhou! Envie sua Chave PIX</h3>
             </div>
             <div className="p-4 rounded-lg bg-yellow-50 dark:bg-yellow-950 border border-yellow-200 dark:border-yellow-800">
               <p className="text-sm text-muted-foreground mb-4">
-                Complete seu cadastro informando sua chave PIX para receber prêmios.
+                Parabéns! Informe sua chave PIX para receber o prêmio.
               </p>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {myAwaitingPixKeyPools.map((pool) => (
-                  <div key={pool.id} className="relative">
-                    <PoolCard
-                      pool={pool}
-                      onClick={() => navigate(`/pool/${pool.id}`)}
-                    />
-                    <div className="absolute top-2 right-2 bg-yellow-500 text-white text-xs px-2 py-1 rounded-full font-semibold">
-                      PIX Pendente
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </section>
-        )}
-
-        {/* Pending Approval Section */}
-        {myPendingApprovalPools.length > 0 && (
-          <section className="space-y-4">
-            <div className="flex items-center gap-2">
-              <div className="w-8 h-8 rounded-lg bg-blue-500 flex items-center justify-center">
-                <span className="text-lg">⏳</span>
-              </div>
-              <h3 className="text-2xl font-bold">⏳ Aguardando Aprovação</h3>
-            </div>
-            <div className="p-4 rounded-lg bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-800">
-              <p className="text-sm text-muted-foreground mb-4">
-                Você enviou seu comprovante. Aguarde o criador aprovar sua participação nestes bolões.
-              </p>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {myPendingApprovalPools.map((pool) => (
-                  <div key={pool.id} className="relative">
-                    <PoolCard
-                      pool={pool}
-                      onClick={() => navigate(`/pool/${pool.id}`)}
-                    />
-                    <div className="absolute top-2 right-2 bg-blue-500 text-white text-xs px-2 py-1 rounded-full font-semibold">
-                      Em Análise
-                    </div>
-                  </div>
+                {myAwaitingProofPools.map((pool) => (
+                  <PoolCard
+                    key={pool.id}
+                    pool={pool}
+                    isUserParticipating={true}
+                    onClick={() => navigate(`/pool/${pool.id}`)}
+                  />
                 ))}
               </div>
             </div>

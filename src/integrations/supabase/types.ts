@@ -138,6 +138,12 @@ export type Database = {
           pix_consent: boolean | null
           pix_key_type: string | null
           pool_id: string
+          prize_pix_key: string | null
+          prize_pix_key_type: string | null
+          prize_proof_url: string | null
+          prize_sent_at: string | null
+          prize_status: string | null
+          prize_submitted_at: string | null
           status: Database["public"]["Enums"]["participant_status"]
           updated_at: string
           user_id: string
@@ -152,6 +158,12 @@ export type Database = {
           pix_consent?: boolean | null
           pix_key_type?: string | null
           pool_id: string
+          prize_pix_key?: string | null
+          prize_pix_key_type?: string | null
+          prize_proof_url?: string | null
+          prize_sent_at?: string | null
+          prize_status?: string | null
+          prize_submitted_at?: string | null
           status?: Database["public"]["Enums"]["participant_status"]
           updated_at?: string
           user_id: string
@@ -166,6 +178,12 @@ export type Database = {
           pix_consent?: boolean | null
           pix_key_type?: string | null
           pool_id?: string
+          prize_pix_key?: string | null
+          prize_pix_key_type?: string | null
+          prize_proof_url?: string | null
+          prize_sent_at?: string | null
+          prize_status?: string | null
+          prize_submitted_at?: string | null
           status?: Database["public"]["Enums"]["participant_status"]
           updated_at?: string
           user_id?: string
@@ -363,6 +381,27 @@ export type Database = {
         }
         Relationships: []
       }
+      user_roles: {
+        Row: {
+          created_at: string
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_stats: {
         Row: {
           created_at: string
@@ -419,6 +458,13 @@ export type Database = {
         }
         Returns: number
       }
+      has_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
       is_app_admin: {
         Args: Record<PropertyKey, never>
         Returns: boolean
@@ -435,8 +481,13 @@ export type Database = {
         Args: { pool_uuid: string; user_uuid: string }
         Returns: boolean
       }
+      is_user_admin: {
+        Args: Record<PropertyKey, never>
+        Returns: boolean
+      }
     }
     Enums: {
+      app_role: "admin" | "user"
       measurement_unit: "kg" | "cm" | "reais" | "units" | "score"
       participant_status: "pending" | "approved" | "rejected" | "awaiting_proof"
       pool_status: "draft" | "active" | "closed" | "finished"
@@ -568,6 +619,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      app_role: ["admin", "user"],
       measurement_unit: ["kg", "cm", "reais", "units", "score"],
       participant_status: ["pending", "approved", "rejected", "awaiting_proof"],
       pool_status: ["draft", "active", "closed", "finished"],
