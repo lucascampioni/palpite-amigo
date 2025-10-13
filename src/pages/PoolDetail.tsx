@@ -17,13 +17,15 @@ import WinnerDisplay from "@/components/WinnerDisplay";
 import FootballPredictionForm from "@/components/FootballPredictionForm";
 import FootballRanking from "@/components/FootballRanking";
 import FootballParticipantsPredictions from "@/components/FootballParticipantsPredictions";
-import PaymentProofUpload from "@/components/PaymentProofUpload";
-import { MaskedPixKey } from "@/components/MaskedPixKey";
+import { PrizePixSubmission } from "@/components/PrizePixSubmission";
+import { AdminPrizeManagement } from "@/components/AdminPrizeManagement";
+import { useUserRole } from "@/hooks/useUserRole";
 
 const PoolDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { data: userRole } = useUserRole();
   const [pool, setPool] = useState<any>(null);
   const [participants, setParticipants] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -35,11 +37,7 @@ const PoolDetail = () => {
   const [showResultDialog, setShowResultDialog] = useState(false);
   const [winner, setWinner] = useState<any>(null);
   const [hasFootballMatches, setHasFootballMatches] = useState(false);
-  const [pixKey, setPixKey] = useState<string | null>(null);
-  const [entryFee, setEntryFee] = useState<number | null>(null);
-  const [maxParticipants, setMaxParticipants] = useState<number | null>(null);
   const [currentUserParticipant, setCurrentUserParticipant] = useState<any>(null);
-  const [awaitingProofParticipant, setAwaitingProofParticipant] = useState<any>(null);
 
   useEffect(() => {
     const checkAuthAndLoadData = async () => {
@@ -82,8 +80,6 @@ const PoolDetail = () => {
 
     setPool(poolData);
     setIsOwner(user?.id === poolData.owner_id);
-    setEntryFee(poolData.entry_fee || null);
-    setMaxParticipants(poolData.max_participants || null);
 
     const { data: participantsData } = await supabase
       .from("participants")
@@ -95,10 +91,6 @@ const PoolDetail = () => {
     setCurrentUserParticipant(myParticipant);
     setHasJoined(!!myParticipant);
     
-    // Check if user has a participant awaiting proof (and has no PIX key yet)
-    const userAwaitingProof = myParticipant && myParticipant.status === 'awaiting_proof' ? myParticipant : null;
-    setAwaitingProofParticipant(userAwaitingProof);
-    
     // Detect if this pool has football matches (even if pool_type is not set)
     const { data: matchesData } = await supabase
       .from("football_matches")
@@ -106,13 +98,7 @@ const PoolDetail = () => {
       .eq("pool_id", id);
     setHasFootballMatches((matchesData?.length || 0) > 0);
     
-    // Load PIX key from separate payment info table
-    const { data: paymentData } = await supabase
-      .from("pool_payment_info")
-      .select("pix_key")
-      .eq("pool_id", id)
-      .maybeSingle();
-    setPixKey(paymentData?.pix_key || null);
+    // No need to load pix/payment info anymore
     
     // Load winner if pool is finished
     if (poolData.winner_id) {
@@ -167,7 +153,7 @@ const PoolDetail = () => {
         user_id: userId,
         participant_name: profile?.full_name || "Usuário",
         guess_value: guessValue,
-        status: "pending",
+        status: "approved", // Direct approval - no payment required
       });
 
     if (error) {
@@ -178,8 +164,8 @@ const PoolDetail = () => {
       });
     } else {
       toast({
-        title: "Solicitação enviada!",
-        description: "Aguarde a aprovação do criador do bolão.",
+        title: "Sucesso!",
+        description: "Você entrou no bolão! Boa sorte!",
       });
       loadPoolData();
     }
@@ -236,14 +222,27 @@ const PoolDetail = () => {
     });
   };
 
-  const handleCopyPixKey = () => {
-    if (pixKey) {
-      navigator.clipboard.writeText(pixKey);
+  const handleMarkWinner = async (participantUserId: string) => {
+    const { error: updateError } = await supabase
+      .from("participants")
+      .update({ prize_status: 'awaiting_pix' })
+      .eq("pool_id", id!)
+      .eq("user_id", participantUserId);
+
+    if (updateError) {
       toast({
-        title: "Chave PIX copiada!",
-        description: "Cole para fazer o pagamento.",
+        variant: "destructive",
+        title: "Erro",
+        description: updateError.message,
       });
+      return;
     }
+
+    toast({
+      title: "Ganhador marcado!",
+      description: "O participante foi notificado para enviar a chave PIX.",
+    });
+    loadPoolData();
   };
 
   const handleTogglePrivacy = async () => {
@@ -389,9 +388,8 @@ const PoolDetail = () => {
                 <div>
                   <p className="text-sm text-muted-foreground">Participantes</p>
                   <p className="font-medium">
-                    {approvedParticipants.length}
-                    {maxParticipants ? ` / ${maxParticipants}` : ' aprovado(s)'}
-                    {maxParticipants && approvedParticipants.length >= maxParticipants && (
+                    {approvedParticipants.length} aprovado(s)
+                    {pool.max_participants && approvedParticipants.length >= pool.max_participants && (
                       <span className="ml-2 text-xs text-destructive">(Cheio)</span>
                     )}
                   </p>
@@ -426,42 +424,12 @@ const PoolDetail = () => {
               </>
             )}
 
-            {pixKey && !(pool.pool_type === "football" || hasFootballMatches) && hasJoined && pool.status === "active" && (
-              <>
-                <Separator />
-                <div className="p-4 rounded-lg bg-primary/10 border border-primary/20">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      {entryFee && (
-                        <p className="text-sm font-medium mb-1">
-                          💵 Valor: R$ {entryFee.toFixed(2)}
-                        </p>
-                      )}
-                      <p className="text-sm font-medium mb-1">💰 Chave PIX para pagamento</p>
-                      <p className="text-sm font-mono text-muted-foreground">{pixKey}</p>
-                      <p className="text-xs text-muted-foreground mt-2">
-                        Faça o pagamento e aguarde a aprovação do criador.
-                      </p>
-                    </div>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={handleCopyPixKey}
-                    >
-                      <Copy className="w-4 h-4 mr-2" />
-                      Copiar
-                    </Button>
-                  </div>
-                </div>
-              </>
-            )}
-
             {!isOwner && !hasJoined && pool.status === "active" && !isPastDeadline && (
               <>
-                {maxParticipants && approvedParticipants.length >= maxParticipants ? (
+                {pool.max_participants && approvedParticipants.length >= pool.max_participants ? (
                   <div className="p-4 rounded-lg bg-destructive/10 border border-destructive/20">
                     <p className="text-sm font-medium text-destructive">
-                      🚫 Bolão cheio - Limite de {maxParticipants} participantes atingido
+                      🚫 Bolão cheio - Limite de {pool.max_participants} participantes atingido
                     </p>
                   </div>
                 ) : (
@@ -472,7 +440,6 @@ const PoolDetail = () => {
                         poolId={pool.id}
                         userId={userId!}
                         onSuccess={loadPoolData}
-                        entryFee={entryFee}
                       />
                     ) : (
                       <div className="space-y-4">
@@ -503,58 +470,54 @@ const PoolDetail = () => {
               </div>
             )}
 
-            {awaitingProofParticipant && (
+            {hasJoined && currentUserParticipant?.status === 'approved' && (
               <>
                 <Separator />
-                <div className="space-y-4">
-                  <div className="p-4 rounded-lg bg-orange-50 dark:bg-orange-950 border border-orange-200 dark:border-orange-800">
-                    <p className="text-sm font-medium text-orange-700 dark:text-orange-300 mb-2">
-                      ⏳ {!pool.entry_fee || pool.entry_fee === 0 ? 'Aguardando Chave PIX' : 'Aguardando Comprovante e Chave PIX'}
+                
+                {/* Winner needs to submit PIX */}
+                {currentUserParticipant.prize_status === 'awaiting_pix' && (
+                  <PrizePixSubmission
+                    participantId={currentUserParticipant.id}
+                    poolTitle={pool.title}
+                    onSuccess={loadPoolData}
+                  />
+                )}
+                
+                {/* PIX submitted, waiting for admin to send prize */}
+                {currentUserParticipant.prize_status === 'pix_submitted' && (
+                  <div className="p-4 rounded-lg bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-800">
+                    <p className="text-sm font-medium text-blue-700 dark:text-blue-300">
+                      ✓ Chave PIX Enviada!
                     </p>
-                    <p className="text-xs text-muted-foreground mb-2">
-                      <strong>⚠️ ATENÇÃO:</strong> Seus palpites ainda não foram enviados!
-                    </p>
-                    <p className="text-xs text-muted-foreground">
-                      {!pool.entry_fee || pool.entry_fee === 0 
-                        ? 'Envie sua chave PIX para confirmar sua participação e validar seus palpites.'
-                        : 'Envie o comprovante de pagamento e sua chave PIX para confirmar sua participação e validar seus palpites.'
-                      }
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Aguarde o envio do prêmio para sua chave PIX.
                     </p>
                   </div>
-                  <PaymentProofUpload
-                    participantId={awaitingProofParticipant.id}
-                    userId={userId!}
-                    poolId={pool.id}
-                    onSuccess={loadPoolData}
-                    hasPixKey={!!awaitingProofParticipant.participant_pix_key}
-                  />
-                </div>
-              </>
-            )}
-
-            {currentUserParticipant && currentUserParticipant.status === 'pending' && (
-              <>
-                <Separator />
-                <div className="p-4 rounded-lg bg-primary/10 border border-primary/20">
-                  <p className="text-sm font-medium text-primary">⏳ Aguardando Aprovação</p>
-                  <p className="text-xs text-muted-foreground mt-1">
-                    Seu comprovante foi enviado. Aguarde o criador aprovar sua entrada.
-                  </p>
-                </div>
-              </>
-            )}
-
-            {hasJoined && !awaitingProofParticipant && currentUserParticipant?.status === 'approved' && (
-              <>
-                <Separator />
-                <div className="p-4 rounded-lg bg-green-50 dark:bg-green-950 border border-green-200 dark:border-green-800">
-                  <p className="text-sm font-medium text-green-700 dark:text-green-300">
-                    ✓ Você está participando deste bolão!
-                  </p>
-                  <p className="text-xs text-muted-foreground mt-1">
-                    Sua participação foi aprovada. Boa sorte!
-                  </p>
-                </div>
+                )}
+                
+                {/* Prize sent */}
+                {currentUserParticipant.prize_status === 'prize_sent' && (
+                  <div className="p-4 rounded-lg bg-green-50 dark:bg-green-950 border border-green-200 dark:border-green-800">
+                    <p className="text-sm font-medium text-green-700 dark:text-green-300">
+                      ✓ Prêmio Enviado!
+                    </p>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      O prêmio foi enviado para sua chave PIX. Verifique sua conta.
+                    </p>
+                  </div>
+                )}
+                
+                {/* Regular approved participant (not a winner) */}
+                {!currentUserParticipant.prize_status && (
+                  <div className="p-4 rounded-lg bg-green-50 dark:bg-green-950 border border-green-200 dark:border-green-800">
+                    <p className="text-sm font-medium text-green-700 dark:text-green-300">
+                      ✓ Você está participando deste bolão!
+                    </p>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Sua participação foi aprovada. Boa sorte!
+                    </p>
+                  </div>
+                )}
               </>
             )}
 
@@ -653,16 +616,6 @@ const PoolDetail = () => {
                                 </Button>
                               </div>
                             )}
-                            {participant.participant_pix_key && participant.pix_key_type && (
-                              <div className="pt-2 border-t">
-                                <MaskedPixKey
-                                  pixKey={participant.participant_pix_key}
-                                  pixKeyType={participant.pix_key_type}
-                                  participantId={participant.id}
-                                  poolId={pool.id}
-                                />
-                              </div>
-                            )}
                           </div>
                         </CardContent>
                       </Card>
@@ -677,6 +630,41 @@ const PoolDetail = () => {
               <>
                 <Separator />
                 <FootballRanking poolId={pool.id} />
+              </>
+            )}
+
+            {/* Admin Prize Management Section */}
+            {(userRole?.isAdmin || isOwner) && pool.status === "finished" && (
+              <>
+                <Separator />
+                <div className="space-y-4">
+                  <h3 className="font-semibold text-lg flex items-center gap-2">
+                    <Trophy className="w-5 h-5 text-yellow-500" />
+                    Gerenciar Prêmios
+                  </h3>
+                  {participants
+                    .filter(p => p.prize_status && p.prize_status !== 'prize_sent')
+                    .map((participant) => (
+                      <AdminPrizeManagement
+                        key={participant.id}
+                        participant={{
+                          id: participant.id,
+                          participant_name: participant.participant_name,
+                          prize_pix_key: participant.prize_pix_key,
+                          prize_pix_key_type: participant.prize_pix_key_type,
+                          prize_status: participant.prize_status,
+                          prize_proof_url: participant.prize_proof_url,
+                        }}
+                        poolId={pool.id}
+                        onSuccess={loadPoolData}
+                      />
+                    ))}
+                  {participants.filter(p => p.prize_status && p.prize_status !== 'prize_sent').length === 0 && (
+                    <p className="text-sm text-muted-foreground">
+                      Nenhum prêmio pendente no momento.
+                    </p>
+                  )}
+                </div>
               </>
             )}
 
@@ -701,16 +689,6 @@ const PoolDetail = () => {
                               <p className="font-medium">{participant.participant_name}</p>
                               <Badge variant="secondary">{participant.guess_value}</Badge>
                             </div>
-                            {isOwner && participant.participant_pix_key && participant.pix_key_type && (
-                              <div className="pt-2 border-t">
-                                <MaskedPixKey
-                                  pixKey={participant.participant_pix_key}
-                                  pixKeyType={participant.pix_key_type}
-                                  participantId={participant.id}
-                                  poolId={pool.id}
-                                />
-                              </div>
-                            )}
                           </div>
                         </CardContent>
                       </Card>
