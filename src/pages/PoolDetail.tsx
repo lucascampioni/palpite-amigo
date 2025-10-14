@@ -513,7 +513,7 @@ const PoolDetail = () => {
                       • O vencedor do bolão será definido de acordo com o resultado dos jogos.
                     </p>
                     <p className="text-xs text-muted-foreground">
-                      • Prazo para apostas: {format(new Date(pool.deadline), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })} (30min antes do primeiro jogo)
+                      • Prazo para apostas: {format(new Date(pool.deadline), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })} (30min antes do primeiro jogo).
                     </p>
                   </div>
                 </div>
