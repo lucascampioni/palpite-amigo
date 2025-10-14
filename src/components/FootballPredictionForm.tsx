@@ -246,12 +246,11 @@ const FootballPredictionForm = ({ poolId, userId, onSuccess, entryFee }: Footbal
 
       if (uploadError) throw uploadError;
 
-      // Update participant with payment proof path and change status to pending
+      // Update participant with payment proof path - keep approved status
       const { error: updateError } = await supabase
         .from('participants')
         .update({ 
-          payment_proof: fileName,
-          status: 'pending'
+          payment_proof: fileName
         })
         .eq('id', participantId);
 
@@ -260,7 +259,7 @@ const FootballPredictionForm = ({ poolId, userId, onSuccess, entryFee }: Footbal
       setPaymentProofUploaded(true);
       toast({
         title: "Comprovante enviado!",
-        description: "Sua solicitação foi enviada para aprovação do criador.",
+        description: "Seus palpites foram salvos com sucesso!",
       });
       onSuccess(); // Refresh parent to update status
     } catch (error) {

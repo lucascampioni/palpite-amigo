@@ -21,7 +21,6 @@ const Index = () => {
   const [officialPools, setOfficialPools] = useState<any[]>([]);
   const [availablePools, setAvailablePools] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [pendingApprovalsCount, setPendingApprovalsCount] = useState(0);
   const [showFinishedCreated, setShowFinishedCreated] = useState(false);
   const [showFinishedParticipating, setShowFinishedParticipating] = useState(false);
 
@@ -176,18 +175,6 @@ const Index = () => {
     setOfficialPools(officialPoolsData || []);
     setAvailablePools(activePools);
     
-    // Count pending approvals for owned pools
-    const poolIds = ownedPools?.map(p => p.id) || [];
-    if (poolIds.length > 0) {
-      const { count } = await supabase
-        .from("participants")
-        .select("*", { count: "exact", head: true })
-        .in("pool_id", poolIds)
-        .eq("status", "pending");
-      
-      setPendingApprovalsCount(count || 0);
-    }
-    
     setLoading(false);
   };
 
@@ -240,7 +227,7 @@ const Index = () => {
           myPoolsCount={myCreatedPools.length + myParticipatingPools.length}
           activePoolsCount={myCreatedPools.filter(p => p.status === "active").length + myParticipatingPools.filter(p => p.status === "active").length}
           finishedPoolsCount={myCreatedPools.filter(p => p.status === "finished").length + myParticipatingPools.filter(p => p.status === "finished").length}
-          pendingApprovalsCount={pendingApprovalsCount}
+          pendingApprovalsCount={0}
         />
 
         {/* Create Pool CTA - Only for Admins */}

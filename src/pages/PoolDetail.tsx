@@ -173,45 +173,6 @@ const PoolDetail = () => {
     setSubmitting(false);
   };
 
-  const handleApprove = async (participantId: string) => {
-    const { error } = await supabase
-      .from("participants")
-      .update({ status: "approved" })
-      .eq("id", participantId);
-
-    if (error) {
-      toast({
-        variant: "destructive",
-        title: "Erro",
-        description: error.message,
-      });
-    } else {
-      toast({
-        title: "Participante aprovado!",
-      });
-      loadPoolData();
-    }
-  };
-
-  const handleReject = async (participantId: string) => {
-    const { error } = await supabase
-      .from("participants")
-      .update({ status: "rejected" })
-      .eq("id", participantId);
-
-    if (error) {
-      toast({
-        variant: "destructive",
-        title: "Erro",
-        description: error.message,
-      });
-    } else {
-      toast({
-        title: "Participante rejeitado",
-      });
-      loadPoolData();
-    }
-  };
 
   const handleShare = () => {
     const url = window.location.href;
@@ -289,8 +250,7 @@ const PoolDetail = () => {
     }
   };
 
-  const approvedParticipants = participants.filter(p => p.status === "approved");
-  const pendingParticipants = participants.filter(p => p.status === "pending");
+  const approvedParticipants = participants;
   const isPastDeadline = new Date() > new Date(pool.deadline);
 
   return (
@@ -555,75 +515,6 @@ const PoolDetail = () => {
               </>
             )}
 
-            {isOwner && pendingParticipants.length > 0 && (
-              <>
-                <Separator />
-                <div className="space-y-4">
-                  <h3 className="font-semibold text-lg flex items-center gap-2">
-                    <Trophy className="w-5 h-5 text-secondary" />
-                    Solicitações Pendentes
-                  </h3>
-                  <div className="space-y-3">
-                    {pendingParticipants.map((participant) => (
-                      <Card key={participant.id}>
-                        <CardContent className="p-4">
-                          <div className="flex flex-col gap-3">
-                            <div className="flex items-center justify-between">
-                              <div>
-                                <p className="font-medium">{participant.participant_name}</p>
-                                <p className="text-sm text-muted-foreground">
-                                  Palpite: {participant.guess_value}
-                                </p>
-                              </div>
-                              <div className="flex gap-2">
-                                <Button
-                                  size="sm"
-                                  variant="outline"
-                                  onClick={() => handleApprove(participant.id)}
-                                >
-                                  Aprovar
-                                </Button>
-                                <Button
-                                  size="sm"
-                                  variant="destructive"
-                                  onClick={() => handleReject(participant.id)}
-                                >
-                                  Rejeitar
-                                </Button>
-                              </div>
-                            </div>
-                            {participant.payment_proof && (
-                              <div className="pt-2 border-t">
-                                <Button
-                                  size="sm"
-                                  variant="secondary"
-                                  className="w-full"
-                                  onClick={async () => {
-                                    // Extract the path from the full URL
-                                    const url = participant.payment_proof;
-                                    const pathMatch = url.match(/\/payment-proofs\/(.+)$/);
-                                    const filePath = pathMatch ? pathMatch[1] : url;
-                                    
-                                    const { data } = await supabase.storage
-                                      .from('payment-proofs')
-                                      .createSignedUrl(filePath, 60);
-                                    if (data?.signedUrl) {
-                                      window.open(data.signedUrl, '_blank');
-                                    }
-                                  }}
-                                >
-                                  📎 Ver Comprovante de Pagamento
-                                </Button>
-                              </div>
-                            )}
-                          </div>
-                        </CardContent>
-                      </Card>
-                    ))}
-                  </div>
-                </div>
-              </>
-            )}
 
 
             {(pool.status === "finished") && (pool.pool_type === "football" || hasFootballMatches) && (
