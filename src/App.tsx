@@ -9,6 +9,7 @@ import CreateFootballPool from "./pages/CreateFootballPool";
 import PoolDetail from "./pages/PoolDetail";
 import Profile from "./pages/Profile";
 import Privacy from "./pages/Privacy";
+import EmailConfirmation from "./pages/EmailConfirmation";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -22,6 +23,7 @@ const App = () => (
         <Routes>
           <Route path="/" element={<Index />} />
           <Route path="/auth" element={<Auth />} />
+          <Route path="/email-confirmation" element={<EmailConfirmation />} />
           <Route path="/create-football" element={<CreateFootballPool />} />
           <Route path="/pool/:id" element={<PoolDetail />} />
           <Route path="/profile" element={<Profile />} />

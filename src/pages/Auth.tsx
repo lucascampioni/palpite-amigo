@@ -163,10 +163,8 @@ const Auth = () => {
         description: errorMessage,
       });
     } else {
-      toast({
-        title: "Conta criada!",
-        description: "Verifique seu email para confirmar sua conta antes de fazer login.",
-      });
+      // Redirect to email confirmation page with email as parameter
+      navigate(`/email-confirmation?email=${encodeURIComponent(email)}`);
     }
 
     setLoading(false);
