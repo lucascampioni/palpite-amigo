@@ -49,7 +49,8 @@ const signUpSchema = z.object({
     .regex(/[a-z]/, "Senha deve conter pelo menos uma letra minúscula")
     .regex(/[0-9]/, "Senha deve conter pelo menos um número")
     .regex(/[^A-Za-z0-9]/, "Senha deve conter pelo menos um caractere especial"),
-  fullName: z.string().trim().min(1, "Nome é obrigatório").max(100, "Nome muito longo"),
+  firstName: z.string().trim().min(1, "Nome é obrigatório").max(50, "Nome muito longo"),
+  lastName: z.string().trim().min(1, "Sobrenome é obrigatório").max(50, "Sobrenome muito longo"),
   birthDate: z.string().min(1, "Data de nascimento é obrigatória"),
   cpf: cpfSchema,
 });
@@ -92,14 +93,15 @@ const Auth = () => {
     const formData = new FormData(e.currentTarget);
     const email = formData.get("signup-email") as string;
     const password = formData.get("signup-password") as string;
-    const fullName = formData.get("full-name") as string;
+    const firstName = formData.get("first-name") as string;
+    const lastName = formData.get("last-name") as string;
     const birthDate = formData.get("birth-date") as string;
     const cpfRaw = formData.get("cpf") as string;
     const cpf = cpfRaw.replace(/\D/g, ""); // Remove formatação
 
     // Validate input
     try {
-      signUpSchema.parse({ email, password, fullName, birthDate, cpf });
+      signUpSchema.parse({ email, password, firstName, lastName, birthDate, cpf });
       
       // Check if user is 18 years or older
       const birth = new Date(birthDate);
@@ -136,7 +138,9 @@ const Auth = () => {
       password,
       options: {
         data: {
-          full_name: fullName,
+          full_name: `${firstName} ${lastName}`,
+          first_name: firstName,
+          last_name: lastName,
           cpf: cpf,
         },
         emailRedirectTo: `${window.location.origin}/`,
@@ -266,13 +270,25 @@ const Auth = () => {
               <CardContent>
                 <form onSubmit={handleSignUp} className="space-y-4">
                   <div className="space-y-2">
-                    <Label htmlFor="full-name">Nome completo</Label>
+                    <Label htmlFor="first-name">Nome</Label>
                     <Input
-                      id="full-name"
-                      name="full-name"
+                      id="first-name"
+                      name="first-name"
                       type="text"
                       placeholder="Seu nome"
                       required
+                      maxLength={50}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="last-name">Sobrenome</Label>
+                    <Input
+                      id="last-name"
+                      name="last-name"
+                      type="text"
+                      placeholder="Seu sobrenome"
+                      required
+                      maxLength={50}
                     />
                   </div>
                   <div className="space-y-2">
