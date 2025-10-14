@@ -271,38 +271,6 @@ const Index = () => {
           </section>
         )}
 
-        {/* Awaiting Proof Section */}
-        {myAwaitingProofPools.length > 0 && (
-          <section className="space-y-4">
-            <div className="flex items-center gap-2">
-              <div className="w-8 h-8 rounded-lg bg-orange-500 flex items-center justify-center">
-                <span className="text-lg">📎</span>
-              </div>
-              <h3 className="text-2xl font-bold">⏳ Pendente de Envio</h3>
-            </div>
-            <div className="p-4 rounded-lg bg-orange-50 dark:bg-orange-950 border border-orange-200 dark:border-orange-800">
-              <p className="text-sm font-medium text-orange-700 dark:text-orange-300 mb-2">
-                ⚠️ Seus palpites ainda não foram enviados!
-              </p>
-              <p className="text-sm text-muted-foreground mb-4">
-                Clique no bolão abaixo para enviar o comprovante de pagamento e sua chave PIX (ou apenas a chave PIX para bolões gratuitos).
-              </p>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {myAwaitingProofPools.map((pool) => (
-                  <div key={pool.id} className="relative">
-                    <PoolCard
-                      pool={pool}
-                      onClick={() => navigate(`/pool/${pool.id}`)}
-                    />
-                    <div className="absolute top-2 right-2 bg-orange-500 text-white text-xs px-2 py-1 rounded-full font-semibold">
-                      Pendente
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </section>
-        )}
 
         {/* Awaiting Prize PIX Section */}
         {myAwaitingProofPools.length > 0 && (
