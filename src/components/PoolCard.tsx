@@ -70,8 +70,8 @@ const getTypeIcon = (type: string) => {
       
       <CardHeader className="relative pb-3">
         <div className="flex flex-col gap-3">
-          {/* Badges no topo */}
-          <div className="flex gap-2 flex-wrap">
+          {/* Badges no topo alinhadas à direita */}
+          <div className="flex gap-2 flex-wrap justify-end">
             <Badge className={cn(getStatusColor(pool.status), "shadow-sm font-medium")}>
               {getStatusText(pool.status)}
             </Badge>
