@@ -20,7 +20,7 @@ const Index = () => {
   const [myParticipatingPools, setMyParticipatingPools] = useState<any[]>([]);
   const [myAwaitingPixPools, setMyAwaitingPixPools] = useState<any[]>([]); // Pools where user won and needs to submit PIX
   const [myAwaitingPaymentPools, setMyAwaitingPaymentPools] = useState<any[]>([]); // Pools where user submitted PIX and awaits payment
-  const [myPrizeReceivedPools, setMyPrizeReceivedPools] = useState<any[]>([]); // Pools where user received prize
+  const [participantPrizeStatus, setParticipantPrizeStatus] = useState<Record<string, string>>({}); // Map pool_id -> prize_status
   const [officialPools, setOfficialPools] = useState<any[]>([]);
   const [availablePools, setAvailablePools] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -78,14 +78,21 @@ const Index = () => {
     
     const participantPoolIds = participantRecords?.map(p => p.pool_id) || [];
     
+    // Create a map of pool_id -> prize_status for easy lookup
+    const prizeStatusMap: Record<string, string> = {};
+    participantRecords?.forEach(p => {
+      if (p.prize_status) {
+        prizeStatusMap[p.pool_id] = p.prize_status;
+      }
+    });
+    setParticipantPrizeStatus(prizeStatusMap);
+    
     // Separate pools by prize status
     const awaitingPixParticipants = participantRecords?.filter(p => p.prize_status === 'awaiting_pix') || [];
     const pixSubmittedParticipants = participantRecords?.filter(p => p.prize_status === 'pix_submitted') || [];
-    const prizeReceivedParticipants = participantRecords?.filter(p => p.prize_status === 'prize_sent') || [];
     
     const awaitingPixPoolIds = awaitingPixParticipants.map(p => p.pool_id);
     const pixSubmittedPoolIds = pixSubmittedParticipants.map(p => p.pool_id);
-    const prizeReceivedPoolIds = prizeReceivedParticipants.map(p => p.pool_id);
     
     // Load pools where user needs to submit PIX
     let awaitingPixPoolsData: any[] = [];
@@ -109,19 +116,8 @@ const Index = () => {
       awaitingPaymentPoolsData = data || [];
     }
 
-    // Load pools where user received prize
-    let prizeReceivedPoolsData: any[] = [];
-    if (prizeReceivedPoolIds.length > 0) {
-      const { data } = await supabase
-        .from("pools")
-        .select("*, participants(count)")
-        .in("id", prizeReceivedPoolIds)
-        .order("created_at", { ascending: false });
-      prizeReceivedPoolsData = data || [];
-    }
-
-    // Regular participating pools (approved and no prize status OR not in prize flow)
-    // Include finished pools with prize_sent in regular participating to show in "Finalizados"
+    // Regular participating pools (approved and no prize status OR prize already sent)
+    // Include all pools that are not in special awaiting states
     const specialPoolIds = [...awaitingPixPoolIds, ...pixSubmittedPoolIds];
     const regularParticipantPoolIds = participantPoolIds.filter(id => !specialPoolIds.includes(id));
     
@@ -204,7 +200,6 @@ const Index = () => {
     setMyParticipatingPools(participatingPoolsData);
     setMyAwaitingPixPools(awaitingPixPoolsData);
     setMyAwaitingPaymentPools(awaitingPaymentPoolsData);
-    setMyPrizeReceivedPools(prizeReceivedPoolsData);
     setOfficialPools(officialPoolsData || []);
     setAvailablePools(activePools);
     
@@ -463,30 +458,11 @@ const Index = () => {
                         pool={pool}
                         onClick={() => navigate(`/pool/${pool.id}`)}
                         isUserParticipating={true}
+                        prizeReceived={participantPrizeStatus[pool.id] === 'prize_sent'}
                       />
                     ))}
                   </div>
                 )}
-              </div>
-            )}
-
-            {/* Prize Received Pools */}
-            {myPrizeReceivedPools.length > 0 && (
-              <div className="space-y-3 pt-4">
-                <h4 className="text-sm font-semibold text-muted-foreground">
-                  ✅ Prêmios Recebidos ({myPrizeReceivedPools.length})
-                </h4>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {myPrizeReceivedPools.map((pool) => (
-                    <PoolCard
-                      key={pool.id}
-                      pool={pool}
-                      onClick={() => navigate(`/pool/${pool.id}`)}
-                      isUserParticipating={true}
-                      prizeReceived={true}
-                    />
-                  ))}
-                </div>
               </div>
             )}
           </section>
@@ -512,7 +488,7 @@ const Index = () => {
         )}
 
         {/* Empty State */}
-        {myCreatedPools.length === 0 && myParticipatingPools.length === 0 && myAwaitingPixPools.length === 0 && myAwaitingPaymentPools.length === 0 && myPrizeReceivedPools.length === 0 && availablePools.length === 0 && officialPools.length === 0 && (
+        {myCreatedPools.length === 0 && myParticipatingPools.length === 0 && myAwaitingPixPools.length === 0 && myAwaitingPaymentPools.length === 0 && availablePools.length === 0 && officialPools.length === 0 && (
           <div className="text-center py-16 space-y-4">
             <div className="w-24 h-24 mx-auto rounded-full bg-muted flex items-center justify-center">
               <span className="text-5xl">⚽</span>
