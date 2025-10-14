@@ -116,7 +116,7 @@ const FootballRanking = ({ poolId, pool }: FootballRankingProps) => {
     if (!status || status === 'awaiting_pix') {
       return (
         <Badge variant="outline" className="text-xs bg-yellow-100 dark:bg-yellow-900 text-yellow-800 dark:text-yellow-200 border-yellow-300 dark:border-yellow-700">
-          Aguardando dados
+          Aguardando chave Pix
         </Badge>
       );
     }
