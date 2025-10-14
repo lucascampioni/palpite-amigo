@@ -128,14 +128,18 @@ const FootballRanking = ({ poolId }: FootballRankingProps) => {
     const groups: { position: number; participants: ParticipantScore[]; podiumIndex: number }[] = [];
     let currentPosition = 1;
     let podiumIndex = 0;
+    let positionsCount = 0;
     
-    for (let i = 0; i < Math.min(ranking.length, 3); i++) {
+    for (let i = 0; i < ranking.length; i++) {
+      // Check if we're starting a new position
       if (i > 0 && ranking[i].total_points !== ranking[i - 1].total_points) {
         currentPosition = i + 1;
         podiumIndex++;
+        positionsCount++;
       }
       
-      if (podiumIndex >= 3) break;
+      // Stop if we've filled 3 different positions
+      if (positionsCount >= 3) break;
       
       const existingGroup = groups.find(g => g.position === currentPosition);
       if (existingGroup) {
