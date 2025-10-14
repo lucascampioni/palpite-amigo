@@ -121,7 +121,8 @@ const Index = () => {
     }
 
     // Regular participating pools (approved and no prize status OR not in prize flow)
-    const specialPoolIds = [...awaitingPixPoolIds, ...pixSubmittedPoolIds, ...prizeReceivedPoolIds];
+    // Include finished pools with prize_sent in regular participating to show in "Finalizados"
+    const specialPoolIds = [...awaitingPixPoolIds, ...pixSubmittedPoolIds];
     const regularParticipantPoolIds = participantPoolIds.filter(id => !specialPoolIds.includes(id));
     
     let participatingPoolsData: any[] = [];
