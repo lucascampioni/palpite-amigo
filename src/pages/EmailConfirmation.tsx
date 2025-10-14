@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Mail, CheckCircle, Loader2 } from "lucide-react";
-import palpiteAmigoLogo from "@/assets/palpite-amigo-logo.png";
+import palpiteAmigoLogo from "@/assets/logo-icon.png";
 
 const EmailConfirmation = () => {
   const navigate = useNavigate();

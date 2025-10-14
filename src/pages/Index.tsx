@@ -9,7 +9,7 @@ import PoolStats from "@/components/PoolStats";
 import { Session } from "@supabase/supabase-js";
 import { NotificationService } from "@/services/NotificationService";
 import { useUserRole } from "@/hooks/useUserRole";
-import palpiteAmigoLogo from "@/assets/palpite-amigo-logo.png";
+import palpiteAmigoLogo from "@/assets/logo-icon.png";
 
 const Index = () => {
   const navigate = useNavigate();

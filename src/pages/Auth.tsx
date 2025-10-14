@@ -9,7 +9,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import { Trophy } from "lucide-react";
 import { z } from "zod";
-import palpiteAmigoLogo from "@/assets/palpite-amigo-logo.png";
+import palpiteAmigoLogo from "@/assets/logo-icon.png";
 
 const cpfSchema = z.string()
   .regex(/^\d{11}$/, "CPF deve conter 11 dígitos")
