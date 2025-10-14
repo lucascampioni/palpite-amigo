@@ -65,6 +65,8 @@ const Auth = () => {
   const [searchParams] = useSearchParams();
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
+  const [cpf, setCpf] = useState("");
+  const [cpfError, setCpfError] = useState<string | null>(null);
   
   const redirectUrl = searchParams.get('redirect') || '/';
   
@@ -300,23 +302,33 @@ const Auth = () => {
                       placeholder="000.000.000-00"
                       required
                       maxLength={14}
+                      value={cpf}
                       onChange={(e) => {
-                        let value = e.target.value.replace(/\D/g, "");
-                        if (value.length <= 11) {
-                          // Aplicar formatação baseada no comprimento
-                          if (value.length <= 3) {
-                            value = value;
-                          } else if (value.length <= 6) {
-                            value = value.replace(/(\d{3})(\d{1,3})/, "$1.$2");
-                          } else if (value.length <= 9) {
-                            value = value.replace(/(\d{3})(\d{3})(\d{1,3})/, "$1.$2.$3");
-                          } else {
-                            value = value.replace(/(\d{3})(\d{3})(\d{3})(\d{1,2})/, "$1.$2.$3-$4");
-                          }
-                          e.target.value = value;
+                        let raw = e.target.value.replace(/\D/g, "");
+                        let value = raw;
+                        if (raw.length <= 3) {
+                          // no formatting
+                        } else if (raw.length <= 6) {
+                          value = raw.replace(/(\d{3})(\d{1,3})/, "$1.$2");
+                        } else if (raw.length <= 9) {
+                          value = raw.replace(/(\d{3})(\d{3})(\d{1,3})/, "$1.$2.$3");
+                        } else {
+                          value = raw.replace(/(\d{3})(\d{3})(\d{3})(\d{1,2})/, "$1.$2.$3-$4");
+                        }
+                        setCpf(value);
+                        const digits = raw;
+                        if (digits.length === 11) {
+                          const result = cpfSchema.safeParse(digits);
+                          setCpfError(result.success ? null : "CPF inválido");
+                        } else {
+                          setCpfError(null);
                         }
                       }}
+                      className={cpfError ? "border-destructive focus-visible:ring-destructive" : undefined}
                     />
+                    {cpfError && (
+                      <p className="text-xs text-destructive">{cpfError}</p>
+                    )}
                     <p className="text-xs text-muted-foreground">Apenas um cadastro por CPF</p>
                   </div>
                   <div className="space-y-2">
@@ -354,7 +366,7 @@ const Auth = () => {
                       Mínimo 8 caracteres, incluindo maiúscula, minúscula, número e caractere especial
                     </p>
                   </div>
-                  <Button type="submit" className="w-full" disabled={loading}>
+                  <Button type="submit" className="w-full" disabled={loading || !!cpfError}>
                     {loading ? "Criando conta..." : "Criar conta"}
                   </Button>
                 </form>
