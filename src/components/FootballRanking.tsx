@@ -106,6 +106,40 @@ const FootballRanking = ({ poolId, pool }: FootballRankingProps) => {
 
     // Calculate prize distribution considering ties
     const rankingWithPrizes = calculatePrizeDistribution(rankingData, pool);
+    
+    // Auto-mark winners as awaiting_pix if they haven't submitted yet
+    if (pool?.first_place_prize || pool?.second_place_prize || pool?.third_place_prize) {
+      const winnersToUpdate = rankingWithPrizes.filter(
+        p => p.prize_amount && p.prize_amount > 0 && !p.prize_status
+      );
+      
+      if (winnersToUpdate.length > 0) {
+        await Promise.all(
+          winnersToUpdate.map(winner =>
+            supabase
+              .from("participants")
+              .update({ prize_status: "awaiting_pix" })
+              .eq("id", winner.id)
+          )
+        );
+        
+        // Reload to get updated statuses
+        const { data: updatedParticipants } = await supabase
+          .from("participants")
+          .select("id, prize_status")
+          .eq("pool_id", poolId)
+          .in("id", winnersToUpdate.map(w => w.id));
+        
+        // Update prize_status in ranking
+        updatedParticipants?.forEach(up => {
+          const participant = rankingWithPrizes.find(p => p.id === up.id);
+          if (participant) {
+            participant.prize_status = up.prize_status;
+          }
+        });
+      }
+    }
+    
     setRanking(rankingWithPrizes);
     setLoading(false);
   };
