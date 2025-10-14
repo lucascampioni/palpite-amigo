@@ -40,15 +40,10 @@ const FootballPredictionForm = ({ poolId, userId, onSuccess, entryFee }: Footbal
   const [predictions, setPredictions] = useState<Prediction[]>([]);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
-  const [pixKey, setPixKey] = useState<string | null>(null);
   const [submitted, setSubmitted] = useState(false);
-  const [uploadingProof, setUploadingProof] = useState(false);
-  const [paymentProofUploaded, setPaymentProofUploaded] = useState(false);
-  const [participantId, setParticipantId] = useState<string | null>(null);
 
   useEffect(() => {
     loadMatches();
-    loadPixKey(); // Load PIX key immediately when component mounts
   }, [poolId]);
 
   const loadMatches = async () => {
@@ -105,29 +100,12 @@ const FootballPredictionForm = ({ poolId, userId, onSuccess, entryFee }: Footbal
     setLoading(false);
   };
 
-  const loadPixKey = async () => {
-    // Load PIX key from payment info table
-    const { data: paymentData } = await supabase
-      .from("pool_payment_info")
-      .select("pix_key")
-      .eq("pool_id", poolId)
-      .maybeSingle();
-    setPixKey(paymentData?.pix_key ?? null);
-  };
-
   const handlePredictionChange = (matchId: string, field: 'homeScore' | 'awayScore', value: string) => {
     // Allow empty string or valid number between 0-99
     if (value === '' || (/^\d+$/.test(value) && parseInt(value) <= 99)) {
       setPredictions(prev =>
         prev.map(p => p.matchId === matchId ? { ...p, [field]: value } : p)
       );
-    }
-  };
-
-  const handleCopyPixKey = () => {
-    if (pixKey) {
-      navigator.clipboard.writeText(pixKey);
-      toast({ title: "Chave PIX copiada!" });
     }
   };
 
@@ -145,7 +123,7 @@ const FootballPredictionForm = ({ poolId, userId, onSuccess, entryFee }: Footbal
 
     setSubmitting(true);
 
-    // First, create participant
+    // First, create participant with approved status
     const { data: profile } = await supabase
       .from("profiles")
       .select("full_name")
@@ -159,7 +137,7 @@ const FootballPredictionForm = ({ poolId, userId, onSuccess, entryFee }: Footbal
         user_id: userId,
         participant_name: profile?.full_name || "Usuário",
         guess_value: "Palpites de futebol",
-        status: "awaiting_proof",
+        status: "approved", // Already approved, no payment needed
       })
       .select()
       .single();
@@ -196,144 +174,28 @@ const FootballPredictionForm = ({ poolId, userId, onSuccess, entryFee }: Footbal
       await supabase.from("participants").delete().eq("id", participant.id);
     } else {
       toast({
-        title: "Palpites enviados!",
-        description: "Agora anexe o comprovante de pagamento para enviar para aprovação.",
+        title: "🎉 Você está inscrito no bolão!",
+        description: "Boa sorte! Que os melhores palpites vençam! 🍀",
+        duration: 5000,
       });
       setSubmitted(true);
-      setParticipantId(participant.id);
-      await loadPixKey();
       onSuccess();
     }
 
     setSubmitting(false);
   };
 
-  const handleUploadPaymentProof = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file || !participantId) return;
-
-    // Validate file size (5MB)
-    if (file.size > 5 * 1024 * 1024) {
-      toast({
-        variant: "destructive",
-        title: "Erro",
-        description: "Arquivo muito grande. O limite é 5MB.",
-      });
-      return;
-    }
-
-    // Validate file type
-    const validTypes = ['image/jpeg', 'image/png', 'image/jpg', 'image/webp', 'application/pdf'];
-    if (!validTypes.includes(file.type)) {
-      toast({
-        variant: "destructive",
-        title: "Erro",
-        description: "Tipo de arquivo inválido. Use JPG, PNG, WEBP ou PDF.",
-      });
-      return;
-    }
-
-    setUploadingProof(true);
-
-    try {
-      // Upload to storage
-      const fileExt = file.name.split('.').pop();
-      const fileName = `${userId}/${Date.now()}.${fileExt}`;
-      
-      const { error: uploadError } = await supabase.storage
-        .from('payment-proofs')
-        .upload(fileName, file);
-
-      if (uploadError) throw uploadError;
-
-      // Update participant with payment proof path - keep approved status
-      const { error: updateError } = await supabase
-        .from('participants')
-        .update({ 
-          payment_proof: fileName
-        })
-        .eq('id', participantId);
-
-      if (updateError) throw updateError;
-
-      setPaymentProofUploaded(true);
-      toast({
-        title: "🎉 Você está inscrito no bolão!",
-        description: "Boa sorte! Que os melhores palpites vençam! 🍀",
-        duration: 5000,
-      });
-      onSuccess(); // Refresh parent to update status
-    } catch (error) {
-      console.error('Error uploading payment proof:', error);
-      toast({
-        variant: "destructive",
-        title: "Erro ao enviar comprovante",
-        description: error instanceof Error ? error.message : "Tente novamente.",
-      });
-    } finally {
-      setUploadingProof(false);
-    }
-  };
-
   if (submitted) {
     return (
       <div className="space-y-4">
-        <div className="p-4 rounded-lg bg-primary/10 border border-primary/20">
-          <p className="text-sm font-medium text-primary mb-2">
-            ✓ Palpites enviados com sucesso!
+        <div className="p-6 rounded-lg bg-green-50 dark:bg-green-950 border-2 border-green-200 dark:border-green-800 text-center">
+          <p className="text-lg font-semibold text-green-700 dark:text-green-300 mb-2">
+            🎉 Você está inscrito no bolão!
           </p>
-          <p className="text-xs text-muted-foreground">
-            {pixKey ? "Use a chave PIX abaixo para fazer o pagamento e envie o comprovante." : "Aguarde a aprovação do criador do bolão."}
+          <p className="text-sm text-muted-foreground">
+            Boa sorte! Que os melhores palpites vençam! 🍀
           </p>
         </div>
-
-        {pixKey && (
-          <>
-            <div className="p-4 rounded-lg bg-primary/10 border border-primary/20">
-              <div className="flex items-center justify-between">
-                <div className="flex-1">
-                  <p className="text-sm font-medium mb-1">💰 Chave PIX para pagamento</p>
-                  <p className="text-sm font-mono text-muted-foreground">{pixKey}</p>
-                </div>
-                <Button variant="outline" size="sm" onClick={handleCopyPixKey}>
-                  <Copy className="w-4 h-4 mr-2" />
-                  Copiar
-                </Button>
-              </div>
-            </div>
-
-            <div className="p-4 rounded-lg bg-muted border">
-              <p className="text-sm font-medium mb-3">📎 Enviar Comprovante de Pagamento</p>
-              {paymentProofUploaded ? (
-                <div className="text-sm text-primary">
-                  ✓ Comprovante enviado com sucesso!
-                </div>
-              ) : (
-                <div className="space-y-2">
-                  <Label htmlFor="payment-proof" className="cursor-pointer">
-                    <div className="flex items-center gap-2 p-3 border-2 border-dashed rounded-lg hover:border-primary transition-colors">
-                      <Upload className="w-5 h-5" />
-                      <span className="text-sm">
-                        {uploadingProof ? "Enviando..." : "Clique para selecionar arquivo"}
-                      </span>
-                    </div>
-                  </Label>
-                  <Input
-                    id="payment-proof"
-                    type="file"
-                    accept="image/jpeg,image/png,image/jpg,image/webp,application/pdf"
-                    onChange={handleUploadPaymentProof}
-                    disabled={uploadingProof}
-                    className="hidden"
-                  />
-                  <p className="text-xs text-muted-foreground">
-                    Formatos aceitos: JPG, PNG, WEBP, PDF (máx. 5MB)
-                  </p>
-                </div>
-              )}
-            </div>
-          </>
-        )}
       </div>
     );
   }
@@ -348,13 +210,6 @@ const FootballPredictionForm = ({ poolId, userId, onSuccess, entryFee }: Footbal
 
   return (
     <div className="space-y-4">
-      {entryFee && (
-        <div className="p-4 rounded-lg bg-primary/10 border border-primary/20">
-          <p className="text-sm font-medium">💵 Valor de Entrada</p>
-          <p className="text-lg font-bold">R$ {entryFee.toFixed(2)}</p>
-        </div>
-      )}
-
       <h3 className="font-semibold text-lg">Faça seus palpites</h3>
       
       {matches.map((match, index) => {
@@ -425,12 +280,8 @@ const FootballPredictionForm = ({ poolId, userId, onSuccess, entryFee }: Footbal
         );
       })}
 
-      <p className="text-sm text-muted-foreground text-center">
-        Envie todos os palpites para ter acesso as informações de pagamento.
-      </p>
-
       <Button onClick={handleSubmit} disabled={submitting} className="w-full" size="lg">
-        {submitting ? "Enviando..." : "Enviar Todos os Palpites"}
+        {submitting ? "Enviando..." : "Enviar Palpites e Participar"}
       </Button>
     </div>
   );

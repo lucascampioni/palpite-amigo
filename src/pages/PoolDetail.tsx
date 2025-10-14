@@ -384,9 +384,18 @@ const PoolDetail = () => {
               </>
             )}
 
-            {!isOwner && !hasJoined && pool.status === "active" && !isPastDeadline && (
+            {!isOwner && pool.status === "active" && !isPastDeadline && (
               <>
-                {pool.max_participants && approvedParticipants.length >= pool.max_participants ? (
+                {hasJoined ? (
+                  <div className="p-6 rounded-lg bg-green-50 dark:bg-green-950 border-2 border-green-200 dark:border-green-800 text-center">
+                    <p className="text-lg font-semibold text-green-700 dark:text-green-300 mb-2">
+                      ✓ Você já está participando deste bolão!
+                    </p>
+                    <p className="text-sm text-muted-foreground">
+                      Boa sorte! Seus palpites foram salvos.
+                    </p>
+                  </div>
+                ) : pool.max_participants && approvedParticipants.length >= pool.max_participants ? (
                   <div className="p-4 rounded-lg bg-destructive/10 border border-destructive/20">
                     <p className="text-sm font-medium text-destructive">
                       🚫 Bolão cheio - Limite de {pool.max_participants} participantes atingido
