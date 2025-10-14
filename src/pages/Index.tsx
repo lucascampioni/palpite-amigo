@@ -120,7 +120,7 @@ const Index = () => {
         .eq("is_official", true)
         .eq("is_private", false)
         .eq("status", "active")
-        .not("id", "in", `(${excludeFromOfficialIds.join(',')})`)
+        .not("id", "in", `(${excludeFromOfficialIds.map((id) => `"${id}"`).join(',')})`)
         .order("created_at", { ascending: false });
       officialPoolsData = data || [];
     } else {
@@ -153,7 +153,7 @@ const Index = () => {
         .select("*, participants(count)")
         .eq("status", "active")
         .eq("is_private", false)
-        .not("id", "in", `(${excludeIds.join(',')})`)
+        .not("id", "in", `(${excludeIds.map((id) => `"${id}"`).join(',')})`)
         .order("created_at", { ascending: false });
       activePools = data || [];
     } else {

@@ -240,14 +240,15 @@ const PoolDetail = () => {
   if (!pool) return null;
 
   const getStatusColor = (status: string) => {
-    switch (status) {
-      case "active":
-        return "bg-primary text-primary-foreground";
-      case "finished":
-        return "bg-secondary text-secondary-foreground";
-      default:
-        return "bg-muted text-muted-foreground";
-    }
+    if (status === "finished") return "bg-gray-500 text-white";
+    if (hasJoined) return "bg-blue-500 text-white";
+    return "bg-green-500 text-white";
+  };
+
+  const getStatusText = (status: string) => {
+    if (status === "finished") return "Finalizado";
+    if (hasJoined) return "Participando";
+    return "Disponível";
   };
 
   const approvedParticipants = participants;
@@ -274,7 +275,7 @@ const PoolDetail = () => {
                 <CardTitle className="text-3xl">{pool.title}</CardTitle>
                 <div className="flex gap-2 flex-wrap">
                   <Badge className={getStatusColor(pool.status)}>
-                    {pool.status === "active" ? "Ativo" : "Finalizado"}
+                    {getStatusText(pool.status)}
                   </Badge>
                   {pool.is_private ? (
                     <Badge variant="secondary" className="text-sm">
