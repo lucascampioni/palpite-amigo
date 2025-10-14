@@ -245,7 +245,7 @@ const Index = () => {
               <img src={chutaiLogo} alt="Chutaí" className="h-52 w-auto mx-auto" />
             </div>
             <p className="text-muted-foreground text-xl max-w-2xl mx-auto">
-              Participe dos bolões oficiais e mostre seus conhecimentos
+              Mostre que você entende de futebol — entre no jogo e Chutaí!
             </p>
           </div>
         )}
