@@ -613,7 +613,7 @@ const PoolDetail = () => {
               </>
             )}
 
-            {approvedParticipants.length > 0 && (pool.pool_type === "football" || hasFootballMatches) && (
+            {approvedParticipants.length > 0 && (pool.pool_type === "football" || hasFootballMatches) && pool.status !== "finished" && (
               <>
                 <Separator />
                 <FootballParticipantsPredictions poolId={pool.id} participants={approvedParticipants} />

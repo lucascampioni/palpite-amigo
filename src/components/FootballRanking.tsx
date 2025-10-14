@@ -2,7 +2,8 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Trophy, Medal } from "lucide-react";
+import { Trophy, Medal, ChevronDown, ChevronUp } from "lucide-react";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 
 interface FootballRankingProps {
   poolId: string;
@@ -14,9 +15,22 @@ interface ParticipantScore {
   total_points: number;
 }
 
+interface MatchPrediction {
+  match_id: string;
+  home_team: string;
+  away_team: string;
+  home_score: number | null;
+  away_score: number | null;
+  home_score_prediction: number;
+  away_score_prediction: number;
+  points_earned: number;
+}
+
 const FootballRanking = ({ poolId }: FootballRankingProps) => {
   const [ranking, setRanking] = useState<ParticipantScore[]>([]);
   const [loading, setLoading] = useState(true);
+  const [expandedParticipants, setExpandedParticipants] = useState<Set<string>>(new Set());
+  const [participantPredictions, setParticipantPredictions] = useState<Record<string, MatchPrediction[]>>({});
 
   useEffect(() => {
     loadRanking();
@@ -83,6 +97,55 @@ const FootballRanking = ({ poolId }: FootballRankingProps) => {
     });
     setRanking(rankingData);
     setLoading(false);
+  };
+
+  const loadParticipantPredictions = async (participantId: string) => {
+    if (participantPredictions[participantId]) return; // Already loaded
+
+    const { data: predictions } = await supabase
+      .from("football_predictions")
+      .select(`
+        match_id,
+        home_score_prediction,
+        away_score_prediction,
+        points_earned,
+        football_matches (
+          home_team,
+          away_team,
+          home_score,
+          away_score
+        )
+      `)
+      .eq("participant_id", participantId);
+
+    if (predictions) {
+      const formattedPredictions: MatchPrediction[] = predictions.map((p: any) => ({
+        match_id: p.match_id,
+        home_team: p.football_matches.home_team,
+        away_team: p.football_matches.away_team,
+        home_score: p.football_matches.home_score,
+        away_score: p.football_matches.away_score,
+        home_score_prediction: p.home_score_prediction,
+        away_score_prediction: p.away_score_prediction,
+        points_earned: p.points_earned,
+      }));
+
+      setParticipantPredictions(prev => ({
+        ...prev,
+        [participantId]: formattedPredictions
+      }));
+    }
+  };
+
+  const toggleParticipant = async (participantId: string) => {
+    const newExpanded = new Set(expandedParticipants);
+    if (newExpanded.has(participantId)) {
+      newExpanded.delete(participantId);
+    } else {
+      newExpanded.add(participantId);
+      await loadParticipantPredictions(participantId);
+    }
+    setExpandedParticipants(newExpanded);
   };
 
   if (loading) {
@@ -208,27 +271,79 @@ const FootballRanking = ({ poolId }: FootballRankingProps) => {
         {/* Complete ranking list */}
         <div>
           <h3 className="text-lg font-semibold mb-4">Ranking Completo</h3>
-          <div className="space-y-3">
+          <div className="space-y-2">
             {ranking.map((participant, index) => {
               const actualPosition = getActualPosition(index);
+              const isExpanded = expandedParticipants.has(participant.id);
+              const predictions = participantPredictions[participant.id] || [];
+              
               return (
-                <div
+                <Collapsible
                   key={participant.id}
-                  className="flex items-center justify-between p-3 rounded-lg bg-muted/50 hover:bg-muted transition-colors"
+                  open={isExpanded}
+                  onOpenChange={() => toggleParticipant(participant.id)}
                 >
-                  <div className="flex items-center gap-3">
-                    <div className="flex items-center justify-center w-10 h-10 rounded-full bg-background font-bold text-lg border-2 border-muted">
-                      <span>{actualPosition}º</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      {actualPosition <= 3 && getRankIcon(actualPosition)}
-                      <span className="font-medium">{participant.participant_name}</span>
-                    </div>
+                  <div className="rounded-lg bg-muted/50 hover:bg-muted transition-colors">
+                    <CollapsibleTrigger className="w-full">
+                      <div className="flex items-center justify-between p-3">
+                        <div className="flex items-center gap-3">
+                          <div className="flex items-center justify-center w-10 h-10 rounded-full bg-background font-bold text-lg border-2 border-muted">
+                            <span>{actualPosition}º</span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            {actualPosition <= 3 && getRankIcon(actualPosition)}
+                            <span className="font-medium">{participant.participant_name}</span>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Badge variant={actualPosition === 1 ? "default" : "secondary"} className="text-sm px-3 py-1">
+                            {participant.total_points} pts
+                          </Badge>
+                          {isExpanded ? (
+                            <ChevronUp className="h-5 w-5 text-muted-foreground" />
+                          ) : (
+                            <ChevronDown className="h-5 w-5 text-muted-foreground" />
+                          )}
+                        </div>
+                      </div>
+                    </CollapsibleTrigger>
+                    
+                    <CollapsibleContent>
+                      <div className="px-3 pb-3 pt-0">
+                        <div className="border-t border-muted pt-3 space-y-2">
+                          <p className="text-sm font-semibold text-muted-foreground mb-2">Palpites:</p>
+                          {predictions.length === 0 ? (
+                            <p className="text-sm text-muted-foreground">Carregando palpites...</p>
+                          ) : (
+                            predictions.map((pred) => (
+                              <div key={pred.match_id} className="flex items-center justify-between text-sm bg-background/50 rounded p-2">
+                                <div className="flex-1">
+                                  <p className="font-medium text-xs">{pred.home_team} vs {pred.away_team}</p>
+                                  <div className="flex items-center gap-2 mt-1">
+                                    <span className="text-xs text-muted-foreground">
+                                      Palpite: {pred.home_score_prediction} - {pred.away_score_prediction}
+                                    </span>
+                                    {pred.home_score !== null && pred.away_score !== null && (
+                                      <span className="text-xs text-muted-foreground">
+                                        | Real: {pred.home_score} - {pred.away_score}
+                                      </span>
+                                    )}
+                                  </div>
+                                </div>
+                                <Badge 
+                                  variant={pred.points_earned > 0 ? "default" : "secondary"}
+                                  className="text-xs"
+                                >
+                                  {pred.points_earned} pt{pred.points_earned !== 1 ? 's' : ''}
+                                </Badge>
+                              </div>
+                            ))
+                          )}
+                        </div>
+                      </div>
+                    </CollapsibleContent>
                   </div>
-                  <Badge variant={actualPosition === 1 ? "default" : "secondary"} className="text-sm px-3 py-1">
-                    {participant.total_points} pts
-                  </Badge>
-                </div>
+                </Collapsible>
               );
             })}
           </div>
