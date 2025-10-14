@@ -13,6 +13,7 @@ interface PoolCardProps {
     pool_type: string;
     status: string;
     deadline: string;
+    finished_at?: string | null;
     participant_count?: number;
     is_official?: boolean;
     entry_fee?: number | null;
@@ -118,7 +119,12 @@ const getTypeIcon = (type: string) => {
         <CardDescription className="line-clamp-2 mt-3 text-base">{pool.description}</CardDescription>
       </CardHeader>
       <CardContent className="space-y-2 relative pt-0">
-        {!isUserParticipating && (
+        {pool.status === "finished" && pool.finished_at ? (
+          <div className="flex items-center gap-2 text-sm font-medium text-foreground/80 bg-gradient-to-r from-muted/60 to-muted/30 p-3 rounded-xl border border-border/50">
+            <Clock className="w-5 h-5 text-gray-500" />
+            <span>Finalizado em: {format(new Date(pool.finished_at), "dd 'de' MMMM, HH:mm", { locale: ptBR })}</span>
+          </div>
+        ) : !isUserParticipating && (
           <div className="flex items-center gap-2 text-sm font-medium text-foreground/80 bg-gradient-to-r from-muted/60 to-muted/30 p-3 rounded-xl border border-border/50">
             <Calendar className="w-5 h-5 text-primary" />
             <span>Prazo: {format(new Date(pool.deadline), "dd 'de' MMMM, HH:mm", { locale: ptBR })}</span>
