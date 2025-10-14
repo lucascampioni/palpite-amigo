@@ -163,7 +163,7 @@ const Auth = () => {
     } else {
       toast({
         title: "Conta criada!",
-        description: "Você já pode fazer login.",
+        description: "Verifique seu email para confirmar sua conta antes de fazer login.",
       });
     }
 
