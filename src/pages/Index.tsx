@@ -291,6 +291,7 @@ const Index = () => {
                     key={pool.id}
                     pool={pool}
                     isUserParticipating={true}
+                    hasWonPrize={true}
                     onClick={() => navigate(`/pool/${pool.id}`)}
                   />
                 ))}
