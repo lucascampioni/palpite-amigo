@@ -222,13 +222,6 @@ const Index = () => {
 
       {/* Main Content */}
       <main className="max-w-6xl mx-auto px-4 py-8 space-y-8">
-        {/* Stats */}
-        <PoolStats
-          myPoolsCount={myCreatedPools.length + myParticipatingPools.length}
-          activePoolsCount={myCreatedPools.filter(p => p.status === "active").length + myParticipatingPools.filter(p => p.status === "active").length}
-          finishedPoolsCount={myCreatedPools.filter(p => p.status === "finished").length + myParticipatingPools.filter(p => p.status === "finished").length}
-          pendingApprovalsCount={0}
-        />
 
         {/* Create Pool CTA - Only for Admins */}
         {userRole?.isAdmin ? (

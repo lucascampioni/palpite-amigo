@@ -1,12 +1,17 @@
 import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Trophy, Target, Users, Award } from "lucide-react";
+import { Trophy, Users, Award, ArrowLeft, Mail, Calendar } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Button } from "@/components/ui/button";
 
 const Profile = () => {
+  const navigate = useNavigate();
   const [stats, setStats] = useState<any>(null);
   const [profile, setProfile] = useState<any>(null);
+  const [userEmail, setUserEmail] = useState<string>("");
+  const [memberSince, setMemberSince] = useState<string>("");
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -16,6 +21,9 @@ const Profile = () => {
   const loadUserData = async () => {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
+
+    setUserEmail(user.email || "");
+    setMemberSince(new Date(user.created_at).toLocaleDateString('pt-BR'));
 
     // Load profile
     const { data: profileData } = await supabase
@@ -65,18 +73,11 @@ const Profile = () => {
 
   const statCards = [
     {
-      label: "Bolões Criados",
-      value: stats?.total_pools_created || 0,
-      icon: Target,
-      color: "text-primary",
-      bgColor: "bg-primary/10",
-    },
-    {
       label: "Bolões Participados",
       value: stats?.total_pools_joined || 0,
       icon: Users,
-      color: "text-secondary",
-      bgColor: "bg-secondary/10",
+      color: "text-blue-600",
+      bgColor: "bg-blue-100 dark:bg-blue-900/20",
     },
     {
       label: "Vitórias",
@@ -94,32 +95,45 @@ const Profile = () => {
     },
   ];
 
-  const winRate = stats?.total_pools_joined > 0 
-    ? ((stats.total_wins / stats.total_pools_joined) * 100).toFixed(1)
-    : 0;
-
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-muted to-background p-4">
       <div className="max-w-4xl mx-auto pt-8 pb-16 space-y-6">
+        {/* Back Button */}
+        <Button 
+          variant="ghost" 
+          onClick={() => navigate("/")}
+          className="mb-4"
+        >
+          <ArrowLeft className="w-4 h-4 mr-2" />
+          Voltar para Início
+        </Button>
+
         {/* Profile Header */}
         <Card>
           <CardHeader>
             <div className="flex items-center gap-4">
-              <div className="w-16 h-16 rounded-full bg-gradient-to-br from-primary to-primary-glow flex items-center justify-center text-2xl font-bold text-primary-foreground">
+              <div className="w-20 h-20 rounded-full bg-gradient-to-br from-primary to-primary-glow flex items-center justify-center text-3xl font-bold text-primary-foreground shadow-lg">
                 {profile?.full_name?.charAt(0).toUpperCase() || 'U'}
               </div>
-              <div>
-                <CardTitle className="text-2xl">{profile?.full_name || 'Usuário'}</CardTitle>
-                <p className="text-muted-foreground">
-                  {winRate}% de taxa de vitória
-                </p>
+              <div className="flex-1">
+                <CardTitle className="text-3xl mb-2">{profile?.full_name || 'Usuário'}</CardTitle>
+                <div className="flex flex-col gap-2 text-sm text-muted-foreground">
+                  <div className="flex items-center gap-2">
+                    <Mail className="w-4 h-4" />
+                    <span>{userEmail}</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Calendar className="w-4 h-4" />
+                    <span>Membro desde {memberSince}</span>
+                  </div>
+                </div>
               </div>
             </div>
           </CardHeader>
         </Card>
 
         {/* Stats Grid */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           {statCards.map((stat) => {
             const Icon = stat.icon;
             return (
@@ -159,15 +173,6 @@ const Profile = () => {
                   </div>
                 </div>
               )}
-              {stats?.total_pools_created >= 5 && (
-                <div className="flex items-center gap-2 p-3 rounded-lg bg-primary/10">
-                  <Target className="w-8 h-8 text-primary" />
-                  <div>
-                    <p className="font-semibold text-sm">Organizador</p>
-                    <p className="text-xs text-muted-foreground">Crie 5 bolões</p>
-                  </div>
-                </div>
-              )}
               {stats?.total_wins >= 5 && (
                 <div className="flex items-center gap-2 p-3 rounded-lg bg-yellow-100 dark:bg-yellow-900/20">
                   <Trophy className="w-8 h-8 text-yellow-600" />
@@ -178,7 +183,7 @@ const Profile = () => {
                 </div>
               )}
             </div>
-            {stats?.total_wins === 0 && stats?.total_pools_created === 0 && (
+            {stats?.total_wins === 0 && (
               <p className="text-center text-muted-foreground py-8">
                 Participe de bolões para desbloquear conquistas! 🏆
               </p>
