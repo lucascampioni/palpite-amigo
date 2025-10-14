@@ -9,6 +9,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import { Trophy } from "lucide-react";
 import { z } from "zod";
+import chutaiLogo from "@/assets/chutai-logo.png";
 
 const signUpSchema = z.object({
   email: z.string().email("Email inválido").max(255, "Email muito longo"),
@@ -167,14 +168,11 @@ const Auth = () => {
   return (
     <div className="min-h-screen flex items-center justify-center p-4 bg-gradient-to-br from-background via-muted to-background">
       <div className="w-full max-w-md">
-        <div className="text-center mb-8 space-y-2">
-          <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-br from-primary to-primary-glow mb-4 shadow-glow">
-            <Trophy className="w-8 h-8 text-primary-foreground" />
+        <div className="text-center mb-8 space-y-4">
+          <div className="inline-flex items-center justify-center mb-2">
+            <img src={chutaiLogo} alt="Chutaí" className="h-20 w-auto" />
           </div>
-          <h1 className="text-4xl font-bold bg-gradient-to-r from-primary to-primary-glow bg-clip-text text-transparent">
-            Bolão App
-          </h1>
-          <p className="text-muted-foreground">Crie bolões e divirta-se com os amigos!</p>
+          <p className="text-muted-foreground text-lg">Crie bolões e divirta-se com os amigos!</p>
         </div>
 
         <Tabs defaultValue="login" className="w-full">
