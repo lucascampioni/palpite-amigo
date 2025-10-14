@@ -261,7 +261,7 @@ const Index = () => {
               <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-primary to-primary-glow flex items-center justify-center">
                 <span className="text-lg">⚽</span>
               </div>
-              <h3 className="text-2xl font-bold">⭐ Bolões Oficiais</h3>
+              <h3 className="text-2xl font-bold">⭐ Bolões Oficiais disponíveis</h3>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {officialPools.map((pool) => (
@@ -391,9 +391,9 @@ const Index = () => {
         {/* Pools I'm Participating Section */}
         {myParticipatingPools.length > 0 && (
           <section className="space-y-4">
-            <div className="flex items-center gap-3 p-4 rounded-xl bg-gradient-to-r from-primary/10 via-primary/5 to-transparent border border-primary/20">
-              <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-primary to-primary-glow flex items-center justify-center shadow-lg">
-                <Trophy className="w-6 h-6 text-white" />
+            <div className="flex items-center gap-3 mb-2">
+              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary to-primary-glow flex items-center justify-center shadow-lg">
+                <Trophy className="w-5 h-5 text-white" />
               </div>
               <div>
                 <h3 className="text-2xl font-bold">Bolões que participo</h3>
