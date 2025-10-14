@@ -442,51 +442,46 @@ const PoolDetail = () => {
 
             {hasJoined && currentUserParticipant?.status === 'approved' && (
               <>
-                <Separator />
-                
                 {/* Winner needs to submit PIX */}
                 {currentUserParticipant.prize_status === 'awaiting_pix' && (
-                  <PrizePixSubmission
-                    participantId={currentUserParticipant.id}
-                    poolTitle={pool.title}
-                    onSuccess={loadPoolData}
-                  />
+                  <>
+                    <Separator />
+                    <PrizePixSubmission
+                      participantId={currentUserParticipant.id}
+                      poolTitle={pool.title}
+                      onSuccess={loadPoolData}
+                    />
+                  </>
                 )}
                 
                 {/* PIX submitted, waiting for admin to send prize */}
                 {currentUserParticipant.prize_status === 'pix_submitted' && (
-                  <div className="p-4 rounded-lg bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-800">
-                    <p className="text-sm font-medium text-blue-700 dark:text-blue-300">
-                      ✓ Chave PIX Enviada!
-                    </p>
-                    <p className="text-xs text-muted-foreground mt-1">
-                      Aguarde o envio do prêmio para sua chave PIX.
-                    </p>
-                  </div>
+                  <>
+                    <Separator />
+                    <div className="p-4 rounded-lg bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-800">
+                      <p className="text-sm font-medium text-blue-700 dark:text-blue-300">
+                        ✓ Chave PIX Enviada!
+                      </p>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Aguarde o envio do prêmio para sua chave PIX.
+                      </p>
+                    </div>
+                  </>
                 )}
                 
                 {/* Prize sent */}
                 {currentUserParticipant.prize_status === 'prize_sent' && (
-                  <div className="p-4 rounded-lg bg-green-50 dark:bg-green-950 border border-green-200 dark:border-green-800">
-                    <p className="text-sm font-medium text-green-700 dark:text-green-300">
-                      ✓ Prêmio Enviado!
-                    </p>
-                    <p className="text-xs text-muted-foreground mt-1">
-                      O prêmio foi enviado para sua chave PIX. Verifique sua conta.
-                    </p>
-                  </div>
-                )}
-                
-                {/* Regular approved participant (not a winner) */}
-                {!currentUserParticipant.prize_status && (
-                  <div className="p-4 rounded-lg bg-green-50 dark:bg-green-950 border border-green-200 dark:border-green-800">
-                    <p className="text-sm font-medium text-green-700 dark:text-green-300">
-                      ✓ Você está participando deste bolão!
-                    </p>
-                    <p className="text-xs text-muted-foreground mt-1">
-                      Sua participação foi aprovada. Boa sorte!
-                    </p>
-                  </div>
+                  <>
+                    <Separator />
+                    <div className="p-4 rounded-lg bg-green-50 dark:bg-green-950 border border-green-200 dark:border-green-800">
+                      <p className="text-sm font-medium text-green-700 dark:text-green-300">
+                        ✓ Prêmio Enviado!
+                      </p>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        O prêmio foi enviado para sua chave PIX. Verifique sua conta.
+                      </p>
+                    </div>
+                  </>
                 )}
               </>
             )}
