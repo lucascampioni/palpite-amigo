@@ -9,6 +9,7 @@ import PoolStats from "@/components/PoolStats";
 import { Session } from "@supabase/supabase-js";
 import { NotificationService } from "@/services/NotificationService";
 import { useUserRole } from "@/hooks/useUserRole";
+import chutaiLogo from "@/assets/chutai-logo.png";
 
 const Index = () => {
   const navigate = useNavigate();
@@ -197,22 +198,17 @@ const Index = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-muted to-background">
       {/* Header */}
-      <header className="border-b bg-card/50 backdrop-blur-sm sticky top-0 z-10">
-        <div className="max-w-6xl mx-auto px-4 py-4 flex items-center justify-between">
+      <header className="border-b bg-card/80 backdrop-blur-md sticky top-0 z-10 shadow-sm">
+        <div className="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary to-primary-glow flex items-center justify-center shadow-glow">
-              <span className="text-2xl">⚽</span>
-            </div>
-            <h1 className="text-2xl font-bold bg-gradient-to-r from-primary to-primary-glow bg-clip-text text-transparent">
-              Palpite Amigo
-            </h1>
+            <img src={chutaiLogo} alt="Chutaí" className="h-12 w-auto" />
           </div>
           <div className="flex items-center gap-2">
-            <Button variant="outline" size="sm" onClick={() => navigate("/profile")}>
+            <Button variant="ghost" size="sm" onClick={() => navigate("/profile")} className="hover:bg-primary/10">
               <User className="w-4 h-4 mr-2" />
               Perfil
             </Button>
-            <Button variant="outline" size="sm" onClick={handleSignOut}>
+            <Button variant="ghost" size="sm" onClick={handleSignOut} className="hover:bg-destructive/10 hover:text-destructive">
               <LogOut className="w-4 h-4 mr-2" />
               Sair
             </Button>
@@ -221,49 +217,57 @@ const Index = () => {
       </header>
 
       {/* Main Content */}
-      <main className="max-w-6xl mx-auto px-4 py-8 space-y-8">
+      <main className="max-w-7xl mx-auto px-4 py-12 space-y-12">
 
-        {/* Create Pool CTA - Only for Admins */}
+        {/* Hero Section */}
         {userRole?.isAdmin ? (
-          <div className="text-center space-y-4">
-            <h2 className="text-3xl md:text-4xl font-bold">
-              ⚽ Bem-vindo ao Palpite Amigo! 🏆
-            </h2>
-            <p className="text-muted-foreground text-lg">
-              Crie bolões de futebol e divirta-se com seus amigos
+          <div className="text-center space-y-6 py-8">
+            <div className="inline-block">
+              <div className="bg-gradient-to-r from-primary via-primary-glow to-accent bg-clip-text text-transparent">
+                <h2 className="text-4xl md:text-5xl lg:text-6xl font-extrabold tracking-tight">
+                  Bem-vindo ao Chutaí! 🏆
+                </h2>
+              </div>
+            </div>
+            <p className="text-muted-foreground text-xl max-w-2xl mx-auto">
+              Crie bolões de futebol incríveis e divirta-se com seus amigos
             </p>
-            <div className="flex flex-col sm:flex-row gap-3 justify-center">
+            <div className="flex flex-col sm:flex-row gap-4 justify-center pt-4">
               <Button
                 size="lg"
-                className="shadow-lg hover:shadow-xl transition-all"
+                className="shadow-xl hover:shadow-2xl transition-all text-lg px-8 py-6 rounded-xl bg-gradient-to-r from-primary to-primary-glow hover:from-primary-glow hover:to-accent"
                 onClick={() => navigate("/create-football")}
               >
-                <Plus className="w-5 h-5 mr-2" />
-                ⚽ Criar Bolão de Futebol
+                <Plus className="w-6 h-6 mr-2" />
+                Criar Bolão de Futebol
               </Button>
             </div>
           </div>
         ) : (
-          <div className="text-center space-y-4">
-            <h2 className="text-3xl md:text-4xl font-bold">
-              ⚽ Bem-vindo ao Palpite Amigo! 🏆
-            </h2>
-            <p className="text-muted-foreground text-lg">
-              Participe dos bolões oficiais e divirta-se com seus amigos
+          <div className="text-center space-y-6 py-8">
+            <div className="inline-block">
+              <div className="bg-gradient-to-r from-primary via-primary-glow to-accent bg-clip-text text-transparent">
+                <h2 className="text-4xl md:text-5xl lg:text-6xl font-extrabold tracking-tight">
+                  Bem-vindo ao Chutaí! 🏆
+                </h2>
+              </div>
+            </div>
+            <p className="text-muted-foreground text-xl max-w-2xl mx-auto">
+              Participe dos bolões oficiais e mostre seus conhecimentos
             </p>
           </div>
         )}
 
         {/* Official Pools Section */}
         {officialPools.length > 0 && (
-          <section className="space-y-4">
-            <div className="flex items-center gap-2">
-              <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-primary to-primary-glow flex items-center justify-center">
-                <span className="text-lg">⚽</span>
+          <section className="space-y-6">
+            <div className="flex items-center gap-3">
+              <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-secondary to-accent flex items-center justify-center shadow-lg">
+                <Trophy className="w-6 h-6 text-primary" />
               </div>
-              <h3 className="text-2xl font-bold">⭐ Bolões Oficiais disponíveis</h3>
+              <h3 className="text-3xl font-bold">Bolões Oficiais disponíveis</h3>
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {officialPools.map((pool) => (
                 <PoolCard
                   key={pool.id}
@@ -390,19 +394,19 @@ const Index = () => {
 
         {/* Pools I'm Participating Section */}
         {myParticipatingPools.length > 0 && (
-          <section className="space-y-4">
-            <div className="flex items-center gap-3 mb-2">
-              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary to-primary-glow flex items-center justify-center shadow-lg">
-                <Trophy className="w-5 h-5 text-white" />
+          <section className="space-y-6">
+            <div className="flex items-center gap-3">
+              <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-accent to-primary-glow flex items-center justify-center shadow-lg">
+                <Users className="w-6 h-6 text-white" />
               </div>
               <div>
-                <h3 className="text-2xl font-bold">Bolões que participo</h3>
-                <p className="text-sm text-muted-foreground">Seus palpites estão salvos</p>
+                <h3 className="text-3xl font-bold">Bolões que participo</h3>
+                <p className="text-muted-foreground">Seus palpites estão salvos</p>
               </div>
             </div>
             
             {/* Active Pools */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {myParticipatingPools.filter(p => p.status === "active").map((pool) => (
                 <PoolCard
                   key={pool.id}
