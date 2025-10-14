@@ -201,7 +201,7 @@ const Index = () => {
       <header className="border-b bg-card/80 backdrop-blur-md sticky top-0 z-10 shadow-sm">
         <div className="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <img src={chutaiLogo} alt="Chutaí" className="h-12 w-auto" />
+            <img src={chutaiLogo} alt="Chutaí" className="h-16 w-auto" />
           </div>
           <div className="flex items-center gap-2">
             <Button variant="ghost" size="sm" onClick={() => navigate("/profile")} className="hover:bg-primary/10">
@@ -222,15 +222,11 @@ const Index = () => {
         {/* Hero Section */}
         {userRole?.isAdmin ? (
           <div className="text-center space-y-6 py-8">
-            <div className="inline-block">
-              <div className="bg-gradient-to-r from-primary via-primary-glow to-accent bg-clip-text text-transparent">
-                <h2 className="text-4xl md:text-5xl lg:text-6xl font-extrabold tracking-tight">
-                  Bem-vindo ao Chutaí! 🏆
-                </h2>
-              </div>
+            <div className="inline-block mb-4">
+              <img src={chutaiLogo} alt="Chutaí" className="h-32 w-auto mx-auto" />
             </div>
             <p className="text-muted-foreground text-xl max-w-2xl mx-auto">
-              Crie bolões de futebol incríveis e divirta-se com seus amigos
+              Gerencie bolões de futebol e divirta-se com seus amigos
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center pt-4">
               <Button
@@ -245,12 +241,8 @@ const Index = () => {
           </div>
         ) : (
           <div className="text-center space-y-6 py-8">
-            <div className="inline-block">
-              <div className="bg-gradient-to-r from-primary via-primary-glow to-accent bg-clip-text text-transparent">
-                <h2 className="text-4xl md:text-5xl lg:text-6xl font-extrabold tracking-tight">
-                  Bem-vindo ao Chutaí! 🏆
-                </h2>
-              </div>
+            <div className="inline-block mb-4">
+              <img src={chutaiLogo} alt="Chutaí" className="h-32 w-auto mx-auto" />
             </div>
             <p className="text-muted-foreground text-xl max-w-2xl mx-auto">
               Participe dos bolões oficiais e mostre seus conhecimentos
