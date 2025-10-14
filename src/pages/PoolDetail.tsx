@@ -606,6 +606,11 @@ const PoolDetail = () => {
                       placement={userPrizeInfo.placement}
                       isTied={userPrizeInfo.isTied}
                       tiedWithCount={userPrizeInfo.tiedWithCount}
+                      totalPrizes={{
+                        first: pool.first_place_prize ? parseFloat(pool.first_place_prize) : 0,
+                        second: pool.second_place_prize ? parseFloat(pool.second_place_prize) : 0,
+                        third: pool.third_place_prize ? parseFloat(pool.third_place_prize) : 0
+                      }}
                       onSuccess={loadPoolData}
                     />
                   </>

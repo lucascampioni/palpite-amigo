@@ -16,6 +16,7 @@ interface PrizePixSubmissionProps {
   placement: number;
   isTied?: boolean;
   tiedWithCount?: number;
+  totalPrizes?: { first: number; second: number; third: number };
   onSuccess?: () => void;
 }
 
@@ -26,6 +27,7 @@ export const PrizePixSubmission = ({
   placement, 
   isTied = false, 
   tiedWithCount = 0,
+  totalPrizes,
   onSuccess 
 }: PrizePixSubmissionProps) => {
   const [pixKey, setPixKey] = useState("");
@@ -81,6 +83,42 @@ export const PrizePixSubmission = ({
     return placementName;
   };
 
+  const getDetailedExplanation = () => {
+    if (!isTied || !totalPrizes) return null;
+
+    const totalTied = tiedWithCount + 1; // +1 to include the current user
+    const placementName = placement === 1 ? "1º" : placement === 2 ? "2º" : "3º";
+    
+    // Calculate which prizes were summed
+    const prizes = [totalPrizes.first, totalPrizes.second, totalPrizes.third];
+    let involvedPositions: string[] = [];
+    let summedPrizes = 0;
+    
+    for (let i = placement - 1; i < placement - 1 + totalTied && i < 3; i++) {
+      if (prizes[i] > 0) {
+        involvedPositions.push(i === 0 ? "1º" : i === 1 ? "2º" : "3º");
+        summedPrizes += prizes[i];
+      }
+    }
+
+    if (involvedPositions.length === 0) return null;
+
+    return (
+      <div className="mt-2 p-3 bg-blue-50 dark:bg-blue-950/50 rounded-md border border-blue-200 dark:border-blue-800">
+        <p className="text-xs font-semibold text-blue-900 dark:text-blue-100 mb-1">
+          💡 Como seu prêmio foi calculado:
+        </p>
+        <p className="text-xs text-blue-800 dark:text-blue-200">
+          {totalTied} {totalTied === 1 ? 'pessoa empatou' : 'pessoas empataram'} em {placementName} lugar. 
+          Os prêmios de {involvedPositions.join(' e ')} lugar ({involvedPositions.map((pos, idx) => 
+            `${pos}: R$ ${prizes[placement - 1 + idx].toFixed(2)}`
+          ).join(', ')}) foram somados (R$ {summedPrizes.toFixed(2)}) e divididos igualmente entre os {totalTied} vencedores, 
+          resultando em R$ {prizeAmount.toFixed(2)} para cada um.
+        </p>
+      </div>
+    );
+  };
+
   return (
     <Card className="border-yellow-200 dark:border-yellow-800 bg-yellow-50 dark:bg-yellow-950">
       <CardHeader>
@@ -104,6 +142,7 @@ export const PrizePixSubmission = ({
           <p className="text-sm text-muted-foreground">
             Conquistado por ter ficado em <span className="font-semibold">{getPlacementText()}</span>
           </p>
+          {getDetailedExplanation()}
         </div>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
