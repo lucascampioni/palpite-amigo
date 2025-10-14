@@ -243,25 +243,36 @@ const Index = () => {
           pendingApprovalsCount={pendingApprovalsCount}
         />
 
-        {/* Create Pool CTA */}
-        <div className="text-center space-y-4">
-          <h2 className="text-3xl md:text-4xl font-bold">
-            ⚽ Bem-vindo ao Palpite Amigo! 🏆
-          </h2>
-          <p className="text-muted-foreground text-lg">
-            Crie bolões de futebol e divirta-se com seus amigos
-          </p>
-          <div className="flex flex-col sm:flex-row gap-3 justify-center">
-            <Button
-              size="lg"
-              className="shadow-lg hover:shadow-xl transition-all"
-              onClick={() => navigate("/create-football")}
-            >
-              <Plus className="w-5 h-5 mr-2" />
-              ⚽ Criar Bolão de Futebol
-            </Button>
+        {/* Create Pool CTA - Only for Admins */}
+        {userRole?.isAdmin ? (
+          <div className="text-center space-y-4">
+            <h2 className="text-3xl md:text-4xl font-bold">
+              ⚽ Bem-vindo ao Palpite Amigo! 🏆
+            </h2>
+            <p className="text-muted-foreground text-lg">
+              Crie bolões de futebol e divirta-se com seus amigos
+            </p>
+            <div className="flex flex-col sm:flex-row gap-3 justify-center">
+              <Button
+                size="lg"
+                className="shadow-lg hover:shadow-xl transition-all"
+                onClick={() => navigate("/create-football")}
+              >
+                <Plus className="w-5 h-5 mr-2" />
+                ⚽ Criar Bolão de Futebol
+              </Button>
+            </div>
           </div>
-        </div>
+        ) : (
+          <div className="text-center space-y-4">
+            <h2 className="text-3xl md:text-4xl font-bold">
+              ⚽ Bem-vindo ao Palpite Amigo! 🏆
+            </h2>
+            <p className="text-muted-foreground text-lg">
+              Participe dos bolões oficiais e divirta-se com seus amigos
+            </p>
+          </div>
+        )}
 
         {/* Official Pools Section */}
         {officialPools.length > 0 && (
