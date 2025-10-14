@@ -398,9 +398,14 @@ const Index = () => {
         {/* Pools I'm Participating Section */}
         {myParticipatingPools.length > 0 && (
           <section className="space-y-4">
-            <div className="flex items-center gap-2">
-              <span className="text-2xl">🏆</span>
-              <h3 className="text-2xl font-bold">Bolões que participo</h3>
+            <div className="flex items-center gap-3 p-4 rounded-xl bg-gradient-to-r from-primary/10 via-primary/5 to-transparent border border-primary/20">
+              <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-primary to-primary-glow flex items-center justify-center shadow-lg">
+                <Trophy className="w-6 h-6 text-white" />
+              </div>
+              <div>
+                <h3 className="text-2xl font-bold">Bolões que participo</h3>
+                <p className="text-sm text-muted-foreground">Seus palpites estão salvos</p>
+              </div>
             </div>
             
             {/* Active Pools */}
