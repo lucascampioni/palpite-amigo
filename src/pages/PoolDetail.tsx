@@ -701,11 +701,6 @@ const PoolDetail = () => {
                     <p className="text-xs text-muted-foreground">
                       • Prazo para apostas: {format(new Date(pool.deadline), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })} (30min antes do primeiro jogo).
                     </p>
-                    {(pool.first_place_prize || pool.second_place_prize || pool.third_place_prize) && (
-                      <p className="text-xs text-muted-foreground">
-                        • <strong>Critério de empate:</strong> Se houver empate entre participantes, os valores das posições empatadas serão somados e divididos igualmente entre os vencedores. Ex: se o 1º lugar paga R$50,00 e o 2º R$30,00, e dois jogadores empatarem em 1º, cada um receberá R$40,00.
-                      </p>
-                    )}
                   </div>
                 </div>
               </>
@@ -758,7 +753,7 @@ const PoolDetail = () => {
             {approvedParticipants.length > 0 && (pool.pool_type === "football" || hasFootballMatches) && pool.status !== "finished" && (
               <>
                 <Separator />
-                <FootballParticipantsPredictions poolId={pool.id} participants={approvedParticipants} pool={pool} />
+                <FootballParticipantsPredictions poolId={pool.id} participants={approvedParticipants} />
               </>
             )}
 

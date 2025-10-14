@@ -359,19 +359,6 @@ const FootballRanking = ({ poolId, pool }: FootballRankingProps) => {
         </CardTitle>
       </CardHeader>
       <CardContent>
-        {/* Tie Breaker Info */}
-        {(pool?.first_place_prize || pool?.second_place_prize || pool?.third_place_prize) && (
-          <div className="mb-4 p-3 rounded-lg bg-blue-500/10 border border-blue-500/20">
-            <p className="text-sm font-medium mb-1">Critério de empate:</p>
-            <p className="text-xs text-muted-foreground">
-              Se houver empate entre participantes, os valores das posições empatadas serão somados e divididos igualmente entre os vencedores.
-            </p>
-            <p className="text-xs text-muted-foreground mt-2">
-              <strong>Exemplo:</strong> se o 1º lugar paga R$50,00 e o 2º R$30,00, e dois jogadores empatarem em 1º, cada um receberá R$40,00.
-            </p>
-          </div>
-        )}
-
         {/* Podium for top 3 positions */}
         {ranking.length >= 3 && (
           <div className="mb-6 pb-4 border-b">

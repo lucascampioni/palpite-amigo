@@ -287,17 +287,6 @@ const FootballPredictionForm = ({ poolId, userId, onSuccess, entryFee, pool }: F
           <li><strong>1 ponto</strong>: Placar exato</li>
           <li><strong>0 pontos</strong>: Qualquer outro resultado</li>
         </ul>
-        {(pool?.first_place_prize || pool?.second_place_prize || pool?.third_place_prize) && (
-          <>
-            <p className="font-medium mt-3">Critério de empate:</p>
-            <p className="text-muted-foreground text-xs">
-              Se houver empate entre participantes, os valores das posições empatadas serão somados e divididos igualmente entre os vencedores.
-            </p>
-            <p className="text-muted-foreground text-xs mt-1">
-              <strong>Exemplo:</strong> se o 1º lugar paga R$50,00 e o 2º R$30,00, e dois jogadores empatarem em 1º, cada um receberá R$40,00.
-            </p>
-          </>
-        )}
       </div>
 
       <Button onClick={handleSubmit} disabled={submitting} className="w-full" size="lg">

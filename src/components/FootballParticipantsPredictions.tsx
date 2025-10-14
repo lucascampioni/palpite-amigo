@@ -9,7 +9,6 @@ import { ptBR } from "date-fns/locale";
 interface FootballParticipantsPredictionsProps {
   poolId: string;
   participants: any[];
-  pool?: any;
 }
 
 interface Match {
@@ -29,7 +28,7 @@ interface Prediction {
   points_earned: number;
 }
 
-const FootballParticipantsPredictions = ({ poolId, participants, pool }: FootballParticipantsPredictionsProps) => {
+const FootballParticipantsPredictions = ({ poolId, participants }: FootballParticipantsPredictionsProps) => {
   const [matches, setMatches] = useState<Match[]>([]);
   const [predictions, setPredictions] = useState<Prediction[]>([]);
   const [loading, setLoading] = useState(true);
@@ -77,19 +76,6 @@ const FootballParticipantsPredictions = ({ poolId, participants, pool }: Footbal
   return (
     <div className="space-y-4">
       <h3 className="font-semibold text-lg">Palpites dos Participantes</h3>
-      
-      {/* Tie Breaker Info */}
-      {(pool?.first_place_prize || pool?.second_place_prize || pool?.third_place_prize) && (
-        <div className="p-3 rounded-lg bg-blue-500/10 border border-blue-500/20">
-          <p className="text-sm font-medium mb-1">Critério de empate:</p>
-          <p className="text-xs text-muted-foreground">
-            Se houver empate entre participantes, os valores das posições empatadas serão somados e divididos igualmente entre os vencedores.
-          </p>
-          <p className="text-xs text-muted-foreground mt-2">
-            <strong>Exemplo:</strong> se o 1º lugar paga R$50,00 e o 2º R$30,00, e dois jogadores empatarem em 1º, cada um receberá R$40,00.
-          </p>
-        </div>
-      )}
       
       <Accordion type="single" collapsible className="space-y-2">
         {participants.map((participant) => (
