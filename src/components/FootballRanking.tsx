@@ -149,7 +149,7 @@ const FootballRanking = ({ poolId, pool }: FootballRankingProps) => {
     
     if (!status || status === 'awaiting_pix') {
       return (
-        <Badge variant="outline" className="text-xs bg-yellow-100 dark:bg-yellow-900 text-yellow-800 dark:text-yellow-200 border-yellow-300 dark:border-yellow-700">
+        <Badge variant="outline" className="text-[0.625rem] sm:text-xs bg-yellow-100 dark:bg-yellow-900 text-yellow-800 dark:text-yellow-200 border-yellow-300 dark:border-yellow-700 px-1.5 sm:px-2 py-0 sm:py-0.5 whitespace-nowrap hidden sm:inline-flex">
           Aguardando chave Pix
         </Badge>
       );
@@ -157,7 +157,7 @@ const FootballRanking = ({ poolId, pool }: FootballRankingProps) => {
     
     if (status === 'pix_submitted') {
       return (
-        <Badge variant="outline" className="text-xs bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 border-blue-300 dark:border-blue-700">
+        <Badge variant="outline" className="text-[0.625rem] sm:text-xs bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 border-blue-300 dark:border-blue-700 px-1.5 sm:px-2 py-0 sm:py-0.5 whitespace-nowrap hidden sm:inline-flex">
           Aguardando pagamento
         </Badge>
       );
@@ -165,7 +165,7 @@ const FootballRanking = ({ poolId, pool }: FootballRankingProps) => {
     
     if (status === 'prize_sent') {
       return (
-        <Badge variant="outline" className="text-xs bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200 border-green-300 dark:border-green-700">
+        <Badge variant="outline" className="text-[0.625rem] sm:text-xs bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200 border-green-300 dark:border-green-700 px-1.5 sm:px-2 py-0 sm:py-0.5 whitespace-nowrap">
           Pago
         </Badge>
       );
@@ -361,9 +361,9 @@ const FootballRanking = ({ poolId, pool }: FootballRankingProps) => {
       <CardContent>
         {/* Podium for top 3 positions */}
         {ranking.length >= 3 && (
-          <div className="mb-8 pb-6 border-b">
-            <h3 className="text-lg font-semibold mb-4 text-center">Pódio</h3>
-            <div className="flex items-end justify-center gap-4">
+          <div className="mb-6 pb-4 border-b">
+            <h3 className="text-base sm:text-lg font-semibold mb-3 text-center">Pódio</h3>
+            <div className="flex items-end justify-center gap-2 sm:gap-4 px-2">
               {[1, 0, 2].map((visualIndex) => {
                 const topGroups = getTopThreeGroups();
                 const group = topGroups.find(g => g.podiumIndex === visualIndex);
@@ -373,28 +373,28 @@ const FootballRanking = ({ poolId, pool }: FootballRankingProps) => {
                 const podium = getPodiumPosition(visualIndex);
                 
                 return (
-                  <div key={`podium-${visualIndex}`} className="flex flex-col items-center flex-1 max-w-[140px]">
-                    <div className="mb-2 text-center w-full">
-                      <div className="mb-1 flex justify-center">
+                  <div key={`podium-${visualIndex}`} className="flex flex-col items-center flex-1 max-w-[90px] sm:max-w-[120px]">
+                    <div className="mb-1 sm:mb-2 text-center w-full">
+                      <div className="mb-0.5 sm:mb-1 flex justify-center">
                         {getRankIcon(group.position)}
                       </div>
-                      <div className="space-y-1">
+                      <div className="space-y-0.5 sm:space-y-1 min-h-[2rem] sm:min-h-[2.5rem] flex flex-col justify-center">
                         {group.participants.map((participant) => (
                           <div key={participant.id}>
-                            <p className="font-bold text-xs truncate px-1">{participant.participant_name}</p>
+                            <p className="font-bold text-[0.625rem] sm:text-xs truncate px-0.5">{participant.participant_name}</p>
                           </div>
                         ))}
                       </div>
-                      <Badge variant={group.position === 1 ? "default" : "secondary"} className="mt-1">
+                      <Badge variant={group.position === 1 ? "default" : "secondary"} className="mt-1 text-[0.625rem] sm:text-xs px-1 sm:px-2 py-0">
                         {group.participants[0].total_points} pts
                       </Badge>
                       {group.participants[0].prize_amount !== undefined && group.participants[0].prize_amount > 0 && (
-                        <Badge variant="default" className="mt-1 bg-primary">
+                        <Badge variant="default" className="mt-0.5 sm:mt-1 bg-primary text-[0.625rem] sm:text-xs px-1 sm:px-2 py-0">
                           R$ {group.participants[0].prize_amount.toFixed(2)}
                         </Badge>
                       )}
                     </div>
-                    <div className={`w-full ${podium.height} ${podium.color} rounded-t-lg flex items-center justify-center font-bold text-2xl transition-all`}>
+                    <div className={`w-full ${podium.height} ${podium.color} rounded-t-lg flex items-center justify-center font-bold text-lg sm:text-2xl transition-all`}>
                       {group.position}º
                     </div>
                   </div>
@@ -406,7 +406,7 @@ const FootballRanking = ({ poolId, pool }: FootballRankingProps) => {
         
         {/* Complete ranking list */}
         <div>
-          <h3 className="text-lg font-semibold mb-4">Ranking Completo</h3>
+          <h3 className="text-base sm:text-lg font-semibold mb-3 sm:mb-4">Ranking Completo</h3>
           <div className="space-y-2">
             {ranking.map((participant, index) => {
               const actualPosition = getActualPosition(index, participant);
@@ -421,37 +421,41 @@ const FootballRanking = ({ poolId, pool }: FootballRankingProps) => {
                 >
                   <div className="rounded-lg bg-muted/50 hover:bg-muted transition-colors">
                     <CollapsibleTrigger className="w-full">
-                      <div className="flex items-center justify-between p-3">
-                        <div className="flex items-center gap-3">
-                          <div className="flex items-center justify-center w-10 h-10 rounded-full bg-background font-bold text-lg border-2 border-muted">
+                      <div className="flex items-center justify-between p-2 sm:p-3 gap-2">
+                        <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
+                          <div className="flex items-center justify-center w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-background font-bold text-sm sm:text-lg border-2 border-muted flex-shrink-0">
                             {actualPosition !== null ? (
                               <span>{actualPosition}º</span>
                             ) : (
                               <span className="text-muted-foreground">—</span>
                             )}
                           </div>
-                          <div className="flex items-center gap-2">
-                            {actualPosition && actualPosition <= 3 && getRankIcon(actualPosition)}
-                            <span className="font-medium">{participant.participant_name}</span>
+                          <div className="flex items-center gap-1 sm:gap-2 min-w-0">
+                            {actualPosition && actualPosition <= 3 && (
+                              <div className="flex-shrink-0">
+                                {getRankIcon(actualPosition)}
+                              </div>
+                            )}
+                            <span className="font-medium text-sm sm:text-base truncate">{participant.participant_name}</span>
                           </div>
                         </div>
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-1 sm:gap-2 flex-wrap justify-end flex-shrink-0">
                           <Badge 
                             variant={actualPosition === 1 ? "default" : participant.total_points === 0 ? "outline" : "secondary"} 
-                            className="text-sm px-3 py-1"
+                            className="text-xs sm:text-sm px-2 sm:px-3 py-0.5 sm:py-1 whitespace-nowrap"
                           >
                             {participant.total_points} pts
                           </Badge>
                           {participant.prize_amount !== undefined && participant.prize_amount > 0 && (
-                            <Badge variant="default" className="text-sm px-3 py-1 bg-primary">
+                            <Badge variant="default" className="text-xs sm:text-sm px-2 sm:px-3 py-0.5 sm:py-1 bg-primary whitespace-nowrap">
                               R$ {participant.prize_amount.toFixed(2)}
                             </Badge>
                           )}
                           {getPrizeStatusBadge(participant.prize_status, participant.prize_amount)}
                           {isExpanded ? (
-                            <ChevronUp className="h-5 w-5 text-muted-foreground" />
+                            <ChevronUp className="h-4 w-4 sm:h-5 sm:w-5 text-muted-foreground flex-shrink-0" />
                           ) : (
-                            <ChevronDown className="h-5 w-5 text-muted-foreground" />
+                            <ChevronDown className="h-4 w-4 sm:h-5 sm:w-5 text-muted-foreground flex-shrink-0" />
                           )}
                         </div>
                       </div>

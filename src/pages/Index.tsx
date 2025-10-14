@@ -226,52 +226,52 @@ const Index = () => {
     <div className="min-h-screen bg-gradient-to-br from-background via-muted to-background">
       {/* Header */}
       <header className="border-b bg-card/80 backdrop-blur-md sticky top-0 z-10 shadow-sm">
-        <div className="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <img src={palpiteAmigoLogo} alt="Palpite Amigo" className="h-24 w-auto" />
+        <div className="max-w-7xl mx-auto px-2 sm:px-4 py-2 sm:py-3 flex items-center justify-between">
+          <div className="flex items-center gap-2 sm:gap-3">
+            <img src={palpiteAmigoLogo} alt="Palpite Amigo" className="h-16 sm:h-20 md:h-24 w-auto" />
           </div>
-          <div className="flex items-center gap-2">
-            <Button variant="ghost" size="sm" onClick={() => navigate("/profile")} className="hover:bg-primary/10">
-              <User className="w-4 h-4 mr-2" />
-              Perfil
+          <div className="flex items-center gap-1 sm:gap-2">
+            <Button variant="ghost" size="sm" onClick={() => navigate("/profile")} className="hover:bg-primary/10 text-xs sm:text-sm px-2 sm:px-3">
+              <User className="w-3 h-3 sm:w-4 sm:h-4 sm:mr-2" />
+              <span className="hidden sm:inline">Perfil</span>
             </Button>
-            <Button variant="ghost" size="sm" onClick={handleSignOut} className="hover:bg-destructive/10 hover:text-destructive">
-              <LogOut className="w-4 h-4 mr-2" />
-              Sair
+            <Button variant="ghost" size="sm" onClick={handleSignOut} className="hover:bg-destructive/10 hover:text-destructive text-xs sm:text-sm px-2 sm:px-3">
+              <LogOut className="w-3 h-3 sm:w-4 sm:h-4 sm:mr-2" />
+              <span className="hidden sm:inline">Sair</span>
             </Button>
           </div>
         </div>
       </header>
 
       {/* Main Content */}
-      <main className="max-w-7xl mx-auto px-4 py-6 space-y-8">
+      <main className="max-w-7xl mx-auto px-2 sm:px-4 py-4 sm:py-6 space-y-6 sm:space-y-8">
 
         {/* Hero Section */}
         {userRole?.isAdmin ? (
-          <div className="text-center space-y-4 py-4">
-            <div className="inline-block mb-2">
-              <img src={palpiteAmigoLogo} alt="Palpite Amigo" className="h-52 w-auto mx-auto" />
+          <div className="text-center space-y-3 sm:space-y-4 py-2 sm:py-4">
+            <div className="inline-block mb-1 sm:mb-2">
+              <img src={palpiteAmigoLogo} alt="Palpite Amigo" className="h-32 sm:h-40 md:h-52 w-auto mx-auto" />
             </div>
-            <p className="text-muted-foreground text-xl max-w-2xl mx-auto">
+            <p className="text-muted-foreground text-base sm:text-lg md:text-xl max-w-2xl mx-auto px-4">
               Gerencie bolões de futebol e divirta-se com seus amigos
             </p>
-            <div className="flex flex-col sm:flex-row gap-4 justify-center pt-4">
+            <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 justify-center pt-2 sm:pt-4 px-4">
               <Button
                 size="lg"
-                className="shadow-xl hover:shadow-2xl transition-all text-lg px-8 py-6 rounded-xl bg-gradient-to-r from-primary to-primary-glow hover:from-primary-glow hover:to-accent"
+                className="shadow-xl hover:shadow-2xl transition-all text-base sm:text-lg px-6 sm:px-8 py-5 sm:py-6 rounded-xl bg-gradient-to-r from-primary to-primary-glow hover:from-primary-glow hover:to-accent"
                 onClick={() => navigate("/create-football")}
               >
-                <Plus className="w-6 h-6 mr-2" />
+                <Plus className="w-5 h-5 sm:w-6 sm:h-6 mr-2" />
                 Criar Bolão de Futebol
               </Button>
             </div>
           </div>
         ) : (
-          <div className="text-center space-y-4 py-4">
-            <div className="inline-block mb-2">
-              <img src={palpiteAmigoLogo} alt="Palpite Amigo" className="h-52 w-auto mx-auto" />
+          <div className="text-center space-y-3 sm:space-y-4 py-2 sm:py-4">
+            <div className="inline-block mb-1 sm:mb-2">
+              <img src={palpiteAmigoLogo} alt="Palpite Amigo" className="h-32 sm:h-40 md:h-52 w-auto mx-auto" />
             </div>
-            <p className="text-muted-foreground text-xl max-w-2xl mx-auto">
+            <p className="text-muted-foreground text-base sm:text-lg md:text-xl max-w-2xl mx-auto px-4">
               Mostre que entende de futebol — desafie seus amigos no Palpite Amigo!
             </p>
           </div>
