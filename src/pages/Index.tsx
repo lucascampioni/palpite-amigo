@@ -217,12 +217,12 @@ const Index = () => {
       </header>
 
       {/* Main Content */}
-      <main className="max-w-7xl mx-auto px-4 py-12 space-y-12">
+      <main className="max-w-7xl mx-auto px-4 py-6 space-y-8">
 
         {/* Hero Section */}
         {userRole?.isAdmin ? (
-          <div className="text-center space-y-6 py-8">
-            <div className="inline-block mb-4">
+          <div className="text-center space-y-4 py-4">
+            <div className="inline-block mb-2">
               <img src={chutaiLogo} alt="Chutaí" className="h-52 w-auto mx-auto" />
             </div>
             <p className="text-muted-foreground text-xl max-w-2xl mx-auto">
@@ -240,8 +240,8 @@ const Index = () => {
             </div>
           </div>
         ) : (
-          <div className="text-center space-y-6 py-8">
-            <div className="inline-block mb-4">
+          <div className="text-center space-y-4 py-4">
+            <div className="inline-block mb-2">
               <img src={chutaiLogo} alt="Chutaí" className="h-52 w-auto mx-auto" />
             </div>
             <p className="text-muted-foreground text-xl max-w-2xl mx-auto">
