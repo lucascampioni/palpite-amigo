@@ -90,7 +90,7 @@ const getTypeIcon = (type: string) => {
             )}
             {pool.entry_fee && pool.entry_fee > 0 ? (
               <Badge variant="secondary" className="bg-gradient-to-r from-secondary/20 to-accent/20 text-primary font-semibold shadow-sm border border-secondary/30">
-                💰 R$ {pool.entry_fee.toFixed(2)}
+                💰 R$ {pool.entry_fee.toFixed(2).replace('.', ',')}
               </Badge>
             ) : (
               <Badge variant="outline" className="border-2 border-accent/50 text-accent font-semibold shadow-sm bg-accent/5">

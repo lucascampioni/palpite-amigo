@@ -403,7 +403,7 @@ const FootballRanking = ({ poolId, pool }: FootballRankingProps) => {
                       </Badge>
                       {group.participants[0].prize_amount !== undefined && group.participants[0].prize_amount > 0 && (
                         <Badge variant="default" className="mt-0.5 sm:mt-1 bg-primary text-[0.625rem] sm:text-xs px-1 sm:px-2 py-0">
-                          R$ {group.participants[0].prize_amount.toFixed(2)}
+                          R$ {group.participants[0].prize_amount.toFixed(2).replace('.', ',')}
                         </Badge>
                       )}
                     </div>
@@ -464,7 +464,7 @@ const FootballRanking = ({ poolId, pool }: FootballRankingProps) => {
                               </Badge>
                               {participant.prize_amount !== undefined && participant.prize_amount > 0 && (
                                 <Badge variant="default" className="text-xs sm:text-sm px-2 sm:px-3 py-0.5 sm:py-1 bg-primary whitespace-nowrap">
-                                  R$ {participant.prize_amount.toFixed(2)}
+                                  R$ {participant.prize_amount.toFixed(2).replace('.', ',')}
                                 </Badge>
                               )}
                               {getPrizeStatusBadge(participant.prize_status, participant.prize_amount)}
@@ -486,7 +486,7 @@ const FootballRanking = ({ poolId, pool }: FootballRankingProps) => {
                           </Badge>
                           {participant.prize_amount !== undefined && participant.prize_amount > 0 && (
                             <Badge variant="default" className="text-xs px-2 py-0.5 bg-primary whitespace-nowrap">
-                              R$ {participant.prize_amount.toFixed(2)}
+                              R$ {participant.prize_amount.toFixed(2).replace('.', ',')}
                             </Badge>
                           )}
                           {getPrizeStatusBadge(participant.prize_status, participant.prize_amount)}

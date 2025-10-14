@@ -471,7 +471,7 @@ const PoolDetail = () => {
                             <p className="text-sm font-semibold text-yellow-700 dark:text-yellow-400">1º Lugar</p>
                           </div>
                           <p className="text-xl font-bold text-yellow-800 dark:text-yellow-300">
-                            R$ {parseFloat(pool.first_place_prize).toFixed(2)}
+                            R$ {parseFloat(pool.first_place_prize).toFixed(2).replace('.', ',')}
                           </p>
                         </div>
                       )}
@@ -482,7 +482,7 @@ const PoolDetail = () => {
                             <p className="text-sm font-semibold text-gray-700 dark:text-gray-300">2º Lugar</p>
                           </div>
                           <p className="text-xl font-bold text-gray-800 dark:text-gray-200">
-                            R$ {parseFloat(pool.second_place_prize).toFixed(2)}
+                            R$ {parseFloat(pool.second_place_prize).toFixed(2).replace('.', ',')}
                           </p>
                         </div>
                       )}
@@ -493,7 +493,7 @@ const PoolDetail = () => {
                             <p className="text-sm font-semibold text-orange-800 dark:text-orange-400">3º Lugar</p>
                           </div>
                           <p className="text-xl font-bold text-orange-900 dark:text-orange-300">
-                            R$ {parseFloat(pool.third_place_prize).toFixed(2)}
+                            R$ {parseFloat(pool.third_place_prize).toFixed(2).replace('.', ',')}
                           </p>
                         </div>
                       )}

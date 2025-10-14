@@ -145,9 +145,9 @@ export const PrizePixSubmission = ({
         <p className="text-xs text-blue-800 dark:text-blue-200">
           {totalTied} {totalTied === 1 ? 'pessoa empatou' : 'pessoas empataram'} em {placementName} lugar. 
           Os prêmios de {involvedPositions.join(' e ')} lugar ({involvedPositions.map((pos, idx) => 
-            `${pos}: R$ ${prizes[placement - 1 + idx].toFixed(2)}`
-          ).join(', ')}) foram somados (R$ {summedPrizes.toFixed(2)}) e divididos igualmente entre os {totalTied} vencedores, 
-          resultando em R$ {prizeAmount.toFixed(2)} para cada um.
+            `${pos}: R$ ${prizes[placement - 1 + idx].toFixed(2).replace('.', ',')}`
+          ).join(', ')}) foram somados (R$ {summedPrizes.toFixed(2).replace('.', ',')}) e divididos igualmente entre os {totalTied} vencedores, 
+          resultando em R$ {prizeAmount.toFixed(2).replace('.', ',')} para cada um.
         </p>
       </div>
     );
@@ -171,7 +171,7 @@ export const PrizePixSubmission = ({
             <h3 className="font-bold text-lg">Seu Prêmio</h3>
           </div>
           <p className="text-2xl font-bold text-yellow-700 dark:text-yellow-500 mb-2">
-            R$ {prizeAmount.toFixed(2)}
+            R$ {prizeAmount.toFixed(2).replace('.', ',')}
           </p>
           <p className="text-sm text-muted-foreground">
             Conquistado por ter ficado em <span className="font-semibold">{getPlacementText()}</span>
