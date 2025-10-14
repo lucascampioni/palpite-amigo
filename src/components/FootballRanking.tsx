@@ -149,7 +149,7 @@ const FootballRanking = ({ poolId, pool }: FootballRankingProps) => {
     
     if (!status || status === 'awaiting_pix') {
       return (
-        <Badge variant="outline" className="text-[0.625rem] sm:text-xs bg-yellow-100 dark:bg-yellow-900 text-yellow-800 dark:text-yellow-200 border-yellow-300 dark:border-yellow-700 px-1.5 sm:px-2 py-0 sm:py-0.5 whitespace-nowrap hidden sm:inline-flex">
+        <Badge variant="outline" className="text-[0.625rem] sm:text-xs bg-yellow-100 dark:bg-yellow-900 text-yellow-800 dark:text-yellow-200 border-yellow-300 dark:border-yellow-700 px-1.5 sm:px-2 py-0 sm:py-0.5 whitespace-nowrap">
           Aguardando chave Pix
         </Badge>
       );
@@ -157,7 +157,7 @@ const FootballRanking = ({ poolId, pool }: FootballRankingProps) => {
     
     if (status === 'pix_submitted') {
       return (
-        <Badge variant="outline" className="text-[0.625rem] sm:text-xs bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 border-blue-300 dark:border-blue-700 px-1.5 sm:px-2 py-0 sm:py-0.5 whitespace-nowrap hidden sm:inline-flex">
+        <Badge variant="outline" className="text-[0.625rem] sm:text-xs bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 border-blue-300 dark:border-blue-700 px-1.5 sm:px-2 py-0 sm:py-0.5 whitespace-nowrap">
           Aguardando pagamento
         </Badge>
       );
@@ -421,40 +421,62 @@ const FootballRanking = ({ poolId, pool }: FootballRankingProps) => {
                 >
                   <div className="rounded-lg bg-muted/50 hover:bg-muted transition-colors">
                     <CollapsibleTrigger className="w-full">
-                      <div className="flex items-center justify-between p-2 sm:p-3 gap-1 sm:gap-2">
-                        <div className="flex items-center gap-1.5 sm:gap-2 min-w-0 overflow-hidden">
-                          <div className="flex items-center justify-center w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-background font-bold text-sm sm:text-lg border-2 border-muted flex-shrink-0">
-                            {actualPosition !== null ? (
-                              <span>{actualPosition}º</span>
+                      <div className="p-2 sm:p-3">
+                        <div className="flex items-center justify-between gap-2">
+                          <div className="flex items-center gap-1.5 sm:gap-2 min-w-0 flex-1">
+                            <div className="flex items-center justify-center w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-background font-bold text-sm sm:text-lg border-2 border-muted flex-shrink-0">
+                              {actualPosition !== null ? (
+                                <span>{actualPosition}º</span>
+                              ) : (
+                                <span className="text-muted-foreground">—</span>
+                              )}
+                            </div>
+                            {actualPosition && actualPosition <= 3 && (
+                              <div className="flex-shrink-0">
+                                {getRankIcon(actualPosition)}
+                              </div>
+                            )}
+                            <span className="font-medium text-sm sm:text-base break-words whitespace-normal sm:whitespace-nowrap sm:truncate min-w-0">
+                              {participant.participant_name}
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-1 sm:gap-2 flex-shrink-0">
+                            {/* Desktop/tablet badges */}
+                            <div className="hidden sm:flex items-center gap-2">
+                              <Badge 
+                                variant={actualPosition === 1 ? "default" : participant.total_points === 0 ? "outline" : "secondary"} 
+                                className="text-xs sm:text-sm px-2 sm:px-3 py-0.5 sm:py-1 whitespace-nowrap"
+                              >
+                                {participant.total_points} pts
+                              </Badge>
+                              {participant.prize_amount !== undefined && participant.prize_amount > 0 && (
+                                <Badge variant="default" className="text-xs sm:text-sm px-2 sm:px-3 py-0.5 sm:py-1 bg-primary whitespace-nowrap">
+                                  R$ {participant.prize_amount.toFixed(2)}
+                                </Badge>
+                              )}
+                              {getPrizeStatusBadge(participant.prize_status, participant.prize_amount)}
+                            </div>
+                            {isExpanded ? (
+                              <ChevronUp className="h-4 w-4 sm:h-5 sm:w-5 text-muted-foreground flex-shrink-0" />
                             ) : (
-                              <span className="text-muted-foreground">—</span>
+                              <ChevronDown className="h-4 w-4 sm:h-5 sm:w-5 text-muted-foreground flex-shrink-0" />
                             )}
                           </div>
-                          {actualPosition && actualPosition <= 3 && (
-                            <div className="flex-shrink-0">
-                              {getRankIcon(actualPosition)}
-                            </div>
-                          )}
-                          <span className="font-medium text-sm sm:text-base min-w-0 overflow-hidden text-ellipsis whitespace-nowrap">{participant.participant_name}</span>
                         </div>
-                        <div className="flex items-center gap-1 sm:gap-2 flex-shrink-0">
+                        {/* Mobile badges below name */}
+                        <div className="mt-1 flex items-center gap-2 flex-wrap sm:hidden pl-10">
                           <Badge 
                             variant={actualPosition === 1 ? "default" : participant.total_points === 0 ? "outline" : "secondary"} 
-                            className="text-xs sm:text-sm px-2 sm:px-3 py-0.5 sm:py-1 whitespace-nowrap"
+                            className="text-xs px-2 py-0.5 whitespace-nowrap"
                           >
                             {participant.total_points} pts
                           </Badge>
                           {participant.prize_amount !== undefined && participant.prize_amount > 0 && (
-                            <Badge variant="default" className="text-xs sm:text-sm px-2 sm:px-3 py-0.5 sm:py-1 bg-primary whitespace-nowrap">
+                            <Badge variant="default" className="text-xs px-2 py-0.5 bg-primary whitespace-nowrap">
                               R$ {participant.prize_amount.toFixed(2)}
                             </Badge>
                           )}
                           {getPrizeStatusBadge(participant.prize_status, participant.prize_amount)}
-                          {isExpanded ? (
-                            <ChevronUp className="h-4 w-4 sm:h-5 sm:w-5 text-muted-foreground flex-shrink-0" />
-                          ) : (
-                            <ChevronDown className="h-4 w-4 sm:h-5 sm:w-5 text-muted-foreground flex-shrink-0" />
-                          )}
                         </div>
                       </div>
                     </CollapsibleTrigger>
