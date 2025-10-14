@@ -18,7 +18,9 @@ const Index = () => {
   const [session, setSession] = useState<Session | null>(null);
   const [myCreatedPools, setMyCreatedPools] = useState<any[]>([]);
   const [myParticipatingPools, setMyParticipatingPools] = useState<any[]>([]);
-  const [myAwaitingProofPools, setMyAwaitingProofPools] = useState<any[]>([]); // Now holds winners awaiting PIX
+  const [myAwaitingPixPools, setMyAwaitingPixPools] = useState<any[]>([]); // Pools where user won and needs to submit PIX
+  const [myAwaitingPaymentPools, setMyAwaitingPaymentPools] = useState<any[]>([]); // Pools where user submitted PIX and awaits payment
+  const [myPrizeReceivedPools, setMyPrizeReceivedPools] = useState<any[]>([]); // Pools where user received prize
   const [officialPools, setOfficialPools] = useState<any[]>([]);
   const [availablePools, setAvailablePools] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -76,10 +78,16 @@ const Index = () => {
     
     const participantPoolIds = participantRecords?.map(p => p.pool_id) || [];
     
-    // Filter by prize_status to find pools where user won and needs to submit PIX
+    // Separate pools by prize status
     const awaitingPixParticipants = participantRecords?.filter(p => p.prize_status === 'awaiting_pix') || [];
-    const awaitingPixPoolIds = awaitingPixParticipants.map(p => p.pool_id);
+    const pixSubmittedParticipants = participantRecords?.filter(p => p.prize_status === 'pix_submitted') || [];
+    const prizeReceivedParticipants = participantRecords?.filter(p => p.prize_status === 'prize_sent') || [];
     
+    const awaitingPixPoolIds = awaitingPixParticipants.map(p => p.pool_id);
+    const pixSubmittedPoolIds = pixSubmittedParticipants.map(p => p.pool_id);
+    const prizeReceivedPoolIds = prizeReceivedParticipants.map(p => p.pool_id);
+    
+    // Load pools where user needs to submit PIX
     let awaitingPixPoolsData: any[] = [];
     if (awaitingPixPoolIds.length > 0) {
       const { data } = await supabase
@@ -90,8 +98,31 @@ const Index = () => {
       awaitingPixPoolsData = data || [];
     }
 
-    // Regular participating pools (approved and not awaiting pix)
-    const regularParticipantPoolIds = participantPoolIds.filter(id => !awaitingPixPoolIds.includes(id));
+    // Load pools where user submitted PIX and awaits payment
+    let awaitingPaymentPoolsData: any[] = [];
+    if (pixSubmittedPoolIds.length > 0) {
+      const { data } = await supabase
+        .from("pools")
+        .select("*, participants(count)")
+        .in("id", pixSubmittedPoolIds)
+        .order("created_at", { ascending: false });
+      awaitingPaymentPoolsData = data || [];
+    }
+
+    // Load pools where user received prize
+    let prizeReceivedPoolsData: any[] = [];
+    if (prizeReceivedPoolIds.length > 0) {
+      const { data } = await supabase
+        .from("pools")
+        .select("*, participants(count)")
+        .in("id", prizeReceivedPoolIds)
+        .order("created_at", { ascending: false });
+      prizeReceivedPoolsData = data || [];
+    }
+
+    // Regular participating pools (approved and no prize status OR not in prize flow)
+    const specialPoolIds = [...awaitingPixPoolIds, ...pixSubmittedPoolIds, ...prizeReceivedPoolIds];
+    const regularParticipantPoolIds = participantPoolIds.filter(id => !specialPoolIds.includes(id));
     
     let participatingPoolsData: any[] = [];
     if (regularParticipantPoolIds.length > 0) {
@@ -110,7 +141,6 @@ const Index = () => {
     const excludeFromOfficialIds = [
       ...ownedPools?.map(p => p.id) || [],
       ...participantPoolIds,
-      ...awaitingPixPoolIds,
     ];
     
     let officialPoolsData: any[] = [];
@@ -144,7 +174,6 @@ const Index = () => {
       ...ownedPools?.map(p => p.id) || [],
       ...participantPoolIds,
       ...officialPoolsData?.map(p => p.id) || [],
-      ...awaitingPixPoolIds,
     ];
     
     let activePools: any[] = [];
@@ -172,7 +201,9 @@ const Index = () => {
 
     setMyCreatedPools(ownedPools || []);
     setMyParticipatingPools(participatingPoolsData);
-    setMyAwaitingProofPools(awaitingPixPoolsData); // Now holds prize winners awaiting PIX
+    setMyAwaitingPixPools(awaitingPixPoolsData);
+    setMyAwaitingPaymentPools(awaitingPaymentPoolsData);
+    setMyPrizeReceivedPools(prizeReceivedPoolsData);
     setOfficialPools(officialPoolsData || []);
     setAvailablePools(activePools);
     
@@ -272,8 +303,8 @@ const Index = () => {
         )}
 
 
-        {/* Awaiting Prize PIX Section */}
-        {myAwaitingProofPools.length > 0 && (
+        {/* Awaiting PIX Submission Section */}
+        {myAwaitingPixPools.length > 0 && (
           <section className="space-y-4">
             <div className="flex items-center gap-2">
               <div className="w-8 h-8 rounded-lg bg-yellow-500 flex items-center justify-center">
@@ -286,12 +317,39 @@ const Index = () => {
                 Parabéns! Informe sua chave PIX para receber o prêmio.
               </p>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {myAwaitingProofPools.map((pool) => (
+                {myAwaitingPixPools.map((pool) => (
                   <PoolCard
                     key={pool.id}
                     pool={pool}
                     isUserParticipating={true}
                     hasWonPrize={true}
+                    onClick={() => navigate(`/pool/${pool.id}`)}
+                  />
+                ))}
+              </div>
+            </div>
+          </section>
+        )}
+
+        {/* Awaiting Payment Section */}
+        {myAwaitingPaymentPools.length > 0 && (
+          <section className="space-y-4">
+            <div className="flex items-center gap-2">
+              <div className="w-8 h-8 rounded-lg bg-blue-500 flex items-center justify-center">
+                <span className="text-lg">⏳</span>
+              </div>
+              <h3 className="text-2xl font-bold">Aguardando Pagamento</h3>
+            </div>
+            <div className="p-4 rounded-lg bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-800">
+              <p className="text-sm text-muted-foreground mb-4">
+                Sua chave PIX foi enviada. Aguarde o pagamento do prêmio.
+              </p>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {myAwaitingPaymentPools.map((pool) => (
+                  <PoolCard
+                    key={pool.id}
+                    pool={pool}
+                    isUserParticipating={true}
                     onClick={() => navigate(`/pool/${pool.id}`)}
                   />
                 ))}
@@ -410,6 +468,26 @@ const Index = () => {
                 )}
               </div>
             )}
+
+            {/* Prize Received Pools */}
+            {myPrizeReceivedPools.length > 0 && (
+              <div className="space-y-3 pt-4">
+                <h4 className="text-sm font-semibold text-muted-foreground">
+                  ✅ Prêmios Recebidos ({myPrizeReceivedPools.length})
+                </h4>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {myPrizeReceivedPools.map((pool) => (
+                    <PoolCard
+                      key={pool.id}
+                      pool={pool}
+                      onClick={() => navigate(`/pool/${pool.id}`)}
+                      isUserParticipating={true}
+                      prizeReceived={true}
+                    />
+                  ))}
+                </div>
+              </div>
+            )}
           </section>
         )}
 
@@ -433,7 +511,7 @@ const Index = () => {
         )}
 
         {/* Empty State */}
-        {myCreatedPools.length === 0 && myParticipatingPools.length === 0 && availablePools.length === 0 && officialPools.length === 0 && (
+        {myCreatedPools.length === 0 && myParticipatingPools.length === 0 && myAwaitingPixPools.length === 0 && myAwaitingPaymentPools.length === 0 && myPrizeReceivedPools.length === 0 && availablePools.length === 0 && officialPools.length === 0 && (
           <div className="text-center py-16 space-y-4">
             <div className="w-24 h-24 mx-auto rounded-full bg-muted flex items-center justify-center">
               <span className="text-5xl">⚽</span>
