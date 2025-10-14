@@ -26,37 +26,29 @@ const PoolCard = ({ pool, onClick, isUserParticipating = false }: PoolCardProps)
   const isInProgress = pool.status === "active" && isExpired && isUserParticipating;
 
   const getStatusColor = (status: string) => {
-    if (isInProgress) {
-      return "bg-orange-500 text-white";
+    if (isUserParticipating && status === "active") {
+      return "bg-blue-500 text-white";
     }
-    switch (status) {
-      case "active":
-        return "bg-primary text-primary-foreground";
-      case "finished":
-        return "bg-secondary text-secondary-foreground";
-      case "draft":
-        return "bg-muted text-muted-foreground";
-      default:
-        return "bg-muted text-muted-foreground";
+    if (status === "active") {
+      return "bg-green-500 text-white";
     }
+    if (status === "finished") {
+      return "bg-gray-500 text-white";
+    }
+    return "bg-muted text-muted-foreground";
   };
 
   const getStatusText = (status: string) => {
-    if (isInProgress) {
-      return "Em andamento";
+    if (isUserParticipating && status === "active") {
+      return "Participando";
     }
-    switch (status) {
-      case "active":
-        return "Ativo";
-      case "finished":
-        return "Finalizado";
-      case "draft":
-        return "Rascunho";
-      case "closed":
-        return "Fechado";
-      default:
-        return status;
+    if (status === "active") {
+      return "Disponível";
     }
+    if (status === "finished") {
+      return "Finalizado";
+    }
+    return status;
   };
 
 const getTypeIcon = (type: string) => {
