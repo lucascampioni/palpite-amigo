@@ -284,9 +284,8 @@ const FootballPredictionForm = ({ poolId, userId, onSuccess, entryFee, pool }: F
       <div className="p-3 rounded-lg bg-muted/50 text-sm space-y-2">
         <p className="font-medium">📊 Sistema de Pontuação:</p>
         <ul className="list-disc list-inside space-y-1 text-muted-foreground text-xs">
-          <li><strong>5 pontos</strong>: Placar exato</li>
-          <li><strong>3 pontos</strong>: Resultado correto (vitória, empate ou derrota)</li>
-          <li><strong>1 ponto</strong>: Diferença de gols correta</li>
+          <li><strong>1 ponto</strong>: Placar exato</li>
+          <li><strong>0 pontos</strong>: Qualquer outro resultado</li>
         </ul>
         {(pool?.first_place_prize || pool?.second_place_prize || pool?.third_place_prize) && (
           <>
