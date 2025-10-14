@@ -201,7 +201,7 @@ const Index = () => {
       <header className="border-b bg-card/80 backdrop-blur-md sticky top-0 z-10 shadow-sm">
         <div className="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <img src={chutaiLogo} alt="Chutaí" className="h-16 w-auto" />
+            <img src={chutaiLogo} alt="Chutaí" className="h-20 w-auto" />
           </div>
           <div className="flex items-center gap-2">
             <Button variant="ghost" size="sm" onClick={() => navigate("/profile")} className="hover:bg-primary/10">
@@ -223,7 +223,7 @@ const Index = () => {
         {userRole?.isAdmin ? (
           <div className="text-center space-y-6 py-8">
             <div className="inline-block mb-4">
-              <img src={chutaiLogo} alt="Chutaí" className="h-32 w-auto mx-auto" />
+              <img src={chutaiLogo} alt="Chutaí" className="h-40 w-auto mx-auto" />
             </div>
             <p className="text-muted-foreground text-xl max-w-2xl mx-auto">
               Gerencie bolões de futebol e divirta-se com seus amigos
@@ -242,7 +242,7 @@ const Index = () => {
         ) : (
           <div className="text-center space-y-6 py-8">
             <div className="inline-block mb-4">
-              <img src={chutaiLogo} alt="Chutaí" className="h-32 w-auto mx-auto" />
+              <img src={chutaiLogo} alt="Chutaí" className="h-40 w-auto mx-auto" />
             </div>
             <p className="text-muted-foreground text-xl max-w-2xl mx-auto">
               Participe dos bolões oficiais e mostre seus conhecimentos
