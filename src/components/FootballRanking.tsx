@@ -116,8 +116,8 @@ const FootballRanking = ({ poolId }: FootballRankingProps) => {
         </CardTitle>
       </CardHeader>
       <CardContent>
-        {/* Podium for top 3 */}
-        {ranking.length >= 3 && (
+        {/* Podium or simple list when <3 */}
+        {ranking.length >= 3 ? (
           <div className="mb-8">
             <div className="flex items-end justify-center gap-4 mb-4">
               {podiumOrder.map((index) => {
@@ -142,13 +142,9 @@ const FootballRanking = ({ poolId }: FootballRankingProps) => {
               })}
             </div>
           </div>
-        )}
-
-        {/* Rest of ranking */}
-        <div className="space-y-3">
-          {ranking.slice(3).map((participant, idx) => {
-            const index = idx + 3;
-            return (
+        ) : (
+          <div className="space-y-3">
+            {ranking.map((participant, index) => (
               <div
                 key={participant.id}
                 className="flex items-center justify-between p-3 rounded-lg bg-muted/50"
@@ -157,15 +153,42 @@ const FootballRanking = ({ poolId }: FootballRankingProps) => {
                   <div className="flex items-center justify-center w-8 h-8 rounded-full bg-background font-bold">
                     <span>{index + 1}º</span>
                   </div>
-                  <span className="font-medium">{participant.participant_name}</span>
+                  <span className="font-medium flex items-center gap-2">
+                    {getRankIcon(index)} {participant.participant_name}
+                  </span>
                 </div>
                 <Badge variant="secondary">
                   {participant.total_points} pts
                 </Badge>
               </div>
-            );
-          })}
-        </div>
+            ))}
+          </div>
+        )}
+
+        {/* Rest of ranking when >=3 */}
+        {ranking.length >= 3 && (
+          <div className="space-y-3">
+            {ranking.slice(3).map((participant, idx) => {
+              const index = idx + 3;
+              return (
+                <div
+                  key={participant.id}
+                  className="flex items-center justify-between p-3 rounded-lg bg-muted/50"
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="flex items-center justify-center w-8 h-8 rounded-full bg-background font-bold">
+                      <span>{index + 1}º</span>
+                    </div>
+                    <span className="font-medium">{participant.participant_name}</span>
+                  </div>
+                  <Badge variant="secondary">
+                    {participant.total_points} pts
+                  </Badge>
+                </div>
+              );
+            })}
+          </div>
+        )}
       </CardContent>
     </Card>
   );
