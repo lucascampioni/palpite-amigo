@@ -258,8 +258,9 @@ const FootballPredictionForm = ({ poolId, userId, onSuccess, entryFee }: Footbal
 
       setPaymentProofUploaded(true);
       toast({
-        title: "Comprovante enviado!",
-        description: "Seus palpites foram salvos com sucesso!",
+        title: "🎉 Você está inscrito no bolão!",
+        description: "Boa sorte! Que os melhores palpites vençam! 🍀",
+        duration: 5000,
       });
       onSuccess(); // Refresh parent to update status
     } catch (error) {
