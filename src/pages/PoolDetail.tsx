@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
-import { ArrowLeft, Calendar, Trophy, Users, Share2, Award, Copy, Lock, Unlock } from "lucide-react";
+import { ArrowLeft, Calendar, Trophy, Users, Share2, Award, Copy, Lock, Unlock, CheckCircle } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { Input } from "@/components/ui/input";
@@ -532,13 +532,26 @@ const PoolDetail = () => {
                 {currentUserParticipant.prize_status === 'prize_sent' && (
                   <>
                     <Separator />
-                    <div className="p-4 rounded-lg bg-green-50 dark:bg-green-950 border border-green-200 dark:border-green-800">
-                      <p className="text-sm font-medium text-green-700 dark:text-green-300">
-                        ✓ Prêmio Enviado!
-                      </p>
-                      <p className="text-xs text-muted-foreground mt-1">
-                        O prêmio foi enviado para sua chave PIX. Verifique sua conta.
-                      </p>
+                    <div className="p-4 rounded-lg bg-green-50 dark:bg-green-950 border border-green-200 dark:border-green-800 space-y-3">
+                      <div>
+                        <p className="text-sm font-medium text-green-700 dark:text-green-300">
+                          ✓ Prêmio Enviado!
+                        </p>
+                        <p className="text-xs text-muted-foreground mt-1">
+                          O prêmio foi enviado para sua chave PIX. Verifique sua conta.
+                        </p>
+                      </div>
+                      {currentUserParticipant.prize_proof_url && (
+                        <a
+                          href={currentUserParticipant.prize_proof_url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-2 text-sm text-primary hover:underline font-medium"
+                        >
+                          <CheckCircle className="w-4 h-4" />
+                          Ver comprovante de pagamento
+                        </a>
+                      )}
                     </div>
                   </>
                 )}
