@@ -87,16 +87,19 @@ export const AdminPrizeManagement = ({ participant, poolId, onSuccess }: AdminPr
 
       if (uploadError) throw uploadError;
 
-      const { data: { publicUrl } } = supabase.storage
+      // Get signed URL for private access (valid for 1 year)
+      const { data: signedUrlData, error: signedUrlError } = await supabase.storage
         .from("payment-proofs")
-        .getPublicUrl(fileName);
+        .createSignedUrl(fileName, 31536000); // 1 year in seconds
+
+      if (signedUrlError) throw signedUrlError;
 
       // Update participant status
       const { error: updateError } = await supabase
         .from("participants")
         .update({
           prize_status: "prize_sent",
-          prize_proof_url: publicUrl,
+          prize_proof_url: signedUrlData.signedUrl,
           prize_sent_at: new Date().toISOString(),
         })
         .eq("id", participant.id);
