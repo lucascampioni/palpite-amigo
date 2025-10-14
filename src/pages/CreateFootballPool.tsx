@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import { useUserRole } from "@/hooks/useUserRole";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -47,21 +48,21 @@ interface Match {
 const CreateFootballPool = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { data: userRole, isLoading: isLoadingRole } = useUserRole();
   const [loading, setLoading] = useState(false);
   const [isPrivate, setIsPrivate] = useState(false);
   const [isOfficial, setIsOfficial] = useState(false);
-  const [isAdmin, setIsAdmin] = useState(false);
 
   useEffect(() => {
-    // Check if user is admin
-    const checkAdmin = async () => {
-      const { data, error } = await supabase.rpc('is_app_admin');
-      if (!error && data) {
-        setIsAdmin(true);
-      }
-    };
-    checkAdmin();
-  }, []);
+    if (!isLoadingRole && !userRole?.isAdmin) {
+      toast({
+        variant: "destructive",
+        title: "Acesso negado",
+        description: "Apenas administradores podem criar bolões",
+      });
+      navigate("/");
+    }
+  }, [isLoadingRole, userRole, navigate, toast]);
   const [showGESelector, setShowGESelector] = useState(false);
   const [matches, setMatches] = useState<Match[]>([]);
   const [deadline, setDeadline] = useState<string>("");
@@ -111,6 +112,14 @@ const CreateFootballPool = () => {
       description: `${geMatches.length} jogos foram adicionados ao bolão.`,
     });
   };
+
+  if (isLoadingRole || !userRole?.isAdmin) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <p className="text-muted-foreground">Carregando...</p>
+      </div>
+    );
+  }
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -360,7 +369,7 @@ const CreateFootballPool = () => {
                 />
               </div>
 
-              {isAdmin && (
+              {userRole?.isAdmin && (
                 <div className="flex items-center justify-between rounded-lg border p-4 bg-primary/5">
                   <div className="space-y-0.5">
                     <Label htmlFor="is-official-football">⭐ Bolão Oficial</Label>
