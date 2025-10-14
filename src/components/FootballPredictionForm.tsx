@@ -14,6 +14,7 @@ interface FootballPredictionFormProps {
   userId: string;
   onSuccess: () => void;
   entryFee?: number | null;
+  pool?: any;
 }
 
 interface Match {
@@ -34,7 +35,7 @@ interface Prediction {
   awayScore: string;
 }
 
-const FootballPredictionForm = ({ poolId, userId, onSuccess, entryFee }: FootballPredictionFormProps) => {
+const FootballPredictionForm = ({ poolId, userId, onSuccess, entryFee, pool }: FootballPredictionFormProps) => {
   const { toast } = useToast();
   const [matches, setMatches] = useState<Match[]>([]);
   const [predictions, setPredictions] = useState<Prediction[]>([]);
@@ -175,7 +176,7 @@ const FootballPredictionForm = ({ poolId, userId, onSuccess, entryFee }: Footbal
     } else {
       toast({
         title: "🎉 Você está inscrito no bolão!",
-        description: "Boa sorte! Que os melhores palpites vençam! 🍀",
+        description: "Boa sorte! Seus palpites foram salvos. Agora é só esperar a conclusão dos jogos. 🍀",
         duration: 5000,
       });
       setSubmitted(true);
@@ -193,7 +194,7 @@ const FootballPredictionForm = ({ poolId, userId, onSuccess, entryFee }: Footbal
             🎉 Você está inscrito no bolão!
           </p>
           <p className="text-sm text-muted-foreground">
-            Boa sorte! Que os melhores palpites vençam! 🍀
+            Boa sorte! Seus palpites foram salvos. Agora é só esperar a conclusão dos jogos. 🍀
           </p>
         </div>
       </div>
@@ -279,6 +280,23 @@ const FootballPredictionForm = ({ poolId, userId, onSuccess, entryFee }: Footbal
           </Card>
         );
       })}
+
+      <div className="p-3 rounded-lg bg-muted/50 text-sm space-y-2">
+        <p className="font-medium">📊 Sistema de Pontuação:</p>
+        <ul className="list-disc list-inside space-y-1 text-muted-foreground text-xs">
+          <li><strong>5 pontos</strong>: Placar exato</li>
+          <li><strong>3 pontos</strong>: Resultado correto (vitória, empate ou derrota)</li>
+          <li><strong>1 ponto</strong>: Diferença de gols correta</li>
+        </ul>
+        {(pool?.first_place_prize || pool?.second_place_prize || pool?.third_place_prize) && (
+          <>
+            <p className="font-medium mt-3">⚖️ Critério de Empate:</p>
+            <p className="text-muted-foreground text-xs">
+              Em caso de empate na pontuação, os prêmios das posições empatadas são somados e divididos igualmente entre os participantes.
+            </p>
+          </>
+        )}
+      </div>
 
       <Button onClick={handleSubmit} disabled={submitting} className="w-full" size="lg">
         {submitting ? "Enviando..." : "Enviar Palpites e Participar"}

@@ -454,51 +454,69 @@ const PoolDetail = () => {
 
             {/* Prize Information */}
             {(pool.first_place_prize || pool.second_place_prize || pool.third_place_prize) && (
-              <Card className="border-2 border-primary/20 bg-gradient-to-br from-primary/5 to-primary/10">
-                <CardHeader>
-                  <CardTitle className="text-lg flex items-center gap-2">
-                    <Trophy className="w-5 h-5 text-primary" />
-                    Premiação
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                    {pool.first_place_prize && (
-                      <div className="p-3 rounded-lg bg-gradient-to-br from-yellow-500/20 to-yellow-400/10 border-2 border-yellow-500">
-                        <div className="flex items-center gap-2 mb-1">
-                          <Trophy className="w-4 h-4 text-yellow-600 dark:text-yellow-500" />
-                          <p className="text-sm font-semibold text-yellow-700 dark:text-yellow-400">1º Lugar</p>
+              <>
+                <Card className="border-2 border-primary/20 bg-gradient-to-br from-primary/5 to-primary/10">
+                  <CardHeader>
+                    <CardTitle className="text-lg flex items-center gap-2">
+                      <Trophy className="w-5 h-5 text-primary" />
+                      Premiação
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                      {pool.first_place_prize && (
+                        <div className="p-3 rounded-lg bg-gradient-to-br from-yellow-500/20 to-yellow-400/10 border-2 border-yellow-500">
+                          <div className="flex items-center gap-2 mb-1">
+                            <Trophy className="w-4 h-4 text-yellow-600 dark:text-yellow-500" />
+                            <p className="text-sm font-semibold text-yellow-700 dark:text-yellow-400">1º Lugar</p>
+                          </div>
+                          <p className="text-xl font-bold text-yellow-800 dark:text-yellow-300">
+                            R$ {parseFloat(pool.first_place_prize).toFixed(2)}
+                          </p>
                         </div>
-                        <p className="text-xl font-bold text-yellow-800 dark:text-yellow-300">
-                          R$ {parseFloat(pool.first_place_prize).toFixed(2)}
-                        </p>
-                      </div>
-                    )}
-                    {pool.second_place_prize && (
-                      <div className="p-3 rounded-lg bg-gradient-to-br from-gray-400/20 to-gray-300/10 border-2 border-gray-400">
-                        <div className="flex items-center gap-2 mb-1">
-                          <Award className="w-4 h-4 text-gray-600 dark:text-gray-400" />
-                          <p className="text-sm font-semibold text-gray-700 dark:text-gray-300">2º Lugar</p>
+                      )}
+                      {pool.second_place_prize && (
+                        <div className="p-3 rounded-lg bg-gradient-to-br from-gray-400/20 to-gray-300/10 border-2 border-gray-400">
+                          <div className="flex items-center gap-2 mb-1">
+                            <Award className="w-4 h-4 text-gray-600 dark:text-gray-400" />
+                            <p className="text-sm font-semibold text-gray-700 dark:text-gray-300">2º Lugar</p>
+                          </div>
+                          <p className="text-xl font-bold text-gray-800 dark:text-gray-200">
+                            R$ {parseFloat(pool.second_place_prize).toFixed(2)}
+                          </p>
                         </div>
-                        <p className="text-xl font-bold text-gray-800 dark:text-gray-200">
-                          R$ {parseFloat(pool.second_place_prize).toFixed(2)}
-                        </p>
-                      </div>
-                    )}
-                    {pool.third_place_prize && (
-                      <div className="p-3 rounded-lg bg-gradient-to-br from-orange-600/20 to-orange-500/10 border-2 border-orange-600">
-                        <div className="flex items-center gap-2 mb-1">
-                          <Award className="w-4 h-4 text-orange-700 dark:text-orange-500" />
-                          <p className="text-sm font-semibold text-orange-800 dark:text-orange-400">3º Lugar</p>
+                      )}
+                      {pool.third_place_prize && (
+                        <div className="p-3 rounded-lg bg-gradient-to-br from-orange-600/20 to-orange-500/10 border-2 border-orange-600">
+                          <div className="flex items-center gap-2 mb-1">
+                            <Award className="w-4 h-4 text-orange-700 dark:text-orange-500" />
+                            <p className="text-sm font-semibold text-orange-800 dark:text-orange-400">3º Lugar</p>
+                          </div>
+                          <p className="text-xl font-bold text-orange-900 dark:text-orange-300">
+                            R$ {parseFloat(pool.third_place_prize).toFixed(2)}
+                          </p>
                         </div>
-                        <p className="text-xl font-bold text-orange-900 dark:text-orange-300">
-                          R$ {parseFloat(pool.third_place_prize).toFixed(2)}
-                        </p>
-                      </div>
-                    )}
-                  </div>
-                </CardContent>
-              </Card>
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* Tie Breaker Explanation */}
+                <Card className="border-2 border-blue-500/20 bg-gradient-to-br from-blue-500/5 to-blue-500/10">
+                  <CardContent className="pt-6">
+                    <div className="space-y-2">
+                      <p className="font-semibold text-sm flex items-center gap-2">
+                        <CheckCircle className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+                        ⚖️ Critério de Empate
+                      </p>
+                      <p className="text-sm text-muted-foreground">
+                        Em caso de empate na pontuação, os prêmios das posições empatadas são somados e divididos igualmente entre os participantes. 
+                        Exemplo: Se 2 pessoas empatarem em 1º lugar, os prêmios de 1º e 2º lugares serão somados e divididos entre elas.
+                      </p>
+                    </div>
+                  </CardContent>
+                </Card>
+              </>
             )}
 
             {isOwner && pool.status === "active" && (
@@ -536,7 +554,7 @@ const PoolDetail = () => {
                       ✓ Você já está participando deste bolão!
                     </p>
                     <p className="text-sm text-muted-foreground">
-                      Boa sorte! Seus palpites foram salvos.
+                      Boa sorte! Seus palpites foram salvos. Agora é só esperar a conclusão dos jogos.
                     </p>
                   </div>
                 ) : pool.max_participants && approvedParticipants.length >= pool.max_participants ? (
@@ -553,6 +571,7 @@ const PoolDetail = () => {
                         poolId={pool.id}
                         userId={userId!}
                         onSuccess={loadPoolData}
+                        pool={pool}
                       />
                     ) : (
                       <div className="space-y-4">
@@ -680,6 +699,11 @@ const PoolDetail = () => {
                     <p className="text-xs text-muted-foreground">
                       • Prazo para apostas: {format(new Date(pool.deadline), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })} (30min antes do primeiro jogo).
                     </p>
+                    {(pool.first_place_prize || pool.second_place_prize || pool.third_place_prize) && (
+                      <p className="text-xs text-muted-foreground">
+                        • <strong>Critério de empate:</strong> Em caso de empate na pontuação, os prêmios das posições empatadas são somados e divididos igualmente.
+                      </p>
+                    )}
                   </div>
                 </div>
               </>
@@ -732,7 +756,7 @@ const PoolDetail = () => {
             {approvedParticipants.length > 0 && (pool.pool_type === "football" || hasFootballMatches) && pool.status !== "finished" && (
               <>
                 <Separator />
-                <FootballParticipantsPredictions poolId={pool.id} participants={approvedParticipants} />
+                <FootballParticipantsPredictions poolId={pool.id} participants={approvedParticipants} pool={pool} />
               </>
             )}
 
