@@ -131,6 +131,9 @@ const CreateFootballPool = () => {
     const pixKey = formData.get("pix_key") as string;
     const entryFee = formData.get("entry_fee") as string;
     const maxParticipants = formData.get("max_participants") as string;
+    const firstPlacePrize = formData.get("first_place_prize") as string;
+    const secondPlacePrize = formData.get("second_place_prize") as string;
+    const thirdPlacePrize = formData.get("third_place_prize") as string;
 
     // Validate input
     try {
@@ -202,6 +205,9 @@ const CreateFootballPool = () => {
         entry_fee: entryFee ? parseFloat(entryFee) : null,
         max_participants: maxParticipants && maxParticipants !== "unlimited" ? parseInt(maxParticipants) : null,
         is_official: isOfficial,
+        first_place_prize: firstPlacePrize ? parseFloat(firstPlacePrize) : null,
+        second_place_prize: secondPlacePrize ? parseFloat(secondPlacePrize) : null,
+        third_place_prize: thirdPlacePrize ? parseFloat(thirdPlacePrize) : null,
       }])
       .select()
       .single();
@@ -338,6 +344,48 @@ const CreateFootballPool = () => {
                     <option value="50">50 participantes</option>
                     <option value="100">100 participantes</option>
                   </select>
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label className="text-lg">🏆 Premiação (opcional)</Label>
+                <p className="text-sm text-muted-foreground mb-4">
+                  Defina os valores de premiação para os 3 primeiros lugares
+                </p>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="first_place_prize">1º Lugar</Label>
+                    <Input
+                      id="first_place_prize"
+                      name="first_place_prize"
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      placeholder="Ex: 100.00"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="second_place_prize">2º Lugar</Label>
+                    <Input
+                      id="second_place_prize"
+                      name="second_place_prize"
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      placeholder="Ex: 50.00"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="third_place_prize">3º Lugar</Label>
+                    <Input
+                      id="third_place_prize"
+                      name="third_place_prize"
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      placeholder="Ex: 25.00"
+                    />
+                  </div>
                 </div>
               </div>
 

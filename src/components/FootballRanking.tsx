@@ -88,12 +88,24 @@ const FootballRanking = ({ poolId }: FootballRankingProps) => {
     return <p className="text-muted-foreground">Nenhum participante no ranking ainda.</p>;
   }
 
+  const getPodiumPosition = (position: number) => {
+    const podiumHeights = ['h-32', 'h-24', 'h-20'];
+    const podiumColors = [
+      'bg-gradient-to-t from-yellow-500/20 to-yellow-400/10 border-2 border-yellow-500',
+      'bg-gradient-to-t from-gray-400/20 to-gray-300/10 border-2 border-gray-400',
+      'bg-gradient-to-t from-orange-600/20 to-orange-500/10 border-2 border-orange-600'
+    ];
+    return { height: podiumHeights[position], color: podiumColors[position] };
+  };
+
   const getRankIcon = (position: number) => {
-    if (position === 0) return <Trophy className="w-5 h-5 text-yellow-500" />;
-    if (position === 1) return <Medal className="w-5 h-5 text-gray-400" />;
-    if (position === 2) return <Medal className="w-5 h-5 text-orange-600" />;
+    if (position === 0) return <Trophy className="w-6 h-6 text-yellow-500" />;
+    if (position === 1) return <Medal className="w-6 h-6 text-gray-400" />;
+    if (position === 2) return <Medal className="w-6 h-6 text-orange-600" />;
     return null;
   };
+
+  const podiumOrder = [1, 0, 2]; // 2nd, 1st, 3rd for visual effect
 
   return (
     <Card>
@@ -104,29 +116,55 @@ const FootballRanking = ({ poolId }: FootballRankingProps) => {
         </CardTitle>
       </CardHeader>
       <CardContent>
-        <div className="space-y-3">
-          {ranking.map((participant, index) => (
-            <div
-              key={participant.id}
-              className={`flex items-center justify-between p-3 rounded-lg ${
-                index === 0 ? 'bg-primary/10 border-2 border-primary' : 'bg-muted/50'
-              }`}
-            >
-              <div className="flex items-center gap-3">
-                <div className="flex items-center justify-center w-8 h-8 rounded-full bg-background font-bold">
-                  {index === 0 || index === 1 || index === 2 ? (
-                    getRankIcon(index)
-                  ) : (
-                    <span>{index + 1}º</span>
-                  )}
-                </div>
-                <span className="font-medium">{participant.participant_name}</span>
-              </div>
-              <Badge variant={index === 0 ? "default" : "secondary"}>
-                {participant.total_points} pts
-              </Badge>
+        {/* Podium for top 3 */}
+        {ranking.length >= 3 && (
+          <div className="mb-8">
+            <div className="flex items-end justify-center gap-4 mb-4">
+              {podiumOrder.map((index) => {
+                const participant = ranking[index];
+                const podium = getPodiumPosition(index);
+                return (
+                  <div key={participant.id} className="flex flex-col items-center flex-1 max-w-[120px]">
+                    <div className="mb-2 text-center">
+                      <div className="mb-1 flex justify-center">
+                        {getRankIcon(index)}
+                      </div>
+                      <p className="font-bold text-sm truncate px-1">{participant.participant_name}</p>
+                      <Badge variant={index === 0 ? "default" : "secondary"} className="mt-1">
+                        {participant.total_points} pts
+                      </Badge>
+                    </div>
+                    <div className={`w-full ${podium.height} ${podium.color} rounded-t-lg flex items-center justify-center font-bold text-2xl transition-all`}>
+                      {index + 1}º
+                    </div>
+                  </div>
+                );
+              })}
             </div>
-          ))}
+          </div>
+        )}
+
+        {/* Rest of ranking */}
+        <div className="space-y-3">
+          {ranking.slice(3).map((participant, idx) => {
+            const index = idx + 3;
+            return (
+              <div
+                key={participant.id}
+                className="flex items-center justify-between p-3 rounded-lg bg-muted/50"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="flex items-center justify-center w-8 h-8 rounded-full bg-background font-bold">
+                    <span>{index + 1}º</span>
+                  </div>
+                  <span className="font-medium">{participant.participant_name}</span>
+                </div>
+                <Badge variant="secondary">
+                  {participant.total_points} pts
+                </Badge>
+              </div>
+            );
+          })}
         </div>
       </CardContent>
     </Card>

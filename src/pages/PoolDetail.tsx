@@ -358,6 +358,55 @@ const PoolDetail = () => {
               </div>
             </div>
 
+            {/* Prize Information */}
+            {(pool.first_place_prize || pool.second_place_prize || pool.third_place_prize) && (
+              <Card className="border-2 border-primary/20 bg-gradient-to-br from-primary/5 to-primary/10">
+                <CardHeader>
+                  <CardTitle className="text-lg flex items-center gap-2">
+                    <Trophy className="w-5 h-5 text-primary" />
+                    Premiação
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                    {pool.first_place_prize && (
+                      <div className="p-3 rounded-lg bg-gradient-to-br from-yellow-500/20 to-yellow-400/10 border-2 border-yellow-500">
+                        <div className="flex items-center gap-2 mb-1">
+                          <Trophy className="w-4 h-4 text-yellow-600 dark:text-yellow-500" />
+                          <p className="text-sm font-semibold text-yellow-700 dark:text-yellow-400">1º Lugar</p>
+                        </div>
+                        <p className="text-xl font-bold text-yellow-800 dark:text-yellow-300">
+                          R$ {parseFloat(pool.first_place_prize).toFixed(2)}
+                        </p>
+                      </div>
+                    )}
+                    {pool.second_place_prize && (
+                      <div className="p-3 rounded-lg bg-gradient-to-br from-gray-400/20 to-gray-300/10 border-2 border-gray-400">
+                        <div className="flex items-center gap-2 mb-1">
+                          <Award className="w-4 h-4 text-gray-600 dark:text-gray-400" />
+                          <p className="text-sm font-semibold text-gray-700 dark:text-gray-300">2º Lugar</p>
+                        </div>
+                        <p className="text-xl font-bold text-gray-800 dark:text-gray-200">
+                          R$ {parseFloat(pool.second_place_prize).toFixed(2)}
+                        </p>
+                      </div>
+                    )}
+                    {pool.third_place_prize && (
+                      <div className="p-3 rounded-lg bg-gradient-to-br from-orange-600/20 to-orange-500/10 border-2 border-orange-600">
+                        <div className="flex items-center gap-2 mb-1">
+                          <Award className="w-4 h-4 text-orange-700 dark:text-orange-500" />
+                          <p className="text-sm font-semibold text-orange-800 dark:text-orange-400">3º Lugar</p>
+                        </div>
+                        <p className="text-xl font-bold text-orange-900 dark:text-orange-300">
+                          R$ {parseFloat(pool.third_place_prize).toFixed(2)}
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
             {isOwner && pool.status === "active" && (
               <>
                 <Separator />

@@ -288,6 +288,7 @@ export type Database = {
           deadline: string
           description: string
           entry_fee: number | null
+          first_place_prize: number | null
           guess_label: string
           id: string
           is_official: boolean | null
@@ -298,7 +299,9 @@ export type Database = {
           pool_type: Database["public"]["Enums"]["pool_type"]
           result_value: string | null
           scoring_system: string
+          second_place_prize: number | null
           status: Database["public"]["Enums"]["pool_status"]
+          third_place_prize: number | null
           title: string
           updated_at: string
           winner_id: string | null
@@ -308,6 +311,7 @@ export type Database = {
           deadline: string
           description: string
           entry_fee?: number | null
+          first_place_prize?: number | null
           guess_label: string
           id?: string
           is_official?: boolean | null
@@ -318,7 +322,9 @@ export type Database = {
           pool_type?: Database["public"]["Enums"]["pool_type"]
           result_value?: string | null
           scoring_system?: string
+          second_place_prize?: number | null
           status?: Database["public"]["Enums"]["pool_status"]
+          third_place_prize?: number | null
           title: string
           updated_at?: string
           winner_id?: string | null
@@ -328,6 +334,7 @@ export type Database = {
           deadline?: string
           description?: string
           entry_fee?: number | null
+          first_place_prize?: number | null
           guess_label?: string
           id?: string
           is_official?: boolean | null
@@ -338,7 +345,9 @@ export type Database = {
           pool_type?: Database["public"]["Enums"]["pool_type"]
           result_value?: string | null
           scoring_system?: string
+          second_place_prize?: number | null
           status?: Database["public"]["Enums"]["pool_status"]
+          third_place_prize?: number | null
           title?: string
           updated_at?: string
           winner_id?: string | null
