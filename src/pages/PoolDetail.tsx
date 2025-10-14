@@ -39,6 +39,7 @@ const PoolDetail = () => {
   const [hasFootballMatches, setHasFootballMatches] = useState(false);
   const [currentUserParticipant, setCurrentUserParticipant] = useState<any>(null);
   const [signedProofUrl, setSignedProofUrl] = useState<string | null>(null);
+  const [userPrizeInfo, setUserPrizeInfo] = useState<{ amount: number; placement: number; isTied: boolean; tiedWithCount: number } | null>(null);
 
   useEffect(() => {
     const buildSigned = async () => {
@@ -56,6 +57,62 @@ const PoolDetail = () => {
     };
     buildSigned();
   }, [currentUserParticipant?.prize_proof_url]);
+
+  useEffect(() => {
+    const calculateUserPrize = () => {
+      if (!currentUserParticipant || !pool || pool.pool_type !== 'football') return;
+
+      // Calculate ranking
+      const participantsWithPoints = participants
+        .filter(p => p.status === 'approved')
+        .map(p => ({
+          ...p,
+          total_points: p.predictions?.reduce((sum: number, pred: any) => sum + (pred.points_earned || 0), 0) || 0
+        }))
+        .sort((a, b) => b.total_points - a.total_points);
+
+      const userPoints = currentUserParticipant.predictions?.reduce((sum: number, pred: any) => sum + (pred.points_earned || 0), 0) || 0;
+      
+      // Find all participants with same points (tied)
+      const tiedParticipants = participantsWithPoints.filter(p => p.total_points === userPoints);
+      const placement = participantsWithPoints.findIndex(p => p.id === currentUserParticipant.id) + 1;
+
+      // Calculate prize based on placement and ties
+      let prizeAmount = 0;
+      const isTied = tiedParticipants.length > 1;
+
+      if (placement <= 3) {
+        const prizes = [
+          pool.first_place_prize ? parseFloat(pool.first_place_prize) : 0,
+          pool.second_place_prize ? parseFloat(pool.second_place_prize) : 0,
+          pool.third_place_prize ? parseFloat(pool.third_place_prize) : 0
+        ];
+
+        if (isTied) {
+          // Sum prizes for tied positions
+          let totalPrize = 0;
+          for (let i = placement - 1; i < placement - 1 + tiedParticipants.length && i < 3; i++) {
+            totalPrize += prizes[i];
+          }
+          prizeAmount = totalPrize / tiedParticipants.length;
+        } else {
+          prizeAmount = prizes[placement - 1];
+        }
+      }
+
+      if (prizeAmount > 0) {
+        setUserPrizeInfo({
+          amount: prizeAmount,
+          placement,
+          isTied,
+          tiedWithCount: isTied ? tiedParticipants.length - 1 : 0
+        });
+      }
+    };
+
+    calculateUserPrize();
+  }, [currentUserParticipant, participants, pool]);
+
   useEffect(() => {
     const checkAuthAndLoadData = async () => {
       const { data: { user } } = await supabase.auth.getUser();
@@ -519,12 +576,16 @@ const PoolDetail = () => {
             {hasJoined && currentUserParticipant?.status === 'approved' && (
               <>
                 {/* Winner needs to submit PIX */}
-                {currentUserParticipant.prize_status === 'awaiting_pix' && (
+                {currentUserParticipant.prize_status === 'awaiting_pix' && userPrizeInfo && (
                   <>
                     <Separator />
                     <PrizePixSubmission
                       participantId={currentUserParticipant.id}
                       poolTitle={pool.title}
+                      prizeAmount={userPrizeInfo.amount}
+                      placement={userPrizeInfo.placement}
+                      isTied={userPrizeInfo.isTied}
+                      tiedWithCount={userPrizeInfo.tiedWithCount}
                       onSuccess={loadPoolData}
                     />
                   </>
