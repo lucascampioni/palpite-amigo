@@ -403,6 +403,16 @@ const PoolDetail = () => {
                       </div>
                     )}
                   </div>
+
+                  <div className="mt-4 p-3 rounded-lg bg-muted/50 border border-muted-foreground/20">
+                    <p className="text-sm font-semibold mb-2">🏆 Critério de empate:</p>
+                    <p className="text-sm text-muted-foreground">
+                      Se houver empate entre participantes, os valores das posições empatadas serão somados e divididos igualmente entre os vencedores.
+                    </p>
+                    <p className="text-sm text-muted-foreground mt-2">
+                      <strong>Exemplo:</strong> se o 1º lugar paga R${pool.first_place_prize ? parseFloat(pool.first_place_prize).toFixed(2) : '50,00'} e o 2º R${pool.second_place_prize ? parseFloat(pool.second_place_prize).toFixed(2) : '30,00'}, e dois jogadores empatarem em 1º, cada um receberá R${pool.first_place_prize && pool.second_place_prize ? ((parseFloat(pool.first_place_prize) + parseFloat(pool.second_place_prize)) / 2).toFixed(2) : '40,00'}.
+                    </p>
+                  </div>
                 </CardContent>
               </Card>
             )}
@@ -574,7 +584,7 @@ const PoolDetail = () => {
             {(pool.status === "finished") && (pool.pool_type === "football" || hasFootballMatches) && (
               <>
                 <Separator />
-                <FootballRanking poolId={pool.id} />
+                <FootballRanking poolId={pool.id} pool={pool} />
               </>
             )}
 

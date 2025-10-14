@@ -7,12 +7,18 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/component
 
 interface FootballRankingProps {
   poolId: string;
+  pool?: {
+    first_place_prize?: number;
+    second_place_prize?: number;
+    third_place_prize?: number;
+  };
 }
 
 interface ParticipantScore {
   id: string;
   participant_name: string;
   total_points: number;
+  prize_amount?: number;
 }
 
 interface MatchPrediction {
@@ -26,7 +32,7 @@ interface MatchPrediction {
   points_earned: number;
 }
 
-const FootballRanking = ({ poolId }: FootballRankingProps) => {
+const FootballRanking = ({ poolId, pool }: FootballRankingProps) => {
   const [ranking, setRanking] = useState<ParticipantScore[]>([]);
   const [loading, setLoading] = useState(true);
   const [expandedParticipants, setExpandedParticipants] = useState<Set<string>>(new Set());
@@ -95,8 +101,60 @@ const FootballRanking = ({ poolId }: FootballRankingProps) => {
       }
       return a.participant_name.localeCompare(b.participant_name);
     });
-    setRanking(rankingData);
+
+    // Calculate prize distribution considering ties
+    const rankingWithPrizes = calculatePrizeDistribution(rankingData, pool);
+    setRanking(rankingWithPrizes);
     setLoading(false);
+  };
+
+  const calculatePrizeDistribution = (
+    ranking: ParticipantScore[],
+    poolData?: { first_place_prize?: number; second_place_prize?: number; third_place_prize?: number }
+  ): ParticipantScore[] => {
+    if (!poolData || !ranking.length) return ranking;
+
+    const prizes = [
+      poolData.first_place_prize || 0,
+      poolData.second_place_prize || 0,
+      poolData.third_place_prize || 0,
+    ];
+
+    const hasPrizes = prizes.some(p => p > 0);
+    if (!hasPrizes) return ranking;
+
+    const result = [...ranking];
+    let currentPosition = 0;
+
+    while (currentPosition < result.length && currentPosition < 3) {
+      const currentScore = result[currentPosition].total_points;
+      
+      // Find all participants with the same score (tied)
+      const tiedParticipants = result.filter(p => p.total_points === currentScore);
+      const tiedCount = tiedParticipants.length;
+
+      // Calculate sum of prizes for tied positions
+      let prizeSum = 0;
+      for (let i = currentPosition; i < Math.min(currentPosition + tiedCount, 3); i++) {
+        prizeSum += prizes[i];
+      }
+
+      // Distribute prize equally among tied participants
+      const prizePerParticipant = tiedCount > 0 ? prizeSum / tiedCount : 0;
+
+      // Assign prize to all tied participants
+      tiedParticipants.forEach(participant => {
+        const index = result.findIndex(p => p.id === participant.id);
+        if (index !== -1) {
+          result[index].prize_amount = prizePerParticipant;
+        }
+      });
+
+      // Move to next position after the tied group
+      currentPosition += tiedCount;
+    }
+
+    return result;
   };
 
   const loadParticipantPredictions = async (participantId: string) => {
@@ -264,6 +322,11 @@ const FootballRanking = ({ poolId }: FootballRankingProps) => {
                       <Badge variant={group.position === 1 ? "default" : "secondary"} className="mt-1">
                         {group.participants[0].total_points} pts
                       </Badge>
+                      {group.participants[0].prize_amount !== undefined && group.participants[0].prize_amount > 0 && (
+                        <Badge variant="default" className="mt-1 bg-primary">
+                          R$ {group.participants[0].prize_amount.toFixed(2)}
+                        </Badge>
+                      )}
                     </div>
                     <div className={`w-full ${podium.height} ${podium.color} rounded-t-lg flex items-center justify-center font-bold text-2xl transition-all`}>
                       {group.position}º
@@ -313,6 +376,11 @@ const FootballRanking = ({ poolId }: FootballRankingProps) => {
                           >
                             {participant.total_points} pts
                           </Badge>
+                          {participant.prize_amount !== undefined && participant.prize_amount > 0 && (
+                            <Badge variant="default" className="text-sm px-3 py-1 bg-primary">
+                              R$ {participant.prize_amount.toFixed(2)}
+                            </Badge>
+                          )}
                           {isExpanded ? (
                             <ChevronUp className="h-5 w-5 text-muted-foreground" />
                           ) : (
