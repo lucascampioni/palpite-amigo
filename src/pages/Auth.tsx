@@ -163,7 +163,6 @@ const Auth = () => {
           full_name: `${firstName} ${lastName}`,
           first_name: firstName,
           last_name: lastName,
-          cpf: cpf,
         },
         emailRedirectTo: `${window.location.origin}/`,
       },

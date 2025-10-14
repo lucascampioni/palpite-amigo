@@ -8,6 +8,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Trophy, Medal } from "lucide-react";
+import { z } from "zod";
 
 interface PrizePixSubmissionProps {
   participantId: string;
@@ -35,6 +36,24 @@ export const PrizePixSubmission = ({
   const [termsAccepted, setTermsAccepted] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  const validatePixKey = (key: string, type: string): boolean => {
+    const pixSchemas = {
+      cpf: z.string().regex(/^\d{11}$/, "CPF deve conter 11 dígitos"),
+      email: z.string().email("Email inválido").max(255, "Email muito longo"),
+      phone: z.string().regex(/^\d{10,11}$/, "Telefone deve conter 10 ou 11 dígitos"),
+      random: z.string().uuid("Chave aleatória inválida (deve ser UUID)"),
+    };
+
+    try {
+      const schema = pixSchemas[type as keyof typeof pixSchemas];
+      if (!schema) return false;
+      schema.parse(key.trim());
+      return true;
+    } catch {
+      return false;
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -48,13 +67,28 @@ export const PrizePixSubmission = ({
       return;
     }
 
+    // Validate PIX key format
+    if (!validatePixKey(pixKey, pixKeyType)) {
+      const errorMessages = {
+        cpf: "CPF deve conter exatamente 11 dígitos numéricos",
+        email: "Digite um email válido",
+        phone: "Telefone deve conter 10 ou 11 dígitos",
+        random: "Chave aleatória deve ser um UUID válido",
+      };
+      toast.error(errorMessages[pixKeyType as keyof typeof errorMessages] || "Chave PIX inválida");
+      return;
+    }
+
+    // Sanitize and limit length
+    const sanitizedPixKey = pixKey.trim().slice(0, 255);
+
     setIsSubmitting(true);
 
     try {
       const { error } = await supabase
         .from("participants")
         .update({
-          prize_pix_key: pixKey,
+          prize_pix_key: sanitizedPixKey,
           prize_pix_key_type: pixKeyType,
           prize_status: "pix_submitted",
           prize_submitted_at: new Date().toISOString(),
