@@ -9,7 +9,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import { Trophy } from "lucide-react";
 import { z } from "zod";
-import chutaiLogo from "@/assets/chutai-logo.png";
+import palpiteAmigoLogo from "@/assets/palpite-amigo-logo.png";
 
 const cpfSchema = z.string()
   .regex(/^\d{11}$/, "CPF deve conter 11 dígitos")
@@ -241,7 +241,7 @@ const Auth = () => {
       <div className="w-full max-w-md">
         <div className="text-center mb-8 space-y-4">
           <div className="inline-flex items-center justify-center mb-2">
-            <img src={chutaiLogo} alt="Chutaí" className="h-40 w-auto" />
+            <img src={palpiteAmigoLogo} alt="Palpite Amigo" className="h-40 w-auto" />
           </div>
           <p className="text-muted-foreground text-lg">Participe dos bolões e divirta-se com os amigos!</p>
         </div>

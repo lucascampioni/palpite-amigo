@@ -9,7 +9,7 @@ import PoolStats from "@/components/PoolStats";
 import { Session } from "@supabase/supabase-js";
 import { NotificationService } from "@/services/NotificationService";
 import { useUserRole } from "@/hooks/useUserRole";
-import chutaiLogo from "@/assets/chutai-logo.png";
+import palpiteAmigoLogo from "@/assets/palpite-amigo-logo.png";
 
 const Index = () => {
   const navigate = useNavigate();
@@ -228,7 +228,7 @@ const Index = () => {
       <header className="border-b bg-card/80 backdrop-blur-md sticky top-0 z-10 shadow-sm">
         <div className="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <img src={chutaiLogo} alt="Chutaí" className="h-24 w-auto" />
+            <img src={palpiteAmigoLogo} alt="Palpite Amigo" className="h-24 w-auto" />
           </div>
           <div className="flex items-center gap-2">
             <Button variant="ghost" size="sm" onClick={() => navigate("/profile")} className="hover:bg-primary/10">
@@ -250,7 +250,7 @@ const Index = () => {
         {userRole?.isAdmin ? (
           <div className="text-center space-y-4 py-4">
             <div className="inline-block mb-2">
-              <img src={chutaiLogo} alt="Chutaí" className="h-52 w-auto mx-auto" />
+              <img src={palpiteAmigoLogo} alt="Palpite Amigo" className="h-52 w-auto mx-auto" />
             </div>
             <p className="text-muted-foreground text-xl max-w-2xl mx-auto">
               Gerencie bolões de futebol e divirta-se com seus amigos
@@ -269,7 +269,7 @@ const Index = () => {
         ) : (
           <div className="text-center space-y-4 py-4">
             <div className="inline-block mb-2">
-              <img src={chutaiLogo} alt="Chutaí" className="h-52 w-auto mx-auto" />
+              <img src={palpiteAmigoLogo} alt="Palpite Amigo" className="h-52 w-auto mx-auto" />
             </div>
             <p className="text-muted-foreground text-xl max-w-2xl mx-auto">
               Mostre que você entende de futebol — entre no jogo e Chutaí!
