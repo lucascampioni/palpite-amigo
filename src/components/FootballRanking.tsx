@@ -116,7 +116,7 @@ const FootballRanking = ({ poolId, pool }: FootballRankingProps) => {
     if (!status || status === 'awaiting_pix') {
       return (
         <Badge variant="outline" className="text-xs bg-yellow-100 dark:bg-yellow-900 text-yellow-800 dark:text-yellow-200 border-yellow-300 dark:border-yellow-700">
-          Aguardando pix
+          Aguardando dados
         </Badge>
       );
     }
@@ -355,12 +355,9 @@ const FootballRanking = ({ poolId, pool }: FootballRankingProps) => {
                         {group.participants[0].total_points} pts
                       </Badge>
                       {group.participants[0].prize_amount !== undefined && group.participants[0].prize_amount > 0 && (
-                        <div className="flex flex-col gap-1 mt-1">
-                          <Badge variant="default" className="bg-primary">
-                            R$ {group.participants[0].prize_amount.toFixed(2)}
-                          </Badge>
-                          {getPrizeStatusBadge(group.participants[0].prize_status, group.participants[0].prize_amount)}
-                        </div>
+                        <Badge variant="default" className="mt-1 bg-primary">
+                          R$ {group.participants[0].prize_amount.toFixed(2)}
+                        </Badge>
                       )}
                     </div>
                     <div className={`w-full ${podium.height} ${podium.color} rounded-t-lg flex items-center justify-center font-bold text-2xl transition-all`}>
