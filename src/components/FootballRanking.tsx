@@ -156,13 +156,17 @@ const FootballRanking = ({ poolId }: FootballRankingProps) => {
     return <p className="text-muted-foreground">Nenhum participante no ranking ainda.</p>;
   }
 
-  // Get actual position considering ties
-  const getActualPosition = (index: number) => {
+  // Get actual position considering ties and zero points
+  const getActualPosition = (index: number, participant: ParticipantScore) => {
+    // Participants with 0 points have no position
+    if (participant.total_points === 0) return null;
+    
     if (index === 0) return 1;
     
     let position = 1;
     for (let i = 0; i < index; i++) {
-      if (ranking[i].total_points !== ranking[i + 1]?.total_points) {
+      // Skip participants with 0 points when counting positions
+      if (ranking[i].total_points > 0 && ranking[i].total_points !== ranking[i + 1]?.total_points) {
         position = i + 2;
       }
     }
@@ -186,7 +190,7 @@ const FootballRanking = ({ poolId }: FootballRankingProps) => {
     return null;
   };
 
-  // Group participants by points to handle ties
+  // Group participants by points to handle ties (excluding 0 points)
   const getTopThreeGroups = () => {
     const groups: { position: number; participants: ParticipantScore[]; podiumIndex: number }[] = [];
     let currentPosition = 1;
@@ -194,9 +198,12 @@ const FootballRanking = ({ poolId }: FootballRankingProps) => {
     let positionsCount = 0;
     
     for (let i = 0; i < ranking.length; i++) {
+      // Skip participants with 0 points
+      if (ranking[i].total_points === 0) continue;
+      
       // Check if we're starting a new position
-      if (i > 0 && ranking[i].total_points !== ranking[i - 1].total_points) {
-        currentPosition = i + 1;
+      if (i > 0 && ranking[i].total_points !== ranking[i - 1].total_points && ranking[i - 1].total_points > 0) {
+        currentPosition = groups.reduce((acc, g) => acc + g.participants.length, 0) + 1;
         podiumIndex++;
         positionsCount++;
       }
@@ -273,7 +280,7 @@ const FootballRanking = ({ poolId }: FootballRankingProps) => {
           <h3 className="text-lg font-semibold mb-4">Ranking Completo</h3>
           <div className="space-y-2">
             {ranking.map((participant, index) => {
-              const actualPosition = getActualPosition(index);
+              const actualPosition = getActualPosition(index, participant);
               const isExpanded = expandedParticipants.has(participant.id);
               const predictions = participantPredictions[participant.id] || [];
               
@@ -288,15 +295,22 @@ const FootballRanking = ({ poolId }: FootballRankingProps) => {
                       <div className="flex items-center justify-between p-3">
                         <div className="flex items-center gap-3">
                           <div className="flex items-center justify-center w-10 h-10 rounded-full bg-background font-bold text-lg border-2 border-muted">
-                            <span>{actualPosition}º</span>
+                            {actualPosition !== null ? (
+                              <span>{actualPosition}º</span>
+                            ) : (
+                              <span className="text-muted-foreground">—</span>
+                            )}
                           </div>
                           <div className="flex items-center gap-2">
-                            {actualPosition <= 3 && getRankIcon(actualPosition)}
+                            {actualPosition && actualPosition <= 3 && getRankIcon(actualPosition)}
                             <span className="font-medium">{participant.participant_name}</span>
                           </div>
                         </div>
                         <div className="flex items-center gap-2">
-                          <Badge variant={actualPosition === 1 ? "default" : "secondary"} className="text-sm px-3 py-1">
+                          <Badge 
+                            variant={actualPosition === 1 ? "default" : participant.total_points === 0 ? "outline" : "secondary"} 
+                            className="text-sm px-3 py-1"
+                          >
                             {participant.total_points} pts
                           </Badge>
                           {isExpanded ? (
