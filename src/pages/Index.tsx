@@ -272,7 +272,7 @@ const Index = () => {
               <img src={palpiteAmigoLogo} alt="Palpite Amigo" className="h-52 w-auto mx-auto" />
             </div>
             <p className="text-muted-foreground text-xl max-w-2xl mx-auto">
-              Mostre que você entende de futebol — entre no jogo e Chutaí!
+              Mostre que entende de futebol — desafie seus amigos no Palpite Amigo!
             </p>
           </div>
         )}
