@@ -507,11 +507,13 @@ const PoolDetail = () => {
                     <div className="space-y-2">
                       <p className="font-semibold text-sm flex items-center gap-2">
                         <CheckCircle className="w-4 h-4 text-blue-600 dark:text-blue-400" />
-                        ⚖️ Critério de Empate
+                        Critério de empate:
                       </p>
                       <p className="text-sm text-muted-foreground">
-                        Em caso de empate na pontuação, os prêmios das posições empatadas são somados e divididos igualmente entre os participantes. 
-                        Exemplo: Se 2 pessoas empatarem em 1º lugar, os prêmios de 1º e 2º lugares serão somados e divididos entre elas.
+                        Se houver empate entre participantes, os valores das posições empatadas serão somados e divididos igualmente entre os vencedores.
+                      </p>
+                      <p className="text-sm text-muted-foreground">
+                        <strong>Exemplo:</strong> se o 1º lugar paga R$50,00 e o 2º R$30,00, e dois jogadores empatarem em 1º, cada um receberá R$40,00.
                       </p>
                     </div>
                   </CardContent>
@@ -701,7 +703,7 @@ const PoolDetail = () => {
                     </p>
                     {(pool.first_place_prize || pool.second_place_prize || pool.third_place_prize) && (
                       <p className="text-xs text-muted-foreground">
-                        • <strong>Critério de empate:</strong> Em caso de empate na pontuação, os prêmios das posições empatadas são somados e divididos igualmente.
+                        • <strong>Critério de empate:</strong> Se houver empate entre participantes, os valores das posições empatadas serão somados e divididos igualmente entre os vencedores. Ex: se o 1º lugar paga R$50,00 e o 2º R$30,00, e dois jogadores empatarem em 1º, cada um receberá R$40,00.
                       </p>
                     )}
                   </div>
