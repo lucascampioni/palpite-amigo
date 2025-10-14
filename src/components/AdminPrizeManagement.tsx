@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -25,6 +25,24 @@ export const AdminPrizeManagement = ({ participant, poolId, onSuccess }: AdminPr
   const [isUploading, setIsUploading] = useState(false);
   const [showFullKey, setShowFullKey] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [viewUrl, setViewUrl] = useState<string | null>(null);
+
+  useEffect(() => {
+    const buildUrl = async () => {
+      const raw = participant.prize_proof_url;
+      if (!raw) { setViewUrl(null); return; }
+      if (raw.includes('/object/sign/')) { setViewUrl(raw); return; }
+      let filePath = raw;
+      if (raw.includes('/payment-proofs/')) {
+        filePath = raw.split('/payment-proofs/')[1];
+      }
+      const { data } = await supabase.storage
+        .from('payment-proofs')
+        .createSignedUrl(filePath, 31536000);
+      setViewUrl(data?.signedUrl || raw);
+    };
+    buildUrl();
+  }, [participant.prize_proof_url]);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
@@ -87,19 +105,12 @@ export const AdminPrizeManagement = ({ participant, poolId, onSuccess }: AdminPr
 
       if (uploadError) throw uploadError;
 
-      // Get signed URL for private access (valid for 1 year)
-      const { data: signedUrlData, error: signedUrlError } = await supabase.storage
-        .from("payment-proofs")
-        .createSignedUrl(fileName, 31536000); // 1 year in seconds
-
-      if (signedUrlError) throw signedUrlError;
-
-      // Update participant status
+      // Update participant status (store only file name)
       const { error: updateError } = await supabase
         .from("participants")
         .update({
           prize_status: "prize_sent",
-          prize_proof_url: signedUrlData.signedUrl,
+          prize_proof_url: fileName,
           prize_sent_at: new Date().toISOString(),
         })
         .eq("id", participant.id);
@@ -131,7 +142,7 @@ export const AdminPrizeManagement = ({ participant, poolId, onSuccess }: AdminPr
         <CardContent>
           {participant.prize_proof_url && (
             <a
-              href={participant.prize_proof_url}
+              href={viewUrl || participant.prize_proof_url}
               target="_blank"
               rel="noopener noreferrer"
               className="text-sm text-primary hover:underline"

@@ -38,7 +38,24 @@ const PoolDetail = () => {
   const [winner, setWinner] = useState<any>(null);
   const [hasFootballMatches, setHasFootballMatches] = useState(false);
   const [currentUserParticipant, setCurrentUserParticipant] = useState<any>(null);
+  const [signedProofUrl, setSignedProofUrl] = useState<string | null>(null);
 
+  useEffect(() => {
+    const buildSigned = async () => {
+      const raw = currentUserParticipant?.prize_proof_url as string | undefined;
+      if (!raw) { setSignedProofUrl(null); return; }
+      if (raw.includes('/object/sign/')) { setSignedProofUrl(raw); return; }
+      let filePath = raw;
+      if (raw.includes('/payment-proofs/')) {
+        filePath = raw.split('/payment-proofs/')[1];
+      }
+      const { data } = await supabase.storage
+        .from('payment-proofs')
+        .createSignedUrl(filePath, 31536000);
+      setSignedProofUrl(data?.signedUrl || raw);
+    };
+    buildSigned();
+  }, [currentUserParticipant?.prize_proof_url]);
   useEffect(() => {
     const checkAuthAndLoadData = async () => {
       const { data: { user } } = await supabase.auth.getUser();
@@ -543,7 +560,7 @@ const PoolDetail = () => {
                       </div>
                       {currentUserParticipant.prize_proof_url && (
                         <a
-                          href={currentUserParticipant.prize_proof_url}
+                          href={signedProofUrl || currentUserParticipant.prize_proof_url}
                           target="_blank"
                           rel="noopener noreferrer"
                           className="inline-flex items-center gap-2 text-sm text-primary hover:underline font-medium"
