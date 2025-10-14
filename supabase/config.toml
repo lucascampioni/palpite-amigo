@@ -8,3 +8,9 @@ verify_jwt = true
 
 [functions.get-match-crests]
 verify_jwt = true
+
+[functions.check-cpf-exists]
+verify_jwt = false
+
+[functions.send-confirmation-email]
+verify_jwt = false

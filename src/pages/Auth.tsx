@@ -135,6 +135,26 @@ const Auth = () => {
       }
     }
 
+    // Verificar duplicidade de CPF antes de criar a conta
+    try {
+      const { data, error: fnError } = await supabase.functions.invoke("check-cpf-exists", {
+        body: { cpf },
+      });
+      if (fnError) throw fnError as any;
+      if (data?.exists) {
+        setCpfError("CPF já cadastrado");
+        toast({
+          variant: "destructive",
+          title: "Cadastro não permitido",
+          description: "Este CPF já está cadastrado no sistema.",
+        });
+        setLoading(false);
+        return;
+      }
+    } catch (err) {
+      console.error("Falha ao verificar CPF duplicado", err);
+    }
+
     const { error } = await supabase.auth.signUp({
       email,
       password,
@@ -151,19 +171,26 @@ const Auth = () => {
 
     if (error) {
       let errorMessage = error.message;
-      
-      // Verificar se é erro de CPF duplicado
-      if (error.message.includes("duplicate key") || error.message.includes("cpf_hash")) {
+
+      if (/user already registered/i.test(error.message) || error.status === 422) {
+        errorMessage = "Este email já está cadastrado.";
+      } else if (/duplicate key|cpf_hash/i.test(error.message)) {
         errorMessage = "Este CPF já está cadastrado no sistema.";
+      } else if (/rate limit/i.test(error.message)) {
+        errorMessage = "Muitas tentativas. Tente novamente em alguns minutos.";
+      } else if (/password/i.test(error.message)) {
+        errorMessage = "Senha inválida. Verifique os requisitos de segurança.";
+      } else if (/database error saving new user/i.test(error.message) || error.status === 500) {
+        errorMessage = "Não foi possível criar a conta agora. Verifique os dados e tente novamente.";
       }
-      
+
       toast({
         variant: "destructive",
         title: "Erro ao criar conta",
         description: errorMessage,
       });
     } else {
-      // Redirect to email confirmation page with email as parameter
+      // Redireciona para a tela de confirmação de email
       navigate(`/email-confirmation?email=${encodeURIComponent(email)}`);
     }
 
