@@ -468,13 +468,13 @@ const CreateFootballPool = () => {
               </div>
 
               <div className="bg-muted/50 p-4 rounded-lg text-sm space-y-2">
-                <p className="font-semibold">⚡ Funcionalidades Automáticas:</p>
+                <p className="font-semibold">⚡ Como funciona:</p>
                 <ul className="list-disc list-inside space-y-1 text-muted-foreground">
                   <li>Prazo para apostas: 30 minutos antes do primeiro jogo</li>
-                  <li>Jogos são atualizados automaticamente</li>
-                  <li>Resultados são sincronizados automaticamente</li>
-                  <li>Pontuação dos participantes é calculada automaticamente</li>
-                  <li>Vencedor é determinado ao final de todos os jogos</li>
+                  <li>Jogos são atualizados em tempo real</li>
+                  <li>Resultados sincronizados direto da fonte oficial</li>
+                  <li>Pontuação calculada conforme os resultados dos jogos</li>
+                  <li>Vencedor definido ao final de todos os jogos</li>
                 </ul>
               </div>
 
