@@ -40,6 +40,7 @@ const PoolDetail = () => {
   const [currentUserParticipant, setCurrentUserParticipant] = useState<any>(null);
   const [signedProofUrl, setSignedProofUrl] = useState<string | null>(null);
   const [userPrizeInfo, setUserPrizeInfo] = useState<{ amount: number; placement: number; isTied: boolean; tiedWithCount: number } | null>(null);
+  const [participantsPoints, setParticipantsPoints] = useState<Record<string, number>>({});
 
   useEffect(() => {
     const buildSigned = async () => {
@@ -60,18 +61,20 @@ const PoolDetail = () => {
 
   useEffect(() => {
     const calculateUserPrize = () => {
-      if (!currentUserParticipant || !pool || pool.pool_type !== 'football') return;
+      if (!currentUserParticipant || !pool) return;
+      if (!(pool.pool_type === 'football' || hasFootballMatches)) return;
+      if (!participants || participants.length === 0) return;
 
-      // Calculate ranking
+      // Calculate ranking using aggregated points map
       const participantsWithPoints = participants
         .filter(p => p.status === 'approved')
         .map(p => ({
           ...p,
-          total_points: p.predictions?.reduce((sum: number, pred: any) => sum + (pred.points_earned || 0), 0) || 0
+          total_points: participantsPoints[p.id] || 0
         }))
         .sort((a, b) => b.total_points - a.total_points);
 
-      const userPoints = currentUserParticipant.predictions?.reduce((sum: number, pred: any) => sum + (pred.points_earned || 0), 0) || 0;
+      const userPoints = participantsPoints[currentUserParticipant.id] || 0;
       
       // Find all participants with same points (tied)
       const tiedParticipants = participantsWithPoints.filter(p => p.total_points === userPoints);
@@ -111,7 +114,7 @@ const PoolDetail = () => {
     };
 
     calculateUserPrize();
-  }, [currentUserParticipant, participants, pool]);
+  }, [currentUserParticipant, participants, participantsPoints, pool, hasFootballMatches]);
 
   useEffect(() => {
     const checkAuthAndLoadData = async () => {
@@ -161,6 +164,23 @@ const PoolDetail = () => {
       .eq("pool_id", id);
 
     setParticipants(participantsData || []);
+
+    // Aggregate points per participant for ranking/prize calculation
+    const participantIds = (participantsData || []).map((p: any) => p.id);
+    let pointsMap: Record<string, number> = {};
+    if (participantIds.length > 0) {
+      const { data: preds } = await supabase
+        .from("football_predictions")
+        .select("participant_id, points_earned")
+        .in("participant_id", participantIds);
+      if (preds) {
+        for (const row of preds as any[]) {
+          pointsMap[row.participant_id] = (pointsMap[row.participant_id] || 0) + (row.points_earned || 0);
+        }
+      }
+    }
+    setParticipantsPoints(pointsMap);
+
     const myParticipant = participantsData?.find(p => p.user_id === user?.id) || null;
     setCurrentUserParticipant(myParticipant);
     setHasJoined(!!myParticipant);
