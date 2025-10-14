@@ -152,7 +152,7 @@ const Auth = () => {
         return;
       }
     } catch (err) {
-      console.error("Falha ao verificar CPF duplicado", err);
+      console.error("Falha ao verificar CPF duplicado");
     }
 
     const { error } = await supabase.auth.signUp({
