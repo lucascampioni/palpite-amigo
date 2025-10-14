@@ -19,6 +19,7 @@ interface ParticipantScore {
   participant_name: string;
   total_points: number;
   prize_amount?: number;
+  prize_status?: string | null;
 }
 
 interface MatchPrediction {
@@ -67,7 +68,7 @@ const FootballRanking = ({ poolId, pool }: FootballRankingProps) => {
     // Get all participants with their predictions
     const { data: participants, error: participantsError } = await supabase
       .from("participants")
-      .select("id, participant_name")
+      .select("id, participant_name, prize_status")
       .eq("pool_id", poolId)
       .eq("status", "approved");
 
@@ -90,6 +91,7 @@ const FootballRanking = ({ poolId, pool }: FootballRankingProps) => {
           id: participant.id,
           participant_name: participant.participant_name,
           total_points,
+          prize_status: participant.prize_status,
         };
       })
     );
@@ -106,6 +108,36 @@ const FootballRanking = ({ poolId, pool }: FootballRankingProps) => {
     const rankingWithPrizes = calculatePrizeDistribution(rankingData, pool);
     setRanking(rankingWithPrizes);
     setLoading(false);
+  };
+
+  const getPrizeStatusBadge = (status: string | null | undefined, prizeAmount?: number) => {
+    if (!prizeAmount || prizeAmount === 0) return null;
+    
+    if (!status || status === 'awaiting_pix') {
+      return (
+        <Badge variant="outline" className="text-xs bg-yellow-100 dark:bg-yellow-900 text-yellow-800 dark:text-yellow-200 border-yellow-300 dark:border-yellow-700">
+          Aguardando pix
+        </Badge>
+      );
+    }
+    
+    if (status === 'pix_submitted') {
+      return (
+        <Badge variant="outline" className="text-xs bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 border-blue-300 dark:border-blue-700">
+          Aguardando pagamento
+        </Badge>
+      );
+    }
+    
+    if (status === 'prize_sent') {
+      return (
+        <Badge variant="outline" className="text-xs bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200 border-green-300 dark:border-green-700">
+          Pago
+        </Badge>
+      );
+    }
+    
+    return null;
   };
 
   const calculatePrizeDistribution = (
@@ -323,9 +355,12 @@ const FootballRanking = ({ poolId, pool }: FootballRankingProps) => {
                         {group.participants[0].total_points} pts
                       </Badge>
                       {group.participants[0].prize_amount !== undefined && group.participants[0].prize_amount > 0 && (
-                        <Badge variant="default" className="mt-1 bg-primary">
-                          R$ {group.participants[0].prize_amount.toFixed(2)}
-                        </Badge>
+                        <div className="flex flex-col gap-1 mt-1">
+                          <Badge variant="default" className="bg-primary">
+                            R$ {group.participants[0].prize_amount.toFixed(2)}
+                          </Badge>
+                          {getPrizeStatusBadge(group.participants[0].prize_status, group.participants[0].prize_amount)}
+                        </div>
                       )}
                     </div>
                     <div className={`w-full ${podium.height} ${podium.color} rounded-t-lg flex items-center justify-center font-bold text-2xl transition-all`}>
@@ -381,6 +416,7 @@ const FootballRanking = ({ poolId, pool }: FootballRankingProps) => {
                               R$ {participant.prize_amount.toFixed(2)}
                             </Badge>
                           )}
+                          {getPrizeStatusBadge(participant.prize_status, participant.prize_amount)}
                           {isExpanded ? (
                             <ChevronUp className="h-5 w-5 text-muted-foreground" />
                           ) : (
