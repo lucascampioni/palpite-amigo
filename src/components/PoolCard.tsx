@@ -69,23 +69,9 @@ const getTypeIcon = (type: string) => {
       <div className="absolute inset-0 bg-gradient-to-t from-primary/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
       
       <CardHeader className="relative pb-3">
-        <div className="flex items-start justify-between gap-3">
-          <div className="flex items-center gap-3 flex-1">
-            <div className="relative">
-              <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-primary/10 to-accent/10 flex items-center justify-center group-hover:scale-105 transition-transform duration-500 shadow-md">
-                <span className="text-4xl">{getTypeIcon(pool.pool_type)}</span>
-              </div>
-              {pool.is_official && (
-                <div className="absolute -top-2 -right-2 w-7 h-7 rounded-full bg-gradient-to-br from-secondary via-yellow-400 to-accent flex items-center justify-center shadow-lg animate-pulse">
-                  <span className="text-sm">⭐</span>
-                </div>
-              )}
-            </div>
-            <CardTitle className="text-xl font-bold group-hover:text-primary transition-colors duration-300">
-              {pool.title}
-            </CardTitle>
-          </div>
-          <div className="flex gap-2 flex-wrap justify-end">
+        <div className="flex flex-col gap-3">
+          {/* Badges no topo */}
+          <div className="flex gap-2 flex-wrap">
             <Badge className={cn(getStatusColor(pool.status), "shadow-sm font-medium")}>
               {getStatusText(pool.status)}
             </Badge>
@@ -98,6 +84,23 @@ const getTypeIcon = (type: string) => {
                 ✨ Gratuito
               </Badge>
             )}
+          </div>
+          
+          {/* Ícone e título em uma linha */}
+          <div className="flex items-center gap-3">
+            <div className="relative flex-shrink-0">
+              <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-primary/10 to-accent/10 flex items-center justify-center group-hover:scale-105 transition-transform duration-500 shadow-md">
+                <span className="text-4xl">{getTypeIcon(pool.pool_type)}</span>
+              </div>
+              {pool.is_official && (
+                <div className="absolute -top-2 -right-2 w-7 h-7 rounded-full bg-gradient-to-br from-secondary via-yellow-400 to-accent flex items-center justify-center shadow-lg animate-pulse">
+                  <span className="text-sm">⭐</span>
+                </div>
+              )}
+            </div>
+            <CardTitle className="text-xl font-bold group-hover:text-primary transition-colors duration-300 flex-1">
+              {pool.title}
+            </CardTitle>
           </div>
         </div>
         <CardDescription className="line-clamp-2 mt-3 text-base">{pool.description}</CardDescription>
