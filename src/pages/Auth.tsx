@@ -11,6 +11,35 @@ import { Trophy } from "lucide-react";
 import { z } from "zod";
 import chutaiLogo from "@/assets/chutai-logo.png";
 
+const cpfSchema = z.string()
+  .regex(/^\d{11}$/, "CPF deve conter 11 dígitos")
+  .refine((cpf) => {
+    // Validação básica de CPF (dígitos verificadores)
+    if (cpf.length !== 11 || /^(\d)\1{10}$/.test(cpf)) return false;
+    
+    let sum = 0;
+    let remainder;
+    
+    for (let i = 1; i <= 9; i++) {
+      sum += parseInt(cpf.substring(i - 1, i)) * (11 - i);
+    }
+    
+    remainder = (sum * 10) % 11;
+    if (remainder === 10 || remainder === 11) remainder = 0;
+    if (remainder !== parseInt(cpf.substring(9, 10))) return false;
+    
+    sum = 0;
+    for (let i = 1; i <= 10; i++) {
+      sum += parseInt(cpf.substring(i - 1, i)) * (12 - i);
+    }
+    
+    remainder = (sum * 10) % 11;
+    if (remainder === 10 || remainder === 11) remainder = 0;
+    if (remainder !== parseInt(cpf.substring(10, 11))) return false;
+    
+    return true;
+  }, "CPF inválido");
+
 const signUpSchema = z.object({
   email: z.string().email("Email inválido").max(255, "Email muito longo"),
   password: z.string()
@@ -22,6 +51,7 @@ const signUpSchema = z.object({
     .regex(/[^A-Za-z0-9]/, "Senha deve conter pelo menos um caractere especial"),
   fullName: z.string().trim().min(1, "Nome é obrigatório").max(100, "Nome muito longo"),
   birthDate: z.string().min(1, "Data de nascimento é obrigatória"),
+  cpf: cpfSchema,
 });
 
 const signInSchema = z.object({
@@ -64,10 +94,12 @@ const Auth = () => {
     const password = formData.get("signup-password") as string;
     const fullName = formData.get("full-name") as string;
     const birthDate = formData.get("birth-date") as string;
+    const cpfRaw = formData.get("cpf") as string;
+    const cpf = cpfRaw.replace(/\D/g, ""); // Remove formatação
 
     // Validate input
     try {
-      signUpSchema.parse({ email, password, fullName, birthDate });
+      signUpSchema.parse({ email, password, fullName, birthDate, cpf });
       
       // Check if user is 18 years or older
       const birth = new Date(birthDate);
@@ -105,16 +137,24 @@ const Auth = () => {
       options: {
         data: {
           full_name: fullName,
+          cpf: cpf,
         },
         emailRedirectTo: `${window.location.origin}/`,
       },
     });
 
     if (error) {
+      let errorMessage = error.message;
+      
+      // Verificar se é erro de CPF duplicado
+      if (error.message.includes("duplicate key") || error.message.includes("cpf_hash")) {
+        errorMessage = "Este CPF já está cadastrado no sistema.";
+      }
+      
       toast({
         variant: "destructive",
         title: "Erro ao criar conta",
-        description: error.message,
+        description: errorMessage,
       });
     } else {
       toast({
@@ -234,6 +274,28 @@ const Auth = () => {
                       placeholder="Seu nome"
                       required
                     />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="cpf">CPF</Label>
+                    <Input
+                      id="cpf"
+                      name="cpf"
+                      type="text"
+                      placeholder="000.000.000-00"
+                      required
+                      maxLength={14}
+                      onChange={(e) => {
+                        let value = e.target.value.replace(/\D/g, "");
+                        if (value.length <= 11) {
+                          value = value.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, "$1.$2.$3-$4");
+                          value = value.replace(/(\d{3})(\d{3})(\d{3})(\d{0,2})/, "$1.$2.$3-$4");
+                          value = value.replace(/(\d{3})(\d{3})(\d{0,3})/, "$1.$2.$3");
+                          value = value.replace(/(\d{3})(\d{0,3})/, "$1.$2");
+                          e.target.value = value;
+                        }
+                      }}
+                    />
+                    <p className="text-xs text-muted-foreground">Apenas um cadastro por CPF</p>
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="birth-date">Data de nascimento</Label>

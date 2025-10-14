@@ -362,18 +362,21 @@ export type Database = {
       }
       profiles: {
         Row: {
+          cpf_hash: string | null
           created_at: string
           full_name: string
           id: string
           updated_at: string
         }
         Insert: {
+          cpf_hash?: string | null
           created_at?: string
           full_name: string
           id: string
           updated_at?: string
         }
         Update: {
+          cpf_hash?: string | null
           created_at?: string
           full_name?: string
           id?: string
