@@ -74,8 +74,13 @@ const FootballRanking = ({ poolId }: FootballRankingProps) => {
       })
     );
 
-    // Sort by points descending
-    rankingData.sort((a, b) => b.total_points - a.total_points);
+    // Sort by points descending, then by name for consistent ordering
+    rankingData.sort((a, b) => {
+      if (b.total_points !== a.total_points) {
+        return b.total_points - a.total_points;
+      }
+      return a.participant_name.localeCompare(b.participant_name);
+    });
     setRanking(rankingData);
     setLoading(false);
   };
@@ -88,6 +93,19 @@ const FootballRanking = ({ poolId }: FootballRankingProps) => {
     return <p className="text-muted-foreground">Nenhum participante no ranking ainda.</p>;
   }
 
+  // Get actual position considering ties
+  const getActualPosition = (index: number) => {
+    if (index === 0) return 1;
+    
+    let position = 1;
+    for (let i = 0; i < index; i++) {
+      if (ranking[i].total_points !== ranking[i + 1]?.total_points) {
+        position = i + 2;
+      }
+    }
+    return position;
+  };
+
   const getPodiumPosition = (position: number) => {
     const podiumHeights = ['h-32', 'h-24', 'h-20'];
     const podiumColors = [
@@ -99,13 +117,40 @@ const FootballRanking = ({ poolId }: FootballRankingProps) => {
   };
 
   const getRankIcon = (position: number) => {
-    if (position === 0) return <Trophy className="w-6 h-6 text-yellow-500" />;
-    if (position === 1) return <Medal className="w-6 h-6 text-gray-400" />;
-    if (position === 2) return <Medal className="w-6 h-6 text-orange-600" />;
+    if (position === 1) return <Trophy className="w-6 h-6 text-yellow-500" />;
+    if (position === 2) return <Medal className="w-6 h-6 text-gray-400" />;
+    if (position === 3) return <Medal className="w-6 h-6 text-orange-600" />;
     return null;
   };
 
-  const podiumOrder = [1, 0, 2]; // 2nd, 1st, 3rd for visual effect
+  // Group participants by points to handle ties
+  const getTopThreeGroups = () => {
+    const groups: { position: number; participants: ParticipantScore[]; podiumIndex: number }[] = [];
+    let currentPosition = 1;
+    let podiumIndex = 0;
+    
+    for (let i = 0; i < Math.min(ranking.length, 3); i++) {
+      if (i > 0 && ranking[i].total_points !== ranking[i - 1].total_points) {
+        currentPosition = i + 1;
+        podiumIndex++;
+      }
+      
+      if (podiumIndex >= 3) break;
+      
+      const existingGroup = groups.find(g => g.position === currentPosition);
+      if (existingGroup) {
+        existingGroup.participants.push(ranking[i]);
+      } else {
+        groups.push({
+          position: currentPosition,
+          participants: [ranking[i]],
+          podiumIndex
+        });
+      }
+    }
+    
+    return groups;
+  };
 
   return (
     <Card>
@@ -116,60 +161,72 @@ const FootballRanking = ({ poolId }: FootballRankingProps) => {
         </CardTitle>
       </CardHeader>
       <CardContent>
-        {/* Podium or simple list when <3 */}
+        {/* Podium or simple list */}
         {ranking.length >= 3 ? (
-          <div className="mb-8">
-            <div className="flex items-end justify-center gap-4 mb-4">
-              {podiumOrder.map((index) => {
-                const participant = ranking[index];
-                const podium = getPodiumPosition(index);
-                return (
-                  <div key={participant.id} className="flex flex-col items-center flex-1 max-w-[120px]">
-                    <div className="mb-2 text-center">
-                      <div className="mb-1 flex justify-center">
-                        {getRankIcon(index)}
+          <>
+            <div className="mb-8">
+              <div className="flex items-end justify-center gap-4 mb-4">
+                {[1, 0, 2].map((visualIndex) => {
+                  const topGroups = getTopThreeGroups();
+                  const group = topGroups.find(g => g.podiumIndex === visualIndex);
+                  
+                  if (!group) return null;
+                  
+                  const podium = getPodiumPosition(visualIndex);
+                  
+                  return (
+                    <div key={`podium-${visualIndex}`} className="flex flex-col items-center flex-1 max-w-[140px]">
+                      <div className="mb-2 text-center w-full">
+                        <div className="mb-1 flex justify-center">
+                          {getRankIcon(group.position)}
+                        </div>
+                        <div className="space-y-1">
+                          {group.participants.map((participant) => (
+                            <div key={participant.id}>
+                              <p className="font-bold text-xs truncate px-1">{participant.participant_name}</p>
+                            </div>
+                          ))}
+                        </div>
+                        <Badge variant={group.position === 1 ? "default" : "secondary"} className="mt-1">
+                          {group.participants[0].total_points} pts
+                        </Badge>
                       </div>
-                      <p className="font-bold text-sm truncate px-1">{participant.participant_name}</p>
-                      <Badge variant={index === 0 ? "default" : "secondary"} className="mt-1">
-                        {participant.total_points} pts
-                      </Badge>
+                      <div className={`w-full ${podium.height} ${podium.color} rounded-t-lg flex items-center justify-center font-bold text-2xl transition-all`}>
+                        {group.position}º
+                      </div>
                     </div>
-                    <div className={`w-full ${podium.height} ${podium.color} rounded-t-lg flex items-center justify-center font-bold text-2xl transition-all`}>
-                      {index + 1}º
+                  );
+                })}
+              </div>
+            </div>
+            
+            {/* Rest of ranking */}
+            <div className="space-y-3">
+              {ranking.slice(getTopThreeGroups().reduce((acc, g) => acc + g.participants.length, 0)).map((participant, idx) => {
+                const actualPosition = getActualPosition(idx + getTopThreeGroups().reduce((acc, g) => acc + g.participants.length, 0));
+                return (
+                  <div
+                    key={participant.id}
+                    className="flex items-center justify-between p-3 rounded-lg bg-muted/50"
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="flex items-center justify-center w-8 h-8 rounded-full bg-background font-bold">
+                        <span>{actualPosition}º</span>
+                      </div>
+                      <span className="font-medium">{participant.participant_name}</span>
                     </div>
+                    <Badge variant="secondary">
+                      {participant.total_points} pts
+                    </Badge>
                   </div>
                 );
               })}
             </div>
-          </div>
+          </>
         ) : (
           <div className="space-y-3">
-            {ranking.map((participant, index) => (
-              <div
-                key={participant.id}
-                className="flex items-center justify-between p-3 rounded-lg bg-muted/50"
-              >
-                <div className="flex items-center gap-3">
-                  <div className="flex items-center justify-center w-8 h-8 rounded-full bg-background font-bold">
-                    <span>{index + 1}º</span>
-                  </div>
-                  <span className="font-medium flex items-center gap-2">
-                    {getRankIcon(index)} {participant.participant_name}
-                  </span>
-                </div>
-                <Badge variant="secondary">
-                  {participant.total_points} pts
-                </Badge>
-              </div>
-            ))}
-          </div>
-        )}
-
-        {/* Rest of ranking when >=3 */}
-        {ranking.length >= 3 && (
-          <div className="space-y-3">
-            {ranking.slice(3).map((participant, idx) => {
-              const index = idx + 3;
+            {ranking.map((participant, index) => {
+              const actualPosition = getActualPosition(index);
               return (
                 <div
                   key={participant.id}
@@ -177,9 +234,11 @@ const FootballRanking = ({ poolId }: FootballRankingProps) => {
                 >
                   <div className="flex items-center gap-3">
                     <div className="flex items-center justify-center w-8 h-8 rounded-full bg-background font-bold">
-                      <span>{index + 1}º</span>
+                      <span>{actualPosition}º</span>
                     </div>
-                    <span className="font-medium">{participant.participant_name}</span>
+                    <span className="font-medium flex items-center gap-2">
+                      {getRankIcon(actualPosition)} {participant.participant_name}
+                    </span>
                   </div>
                   <Badge variant="secondary">
                     {participant.total_points} pts
