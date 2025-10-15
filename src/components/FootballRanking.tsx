@@ -42,9 +42,9 @@ const FootballRanking = ({ poolId, pool }: FootballRankingProps) => {
   useEffect(() => {
     loadRanking();
 
-    // Subscribe to real-time updates on football_predictions
+    // Subscribe to real-time updates on football_predictions and football_matches
     const channel = supabase
-      .channel('football_predictions_changes')
+      .channel('football_ranking_changes')
       .on(
         'postgres_changes',
         {
@@ -54,6 +54,18 @@ const FootballRanking = ({ poolId, pool }: FootballRankingProps) => {
         },
         () => {
           // Reload ranking when predictions are updated
+          loadRanking();
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'football_matches'
+        },
+        () => {
+          // Reload ranking when match results are updated (real-time during games)
           loadRanking();
         }
       )
