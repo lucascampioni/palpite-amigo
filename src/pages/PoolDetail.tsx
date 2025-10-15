@@ -708,7 +708,7 @@ const PoolDetail = () => {
 
 
 
-            {(pool.status === "finished") && (pool.pool_type === "football" || hasFootballMatches) && (
+            {((pool.status === "active" || pool.status === "finished") && (pool.pool_type === "football" || hasFootballMatches)) && (
               <>
                 <Separator />
                 <FootballRanking poolId={pool.id} pool={pool} />

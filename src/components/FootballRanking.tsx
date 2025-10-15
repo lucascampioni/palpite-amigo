@@ -77,7 +77,26 @@ const FootballRanking = ({ poolId, pool }: FootballRankingProps) => {
   }, [poolId]);
 
   const loadRanking = async () => {
-    // Get all participants with their predictions
+    setLoading(true);
+
+    // Prefer a secured RPC that exposes only public ranking fields (works for everyone)
+    const { data: rpcData, error: rpcError } = await (supabase as any)
+      .rpc('get_football_pool_ranking', { p_pool_id: poolId });
+
+    if (!rpcError && rpcData) {
+      const baseRanking: ParticipantScore[] = rpcData.map((r: any) => ({
+        id: r.participant_id,
+        participant_name: r.participant_name,
+        total_points: r.total_points ?? 0,
+      }));
+
+      const rankingWithPrizes = calculatePrizeDistribution(baseRanking, pool);
+      setRanking(rankingWithPrizes);
+      setLoading(false);
+      return;
+    }
+
+    // Fallback: legacy secured reads (for owners/approved participants)
     const { data: participants, error: participantsError } = await supabase
       .from("participants")
       .select("id, participant_name, prize_status")
@@ -89,7 +108,6 @@ const FootballRanking = ({ poolId, pool }: FootballRankingProps) => {
       return;
     }
 
-    // For each participant, get their total points
     const rankingData = await Promise.all(
       participants.map(async (participant) => {
         const { data: predictions } = await supabase
@@ -104,11 +122,10 @@ const FootballRanking = ({ poolId, pool }: FootballRankingProps) => {
           participant_name: participant.participant_name,
           total_points,
           prize_status: participant.prize_status,
-        };
+        } as ParticipantScore;
       })
     );
 
-    // Sort by points descending, then by name for consistent ordering
     rankingData.sort((a, b) => {
       if (b.total_points !== a.total_points) {
         return b.total_points - a.total_points;
@@ -116,42 +133,10 @@ const FootballRanking = ({ poolId, pool }: FootballRankingProps) => {
       return a.participant_name.localeCompare(b.participant_name);
     });
 
-    // Calculate prize distribution considering ties
     const rankingWithPrizes = calculatePrizeDistribution(rankingData, pool);
-    
-    // Auto-mark winners as awaiting_pix if they haven't submitted yet
-    if (pool?.first_place_prize || pool?.second_place_prize || pool?.third_place_prize) {
-      const winnersToUpdate = rankingWithPrizes.filter(
-        p => p.prize_amount && p.prize_amount > 0 && !p.prize_status
-      );
-      
-      if (winnersToUpdate.length > 0) {
-        await Promise.all(
-          winnersToUpdate.map(winner =>
-            supabase
-              .from("participants")
-              .update({ prize_status: "awaiting_pix" })
-              .eq("id", winner.id)
-          )
-        );
-        
-        // Reload to get updated statuses
-        const { data: updatedParticipants } = await supabase
-          .from("participants")
-          .select("id, prize_status")
-          .eq("pool_id", poolId)
-          .in("id", winnersToUpdate.map(w => w.id));
-        
-        // Update prize_status in ranking
-        updatedParticipants?.forEach(up => {
-          const participant = rankingWithPrizes.find(p => p.id === up.id);
-          if (participant) {
-            participant.prize_status = up.prize_status;
-          }
-        });
-      }
-    }
-    
+
+    // Do not auto-update prize status here to avoid RLS errors for public viewers
+
     setRanking(rankingWithPrizes);
     setLoading(false);
   };

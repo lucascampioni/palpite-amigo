@@ -473,6 +473,14 @@ export type Database = {
         }
         Returns: number
       }
+      get_football_pool_ranking: {
+        Args: { p_pool_id: string }
+        Returns: {
+          participant_id: string
+          participant_name: string
+          total_points: number
+        }[]
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
