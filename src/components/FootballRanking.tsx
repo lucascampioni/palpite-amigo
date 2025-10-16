@@ -4,6 +4,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Trophy, Medal, ChevronDown, ChevronUp } from "lucide-react";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { format } from "date-fns";
+import { ptBR } from "date-fns/locale";
 
 interface FootballRankingProps {
   poolId: string;
@@ -31,6 +33,9 @@ interface MatchPrediction {
   home_score_prediction: number;
   away_score_prediction: number;
   points_earned: number;
+  match_date: string;
+  home_team_crest: string | null;
+  away_team_crest: string | null;
 }
 
 const FootballRanking = ({ poolId, pool }: FootballRankingProps) => {
@@ -244,10 +249,14 @@ const FootballRanking = ({ poolId, pool }: FootballRankingProps) => {
           home_team,
           away_team,
           home_score,
-          away_score
+          away_score,
+          match_date,
+          home_team_crest,
+          away_team_crest
         )
       `)
-      .eq("participant_id", participantId);
+      .eq("participant_id", participantId)
+      .order("football_matches(match_date)", { ascending: true });
 
     if (predictions) {
       const formattedPredictions: MatchPrediction[] = predictions.map((p: any) => ({
@@ -259,6 +268,9 @@ const FootballRanking = ({ poolId, pool }: FootballRankingProps) => {
         home_score_prediction: p.home_score_prediction,
         away_score_prediction: p.away_score_prediction,
         points_earned: p.points_earned,
+        match_date: p.football_matches.match_date,
+        home_team_crest: p.football_matches.home_team_crest,
+        away_team_crest: p.football_matches.away_team_crest,
       }));
 
       setParticipantPredictions(prev => ({
@@ -498,10 +510,21 @@ const FootballRanking = ({ poolId, pool }: FootballRankingProps) => {
                             <p className="text-sm text-muted-foreground">Carregando palpites...</p>
                           ) : (
                             predictions.map((pred) => (
-                              <div key={pred.match_id} className="flex items-center justify-between text-sm bg-background/50 rounded p-2">
-                                <div className="flex-1">
-                                  <p className="font-medium text-xs">{pred.home_team} vs {pred.away_team}</p>
-                                  <div className="flex items-center gap-2 mt-1">
+                              <div key={pred.match_id} className="flex items-start justify-between text-sm bg-background/50 rounded p-3 gap-3">
+                                <div className="flex-1 space-y-2">
+                                  <div className="flex items-center gap-2 flex-wrap">
+                                    {pred.home_team_crest && (
+                                      <img src={pred.home_team_crest} alt={pred.home_team} className="w-5 h-5 object-contain" />
+                                    )}
+                                    <p className="font-medium text-xs">{pred.home_team} vs {pred.away_team}</p>
+                                    {pred.away_team_crest && (
+                                      <img src={pred.away_team_crest} alt={pred.away_team} className="w-5 h-5 object-contain" />
+                                    )}
+                                  </div>
+                                  <p className="text-xs text-muted-foreground">
+                                    {format(new Date(pred.match_date), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
+                                  </p>
+                                  <div className="flex items-center gap-2 flex-wrap">
                                     <span className="text-xs text-muted-foreground">
                                       Palpite: {pred.home_score_prediction} - {pred.away_score_prediction}
                                     </span>
@@ -514,7 +537,7 @@ const FootballRanking = ({ poolId, pool }: FootballRankingProps) => {
                                 </div>
                                 <Badge 
                                   variant={pred.points_earned > 0 ? "default" : "secondary"}
-                                  className="text-xs"
+                                  className="text-xs flex-shrink-0"
                                 >
                                   {pred.points_earned} pt{pred.points_earned !== 1 ? 's' : ''}
                                 </Badge>
