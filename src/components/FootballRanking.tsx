@@ -38,6 +38,7 @@ const FootballRanking = ({ poolId, pool }: FootballRankingProps) => {
   const [loading, setLoading] = useState(true);
   const [expandedParticipants, setExpandedParticipants] = useState<Set<string>>(new Set());
   const [participantPredictions, setParticipantPredictions] = useState<Record<string, MatchPrediction[]>>({});
+  const [allMatchesFinished, setAllMatchesFinished] = useState(false);
 
   useEffect(() => {
     loadRanking();
@@ -79,6 +80,15 @@ const FootballRanking = ({ poolId, pool }: FootballRankingProps) => {
   const loadRanking = async () => {
     setLoading(true);
 
+    // Check if all matches have results
+    const { data: matches } = await supabase
+      .from("football_matches")
+      .select("home_score, away_score")
+      .eq("pool_id", poolId);
+
+    const allFinished = matches?.every(m => m.home_score !== null && m.away_score !== null) ?? false;
+    setAllMatchesFinished(allFinished);
+
     // Prefer a secured RPC that exposes only public ranking fields (works for everyone)
     const { data: rpcData, error: rpcError } = await (supabase as any)
       .rpc('get_football_pool_ranking', { p_pool_id: poolId });
@@ -90,7 +100,7 @@ const FootballRanking = ({ poolId, pool }: FootballRankingProps) => {
         total_points: r.total_points ?? 0,
       }));
 
-      const rankingWithPrizes = calculatePrizeDistribution(baseRanking, pool);
+      const rankingWithPrizes = allFinished ? calculatePrizeDistribution(baseRanking, pool) : baseRanking;
       setRanking(rankingWithPrizes);
       setLoading(false);
       return;
@@ -356,8 +366,8 @@ const FootballRanking = ({ poolId, pool }: FootballRankingProps) => {
         </CardTitle>
       </CardHeader>
       <CardContent>
-        {/* Podium for top 3 positions */}
-        {ranking.length >= 3 && (
+        {/* Podium for top 3 positions - only show when all matches are finished */}
+        {allMatchesFinished && ranking.length >= 3 && (
           <div className="mb-6 pb-4 border-b">
             <h3 className="text-base sm:text-lg font-semibold mb-3 text-center">Pódio</h3>
             <div className="flex items-end justify-center gap-2 sm:gap-4 px-2">
@@ -403,7 +413,9 @@ const FootballRanking = ({ poolId, pool }: FootballRankingProps) => {
         
         {/* Complete ranking list */}
         <div>
-          <h3 className="text-base sm:text-lg font-semibold mb-3 sm:mb-4">Ranking Completo</h3>
+          <h3 className="text-base sm:text-lg font-semibold mb-3 sm:mb-4">
+            {allMatchesFinished ? 'Ranking Completo' : 'Ranking Parcial'}
+          </h3>
           <div className="space-y-2">
             {ranking.map((participant, index) => {
               const actualPosition = getActualPosition(index, participant);
@@ -446,12 +458,12 @@ const FootballRanking = ({ poolId, pool }: FootballRankingProps) => {
                               >
                                 {participant.total_points} pts
                               </Badge>
-                              {participant.prize_amount !== undefined && participant.prize_amount > 0 && (
+                              {allMatchesFinished && participant.prize_amount !== undefined && participant.prize_amount > 0 && (
                                 <Badge variant="default" className="text-xs sm:text-sm px-2 sm:px-3 py-0.5 sm:py-1 bg-primary whitespace-nowrap">
                                   R$ {participant.prize_amount.toFixed(2).replace('.', ',')}
                                 </Badge>
                               )}
-                              {getPrizeStatusBadge(participant.prize_status, participant.prize_amount)}
+                              {allMatchesFinished && getPrizeStatusBadge(participant.prize_status, participant.prize_amount)}
                             </div>
                             {isExpanded ? (
                               <ChevronUp className="h-4 w-4 sm:h-5 sm:w-5 text-muted-foreground flex-shrink-0" />
@@ -468,12 +480,12 @@ const FootballRanking = ({ poolId, pool }: FootballRankingProps) => {
                           >
                             {participant.total_points} pts
                           </Badge>
-                          {participant.prize_amount !== undefined && participant.prize_amount > 0 && (
+                          {allMatchesFinished && participant.prize_amount !== undefined && participant.prize_amount > 0 && (
                             <Badge variant="default" className="text-xs px-2 py-0.5 bg-primary whitespace-nowrap">
                               R$ {participant.prize_amount.toFixed(2).replace('.', ',')}
                             </Badge>
                           )}
-                          {getPrizeStatusBadge(participant.prize_status, participant.prize_amount)}
+                          {allMatchesFinished && getPrizeStatusBadge(participant.prize_status, participant.prize_amount)}
                         </div>
                       </div>
                     </CollapsibleTrigger>
