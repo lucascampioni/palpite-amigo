@@ -512,13 +512,13 @@ const FootballRanking = ({ poolId, pool }: FootballRankingProps) => {
                             predictions.map((pred) => (
                               <div key={pred.match_id} className="flex items-start justify-between text-sm bg-background/50 rounded p-3 gap-3">
                                 <div className="flex-1 space-y-2">
-                                  <div className="flex items-center gap-2 flex-wrap">
+                                  <div className="flex items-center gap-1.5">
                                     {pred.home_team_crest && (
-                                      <img src={pred.home_team_crest} alt={pred.home_team} className="w-5 h-5 object-contain" />
+                                      <img src={pred.home_team_crest} alt={pred.home_team} className="w-4 h-4 flex-shrink-0 object-contain" />
                                     )}
-                                    <p className="font-medium text-xs">{pred.home_team} vs {pred.away_team}</p>
+                                    <p className="font-medium text-xs leading-tight">{pred.home_team} vs {pred.away_team}</p>
                                     {pred.away_team_crest && (
-                                      <img src={pred.away_team_crest} alt={pred.away_team} className="w-5 h-5 object-contain" />
+                                      <img src={pred.away_team_crest} alt={pred.away_team} className="w-4 h-4 flex-shrink-0 object-contain" />
                                     )}
                                   </div>
                                   <p className="text-xs text-muted-foreground">
