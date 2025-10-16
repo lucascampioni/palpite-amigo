@@ -41,6 +41,7 @@ const PoolDetail = () => {
   const [signedProofUrl, setSignedProofUrl] = useState<string | null>(null);
   const [userPrizeInfo, setUserPrizeInfo] = useState<{ amount: number; placement: number; isTied: boolean; tiedWithCount: number } | null>(null);
   const [participantsPoints, setParticipantsPoints] = useState<Record<string, number>>({});
+  const [hasAnyMatchResult, setHasAnyMatchResult] = useState(false);
 
   useEffect(() => {
     const buildSigned = async () => {
@@ -188,9 +189,13 @@ const PoolDetail = () => {
     // Detect if this pool has football matches (even if pool_type is not set)
     const { data: matchesData } = await supabase
       .from("football_matches")
-      .select("id")
+      .select("id, home_score, away_score")
       .eq("pool_id", id);
     setHasFootballMatches((matchesData?.length || 0) > 0);
+    
+    // Check if any match has results
+    const hasResults = matchesData?.some(m => m.home_score !== null && m.away_score !== null) ?? false;
+    setHasAnyMatchResult(hasResults);
     
     // No need to load pix/payment info anymore
     
@@ -750,7 +755,7 @@ const PoolDetail = () => {
               </>
             )}
 
-            {approvedParticipants.length > 0 && (pool.pool_type === "football" || hasFootballMatches) && pool.status !== "finished" && (
+            {approvedParticipants.length > 0 && (pool.pool_type === "football" || hasFootballMatches) && pool.status !== "finished" && new Date() > new Date(pool.deadline) && !hasAnyMatchResult && (
               <>
                 <Separator />
                 <FootballParticipantsPredictions poolId={pool.id} participants={approvedParticipants} />
