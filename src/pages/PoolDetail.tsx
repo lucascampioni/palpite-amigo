@@ -76,40 +76,49 @@ const PoolDetail = () => {
         .sort((a, b) => b.total_points - a.total_points);
 
       const userPoints = participantsPoints[currentUserParticipant.id] || 0;
-      
-      // Find all participants with same points (tied)
-      const tiedParticipants = participantsWithPoints.filter(p => p.total_points === userPoints);
-      const placement = participantsWithPoints.findIndex(p => p.id === currentUserParticipant.id) + 1;
 
-      // Calculate prize based on placement and ties
-      let prizeAmount = 0;
-      const isTied = tiedParticipants.length > 1;
+      // Find user's index in sorted list
+      const userIndex = participantsWithPoints.findIndex(p => p.id === currentUserParticipant.id);
+      if (userIndex === -1) return;
 
-      if (placement <= 3) {
-        const prizes = [
-          pool.first_place_prize ? parseFloat(pool.first_place_prize) : 0,
-          pool.second_place_prize ? parseFloat(pool.second_place_prize) : 0,
-          pool.third_place_prize ? parseFloat(pool.third_place_prize) : 0
-        ];
-
-        if (isTied) {
-          // Sum prizes for tied positions
-          let totalPrize = 0;
-          for (let i = placement - 1; i < placement - 1 + tiedParticipants.length && i < 3; i++) {
-            totalPrize += prizes[i];
-          }
-          prizeAmount = totalPrize / tiedParticipants.length;
-        } else {
-          prizeAmount = prizes[placement - 1];
-        }
+      // Determine the full tie group boundaries for this score
+      let groupStart = userIndex;
+      let groupEnd = userIndex;
+      while (groupStart > 0 && participantsWithPoints[groupStart - 1].total_points === userPoints) {
+        groupStart--;
       }
+      while (groupEnd < participantsWithPoints.length - 1 && participantsWithPoints[groupEnd + 1].total_points === userPoints) {
+        groupEnd++;
+      }
+
+      // Calculate overlap of the tie group with the prize-bearing top 3 positions
+      const topStart = 0;
+      const topEnd = 2; // indices 0,1,2 correspond to 1º, 2º, 3º
+      const overlapStart = Math.max(groupStart, topStart);
+      const overlapEnd = Math.min(groupEnd, topEnd);
+      const overlapCount = overlapEnd >= overlapStart ? (overlapEnd - overlapStart + 1) : 0;
+
+      if (overlapCount <= 0) return; // no prize for this user
+
+      const prizes = [
+        pool.first_place_prize ? parseFloat(pool.first_place_prize) : 0,
+        pool.second_place_prize ? parseFloat(pool.second_place_prize) : 0,
+        pool.third_place_prize ? parseFloat(pool.third_place_prize) : 0
+      ];
+
+      // Sum prizes for the overlapped positions only, then split equally among overlapped participants
+      let prizeSum = 0;
+      for (let i = overlapStart; i <= overlapEnd; i++) {
+        prizeSum += prizes[i] || 0;
+      }
+      const prizeAmount = prizeSum / overlapCount;
 
       if (prizeAmount > 0) {
         setUserPrizeInfo({
           amount: prizeAmount,
-          placement,
-          isTied,
-          tiedWithCount: isTied ? tiedParticipants.length - 1 : 0
+          placement: overlapStart + 1, // placement is the first position involved in the tie within top 3
+          isTied: overlapCount > 1,
+          tiedWithCount: overlapCount > 1 ? overlapCount - 1 : 0
         });
       }
     };
