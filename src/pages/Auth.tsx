@@ -505,7 +505,7 @@ const Auth = () => {
                         setPhone(value);
                       }}
                     />
-                    <p className="text-xs text-muted-foreground">Usaremos para contato sobre os bolões</p>
+                    <p className="text-xs text-muted-foreground">Usaremos para contato sobre os bolões caso necessário</p>
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="signup-email">Email</Label>
