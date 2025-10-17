@@ -35,7 +35,7 @@ const PoolDetail = () => {
   const [guessValue, setGuessValue] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [showResultDialog, setShowResultDialog] = useState(false);
-  const [winner, setWinner] = useState<any>(null);
+  const [winners, setWinners] = useState<any[]>([]);
   const [hasFootballMatches, setHasFootballMatches] = useState(false);
   const [currentUserParticipant, setCurrentUserParticipant] = useState<any>(null);
   const [signedProofUrl, setSignedProofUrl] = useState<string | null>(null);
@@ -199,10 +199,28 @@ const PoolDetail = () => {
     
     // No need to load pix/payment info anymore
     
-    // Load winner if pool is finished
-    if (poolData.winner_id) {
-      const winnerData = participantsData?.find(p => p.user_id === poolData.winner_id);
-      setWinner(winnerData);
+    // Load winners if pool is finished
+    if (poolData.status === 'finished') {
+      if (hasFootballMatches || poolData.pool_type === 'football') {
+        // For football pools, find all participants with the highest score
+        const participantsWithPoints = participantsData
+          ?.filter(p => p.status === 'approved')
+          .map(p => ({
+            ...p,
+            total_points: pointsMap[p.id] || 0
+          }))
+          .sort((a, b) => b.total_points - a.total_points) || [];
+        
+        if (participantsWithPoints.length > 0) {
+          const highestScore = participantsWithPoints[0].total_points;
+          const topWinners = participantsWithPoints.filter(p => p.total_points === highestScore && p.total_points > 0);
+          setWinners(topWinners);
+        }
+      } else if (poolData.winner_id) {
+        // For non-football pools, use the single winner_id
+        const winnerData = participantsData?.find(p => p.user_id === poolData.winner_id);
+        setWinners(winnerData ? [winnerData] : []);
+      }
     }
     
     setLoading(false);
@@ -399,10 +417,10 @@ const PoolDetail = () => {
           </CardHeader>
           <CardContent className="space-y-6">
             {/* Winner Display */}
-            {pool.status === "finished" && winner && pool.result_value && (
+            {pool.status === "finished" && winners.length > 0 && (
               <>
                 <WinnerDisplay 
-                  winner={winner} 
+                  winners={winners} 
                   resultValue={pool.result_value}
                   measurementUnit={pool.measurement_unit}
                 />
@@ -411,7 +429,7 @@ const PoolDetail = () => {
             )}
 
             {/* No winner message */}
-            {pool.status === "finished" && !winner && pool.result_value && (
+            {pool.status === "finished" && winners.length === 0 && pool.result_value && (
               <>
                 <Card className="border-2 border-muted">
                   <CardContent className="p-6 text-center">

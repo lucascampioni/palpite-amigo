@@ -3,12 +3,12 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 
 interface WinnerDisplayProps {
-  winner: any;
-  resultValue: string;
-  measurementUnit: string;
+  winners: any[];
+  resultValue?: string;
+  measurementUnit?: string;
 }
 
-const WinnerDisplay = ({ winner, resultValue, measurementUnit }: WinnerDisplayProps) => {
+const WinnerDisplay = ({ winners, resultValue, measurementUnit }: WinnerDisplayProps) => {
   const getUnitLabel = () => {
     switch (measurementUnit) {
       case "kg":
@@ -22,30 +22,48 @@ const WinnerDisplay = ({ winner, resultValue, measurementUnit }: WinnerDisplayPr
     }
   };
 
+  const isMultipleWinners = winners.length > 1;
+
   return (
     <Card className="border-2 border-secondary bg-gradient-to-br from-secondary/10 to-secondary/5">
       <CardContent className="p-6">
-        <div className="flex items-center gap-4">
-          <div className="w-16 h-16 rounded-full bg-gradient-to-br from-secondary to-secondary/80 flex items-center justify-center shadow-lg">
+        <div className="flex items-center gap-4 mb-3">
+          <div className="w-16 h-16 rounded-full bg-gradient-to-br from-secondary to-secondary/80 flex items-center justify-center shadow-lg flex-shrink-0">
             <Trophy className="w-8 h-8 text-white" />
           </div>
           <div className="flex-1">
             <div className="flex items-center gap-2 mb-1">
               <Award className="w-4 h-4 text-secondary" />
               <span className="text-sm font-semibold text-secondary uppercase tracking-wide">
-                Vencedor
+                {isMultipleWinners ? 'Vencedores' : 'Vencedor'}
               </span>
             </div>
-            <h3 className="text-2xl font-bold mb-1">{winner.participant_name}</h3>
-            <div className="flex gap-2">
-              <Badge variant="outline">
-                Palpite: {winner.guess_value} {getUnitLabel()}
-              </Badge>
-              <Badge variant="secondary">
-                Resultado: {resultValue} {getUnitLabel()}
-              </Badge>
-            </div>
           </div>
+        </div>
+        
+        <div className="space-y-3">
+          {winners.map((winner, index) => (
+            <div key={winner.id || index} className={index > 0 ? "pt-3 border-t border-secondary/20" : ""}>
+              <h3 className="text-xl font-bold mb-2">{winner.participant_name}</h3>
+              <div className="flex flex-wrap gap-2">
+                {winner.guess_value && (
+                  <Badge variant="outline">
+                    Palpite: {winner.guess_value} {getUnitLabel()}
+                  </Badge>
+                )}
+                {winner.total_points !== undefined && (
+                  <Badge variant="default">
+                    {winner.total_points} pontos
+                  </Badge>
+                )}
+                {resultValue && (
+                  <Badge variant="secondary">
+                    Resultado: {resultValue} {getUnitLabel()}
+                  </Badge>
+                )}
+              </div>
+            </div>
+          ))}
         </div>
       </CardContent>
     </Card>
