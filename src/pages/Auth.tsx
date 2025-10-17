@@ -179,6 +179,17 @@ const Auth = () => {
       return;
     }
 
+    // Repetição de cadastro: Supabase retorna user com identities vazio
+    if (!error && data.user && Array.isArray((data.user as any).identities) && (data.user as any).identities.length === 0) {
+      toast({
+        variant: "destructive",
+        title: "E-mail já cadastrado",
+        description: "Este e-mail já está cadastrado. Por favor, faça login ou use outro e-mail.",
+      });
+      setLoading(false);
+      return;
+    }
+
     if (error) {
       let errorMessage = error.message;
 
