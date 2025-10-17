@@ -6,6 +6,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
 import CreateFootballPool from "./pages/CreateFootballPool";
+import EditFootballPool from "./pages/EditFootballPool";
 import PoolDetail from "./pages/PoolDetail";
 import Profile from "./pages/Profile";
 import Privacy from "./pages/Privacy";
@@ -28,6 +29,7 @@ const App = () => (
           <Route path="/email-confirmation" element={<EmailConfirmation />} />
           <Route path="/reset-password" element={<ResetPassword />} />
           <Route path="/create-football" element={<CreateFootballPool />} />
+          <Route path="/edit-pool/:id" element={<EditFootballPool />} />
           <Route path="/pool/:id" element={<PoolDetail />} />
           <Route path="/profile" element={<Profile />} />
           <Route path="/privacy" element={<Privacy />} />

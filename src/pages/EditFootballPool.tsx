@@ -1,0 +1,566 @@
+import { useState, useEffect } from "react";
+import { useNavigate, useParams } from "react-router-dom";
+import { supabase } from "@/integrations/supabase/client";
+import { useUserRole } from "@/hooks/useUserRole";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { useToast } from "@/hooks/use-toast";
+import { ArrowLeft, Save, Trash2, Plus } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
+import { GEMatchSelector } from "@/components/GEMatchSelector";
+import { format } from "date-fns";
+
+interface Match {
+  id?: string;
+  homeTeam: string;
+  awayTeam: string;
+  matchDate: string;
+  championship: string;
+  externalId?: string;
+  externalSource?: string;
+  homeScore?: number | null;
+  awayScore?: number | null;
+  status?: string;
+  homeTeamCrest?: string;
+  awayTeamCrest?: string;
+}
+
+const EditFootballPool = () => {
+  const { id } = useParams();
+  const navigate = useNavigate();
+  const { toast } = useToast();
+  const { data: userRole, isLoading: isLoadingRole } = useUserRole();
+  const [loading, setLoading] = useState(false);
+  const [loadingData, setLoadingData] = useState(true);
+  const [pool, setPool] = useState<any>(null);
+  const [matches, setMatches] = useState<Match[]>([]);
+  const [isPrivate, setIsPrivate] = useState(false);
+  const [isOfficial, setIsOfficial] = useState(false);
+  const [scoringSystem, setScoringSystem] = useState<'standard' | 'exact_only'>('exact_only');
+  const [showGESelector, setShowGESelector] = useState(false);
+  const [deadline, setDeadline] = useState<string>("");
+  const [title, setTitle] = useState("");
+  const [description, setDescription] = useState("");
+  const [pixKey, setPixKey] = useState("");
+  const [entryFee, setEntryFee] = useState("");
+  const [maxParticipants, setMaxParticipants] = useState("unlimited");
+  const [firstPlacePrize, setFirstPlacePrize] = useState("");
+  const [secondPlacePrize, setSecondPlacePrize] = useState("");
+  const [thirdPlacePrize, setThirdPlacePrize] = useState("");
+
+  useEffect(() => {
+    if (!isLoadingRole && !userRole?.isAdmin) {
+      toast({
+        variant: "destructive",
+        title: "Acesso negado",
+        description: "Apenas administradores podem editar bolões",
+      });
+      navigate("/");
+    }
+  }, [isLoadingRole, userRole, navigate, toast]);
+
+  useEffect(() => {
+    if (userRole?.isAdmin) {
+      loadPoolData();
+    }
+  }, [id, userRole]);
+
+  const loadPoolData = async () => {
+    setLoadingData(true);
+
+    const { data: poolData, error: poolError } = await supabase
+      .from("pools")
+      .select("*")
+      .eq("id", id)
+      .single();
+
+    if (poolError || !poolData) {
+      toast({
+        variant: "destructive",
+        title: "Erro",
+        description: "Bolão não encontrado.",
+      });
+      navigate("/");
+      return;
+    }
+
+    setPool(poolData);
+    setTitle(poolData.title);
+    setDescription(poolData.description || "");
+    setIsPrivate(poolData.is_private);
+    setIsOfficial(poolData.is_official || false);
+    setScoringSystem((poolData.scoring_system || 'exact_only') as 'standard' | 'exact_only');
+    setEntryFee(poolData.entry_fee ? poolData.entry_fee.toString() : "");
+    setMaxParticipants(poolData.max_participants ? poolData.max_participants.toString() : "unlimited");
+    setFirstPlacePrize(poolData.first_place_prize ? poolData.first_place_prize.toString() : "");
+    setSecondPlacePrize(poolData.second_place_prize ? poolData.second_place_prize.toString() : "");
+    setThirdPlacePrize(poolData.third_place_prize ? poolData.third_place_prize.toString() : "");
+    
+    // Format deadline for datetime-local input
+    const deadlineDate = new Date(poolData.deadline);
+    const year = deadlineDate.getFullYear();
+    const month = String(deadlineDate.getMonth() + 1).padStart(2, '0');
+    const day = String(deadlineDate.getDate()).padStart(2, '0');
+    const hours = String(deadlineDate.getHours()).padStart(2, '0');
+    const minutes = String(deadlineDate.getMinutes()).padStart(2, '0');
+    setDeadline(`${year}-${month}-${day}T${hours}:${minutes}`);
+
+    // Load PIX key
+    const { data: paymentData } = await supabase
+      .from("pool_payment_info")
+      .select("pix_key")
+      .eq("pool_id", id)
+      .single();
+    
+    if (paymentData) {
+      setPixKey(paymentData.pix_key || "");
+    }
+
+    // Load matches
+    const { data: matchesData } = await supabase
+      .from("football_matches")
+      .select("*")
+      .eq("pool_id", id)
+      .order("match_date", { ascending: true });
+
+    if (matchesData) {
+      const formattedMatches = matchesData.map(m => ({
+        id: m.id,
+        homeTeam: m.home_team,
+        awayTeam: m.away_team,
+        matchDate: m.match_date,
+        championship: m.championship,
+        externalId: m.external_id,
+        externalSource: m.external_source,
+        homeScore: m.home_score,
+        awayScore: m.away_score,
+        status: m.status,
+        homeTeamCrest: m.home_team_crest,
+        awayTeamCrest: m.away_team_crest,
+      }));
+      setMatches(formattedMatches);
+    }
+
+    setLoadingData(false);
+  };
+
+  const handleRemoveMatch = async (index: number) => {
+    const match = matches[index];
+    
+    if (match.id) {
+      // Delete from database
+      const { error } = await supabase
+        .from("football_matches")
+        .delete()
+        .eq("id", match.id);
+
+      if (error) {
+        toast({
+          variant: "destructive",
+          title: "Erro",
+          description: "Não foi possível remover o jogo.",
+        });
+        return;
+      }
+    }
+
+    setMatches(matches.filter((_, i) => i !== index));
+    toast({
+      title: "Jogo removido",
+      description: "O jogo foi removido do bolão.",
+    });
+  };
+
+  const handleGEMatchesSelected = (geMatches: Match[]) => {
+    const matchesWithSource = geMatches.map(m => ({
+      ...m,
+      externalSource: 'apifb' as const
+    }));
+    
+    setMatches([...matches, ...matchesWithSource]);
+    
+    toast({
+      title: "Jogos adicionados!",
+      description: `${geMatches.length} jogos foram adicionados ao bolão.`,
+    });
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+
+    try {
+      // Update pool
+      const { error: poolError } = await supabase
+        .from("pools")
+        .update({
+          title,
+          description,
+          deadline: new Date(deadline).toISOString(),
+          is_private: isPrivate,
+          is_official: isOfficial,
+          scoring_system: scoringSystem,
+          entry_fee: entryFee ? parseFloat(entryFee) : null,
+          max_participants: maxParticipants !== "unlimited" ? parseInt(maxParticipants) : null,
+          first_place_prize: firstPlacePrize ? parseFloat(firstPlacePrize) : null,
+          second_place_prize: secondPlacePrize ? parseFloat(secondPlacePrize) : null,
+          third_place_prize: thirdPlacePrize ? parseFloat(thirdPlacePrize) : null,
+        })
+        .eq("id", id);
+
+      if (poolError) throw poolError;
+
+      // Update or insert PIX key
+      if (pixKey) {
+        const { error: pixError } = await supabase
+          .from("pool_payment_info")
+          .upsert({
+            pool_id: id,
+            pix_key: pixKey,
+          });
+
+        if (pixError) throw pixError;
+      }
+
+      // Handle matches - insert new ones
+      const newMatches = matches.filter(m => !m.id);
+      if (newMatches.length > 0) {
+        const matchesData = newMatches.map(match => ({
+          pool_id: id,
+          home_team: match.homeTeam,
+          away_team: match.awayTeam,
+          match_date: new Date(match.matchDate).toISOString(),
+          championship: match.championship,
+          status: "scheduled",
+          external_id: match.externalId,
+          external_source: match.externalSource || 'apifb',
+          home_team_crest: match.homeTeamCrest || null,
+          away_team_crest: match.awayTeamCrest || null,
+        }));
+
+        const { error: matchesError } = await supabase
+          .from("football_matches")
+          .insert(matchesData);
+
+        if (matchesError) throw matchesError;
+      }
+
+      toast({
+        title: "Bolão atualizado!",
+        description: "As alterações foram salvas com sucesso.",
+      });
+
+      navigate(`/pool/${id}`);
+    } catch (error: any) {
+      toast({
+        variant: "destructive",
+        title: "Erro ao salvar",
+        description: error.message,
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (isLoadingRole || !userRole?.isAdmin || loadingData) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <p className="text-muted-foreground">Carregando...</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-background via-muted to-background p-4">
+      <div className="max-w-2xl mx-auto pt-8 pb-16">
+        <Button
+          variant="ghost"
+          className="mb-6"
+          onClick={() => navigate(`/pool/${id}`)}
+        >
+          <ArrowLeft className="w-4 h-4 mr-2" />
+          Voltar
+        </Button>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-3xl flex items-center gap-2">
+              ⚽ Editar Bolão
+            </CardTitle>
+            <CardDescription>
+              Edite as informações do bolão
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <form onSubmit={handleSubmit} className="space-y-6">
+              <div className="space-y-2">
+                <Label htmlFor="title">Título do Bolão *</Label>
+                <Input
+                  id="title"
+                  value={title}
+                  onChange={(e) => setTitle(e.target.value)}
+                  placeholder="Ex: Brasileirão 2025 - Rodada 10"
+                  required
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="description">Descrição</Label>
+                <Textarea
+                  id="description"
+                  value={description}
+                  onChange={(e) => setDescription(e.target.value)}
+                  placeholder="Descreva o bolão e suas regras..."
+                  rows={4}
+                />
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="entry_fee">Valor de Entrada (opcional)</Label>
+                  <Input
+                    id="entry_fee"
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    value={entryFee}
+                    onChange={(e) => setEntryFee(e.target.value)}
+                    placeholder="Ex: 10.00"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="max_participants">Máx. de Participantes</Label>
+                  <select
+                    id="max_participants"
+                    value={maxParticipants}
+                    onChange={(e) => setMaxParticipants(e.target.value)}
+                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    <option value="unlimited">Ilimitado</option>
+                    <option value="5">5 participantes</option>
+                    <option value="10">10 participantes</option>
+                    <option value="20">20 participantes</option>
+                    <option value="50">50 participantes</option>
+                    <option value="100">100 participantes</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label className="text-lg">🏆 Premiação (opcional)</Label>
+                <p className="text-sm text-muted-foreground mb-4">
+                  Defina os valores de premiação para os 3 primeiros lugares
+                </p>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="first_place_prize">1º Lugar</Label>
+                    <Input
+                      id="first_place_prize"
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      value={firstPlacePrize}
+                      onChange={(e) => setFirstPlacePrize(e.target.value)}
+                      placeholder="Ex: 100.00"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="second_place_prize">2º Lugar</Label>
+                    <Input
+                      id="second_place_prize"
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      value={secondPlacePrize}
+                      onChange={(e) => setSecondPlacePrize(e.target.value)}
+                      placeholder="Ex: 50.00"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="third_place_prize">3º Lugar</Label>
+                    <Input
+                      id="third_place_prize"
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      value={thirdPlacePrize}
+                      onChange={(e) => setThirdPlacePrize(e.target.value)}
+                      placeholder="Ex: 25.00"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="pix_key">Chave PIX (opcional)</Label>
+                <Input
+                  id="pix_key"
+                  value={pixKey}
+                  onChange={(e) => setPixKey(e.target.value)}
+                  placeholder="Digite sua chave PIX para receber pagamentos"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="deadline">Prazo para Palpites *</Label>
+                <Input
+                  id="deadline"
+                  type="datetime-local"
+                  value={deadline}
+                  onChange={(e) => setDeadline(e.target.value)}
+                  required
+                />
+              </div>
+
+              <div className="space-y-4 rounded-lg border p-4 bg-muted/30">
+                <Label className="text-lg">⚡ Sistema de Pontuação</Label>
+                <div className="space-y-3">
+                  <div 
+                    className={`flex items-start gap-3 p-3 rounded-lg border-2 cursor-pointer transition-colors ${
+                      scoringSystem === 'exact_only' 
+                        ? 'border-primary bg-primary/5' 
+                        : 'border-muted hover:border-primary/50'
+                    }`}
+                    onClick={() => setScoringSystem('exact_only')}
+                  >
+                    <input
+                      type="radio"
+                      checked={scoringSystem === 'exact_only'}
+                      onChange={() => setScoringSystem('exact_only')}
+                      className="mt-1"
+                    />
+                    <div className="flex-1">
+                      <div className="font-semibold mb-1">Sistema Simplificado</div>
+                      <ul className="text-sm text-muted-foreground space-y-1">
+                        <li>• Placar exato: <strong>1 ponto</strong></li>
+                        <li>• Qualquer outro resultado: <strong>0 pontos</strong></li>
+                      </ul>
+                    </div>
+                  </div>
+                  
+                  <div 
+                    className={`flex items-start gap-3 p-3 rounded-lg border-2 cursor-pointer transition-colors ${
+                      scoringSystem === 'standard' 
+                        ? 'border-primary bg-primary/5' 
+                        : 'border-muted hover:border-primary/50'
+                    }`}
+                    onClick={() => setScoringSystem('standard')}
+                  >
+                    <input
+                      type="radio"
+                      checked={scoringSystem === 'standard'}
+                      onChange={() => setScoringSystem('standard')}
+                      className="mt-1"
+                    />
+                    <div className="flex-1">
+                      <div className="font-semibold mb-1">Sistema Completo</div>
+                      <ul className="text-sm text-muted-foreground space-y-1">
+                        <li>• Placar exato: <strong>5 pontos</strong></li>
+                        <li>• Acertar o vencedor ou empate: <strong>3 pontos</strong></li>
+                        <li>• Acertar a diferença de gols (caso acerte o vencedor ou empate): <strong>+1 ponto</strong></li>
+                      </ul>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex items-center justify-between rounded-lg border p-4">
+                <div className="space-y-0.5">
+                  <Label htmlFor="is-private">Bolão Privado</Label>
+                  <p className="text-sm text-muted-foreground">
+                    Se ativado, apenas pessoas com o link poderão acessar
+                  </p>
+                </div>
+                <Switch
+                  id="is-private"
+                  checked={isPrivate}
+                  onCheckedChange={setIsPrivate}
+                />
+              </div>
+
+              <div className="flex items-center justify-between rounded-lg border p-4 bg-primary/5">
+                <div className="space-y-0.5">
+                  <Label htmlFor="is-official">⭐ Bolão Oficial</Label>
+                  <p className="text-sm text-muted-foreground">
+                    Marcar como bolão oficial do app
+                  </p>
+                </div>
+                <Switch
+                  id="is-official"
+                  checked={isOfficial}
+                  onCheckedChange={setIsOfficial}
+                />
+              </div>
+
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <Label className="text-lg">Jogos do Bolão</Label>
+                  <Button
+                    type="button"
+                    variant="default"
+                    size="sm"
+                    onClick={() => setShowGESelector(true)}
+                  >
+                    <Plus className="w-4 h-4 mr-2" />
+                    Adicionar Jogos
+                  </Button>
+                </div>
+
+                {matches.length === 0 ? (
+                  <p className="text-muted-foreground text-center py-8">
+                    Nenhum jogo adicionado ainda.
+                  </p>
+                ) : (
+                  <div className="space-y-2">
+                    {matches.map((match, index) => (
+                      <div key={index} className="flex items-center gap-2 p-3 border rounded-lg bg-muted/30">
+                        <div className="flex-1 text-sm">
+                          <div className="font-semibold">
+                            {match.homeTeam} vs {match.awayTeam}
+                          </div>
+                          <div className="text-muted-foreground text-xs">
+                            {format(new Date(match.matchDate), "dd/MM/yyyy 'às' HH:mm")}
+                            {match.status === 'finished' && match.homeScore !== null && match.awayScore !== null && (
+                              <span className="ml-2 font-semibold">
+                                ({match.homeScore} x {match.awayScore})
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleRemoveMatch(index)}
+                        >
+                          <Trash2 className="w-4 h-4 text-destructive" />
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              <Button type="submit" className="w-full" disabled={loading}>
+                <Save className="w-4 h-4 mr-2" />
+                {loading ? "Salvando..." : "Salvar Alterações"}
+              </Button>
+            </form>
+          </CardContent>
+        </Card>
+
+        <GEMatchSelector
+          open={showGESelector}
+          onOpenChange={setShowGESelector}
+          onMatchesSelected={handleGEMatchesSelected}
+        />
+      </div>
+    </div>
+  );
+};
+
+export default EditFootballPool;
