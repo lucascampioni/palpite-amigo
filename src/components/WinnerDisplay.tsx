@@ -9,19 +9,6 @@ interface WinnerDisplayProps {
 }
 
 const WinnerDisplay = ({ winners, resultValue, measurementUnit }: WinnerDisplayProps) => {
-  const getUnitLabel = () => {
-    switch (measurementUnit) {
-      case "kg":
-        return "kg";
-      case "cm":
-        return "cm";
-      case "reais":
-        return "R$";
-      default:
-        return "";
-    }
-  };
-
   const isMultipleWinners = winners.length > 1;
 
   return (
@@ -45,23 +32,11 @@ const WinnerDisplay = ({ winners, resultValue, measurementUnit }: WinnerDisplayP
           {winners.map((winner, index) => (
             <div key={winner.id || index} className={index > 0 ? "pt-3 border-t border-secondary/20" : ""}>
               <h3 className="text-xl font-bold mb-2">{winner.participant_name}</h3>
-              <div className="flex flex-wrap gap-2">
-                {winner.guess_value && (
-                  <Badge variant="outline">
-                    Palpite: {winner.guess_value} {getUnitLabel()}
-                  </Badge>
-                )}
-                {winner.total_points !== undefined && (
-                  <Badge variant="default">
-                    {winner.total_points} pontos
-                  </Badge>
-                )}
-                {resultValue && (
-                  <Badge variant="secondary">
-                    Resultado: {resultValue} {getUnitLabel()}
-                  </Badge>
-                )}
-              </div>
+              {winner.total_points !== undefined && (
+                <Badge variant="default">
+                  {winner.total_points} pontos
+                </Badge>
+              )}
             </div>
           ))}
         </div>
