@@ -264,6 +264,15 @@ const Index = () => {
                 <Plus className="w-5 h-5 sm:w-6 sm:h-6 mr-2" />
                 Criar Bolão de Futebol
               </Button>
+              <Button
+                size="lg"
+                variant="outline"
+                className="shadow-lg hover:shadow-xl transition-all text-base sm:text-lg px-6 sm:px-8 py-5 sm:py-6 rounded-xl"
+                onClick={() => navigate("/whatsapp-requests")}
+              >
+                <Users className="w-5 h-5 sm:w-6 sm:h-6 mr-2" />
+                Solicitações WhatsApp
+              </Button>
             </div>
           </div>
         ) : (

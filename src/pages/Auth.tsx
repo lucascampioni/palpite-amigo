@@ -41,6 +41,13 @@ const cpfSchema = z.string()
     return true;
   }, "CPF inválido");
 
+const phoneSchema = z.string()
+  .regex(/^\d{10,11}$/, "Telefone deve conter 10 ou 11 dígitos")
+  .refine((phone) => {
+    const digits = phone.replace(/\D/g, '');
+    return digits.length === 10 || digits.length === 11;
+  }, "Telefone inválido");
+
 const signUpSchema = z.object({
   email: z.string().email("Email inválido").max(255, "Email muito longo"),
   password: z.string()
@@ -54,6 +61,7 @@ const signUpSchema = z.object({
   lastName: z.string().trim().min(1, "Sobrenome é obrigatório").max(50, "Sobrenome muito longo"),
   birthDate: z.string().min(1, "Data de nascimento é obrigatória"),
   cpf: cpfSchema,
+  phone: phoneSchema,
 });
 
 const signInSchema = z.object({
@@ -68,6 +76,7 @@ const Auth = () => {
   const [loading, setLoading] = useState(false);
   const [cpf, setCpf] = useState("");
   const [cpfError, setCpfError] = useState<string | null>(null);
+  const [phone, setPhone] = useState("");
   const [forgotPasswordOpen, setForgotPasswordOpen] = useState(false);
   const [resetEmail, setResetEmail] = useState("");
   const [resetLoading, setResetLoading] = useState(false);
@@ -105,6 +114,9 @@ const Auth = () => {
     const birthDate = formData.get("birth-date") as string;
     const cpfRaw = formData.get("cpf") as string;
     const cpf = cpfRaw.replace(/\D/g, ""); // Remove formatação
+    const phoneRaw = formData.get("phone") as string;
+    const phone = phoneRaw.replace(/\D/g, ""); // Remove formatação
+    const wantsWhatsappGroup = formData.get("wants-whatsapp") === "on";
 
     // Verificar se as senhas coincidem
     if (password !== confirmPassword) {
@@ -119,7 +131,7 @@ const Auth = () => {
 
     // Validate input
     try {
-      signUpSchema.parse({ email, password, firstName, lastName, birthDate, cpf });
+      signUpSchema.parse({ email, password, firstName, lastName, birthDate, cpf, phone });
       
       // Check if user is 18 years or older
       const birth = new Date(birthDate);
@@ -179,6 +191,9 @@ const Auth = () => {
           full_name: `${firstName} ${lastName}`,
           first_name: firstName,
           last_name: lastName,
+          cpf,
+          phone,
+          wants_whatsapp_group: wantsWhatsappGroup,
         },
         emailRedirectTo: `${window.location.origin}/`,
       },
@@ -466,6 +481,33 @@ const Auth = () => {
                     <p className="text-xs text-muted-foreground">É necessário ter 18 anos ou mais</p>
                   </div>
                   <div className="space-y-2">
+                    <Label htmlFor="phone">Telefone</Label>
+                    <Input
+                      id="phone"
+                      name="phone"
+                      type="text"
+                      placeholder="(00) 00000-0000"
+                      required
+                      maxLength={15}
+                      value={phone}
+                      onChange={(e) => {
+                        let raw = e.target.value.replace(/\D/g, "");
+                        let value = raw;
+                        if (raw.length <= 2) {
+                          // no formatting
+                        } else if (raw.length <= 6) {
+                          value = raw.replace(/(\d{2})(\d{1,4})/, "($1) $2");
+                        } else if (raw.length <= 10) {
+                          value = raw.replace(/(\d{2})(\d{4})(\d{1,4})/, "($1) $2-$3");
+                        } else {
+                          value = raw.replace(/(\d{2})(\d{5})(\d{1,4})/, "($1) $2-$3");
+                        }
+                        setPhone(value);
+                      }}
+                    />
+                    <p className="text-xs text-muted-foreground">Usaremos para contato sobre os bolões</p>
+                  </div>
+                  <div className="space-y-2">
                     <Label htmlFor="signup-email">Email</Label>
                     <Input
                       id="signup-email"
@@ -499,6 +541,17 @@ const Auth = () => {
                       required
                       minLength={8}
                     />
+                  </div>
+                  <div className="flex items-center space-x-2 p-4 border rounded-lg bg-muted/30">
+                    <input
+                      type="checkbox"
+                      id="wants-whatsapp"
+                      name="wants-whatsapp"
+                      className="h-4 w-4 rounded border-gray-300"
+                    />
+                    <Label htmlFor="wants-whatsapp" className="text-sm font-normal cursor-pointer">
+                      Quero participar do grupo do WhatsApp para receber novidades sobre bolões
+                    </Label>
                   </div>
                   <Button type="submit" className="w-full" disabled={loading || !!cpfError}>
                     {loading ? "Criando conta..." : "Criar conta"}

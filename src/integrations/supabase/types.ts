@@ -378,21 +378,27 @@ export type Database = {
           created_at: string
           full_name: string
           id: string
+          phone: string | null
           updated_at: string
+          wants_whatsapp_group: boolean | null
         }
         Insert: {
           cpf_hash?: string | null
           created_at?: string
           full_name: string
           id: string
+          phone?: string | null
           updated_at?: string
+          wants_whatsapp_group?: boolean | null
         }
         Update: {
           cpf_hash?: string | null
           created_at?: string
           full_name?: string
           id?: string
+          phone?: string | null
           updated_at?: string
+          wants_whatsapp_group?: boolean | null
         }
         Relationships: []
       }
