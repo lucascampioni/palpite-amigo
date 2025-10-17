@@ -207,10 +207,14 @@ const FootballRanking = ({ poolId, pool }: FootballRankingProps) => {
     while (currentPosition < result.length && currentPosition < 3) {
       const currentScore = result[currentPosition].total_points;
       
-      // Find all participants with the same score (tied)
-      const tiedParticipants = result.filter(p => p.total_points === currentScore);
-      const tiedCount = tiedParticipants.length;
-
+      // Find all participants with the same score (tied) - but only consider those in top 3 positions
+      const tiedInTop3 = [];
+      for (let i = currentPosition; i < result.length && i < 3 && result[i].total_points === currentScore; i++) {
+        tiedInTop3.push(result[i]);
+      }
+      
+      const tiedCount = tiedInTop3.length;
+      
       // Calculate sum of prizes for tied positions
       let prizeSum = 0;
       for (let i = currentPosition; i < Math.min(currentPosition + tiedCount, 3); i++) {
@@ -221,7 +225,7 @@ const FootballRanking = ({ poolId, pool }: FootballRankingProps) => {
       const prizePerParticipant = tiedCount > 0 ? prizeSum / tiedCount : 0;
 
       // Assign prize to all tied participants
-      tiedParticipants.forEach(participant => {
+      tiedInTop3.forEach(participant => {
         const index = result.findIndex(p => p.id === participant.id);
         if (index !== -1) {
           result[index].prize_amount = prizePerParticipant;
