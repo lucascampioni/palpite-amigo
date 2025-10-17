@@ -95,11 +95,23 @@ const Auth = () => {
     const formData = new FormData(e.currentTarget);
     const email = formData.get("signup-email") as string;
     const password = formData.get("signup-password") as string;
+    const confirmPassword = formData.get("confirm-password") as string;
     const firstName = formData.get("first-name") as string;
     const lastName = formData.get("last-name") as string;
     const birthDate = formData.get("birth-date") as string;
     const cpfRaw = formData.get("cpf") as string;
     const cpf = cpfRaw.replace(/\D/g, ""); // Remove formatação
+
+    // Verificar se as senhas coincidem
+    if (password !== confirmPassword) {
+      toast({
+        variant: "destructive",
+        title: "Erro de validação",
+        description: "As senhas não coincidem. Por favor, verifique e tente novamente.",
+      });
+      setLoading(false);
+      return;
+    }
 
     // Validate input
     try {
@@ -414,6 +426,17 @@ const Auth = () => {
                     <p className="text-xs text-muted-foreground">
                       Mínimo 8 caracteres, incluindo maiúscula, minúscula, número e caractere especial
                     </p>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="confirm-password">Confirmar Senha</Label>
+                    <Input
+                      id="confirm-password"
+                      name="confirm-password"
+                      type="password"
+                      placeholder="••••••••"
+                      required
+                      minLength={8}
+                    />
                   </div>
                   <Button type="submit" className="w-full" disabled={loading || !!cpfError}>
                     {loading ? "Criando conta..." : "Criar conta"}
