@@ -52,6 +52,7 @@ const CreateFootballPool = () => {
   const [loading, setLoading] = useState(false);
   const [isPrivate, setIsPrivate] = useState(false);
   const [isOfficial, setIsOfficial] = useState(false);
+  const [scoringSystem, setScoringSystem] = useState<'standard' | 'simplified'>('simplified');
 
   useEffect(() => {
     if (!isLoadingRole && !userRole?.isAdmin) {
@@ -201,7 +202,7 @@ const CreateFootballPool = () => {
         status: "active" as any,
         pool_type: "football" as any,
         is_private: isPrivate,
-        scoring_system: 'exact_only',
+        scoring_system: scoringSystem,
         entry_fee: entryFee ? parseFloat(entryFee) : null,
         max_participants: maxParticipants && maxParticipants !== "unlimited" ? parseInt(maxParticipants) : null,
         is_official: isOfficial,
@@ -385,6 +386,65 @@ const CreateFootballPool = () => {
                       min="0"
                       placeholder="Ex: 25.00"
                     />
+                  </div>
+                </div>
+              </div>
+
+              <div className="space-y-4 rounded-lg border p-4 bg-muted/30">
+                <Label className="text-lg">⚡ Sistema de Pontuação</Label>
+                <p className="text-sm text-muted-foreground">
+                  Escolha como os pontos serão calculados nos palpites
+                </p>
+                <div className="space-y-3">
+                  <div 
+                    className={`flex items-start gap-3 p-3 rounded-lg border-2 cursor-pointer transition-colors ${
+                      scoringSystem === 'simplified' 
+                        ? 'border-primary bg-primary/5' 
+                        : 'border-muted hover:border-primary/50'
+                    }`}
+                    onClick={() => setScoringSystem('simplified')}
+                  >
+                    <input
+                      type="radio"
+                      name="scoring_system"
+                      value="simplified"
+                      checked={scoringSystem === 'simplified'}
+                      onChange={() => setScoringSystem('simplified')}
+                      className="mt-1"
+                    />
+                    <div className="flex-1">
+                      <div className="font-semibold mb-1">Sistema Simplificado (Recomendado)</div>
+                      <ul className="text-sm text-muted-foreground space-y-1">
+                        <li>• Placar exato: <strong>3 pontos</strong></li>
+                        <li>• Acertar o vencedor ou empate: <strong>1 ponto</strong></li>
+                      </ul>
+                    </div>
+                  </div>
+                  
+                  <div 
+                    className={`flex items-start gap-3 p-3 rounded-lg border-2 cursor-pointer transition-colors ${
+                      scoringSystem === 'standard' 
+                        ? 'border-primary bg-primary/5' 
+                        : 'border-muted hover:border-primary/50'
+                    }`}
+                    onClick={() => setScoringSystem('standard')}
+                  >
+                    <input
+                      type="radio"
+                      name="scoring_system"
+                      value="standard"
+                      checked={scoringSystem === 'standard'}
+                      onChange={() => setScoringSystem('standard')}
+                      className="mt-1"
+                    />
+                    <div className="flex-1">
+                      <div className="font-semibold mb-1">Sistema Completo</div>
+                      <ul className="text-sm text-muted-foreground space-y-1">
+                        <li>• Placar exato: <strong>5 pontos</strong></li>
+                        <li>• Acertar o vencedor ou empate: <strong>3 pontos</strong></li>
+                        <li>• Acertar a diferença de gols: <strong>+1 ponto</strong></li>
+                      </ul>
+                    </div>
                   </div>
                 </div>
               </div>
