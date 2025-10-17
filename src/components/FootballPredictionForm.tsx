@@ -283,10 +283,18 @@ const FootballPredictionForm = ({ poolId, userId, onSuccess, entryFee, pool }: F
 
       <div className="p-3 rounded-lg bg-muted/50 text-sm space-y-2">
         <p className="font-medium">📊 Sistema de Pontuação:</p>
-        <ul className="list-disc list-inside space-y-1 text-muted-foreground text-xs">
-          <li><strong>1 ponto</strong>: Placar exato</li>
-          <li><strong>0 pontos</strong>: Qualquer outro resultado</li>
-        </ul>
+        {pool?.scoring_system === 'exact_only' ? (
+          <ul className="list-disc list-inside space-y-1 text-muted-foreground text-xs">
+            <li><strong>1 ponto</strong>: Placar exato</li>
+            <li><strong>0 pontos</strong>: Qualquer outro resultado</li>
+          </ul>
+        ) : (
+          <ul className="list-disc list-inside space-y-1 text-muted-foreground text-xs">
+            <li><strong>5 pontos</strong>: Placar exato</li>
+            <li><strong>3 pontos</strong>: Acertar o vencedor ou empate</li>
+            <li><strong>+1 ponto</strong>: Acertar a diferença de gols (caso acerte o vencedor ou empate)</li>
+          </ul>
+        )}
       </div>
 
       <Button onClick={handleSubmit} disabled={submitting} className="w-full" size="lg">
