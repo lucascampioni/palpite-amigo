@@ -155,7 +155,7 @@ const Auth = () => {
       console.error("Falha ao verificar CPF duplicado");
     }
 
-    const { error } = await supabase.auth.signUp({
+    const { data, error } = await supabase.auth.signUp({
       email,
       password,
       options: {
@@ -167,6 +167,17 @@ const Auth = () => {
         emailRedirectTo: `${window.location.origin}/`,
       },
     });
+
+    // Verifica se o e-mail já existe (Supabase não retorna erro, mas user e session serão null)
+    if (!error && !data.user && !data.session) {
+      toast({
+        variant: "destructive",
+        title: "E-mail já cadastrado",
+        description: "Este e-mail já está cadastrado. Por favor, faça login ou use outro e-mail.",
+      });
+      setLoading(false);
+      return;
+    }
 
     if (error) {
       let errorMessage = error.message;
