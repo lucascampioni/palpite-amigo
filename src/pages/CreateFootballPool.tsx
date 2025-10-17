@@ -52,7 +52,7 @@ const CreateFootballPool = () => {
   const [loading, setLoading] = useState(false);
   const [isPrivate, setIsPrivate] = useState(false);
   const [isOfficial, setIsOfficial] = useState(false);
-  const [scoringSystem, setScoringSystem] = useState<'standard' | 'simplified'>('simplified');
+  const [scoringSystem, setScoringSystem] = useState<'standard' | 'exact_only'>('exact_only');
 
   useEffect(() => {
     if (!isLoadingRole && !userRole?.isAdmin) {
@@ -398,25 +398,25 @@ const CreateFootballPool = () => {
                 <div className="space-y-3">
                   <div 
                     className={`flex items-start gap-3 p-3 rounded-lg border-2 cursor-pointer transition-colors ${
-                      scoringSystem === 'simplified' 
+                      scoringSystem === 'exact_only' 
                         ? 'border-primary bg-primary/5' 
                         : 'border-muted hover:border-primary/50'
                     }`}
-                    onClick={() => setScoringSystem('simplified')}
+                    onClick={() => setScoringSystem('exact_only')}
                   >
                     <input
                       type="radio"
                       name="scoring_system"
-                      value="simplified"
-                      checked={scoringSystem === 'simplified'}
-                      onChange={() => setScoringSystem('simplified')}
+                      value="exact_only"
+                      checked={scoringSystem === 'exact_only'}
+                      onChange={() => setScoringSystem('exact_only')}
                       className="mt-1"
                     />
                     <div className="flex-1">
-                      <div className="font-semibold mb-1">Sistema Simplificado (Recomendado)</div>
+                      <div className="font-semibold mb-1">Sistema Simplificado</div>
                       <ul className="text-sm text-muted-foreground space-y-1">
-                        <li>• Placar exato: <strong>3 pontos</strong></li>
-                        <li>• Acertar o vencedor ou empate: <strong>1 ponto</strong></li>
+                        <li>• Placar exato: <strong>1 ponto</strong></li>
+                        <li>• Qualquer outro resultado: <strong>0 pontos</strong></li>
                       </ul>
                     </div>
                   </div>
@@ -442,7 +442,7 @@ const CreateFootballPool = () => {
                       <ul className="text-sm text-muted-foreground space-y-1">
                         <li>• Placar exato: <strong>5 pontos</strong></li>
                         <li>• Acertar o vencedor ou empate: <strong>3 pontos</strong></li>
-                        <li>• Acertar a diferença de gols: <strong>+1 ponto</strong></li>
+                        <li>• Acertar a diferença de gols (caso acerte o vencedor ou empate): <strong>+1 ponto</strong></li>
                       </ul>
                     </div>
                   </div>
