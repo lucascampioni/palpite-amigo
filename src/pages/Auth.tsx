@@ -171,8 +171,11 @@ const Auth = () => {
     if (error) {
       let errorMessage = error.message;
 
-      if (/user already registered/i.test(error.message) || error.status === 422) {
-        errorMessage = "Este email já está cadastrado.";
+      // Tratamento específico para email já cadastrado
+      if (/user already registered|email.*already.*registered|email.*exists/i.test(error.message) || 
+          error.status === 422 || 
+          error.code === 'user_already_exists') {
+        errorMessage = "Este e-mail já está cadastrado. Por favor, faça login ou use outro e-mail.";
       } else if (/duplicate key|cpf_hash/i.test(error.message)) {
         errorMessage = "Este CPF já está cadastrado no sistema.";
       } else if (/rate limit/i.test(error.message)) {
