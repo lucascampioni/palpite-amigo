@@ -19,6 +19,8 @@ import FootballRanking from "@/components/FootballRanking";
 import FootballParticipantsPredictions from "@/components/FootballParticipantsPredictions";
 import { PrizePixSubmission } from "@/components/PrizePixSubmission";
 import { AdminPrizeManagement } from "@/components/AdminPrizeManagement";
+import { PaymentProofSubmission } from "@/components/PaymentProofSubmission";
+import { AdminPendingParticipants } from "@/components/AdminPendingParticipants";
 import { useUserRole } from "@/hooks/useUserRole";
 
 const PoolDetail = () => {
@@ -206,7 +208,14 @@ const PoolDetail = () => {
     const hasResults = matchesData?.some(m => m.home_score !== null && m.away_score !== null) ?? false;
     setHasAnyMatchResult(hasResults);
     
-    // No need to load pix/payment info anymore
+    // Load pool payment info
+    const { data: paymentInfo } = await supabase
+      .from('pool_payment_info')
+      .select('pix_key')
+      .eq('pool_id', id)
+      .single();
+    
+    setPool({ ...poolData, pix_key: paymentInfo?.pix_key });
     
     // Load winners if pool is finished
     if (poolData.status === 'finished') {
@@ -272,6 +281,10 @@ const PoolDetail = () => {
       .eq("id", userId)
       .single();
 
+    // Determine status based on entry fee
+    const hasEntryFee = pool.entry_fee && parseFloat(pool.entry_fee) > 0;
+    const initialStatus = hasEntryFee ? "pending" : "approved";
+
     const { error } = await supabase
       .from("participants")
       .insert({
@@ -279,7 +292,7 @@ const PoolDetail = () => {
         user_id: userId,
         participant_name: profile?.full_name || "Usuário",
         guess_value: guessValue,
-        status: "approved", // Direct approval - no payment required
+        status: initialStatus,
       });
 
     if (error) {
@@ -289,10 +302,17 @@ const PoolDetail = () => {
         description: error.message,
       });
     } else {
-      toast({
-        title: "Sucesso!",
-        description: "Você entrou no bolão! Boa sorte!",
-      });
+      if (hasEntryFee) {
+        toast({
+          title: "Participação registrada!",
+          description: "Envie o comprovante de pagamento para ser aprovado.",
+        });
+      } else {
+        toast({
+          title: "Sucesso!",
+          description: "Você entrou no bolão! Boa sorte!",
+        });
+      }
       loadPoolData();
     }
 
@@ -593,14 +613,30 @@ const PoolDetail = () => {
             {!isOwner && pool.status === "active" && !isPastDeadline && (
               <>
                 {hasJoined ? (
-                  <div className="p-6 rounded-lg bg-green-50 dark:bg-green-950 border-2 border-green-200 dark:border-green-800 text-center">
-                    <p className="text-lg font-semibold text-green-700 dark:text-green-300 mb-2">
-                      ✓ Você já está participando deste bolão!
-                    </p>
-                    <p className="text-sm text-muted-foreground">
-                      Boa sorte! Seus palpites foram salvos. Agora é só esperar a conclusão dos jogos.
-                    </p>
-                  </div>
+                  <>
+                    {currentUserParticipant?.status === 'pending' ? (
+                      <>
+                        <Separator />
+                        <PaymentProofSubmission
+                          participantId={currentUserParticipant.id}
+                          poolId={pool.id}
+                          poolTitle={pool.title}
+                          entryFee={pool.entry_fee ? parseFloat(pool.entry_fee) : 0}
+                          pixKey={pool.pix_key}
+                          onSuccess={loadPoolData}
+                        />
+                      </>
+                    ) : (
+                      <div className="p-6 rounded-lg bg-green-50 dark:bg-green-950 border-2 border-green-200 dark:border-green-800 text-center">
+                        <p className="text-lg font-semibold text-green-700 dark:text-green-300 mb-2">
+                          ✓ Você já está participando deste bolão!
+                        </p>
+                        <p className="text-sm text-muted-foreground">
+                          Boa sorte! Seus palpites foram salvos. Agora é só esperar a conclusão dos jogos.
+                        </p>
+                      </div>
+                    )}
+                  </>
                 ) : pool.max_participants && approvedParticipants.length >= pool.max_participants ? (
                   <div className="p-4 rounded-lg bg-destructive/10 border border-destructive/20">
                     <p className="text-sm font-medium text-destructive">
@@ -765,6 +801,29 @@ const PoolDetail = () => {
                 </div>
               </>
             )}
+
+            {/* Admin: Pending Participants Management */}
+            {(userRole?.isAdmin || isOwner) && pool.status === "active" && (
+              <>
+                {(() => {
+                  const pendingParticipants = participants.filter(p => p.status === 'pending');
+                  if (pendingParticipants.length > 0) {
+                    return (
+                      <>
+                        <Separator />
+                        <AdminPendingParticipants
+                          poolId={pool.id}
+                          participants={pendingParticipants}
+                          onSuccess={loadPoolData}
+                        />
+                      </>
+                    );
+                  }
+                  return null;
+                })()}
+              </>
+            )}
+
 
 
 

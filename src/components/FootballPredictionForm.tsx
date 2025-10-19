@@ -124,7 +124,11 @@ const FootballPredictionForm = ({ poolId, userId, onSuccess, entryFee, pool }: F
 
     setSubmitting(true);
 
-    // First, create participant with approved status
+    // Determine status based on entry fee
+    const hasEntryFee = pool?.entry_fee && parseFloat(pool.entry_fee) > 0;
+    const initialStatus = hasEntryFee ? "pending" : "approved";
+
+    // First, create participant
     const { data: profile } = await supabase
       .from("profiles")
       .select("full_name")
@@ -138,7 +142,7 @@ const FootballPredictionForm = ({ poolId, userId, onSuccess, entryFee, pool }: F
         user_id: userId,
         participant_name: profile?.full_name || "Usuário",
         guess_value: "Palpites de futebol",
-        status: "approved", // Already approved, no payment needed
+        status: initialStatus,
       })
       .select()
       .single();
@@ -174,11 +178,19 @@ const FootballPredictionForm = ({ poolId, userId, onSuccess, entryFee, pool }: F
       // Remove participant if predictions failed
       await supabase.from("participants").delete().eq("id", participant.id);
     } else {
-      toast({
-        title: "🎉 Você está inscrito no bolão!",
-        description: "Boa sorte! Seus palpites foram salvos. Agora é só esperar a conclusão dos jogos. 🍀",
-        duration: 5000,
-      });
+      if (hasEntryFee) {
+        toast({
+          title: "Palpites registrados!",
+          description: "Envie o comprovante de pagamento para ser aprovado.",
+          duration: 5000,
+        });
+      } else {
+        toast({
+          title: "🎉 Você está inscrito no bolão!",
+          description: "Boa sorte! Seus palpites foram salvos. Agora é só esperar a conclusão dos jogos. 🍀",
+          duration: 5000,
+        });
+      }
       setSubmitted(true);
       onSuccess();
     }
