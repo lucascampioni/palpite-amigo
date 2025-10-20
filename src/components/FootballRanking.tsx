@@ -13,6 +13,7 @@ interface FootballRankingProps {
     first_place_prize?: number;
     second_place_prize?: number;
     third_place_prize?: number;
+    scoring_system?: string;
   };
 }
 
@@ -44,9 +45,11 @@ const FootballRanking = ({ poolId, pool }: FootballRankingProps) => {
   const [expandedParticipants, setExpandedParticipants] = useState<Set<string>>(new Set());
   const [participantPredictions, setParticipantPredictions] = useState<Record<string, MatchPrediction[]>>({});
   const [allMatchesFinished, setAllMatchesFinished] = useState(false);
+  const [scoringSystem, setScoringSystem] = useState<string>('standard');
 
   useEffect(() => {
     loadRanking();
+    loadPoolScoringSystem();
 
     // Subscribe to real-time updates on football_predictions and football_matches
     const channel = supabase
@@ -81,6 +84,23 @@ const FootballRanking = ({ poolId, pool }: FootballRankingProps) => {
       supabase.removeChannel(channel);
     };
   }, [poolId]);
+
+  const loadPoolScoringSystem = async () => {
+    if (pool?.scoring_system) {
+      setScoringSystem(pool.scoring_system);
+      return;
+    }
+
+    const { data } = await supabase
+      .from("pools")
+      .select("scoring_system")
+      .eq("id", poolId)
+      .single();
+
+    if (data) {
+      setScoringSystem(data.scoring_system || 'standard');
+    }
+  };
 
   const loadRanking = async () => {
     setLoading(true);
@@ -337,6 +357,75 @@ const FootballRanking = ({ poolId, pool }: FootballRankingProps) => {
     return null;
   };
 
+  const getPointsExplanation = (
+    prediction: MatchPrediction,
+    system: string
+  ): string => {
+    if (prediction.home_score === null || prediction.away_score === null) {
+      return "Jogo não finalizado";
+    }
+
+    if (prediction.points_earned === 0) {
+      return "Nenhum ponto";
+    }
+
+    const predictedHome = prediction.home_score_prediction;
+    const predictedAway = prediction.away_score_prediction;
+    const actualHome = prediction.home_score;
+    const actualAway = prediction.away_score;
+
+    // Exact score
+    if (predictedHome === actualHome && predictedAway === actualAway) {
+      if (system === 'exact_only') return "1pt por acertar o placar";
+      if (system === 'simplified') return "3pts por acertar o placar";
+      return "5pts por acertar o placar exato";
+    }
+
+    // For exact_only, only exact score gives points
+    if (system === 'exact_only') return "";
+
+    // Determine results
+    const predictedResult = predictedHome > predictedAway ? 'home' : predictedHome < predictedAway ? 'away' : 'draw';
+    const actualResult = actualHome > actualAway ? 'home' : actualHome < actualAway ? 'away' : 'draw';
+
+    // For simplified system
+    if (system === 'simplified') {
+      if (predictedResult === actualResult) {
+        return "1pt por acertar o resultado";
+      }
+      return "";
+    }
+
+    // Standard system - can have multiple reasons
+    const reasons: string[] = [];
+    
+    if (predictedResult === actualResult) {
+      reasons.push("3pts por acertar o resultado");
+    }
+
+    const predictedDiff = predictedHome - predictedAway;
+    const actualDiff = actualHome - actualAway;
+    if (predictedDiff === actualDiff) {
+      reasons.push("1pt por acertar a diferença");
+    }
+
+    return reasons.join(" + ");
+  };
+
+  const getPredictionBgColor = (prediction: MatchPrediction): string => {
+    const isFinished = prediction.home_score !== null && prediction.away_score !== null;
+    
+    if (!isFinished) {
+      return "bg-yellow-50 dark:bg-yellow-950/20 border-l-4 border-yellow-400";
+    }
+    
+    if (prediction.points_earned > 0) {
+      return "bg-green-50 dark:bg-green-950/20 border-l-4 border-green-500";
+    }
+    
+    return "bg-red-50 dark:bg-red-950/20 border-l-4 border-red-500";
+  };
+
   // Group participants by points to handle ties (excluding 0 points)
   const getTopThreeGroups = () => {
     const groups: { position: number; participants: ParticipantScore[]; podiumIndex: number }[] = [];
@@ -513,40 +602,50 @@ const FootballRanking = ({ poolId, pool }: FootballRankingProps) => {
                           {predictions.length === 0 ? (
                             <p className="text-sm text-muted-foreground">Carregando palpites...</p>
                           ) : (
-                            predictions.map((pred) => (
-                              <div key={pred.match_id} className="flex items-start justify-between text-sm bg-background/50 rounded p-3 gap-3">
-                                <div className="flex-1 space-y-2">
-                                  <div className="flex items-center gap-1.5">
-                                    {pred.home_team_crest && (
-                                      <img src={pred.home_team_crest} alt={pred.home_team} className="w-4 h-4 flex-shrink-0 object-contain" />
-                                    )}
-                                    <p className="font-medium text-xs leading-tight">{pred.home_team} vs {pred.away_team}</p>
-                                    {pred.away_team_crest && (
-                                      <img src={pred.away_team_crest} alt={pred.away_team} className="w-4 h-4 flex-shrink-0 object-contain" />
-                                    )}
-                                  </div>
-                                  <p className="text-xs text-muted-foreground">
-                                    {format(new Date(pred.match_date), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
-                                  </p>
-                                  <div className="flex items-center gap-2 flex-wrap">
-                                    <span className="text-xs text-muted-foreground">
-                                      Palpite: {pred.home_score_prediction} - {pred.away_score_prediction}
-                                    </span>
-                                    {pred.home_score !== null && pred.away_score !== null && (
+                            predictions.map((pred) => {
+                              const explanation = getPointsExplanation(pred, scoringSystem);
+                              const bgColor = getPredictionBgColor(pred);
+                              
+                              return (
+                                <div key={pred.match_id} className={`flex items-start justify-between text-sm rounded p-3 gap-3 ${bgColor}`}>
+                                  <div className="flex-1 space-y-2">
+                                    <div className="flex items-center gap-1.5">
+                                      {pred.home_team_crest && (
+                                        <img src={pred.home_team_crest} alt={pred.home_team} className="w-4 h-4 flex-shrink-0 object-contain" />
+                                      )}
+                                      <p className="font-medium text-xs leading-tight">{pred.home_team} vs {pred.away_team}</p>
+                                      {pred.away_team_crest && (
+                                        <img src={pred.away_team_crest} alt={pred.away_team} className="w-4 h-4 flex-shrink-0 object-contain" />
+                                      )}
+                                    </div>
+                                    <p className="text-xs text-muted-foreground">
+                                      {format(new Date(pred.match_date), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
+                                    </p>
+                                    <div className="flex items-center gap-2 flex-wrap">
                                       <span className="text-xs text-muted-foreground">
-                                        | Real: {pred.home_score} - {pred.away_score}
+                                        Palpite: {pred.home_score_prediction} - {pred.away_score_prediction}
                                       </span>
+                                      {pred.home_score !== null && pred.away_score !== null && (
+                                        <span className="text-xs text-muted-foreground">
+                                          | Real: {pred.home_score} - {pred.away_score}
+                                        </span>
+                                      )}
+                                    </div>
+                                    {explanation && (
+                                      <p className="text-xs font-medium text-foreground/80 italic">
+                                        {explanation}
+                                      </p>
                                     )}
                                   </div>
+                                  <Badge 
+                                    variant={pred.points_earned > 0 ? "default" : "secondary"}
+                                    className="text-xs flex-shrink-0"
+                                  >
+                                    {pred.points_earned} pt{pred.points_earned !== 1 ? 's' : ''}
+                                  </Badge>
                                 </div>
-                                <Badge 
-                                  variant={pred.points_earned > 0 ? "default" : "secondary"}
-                                  className="text-xs flex-shrink-0"
-                                >
-                                  {pred.points_earned} pt{pred.points_earned !== 1 ? 's' : ''}
-                                </Badge>
-                              </div>
-                            ))
+                              );
+                            })
                           )}
                         </div>
                       </div>
