@@ -3,6 +3,7 @@ import { Webhook } from 'https://esm.sh/standardwebhooks@1.0.0'
 import { Resend } from 'https://esm.sh/resend@4.0.0'
 import { render } from 'https://esm.sh/@react-email/components@0.0.22'
 import { ConfirmationEmail } from './_templates/confirmation-email.tsx'
+import { PasswordResetEmail } from './_templates/password-reset-email.tsx'
 
 const resend = new Resend(Deno.env.get('RESEND_API_KEY') as string)
 const hookSecret = Deno.env.get('SEND_CONFIRMATION_EMAIL_HOOK_SECRET') as string
@@ -39,12 +40,19 @@ Deno.serve(async (req) => {
       }
     }
 
-    console.log('Rendering email template for user:', user.email)
+    console.log('Rendering email template for user:', user.email, 'action:', email_action_type)
 
     const userName = user.user_metadata?.first_name || user.user_metadata?.full_name || 'Usuário'
 
+    // Choose template and subject based on email action type
+    const isPasswordReset = email_action_type === 'recovery'
+    const Template = isPasswordReset ? PasswordResetEmail : ConfirmationEmail
+    const subject = isPasswordReset 
+      ? 'Redefinir senha - Chutaí 🔐'
+      : 'Confirme seu email no Chutaí! ⚽'
+
     const html = render(
-      React.createElement(ConfirmationEmail, {
+      React.createElement(Template, {
         supabase_url: Deno.env.get('SUPABASE_URL') ?? '',
         token,
         token_hash,
@@ -54,12 +62,12 @@ Deno.serve(async (req) => {
       })
     )
 
-    console.log('Sending confirmation email via Resend')
+    console.log('Sending email via Resend')
 
     const { data, error } = await resend.emails.send({
       from: 'Chutaí <onboarding@resend.dev>',
       to: [user.email],
-      subject: 'Confirme seu email no Chutaí! ⚽',
+      subject,
       html,
     })
 
