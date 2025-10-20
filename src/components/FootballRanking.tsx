@@ -571,13 +571,13 @@ const FootballRanking = ({ poolId, pool }: FootballRankingProps) => {
                               ) : (
                                 <span>—</span>
                               )}
-                            </div>
-                            {actualPosition && actualPosition <= 3 && (
-                              <div className="flex-shrink-0">
-                                {getRankIcon(actualPosition)}
-                              </div>
-                            )}
-                            <span className="font-semibold text-base break-words whitespace-normal sm:whitespace-nowrap sm:truncate min-w-0">
+                             </div>
+                             {allMatchesFinished && actualPosition && actualPosition <= 3 && (
+                               <div className="flex-shrink-0">
+                                 {getRankIcon(actualPosition)}
+                               </div>
+                             )}
+                             <span className="font-semibold text-base break-words whitespace-normal sm:whitespace-nowrap sm:truncate min-w-0">
                               {currentUser.participant_name}
                             </span>
                           </div>
@@ -702,15 +702,15 @@ const FootballRanking = ({ poolId, pool }: FootballRankingProps) => {
                               ) : (
                                 <span className="text-muted-foreground">—</span>
                               )}
-                            </div>
-                            {actualPosition && actualPosition <= 3 && (
-                              <div className="flex-shrink-0">
-                                {getRankIcon(actualPosition)}
-                              </div>
-                            )}
-                            <span className={`font-medium text-sm sm:text-base break-words whitespace-normal sm:whitespace-nowrap sm:truncate min-w-0 ${
-                              isCurrentUser ? 'font-semibold' : ''
-                            }`}>
+                             </div>
+                             {allMatchesFinished && actualPosition && actualPosition <= 3 && (
+                               <div className="flex-shrink-0">
+                                 {getRankIcon(actualPosition)}
+                               </div>
+                             )}
+                             <span className={`font-medium text-sm sm:text-base break-words whitespace-normal sm:whitespace-nowrap sm:truncate min-w-0 ${
+                               isCurrentUser ? 'font-semibold' : ''
+                             }`}>
                               {participant.participant_name}
                             </span>
                           </div>
