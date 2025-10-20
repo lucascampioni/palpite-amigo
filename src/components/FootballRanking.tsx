@@ -538,7 +538,9 @@ const FootballRanking = ({ poolId, pool }: FootballRankingProps) => {
         {/* Current user position preview */}
         {currentUserParticipantId && ranking.find(p => p.id === currentUserParticipantId) && (
           <div className="mb-6 pb-4 border-b">
-            <h3 className="text-base sm:text-lg font-semibold mb-3">Minha Colocação</h3>
+            <h3 className="text-base sm:text-lg font-semibold mb-3">
+              {allMatchesFinished ? 'Minha Colocação' : 'Minha Colocação Parcial'}
+            </h3>
             {(() => {
               const currentUser = ranking.find(p => p.id === currentUserParticipantId);
               if (!currentUser) return null;
