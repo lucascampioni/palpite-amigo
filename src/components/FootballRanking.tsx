@@ -538,49 +538,121 @@ const FootballRanking = ({ poolId, pool }: FootballRankingProps) => {
         {/* Current user position preview */}
         {currentUserParticipantId && ranking.find(p => p.id === currentUserParticipantId) && (
           <div className="mb-6 pb-4 border-b">
-            <h3 className="text-base sm:text-lg font-semibold mb-3">Ranking Parcial</h3>
+            <h3 className="text-base sm:text-lg font-semibold mb-3">Minha Colocação</h3>
             {(() => {
               const currentUser = ranking.find(p => p.id === currentUserParticipantId);
               if (!currentUser) return null;
               
               const userIndex = ranking.findIndex(p => p.id === currentUserParticipantId);
               const actualPosition = getActualPosition(userIndex, currentUser);
+              const isUserExpanded = expandedParticipants.has(currentUserParticipantId);
+              const userPredictions = participantPredictions[currentUserParticipantId] || [];
               
               return (
-                <div className="rounded-lg bg-primary/10 border-2 border-primary p-3">
-                  <div className="flex items-center justify-between gap-2">
-                    <div className="flex items-center gap-2 min-w-0 flex-1">
-                      <div className="flex items-center justify-center w-10 h-10 rounded-full bg-primary text-primary-foreground font-bold text-lg border-2 border-primary flex-shrink-0">
-                        {actualPosition !== null ? (
-                          <span>{actualPosition}º</span>
-                        ) : (
-                          <span>—</span>
-                        )}
-                      </div>
-                      {actualPosition && actualPosition <= 3 && (
-                        <div className="flex-shrink-0">
-                          {getRankIcon(actualPosition)}
+                <Collapsible
+                  open={isUserExpanded}
+                  onOpenChange={() => toggleParticipant(currentUserParticipantId)}
+                >
+                  <div className="rounded-lg bg-primary/10 border-2 border-primary">
+                    <CollapsibleTrigger className="w-full">
+                      <div className="p-3">
+                        <div className="flex items-center justify-between gap-2">
+                          <div className="flex items-center gap-2 min-w-0 flex-1">
+                            <div className="flex items-center justify-center w-10 h-10 rounded-full bg-primary text-primary-foreground font-bold text-lg border-2 border-primary flex-shrink-0">
+                              {actualPosition !== null ? (
+                                <span>{actualPosition}º</span>
+                              ) : (
+                                <span>—</span>
+                              )}
+                            </div>
+                            {actualPosition && actualPosition <= 3 && (
+                              <div className="flex-shrink-0">
+                                {getRankIcon(actualPosition)}
+                              </div>
+                            )}
+                            <span className="font-semibold text-base break-words whitespace-normal sm:whitespace-nowrap sm:truncate min-w-0">
+                              {currentUser.participant_name}
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-2 flex-shrink-0">
+                            <Badge 
+                              variant={actualPosition === 1 ? "default" : currentUser.total_points === 0 ? "outline" : "secondary"} 
+                              className="text-sm px-3 py-1 whitespace-nowrap font-semibold"
+                            >
+                              {currentUser.total_points} pts
+                            </Badge>
+                            {allMatchesFinished && currentUser.prize_amount !== undefined && currentUser.prize_amount > 0 && (
+                              <Badge variant="default" className="text-sm px-3 py-1 bg-primary whitespace-nowrap font-semibold">
+                                R$ {currentUser.prize_amount.toFixed(2).replace('.', ',')}
+                              </Badge>
+                            )}
+                            {isUserExpanded ? (
+                              <ChevronUp className="h-5 w-5 text-primary flex-shrink-0" />
+                            ) : (
+                              <ChevronDown className="h-5 w-5 text-primary flex-shrink-0" />
+                            )}
+                          </div>
                         </div>
-                      )}
-                      <span className="font-semibold text-base break-words whitespace-normal sm:whitespace-nowrap sm:truncate min-w-0">
-                        {currentUser.participant_name}
-                      </span>
-                    </div>
-                    <div className="flex items-center gap-2 flex-shrink-0">
-                      <Badge 
-                        variant={actualPosition === 1 ? "default" : currentUser.total_points === 0 ? "outline" : "secondary"} 
-                        className="text-sm px-3 py-1 whitespace-nowrap font-semibold"
-                      >
-                        {currentUser.total_points} pts
-                      </Badge>
-                      {allMatchesFinished && currentUser.prize_amount !== undefined && currentUser.prize_amount > 0 && (
-                        <Badge variant="default" className="text-sm px-3 py-1 bg-primary whitespace-nowrap font-semibold">
-                          R$ {currentUser.prize_amount.toFixed(2).replace('.', ',')}
-                        </Badge>
-                      )}
-                    </div>
+                      </div>
+                    </CollapsibleTrigger>
+                    
+                    <CollapsibleContent>
+                      <div className="px-3 pb-3 pt-0">
+                        <div className="border-t border-primary/20 pt-3 space-y-2">
+                          <p className="text-sm font-semibold text-muted-foreground mb-2">Meus Palpites:</p>
+                          {userPredictions.length === 0 ? (
+                            <p className="text-sm text-muted-foreground">Carregando palpites...</p>
+                          ) : (
+                            userPredictions.map((pred) => {
+                              const explanation = getPointsExplanation(pred, scoringSystem);
+                              const bgColor = getPredictionBgColor(pred);
+                              
+                              return (
+                                <div key={pred.match_id} className={`flex items-start justify-between text-sm rounded p-3 gap-3 ${bgColor}`}>
+                                  <div className="flex-1 space-y-2">
+                                    <div className="flex items-center gap-1.5">
+                                      {pred.home_team_crest && (
+                                        <img src={pred.home_team_crest} alt={pred.home_team} className="w-4 h-4 flex-shrink-0 object-contain" />
+                                      )}
+                                      <p className="font-medium text-xs leading-tight">{pred.home_team} vs {pred.away_team}</p>
+                                      {pred.away_team_crest && (
+                                        <img src={pred.away_team_crest} alt={pred.away_team} className="w-4 h-4 flex-shrink-0 object-contain" />
+                                      )}
+                                    </div>
+                                    <p className="text-xs text-muted-foreground">
+                                      {format(new Date(pred.match_date), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
+                                    </p>
+                                    <div className="flex items-center gap-2 flex-wrap">
+                                      <span className="text-xs text-muted-foreground">
+                                        Palpite: {pred.home_score_prediction} - {pred.away_score_prediction}
+                                      </span>
+                                      {pred.home_score !== null && pred.away_score !== null && (
+                                        <span className="text-xs text-muted-foreground">
+                                          | Real: {pred.home_score} - {pred.away_score}
+                                        </span>
+                                      )}
+                                    </div>
+                                    {explanation && (
+                                      <p className="text-xs font-medium text-foreground/80 italic">
+                                        {explanation}
+                                      </p>
+                                    )}
+                                  </div>
+                                  <Badge 
+                                    variant={pred.points_earned > 0 ? "default" : "secondary"}
+                                    className="text-xs flex-shrink-0"
+                                  >
+                                    {pred.points_earned} pt{pred.points_earned !== 1 ? 's' : ''}
+                                  </Badge>
+                                </div>
+                              );
+                            })
+                          )}
+                        </div>
+                      </div>
+                    </CollapsibleContent>
                   </div>
-                </div>
+                </Collapsible>
               );
             })()}
           </div>
