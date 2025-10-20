@@ -46,10 +46,12 @@ const FootballRanking = ({ poolId, pool }: FootballRankingProps) => {
   const [participantPredictions, setParticipantPredictions] = useState<Record<string, MatchPrediction[]>>({});
   const [allMatchesFinished, setAllMatchesFinished] = useState(false);
   const [scoringSystem, setScoringSystem] = useState<string>('standard');
+  const [currentUserParticipantId, setCurrentUserParticipantId] = useState<string | null>(null);
 
   useEffect(() => {
     loadRanking();
     loadPoolScoringSystem();
+    loadCurrentUserParticipant();
 
     // Subscribe to real-time updates on football_predictions and football_matches
     const channel = supabase
@@ -84,6 +86,23 @@ const FootballRanking = ({ poolId, pool }: FootballRankingProps) => {
       supabase.removeChannel(channel);
     };
   }, [poolId]);
+
+  const loadCurrentUserParticipant = async () => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+
+    const { data: participant } = await supabase
+      .from("participants")
+      .select("id")
+      .eq("pool_id", poolId)
+      .eq("user_id", user.id)
+      .eq("status", "approved")
+      .single();
+
+    if (participant) {
+      setCurrentUserParticipantId(participant.id);
+    }
+  };
 
   const loadPoolScoringSystem = async () => {
     if (pool?.scoring_system) {
@@ -515,6 +534,57 @@ const FootballRanking = ({ poolId, pool }: FootballRankingProps) => {
             </div>
           </div>
         )}
+
+        {/* Current user position preview */}
+        {currentUserParticipantId && ranking.find(p => p.id === currentUserParticipantId) && (
+          <div className="mb-6 pb-4 border-b">
+            <h3 className="text-base sm:text-lg font-semibold mb-3">Ranking Parcial</h3>
+            {(() => {
+              const currentUser = ranking.find(p => p.id === currentUserParticipantId);
+              if (!currentUser) return null;
+              
+              const userIndex = ranking.findIndex(p => p.id === currentUserParticipantId);
+              const actualPosition = getActualPosition(userIndex, currentUser);
+              
+              return (
+                <div className="rounded-lg bg-primary/10 border-2 border-primary p-3">
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="flex items-center gap-2 min-w-0 flex-1">
+                      <div className="flex items-center justify-center w-10 h-10 rounded-full bg-primary text-primary-foreground font-bold text-lg border-2 border-primary flex-shrink-0">
+                        {actualPosition !== null ? (
+                          <span>{actualPosition}º</span>
+                        ) : (
+                          <span>—</span>
+                        )}
+                      </div>
+                      {actualPosition && actualPosition <= 3 && (
+                        <div className="flex-shrink-0">
+                          {getRankIcon(actualPosition)}
+                        </div>
+                      )}
+                      <span className="font-semibold text-base break-words whitespace-normal sm:whitespace-nowrap sm:truncate min-w-0">
+                        {currentUser.participant_name}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-2 flex-shrink-0">
+                      <Badge 
+                        variant={actualPosition === 1 ? "default" : currentUser.total_points === 0 ? "outline" : "secondary"} 
+                        className="text-sm px-3 py-1 whitespace-nowrap font-semibold"
+                      >
+                        {currentUser.total_points} pts
+                      </Badge>
+                      {allMatchesFinished && currentUser.prize_amount !== undefined && currentUser.prize_amount > 0 && (
+                        <Badge variant="default" className="text-sm px-3 py-1 bg-primary whitespace-nowrap font-semibold">
+                          R$ {currentUser.prize_amount.toFixed(2).replace('.', ',')}
+                        </Badge>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              );
+            })()}
+          </div>
+        )}
         
         {/* Complete ranking list */}
         <div>
@@ -526,6 +596,7 @@ const FootballRanking = ({ poolId, pool }: FootballRankingProps) => {
               const actualPosition = getActualPosition(index, participant);
               const isExpanded = expandedParticipants.has(participant.id);
               const predictions = participantPredictions[participant.id] || [];
+              const isCurrentUser = participant.id === currentUserParticipantId;
               
               return (
                 <Collapsible
@@ -533,12 +604,20 @@ const FootballRanking = ({ poolId, pool }: FootballRankingProps) => {
                   open={isExpanded}
                   onOpenChange={() => toggleParticipant(participant.id)}
                 >
-                  <div className="rounded-lg bg-muted/50 hover:bg-muted transition-colors">
+                  <div className={`rounded-lg transition-colors ${
+                    isCurrentUser 
+                      ? 'bg-primary/10 border-2 border-primary hover:bg-primary/15' 
+                      : 'bg-muted/50 hover:bg-muted'
+                  }`}>
                     <CollapsibleTrigger className="w-full">
                       <div className="p-2 sm:p-3">
                         <div className="flex items-center justify-between gap-2">
                           <div className="flex items-center gap-1.5 sm:gap-2 min-w-0 flex-1">
-                            <div className="flex items-center justify-center w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-background font-bold text-sm sm:text-lg border-2 border-muted flex-shrink-0">
+                            <div className={`flex items-center justify-center w-8 h-8 sm:w-10 sm:h-10 rounded-full font-bold text-sm sm:text-lg border-2 flex-shrink-0 ${
+                              isCurrentUser
+                                ? 'bg-primary text-primary-foreground border-primary'
+                                : 'bg-background border-muted'
+                            }`}>
                               {actualPosition !== null ? (
                                 <span>{actualPosition}º</span>
                               ) : (
@@ -550,7 +629,9 @@ const FootballRanking = ({ poolId, pool }: FootballRankingProps) => {
                                 {getRankIcon(actualPosition)}
                               </div>
                             )}
-                            <span className="font-medium text-sm sm:text-base break-words whitespace-normal sm:whitespace-nowrap sm:truncate min-w-0">
+                            <span className={`font-medium text-sm sm:text-base break-words whitespace-normal sm:whitespace-nowrap sm:truncate min-w-0 ${
+                              isCurrentUser ? 'font-semibold' : ''
+                            }`}>
                               {participant.participant_name}
                             </span>
                           </div>
