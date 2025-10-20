@@ -47,6 +47,7 @@ const FootballRanking = ({ poolId, pool }: FootballRankingProps) => {
   const [allMatchesFinished, setAllMatchesFinished] = useState(false);
   const [scoringSystem, setScoringSystem] = useState<string>('standard');
   const [currentUserParticipantId, setCurrentUserParticipantId] = useState<string | null>(null);
+  const [myPositionExpanded, setMyPositionExpanded] = useState(false);
 
   useEffect(() => {
     loadRanking();
@@ -547,13 +548,17 @@ const FootballRanking = ({ poolId, pool }: FootballRankingProps) => {
               
               const userIndex = ranking.findIndex(p => p.id === currentUserParticipantId);
               const actualPosition = getActualPosition(userIndex, currentUser);
-              const isUserExpanded = expandedParticipants.has(currentUserParticipantId);
               const userPredictions = participantPredictions[currentUserParticipantId] || [];
               
               return (
                 <Collapsible
-                  open={isUserExpanded}
-                  onOpenChange={() => toggleParticipant(currentUserParticipantId)}
+                  open={myPositionExpanded}
+                  onOpenChange={async (open) => {
+                    setMyPositionExpanded(open);
+                    if (open && userPredictions.length === 0) {
+                      await loadParticipantPredictions(currentUserParticipantId);
+                    }
+                  }}
                 >
                   <div className="rounded-lg bg-primary/10 border-2 border-primary">
                     <CollapsibleTrigger className="w-full">
@@ -588,7 +593,7 @@ const FootballRanking = ({ poolId, pool }: FootballRankingProps) => {
                                 R$ {currentUser.prize_amount.toFixed(2).replace('.', ',')}
                               </Badge>
                             )}
-                            {isUserExpanded ? (
+                            {myPositionExpanded ? (
                               <ChevronUp className="h-5 w-5 text-primary flex-shrink-0" />
                             ) : (
                               <ChevronDown className="h-5 w-5 text-primary flex-shrink-0" />
