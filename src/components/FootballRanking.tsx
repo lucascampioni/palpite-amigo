@@ -564,20 +564,20 @@ const FootballRanking = ({ poolId, pool }: FootballRankingProps) => {
                     <CollapsibleTrigger className="w-full">
                       <div className="p-3">
                         <div className="flex items-center justify-between gap-2">
-                          <div className="flex items-center gap-2 min-w-0 flex-1">
-                            <div className="flex items-center justify-center w-10 h-10 rounded-full bg-primary text-primary-foreground font-bold text-lg border-2 border-primary flex-shrink-0">
+                          <div className="flex items-center gap-1.5 sm:gap-2 min-w-0 flex-1">
+                            <div className="flex items-center justify-center w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-primary text-primary-foreground font-bold text-sm sm:text-lg border-2 border-primary flex-shrink-0">
                               {actualPosition !== null ? (
                                 <span>{actualPosition}º</span>
                               ) : (
                                 <span>—</span>
                               )}
-                             </div>
-                             {allMatchesFinished && actualPosition && actualPosition <= 3 && (
-                               <div className="flex-shrink-0">
-                                 {getRankIcon(actualPosition)}
-                               </div>
-                             )}
-                             <span className="font-semibold text-base break-words whitespace-normal sm:whitespace-nowrap sm:truncate min-w-0">
+                            </div>
+                            {allMatchesFinished && actualPosition && actualPosition <= 3 && (
+                              <div className="flex-shrink-0">
+                                {getRankIcon(actualPosition)}
+                              </div>
+                            )}
+                            <span className="font-semibold text-sm sm:text-base break-words whitespace-normal sm:whitespace-nowrap sm:truncate min-w-0">
                               {currentUser.participant_name}
                             </span>
                           </div>
