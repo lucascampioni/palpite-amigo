@@ -601,20 +601,20 @@ const FootballRanking = ({ poolId, pool }: FootballRankingProps) => {
                               <ChevronDown className="h-4 w-4 sm:h-5 sm:w-5 text-primary flex-shrink-0" />
                             )}
                           </div>
-                          {/* Mobile badges below name */}
-                          <div className="mt-1 flex items-center gap-2 flex-wrap sm:hidden pl-10">
-                            <Badge 
-                              variant={actualPosition === 1 ? "default" : currentUser.total_points === 0 ? "outline" : "secondary"} 
-                              className="text-xs px-2 py-0.5 whitespace-nowrap"
-                            >
-                              {currentUser.total_points} pts
+                        </div>
+                        {/* Mobile badges below name */}
+                        <div className="mt-1 flex items-center gap-2 flex-wrap sm:hidden pl-10">
+                          <Badge 
+                            variant={actualPosition === 1 ? "default" : currentUser.total_points === 0 ? "outline" : "secondary"} 
+                            className="text-xs px-2 py-0.5 whitespace-nowrap"
+                          >
+                            {currentUser.total_points} pts
+                          </Badge>
+                          {allMatchesFinished && currentUser.prize_amount !== undefined && currentUser.prize_amount > 0 && (
+                            <Badge variant="default" className="text-xs px-2 py-0.5 bg-primary whitespace-nowrap">
+                              R$ {currentUser.prize_amount.toFixed(2).replace('.', ',')}
                             </Badge>
-                            {allMatchesFinished && currentUser.prize_amount !== undefined && currentUser.prize_amount > 0 && (
-                              <Badge variant="default" className="text-xs px-2 py-0.5 bg-primary whitespace-nowrap">
-                                R$ {currentUser.prize_amount.toFixed(2).replace('.', ',')}
-                              </Badge>
-                            )}
-                          </div>
+                          )}
                         </div>
                       </div>
                     </CollapsibleTrigger>
