@@ -581,22 +581,38 @@ const FootballRanking = ({ poolId, pool }: FootballRankingProps) => {
                               {currentUser.participant_name}
                             </span>
                           </div>
-                          <div className="flex items-center gap-2 flex-shrink-0">
+                          <div className="flex items-center gap-1 sm:gap-2 flex-shrink-0">
+                            <div className="hidden sm:flex items-center gap-2">
+                              <Badge 
+                                variant={actualPosition === 1 ? "default" : currentUser.total_points === 0 ? "outline" : "secondary"} 
+                                className="text-xs sm:text-sm px-2 sm:px-3 py-0.5 sm:py-1 whitespace-nowrap font-semibold"
+                              >
+                                {currentUser.total_points} pts
+                              </Badge>
+                              {allMatchesFinished && currentUser.prize_amount !== undefined && currentUser.prize_amount > 0 && (
+                                <Badge variant="default" className="text-xs sm:text-sm px-2 sm:px-3 py-0.5 sm:py-1 bg-primary whitespace-nowrap font-semibold">
+                                  R$ {currentUser.prize_amount.toFixed(2).replace('.', ',')}
+                                </Badge>
+                              )}
+                            </div>
+                            {myPositionExpanded ? (
+                              <ChevronUp className="h-4 w-4 sm:h-5 sm:w-5 text-primary flex-shrink-0" />
+                            ) : (
+                              <ChevronDown className="h-4 w-4 sm:h-5 sm:w-5 text-primary flex-shrink-0" />
+                            )}
+                          </div>
+                          {/* Mobile badges below name */}
+                          <div className="mt-1 flex items-center gap-2 flex-wrap sm:hidden pl-10">
                             <Badge 
                               variant={actualPosition === 1 ? "default" : currentUser.total_points === 0 ? "outline" : "secondary"} 
-                              className="text-sm px-3 py-1 whitespace-nowrap font-semibold"
+                              className="text-xs px-2 py-0.5 whitespace-nowrap"
                             >
                               {currentUser.total_points} pts
                             </Badge>
                             {allMatchesFinished && currentUser.prize_amount !== undefined && currentUser.prize_amount > 0 && (
-                              <Badge variant="default" className="text-sm px-3 py-1 bg-primary whitespace-nowrap font-semibold">
+                              <Badge variant="default" className="text-xs px-2 py-0.5 bg-primary whitespace-nowrap">
                                 R$ {currentUser.prize_amount.toFixed(2).replace('.', ',')}
                               </Badge>
-                            )}
-                            {myPositionExpanded ? (
-                              <ChevronUp className="h-5 w-5 text-primary flex-shrink-0" />
-                            ) : (
-                              <ChevronDown className="h-5 w-5 text-primary flex-shrink-0" />
                             )}
                           </div>
                         </div>
