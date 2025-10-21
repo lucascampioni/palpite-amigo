@@ -577,7 +577,7 @@ const FootballRanking = ({ poolId, pool }: FootballRankingProps) => {
                                 {getRankIcon(actualPosition)}
                               </div>
                             )}
-                            <span className="font-semibold text-sm sm:text-base break-words whitespace-normal sm:whitespace-nowrap sm:truncate min-w-0">
+                            <span className="font-semibold text-sm sm:text-base truncate min-w-0">
                               {currentUser.participant_name}
                             </span>
                           </div>
