@@ -128,6 +128,93 @@ const PoolDetail = () => {
     calculateUserPrize();
   }, [currentUserParticipant, participants, participantsPoints, pool, hasFootballMatches]);
 
+  // Update winners' prize_status when all matches are finished
+  useEffect(() => {
+    const updateWinnersPrizeStatus = async () => {
+      if (!pool || !hasFootballMatches) return;
+      if (pool.status !== 'active') return;
+      if (participants.length === 0) return;
+
+      // Check if all matches are finished
+      const { data: matches } = await supabase
+        .from('football_matches')
+        .select('id, home_score, away_score')
+        .eq('pool_id', id);
+
+      if (!matches || matches.length === 0) return;
+
+      const allMatchesFinished = matches.every(m => m.home_score !== null && m.away_score !== null);
+      if (!allMatchesFinished) return;
+
+      console.log('All matches finished, updating winners prize_status...');
+
+      // Get pool prize details
+      const prizes = [
+        pool.first_place_prize ? parseFloat(pool.first_place_prize) : 0,
+        pool.second_place_prize ? parseFloat(pool.second_place_prize) : 0,
+        pool.third_place_prize ? parseFloat(pool.third_place_prize) : 0
+      ];
+
+      // Calculate ranking
+      const participantsWithPoints = participants
+        .filter((p: any) => p.status === 'approved')
+        .map((p: any) => ({
+          ...p,
+          total_points: participantsPoints[p.id] || 0
+        }))
+        .sort((a: any, b: any) => b.total_points - a.total_points);
+
+      const winnersToUpdate: string[] = [];
+      let currentPosition = 0;
+
+      while (currentPosition < participantsWithPoints.length && currentPosition < 3) {
+        const currentScore = participantsWithPoints[currentPosition].total_points;
+        
+        // Skip if score is 0
+        if (currentScore === 0) break;
+
+        // Find all participants with the same score (tie group)
+        let tieGroupEnd = currentPosition;
+        while (
+          tieGroupEnd < participantsWithPoints.length &&
+          participantsWithPoints[tieGroupEnd].total_points === currentScore
+        ) {
+          tieGroupEnd++;
+        }
+
+        // If this group touches any prize position (top 3), they all get prize
+        if (currentPosition <= 2) {
+          for (let i = currentPosition; i < tieGroupEnd; i++) {
+            if (participantsWithPoints[i].total_points > 0) {
+              winnersToUpdate.push(participantsWithPoints[i].id);
+            }
+          }
+        }
+
+        currentPosition = tieGroupEnd;
+      }
+
+      // Update prize_status for winners who haven't submitted PIX yet
+      if (winnersToUpdate.length > 0) {
+        const { error: updateError } = await supabase
+          .from('participants')
+          .update({ prize_status: 'awaiting_pix' })
+          .in('id', winnersToUpdate)
+          .is('prize_status', null);
+
+        if (!updateError) {
+          console.log(`Updated ${winnersToUpdate.length} winners to awaiting_pix status`);
+          // Reload data to reflect changes
+          loadPoolData();
+        } else {
+          console.error('Error updating winners prize_status:', updateError);
+        }
+      }
+    };
+
+    updateWinnersPrizeStatus();
+  }, [pool, participants, participantsPoints, hasFootballMatches, id]);
+
   useEffect(() => {
     const checkAuthAndLoadData = async () => {
       const { data: { user } } = await supabase.auth.getUser();
