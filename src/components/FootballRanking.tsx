@@ -594,6 +594,7 @@ const FootballRanking = ({ poolId, pool }: FootballRankingProps) => {
                                   R$ {currentUser.prize_amount.toFixed(2).replace('.', ',')}
                                 </Badge>
                               )}
+                              {allMatchesFinished && getPrizeStatusBadge(currentUser.prize_status, currentUser.prize_amount)}
                             </div>
                             {myPositionExpanded ? (
                               <ChevronUp className="h-4 w-4 sm:h-5 sm:w-5 text-primary flex-shrink-0" />
@@ -615,6 +616,7 @@ const FootballRanking = ({ poolId, pool }: FootballRankingProps) => {
                               R$ {currentUser.prize_amount.toFixed(2).replace('.', ',')}
                             </Badge>
                           )}
+                          {allMatchesFinished && getPrizeStatusBadge(currentUser.prize_status, currentUser.prize_amount)}
                         </div>
                       </div>
                     </CollapsibleTrigger>
