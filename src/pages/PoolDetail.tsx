@@ -47,6 +47,7 @@ const PoolDetail = () => {
   const [hasAnyMatchResult, setHasAnyMatchResult] = useState(false);
   const [participantPhones, setParticipantPhones] = useState<Record<string, string>>({});
   const [rankingData, setRankingData] = useState<{ participant_id: string; participant_name: string; total_points: number }[]>([]);
+  const [allUsersWithPhone, setAllUsersWithPhone] = useState<{ id: string; full_name: string; phone: string }[]>([]);
 
   useEffect(() => {
     const buildSigned = async () => {
@@ -316,6 +317,15 @@ const PoolDetail = () => {
     if ((matchesData?.length || 0) > 0) {
       const { data: rankData } = await supabase.rpc("get_football_pool_ranking", { p_pool_id: id });
       setRankingData(rankData || []);
+    }
+
+    // Load all registered users with phone for promotional WhatsApp messages
+    const { data: allProfiles } = await supabase
+      .from("profiles")
+      .select("id, full_name, phone")
+      .not("phone", "is", null);
+    if (allProfiles) {
+      setAllUsersWithPhone(allProfiles.filter(p => p.phone).map(p => ({ id: p.id, full_name: p.full_name, phone: p.phone! })));
     }
     
     // Load pool payment info
@@ -940,10 +950,17 @@ const PoolDetail = () => {
                 <Separator />
                 <WhatsAppMessagePanel
                   poolTitle={pool.title}
+                  poolId={pool.id}
                   participants={participants}
                   poolDeadline={pool.deadline}
                   ranking={rankingData}
                   phones={participantPhones}
+                  allUsersWithPhone={allUsersWithPhone}
+                  poolPrizes={{
+                    first: pool.first_place_prize ? parseFloat(pool.first_place_prize) : undefined,
+                    second: pool.second_place_prize ? parseFloat(pool.second_place_prize) : undefined,
+                    third: pool.third_place_prize ? parseFloat(pool.third_place_prize) : undefined,
+                  }}
                 />
               </>
             )}
