@@ -43,6 +43,11 @@ const COMPETITIONS = {
     id: 2021,
     code: 'PL',
     name: 'Premier League'
+  },
+  worldCup: {
+    id: 2000,
+    code: 'WC',
+    name: 'Copa do Mundo 2026'
   }
 };
 
@@ -204,6 +209,26 @@ serve(async (req) => {
       }
     } catch (error) {
       console.error('❌ Error fetching Premier League:', error);
+      console.error('Error details:', error instanceof Error ? error.message : String(error));
+    }
+
+    // Fetch Copa do Mundo 2026
+    try {
+      console.log(`📡 Fetching ${COMPETITIONS.worldCup.name} (ID ${COMPETITIONS.worldCup.id})...`);
+      const matches = await fetchMatches(COMPETITIONS.worldCup.id);
+      console.log(`📊 Received ${matches.length} matches for Copa do Mundo`);
+      
+      if (matches.length > 0) {
+        const worldCupChamp = organizeMatchesByRound(
+          matches,
+          COMPETITIONS.worldCup.name,
+          COMPETITIONS.worldCup.code
+        );
+        championships.push(worldCupChamp);
+        console.log(`✅ Organized into ${worldCupChamp.rounds.length} rounds`);
+      }
+    } catch (error) {
+      console.error('❌ Error fetching Copa do Mundo:', error);
       console.error('Error details:', error instanceof Error ? error.message : String(error));
     }
 
