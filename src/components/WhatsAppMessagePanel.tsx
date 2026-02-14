@@ -110,30 +110,12 @@ const WhatsAppMessagePanel = ({ poolTitle, participants, poolDeadline, ranking, 
 
   const approvedParticipants = participants.filter(p => p.status === "approved");
 
-  const copyMessageToClipboard = (phone: string, message: string) => {
+  const sendWhatsApp = (phone: string, message: string) => {
     const digits = phone.replace(/\D/g, "");
-    const phoneFormatted = digits.startsWith("55") ? digits : `55${digits}`;
-    
-    navigator.clipboard.writeText(message).then(() => {
-      toast({
-        title: "Mensagem copiada! 📋",
-        description: `Abra o WhatsApp e envie para o número ${phoneFormatted}`,
-        duration: 6000,
-      });
-    }).catch(() => {
-      // Fallback: select text from a temporary textarea
-      const textarea = document.createElement("textarea");
-      textarea.value = message;
-      document.body.appendChild(textarea);
-      textarea.select();
-      document.execCommand("copy");
-      document.body.removeChild(textarea);
-      toast({
-        title: "Mensagem copiada! 📋",
-        description: `Abra o WhatsApp e envie para o número ${phoneFormatted}`,
-        duration: 6000,
-      });
-    });
+    const phoneWithCountry = digits.startsWith("55") ? digits : `55${digits}`;
+    const encoded = encodeURIComponent(message);
+    const url = `https://wa.me/${phoneWithCountry}?text=${encoded}`;
+    window.location.href = url;
   };
 
   const getParticipantRankInfo = (participantId: string) => {
@@ -231,10 +213,10 @@ const WhatsAppMessagePanel = ({ poolTitle, participants, poolDeadline, ranking, 
                               size="sm"
                               variant="outline"
                               className="flex-shrink-0 text-green-600 border-green-300 hover:bg-green-50 dark:hover:bg-green-950"
-                              onClick={() => copyMessageToClipboard(phone, getMessageForParticipant(template, participant))}
+                              onClick={() => sendWhatsApp(phone, getMessageForParticipant(template, participant))}
                             >
-                              <Copy className="w-4 h-4 mr-1" />
-                              Copiar
+                              <MessageCircle className="w-4 h-4 mr-1" />
+                              Enviar
                             </Button>
                           </div>
                         );
