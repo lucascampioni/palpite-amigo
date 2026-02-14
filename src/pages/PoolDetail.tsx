@@ -22,6 +22,7 @@ import { AdminPrizeManagement } from "@/components/AdminPrizeManagement";
 import { PaymentProofSubmission } from "@/components/PaymentProofSubmission";
 import { AdminPendingParticipants } from "@/components/AdminPendingParticipants";
 import { useUserRole } from "@/hooks/useUserRole";
+import WhatsAppMessagePanel from "@/components/WhatsAppMessagePanel";
 
 const PoolDetail = () => {
   const { id } = useParams();
@@ -44,6 +45,8 @@ const PoolDetail = () => {
   const [userPrizeInfo, setUserPrizeInfo] = useState<{ amount: number; placement: number; isTied: boolean; tiedWithCount: number } | null>(null);
   const [participantsPoints, setParticipantsPoints] = useState<Record<string, number>>({});
   const [hasAnyMatchResult, setHasAnyMatchResult] = useState(false);
+  const [participantPhones, setParticipantPhones] = useState<Record<string, string>>({});
+  const [rankingData, setRankingData] = useState<{ participant_id: string; participant_name: string; total_points: number }[]>([]);
 
   useEffect(() => {
     const buildSigned = async () => {
@@ -294,6 +297,26 @@ const PoolDetail = () => {
     // Check if any match has results
     const hasResults = matchesData?.some(m => m.home_score !== null && m.away_score !== null) ?? false;
     setHasAnyMatchResult(hasResults);
+
+    // Load participant phones for WhatsApp panel (admin/owner only)
+    const userIds = (participantsData || []).map((p: any) => p.user_id);
+    if (userIds.length > 0) {
+      const { data: profiles } = await supabase
+        .from("profiles")
+        .select("id, phone")
+        .in("id", userIds);
+      const phoneMap: Record<string, string> = {};
+      profiles?.forEach((p: any) => {
+        if (p.phone) phoneMap[p.id] = p.phone;
+      });
+      setParticipantPhones(phoneMap);
+    }
+
+    // Load ranking data for WhatsApp messages
+    if ((matchesData?.length || 0) > 0) {
+      const { data: rankData } = await supabase.rpc("get_football_pool_ranking", { p_pool_id: id });
+      setRankingData(rankData || []);
+    }
     
     // Load pool payment info
     const { data: paymentInfo } = await supabase
@@ -911,7 +934,19 @@ const PoolDetail = () => {
               </>
             )}
 
-
+            {/* WhatsApp Message Panel for admin/owner */}
+            {(userRole?.isAdmin || isOwner) && (pool.pool_type === "football" || hasFootballMatches) && (
+              <>
+                <Separator />
+                <WhatsAppMessagePanel
+                  poolTitle={pool.title}
+                  participants={participants}
+                  poolDeadline={pool.deadline}
+                  ranking={rankingData}
+                  phones={participantPhones}
+                />
+              </>
+            )}
 
 
             {((pool.status === "active" || pool.status === "finished") && (pool.pool_type === "football" || hasFootballMatches)) && (
