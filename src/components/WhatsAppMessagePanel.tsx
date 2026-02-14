@@ -106,16 +106,42 @@ const categoryLabels = {
 const WhatsAppMessagePanel = ({ poolTitle, participants, poolDeadline, ranking, phones }: WhatsAppMessagePanelProps) => {
   const [isOpen, setIsOpen] = useState(false);
   const [selectedTemplate, setSelectedTemplate] = useState<string | null>(null);
+  const [sendingAll, setSendingAll] = useState(false);
+  const [currentSendIndex, setCurrentSendIndex] = useState(0);
   const { toast } = useToast();
 
   const approvedParticipants = participants.filter(p => p.status === "approved");
 
-  const sendWhatsApp = (phone: string, message: string) => {
+  const buildWhatsAppUrl = (phone: string, message: string) => {
     const digits = phone.replace(/\D/g, "");
     const phoneWithCountry = digits.startsWith("55") ? digits : `55${digits}`;
     const encoded = encodeURIComponent(message);
-    const url = `https://wa.me/${phoneWithCountry}?text=${encoded}`;
-    window.location.href = url;
+    return `https://wa.me/${phoneWithCountry}?text=${encoded}`;
+  };
+
+  const sendWhatsApp = (phone: string, message: string) => {
+    window.location.href = buildWhatsAppUrl(phone, message);
+  };
+
+  const sendToAll = () => {
+    if (!selectedTemplate) return;
+    const template = messageTemplates.find(t => t.id === selectedTemplate)!;
+    const urls = participantsWithPhone.map(p => 
+      buildWhatsAppUrl(phones[p.user_id], getMessageForParticipant(template, p))
+    );
+    
+    // Open first immediately, rest with delays
+    urls.forEach((url, i) => {
+      setTimeout(() => {
+        window.open(url, "_blank");
+      }, i * 1500);
+    });
+
+    toast({
+      title: `Enviando para ${urls.length} participantes... 📤`,
+      description: "As janelas do WhatsApp serão abertas uma a uma.",
+      duration: urls.length * 1500 + 2000,
+    });
   };
 
   const getParticipantRankInfo = (participantId: string) => {
@@ -188,7 +214,17 @@ const WhatsAppMessagePanel = ({ poolTitle, participants, poolDeadline, ranking, 
                 {/* Participant List with Send Buttons */}
                 {selectedTemplate && (
                   <div className="space-y-2 mt-4">
-                    <p className="text-sm font-medium">Enviar para:</p>
+                    <div className="flex items-center justify-between">
+                      <p className="text-sm font-medium">Enviar para:</p>
+                      <Button
+                        size="sm"
+                        onClick={sendToAll}
+                        className="bg-green-600 hover:bg-green-700 text-white"
+                      >
+                        <Send className="w-4 h-4 mr-1" />
+                        Enviar para todos ({participantsWithPhone.length})
+                      </Button>
+                    </div>
                     <div className="space-y-2 max-h-64 overflow-y-auto">
                       {participantsWithPhone.map(participant => {
                         const template = messageTemplates.find(t => t.id === selectedTemplate)!;
