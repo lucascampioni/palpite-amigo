@@ -51,19 +51,24 @@ const COMPETITIONS = {
   }
 };
 
-async function fetchMatches(competitionId: number): Promise<any[]> {
+async function fetchMatches(competitionId: number, useDateFilter = true): Promise<any[]> {
   if (!FOOTBALL_DATA_API_KEY) {
     throw new Error('FOOTBALL_DATA_API_KEY not configured');
   }
 
   console.log(`  📞 Calling football-data.org API for competition ${competitionId}`);
 
-  const today = new Date();
-  const dateFrom = today.toISOString().split('T')[0];
-  const toDate = new Date(today.getTime() + 31 * 24 * 60 * 60 * 1000);
-  const dateTo = toDate.toISOString().split('T')[0];
-
-  const url = `${BASE_URL}/competitions/${competitionId}/matches?dateFrom=${dateFrom}&dateTo=${dateTo}`;
+  let url: string;
+  if (useDateFilter) {
+    const today = new Date();
+    const dateFrom = today.toISOString().split('T')[0];
+    const toDate = new Date(today.getTime() + 31 * 24 * 60 * 60 * 1000);
+    const dateTo = toDate.toISOString().split('T')[0];
+    url = `${BASE_URL}/competitions/${competitionId}/matches?dateFrom=${dateFrom}&dateTo=${dateTo}`;
+  } else {
+    // Fetch ALL matches (no date filter) - used for World Cup
+    url = `${BASE_URL}/competitions/${competitionId}/matches`;
+  }
   console.log(`  🔗 URL: ${url}`);
 
   const response = await fetch(url, {
@@ -93,10 +98,24 @@ function organizeMatchesByRound(matches: any[], competitionName: string, competi
   const roundsMap = new Map<string, Match[]>();
 
   matches.forEach((match: any) => {
-    // Use matchday for round number
+    // Use matchday for round number, or stage for World Cup
     const matchday = match.matchday || 1;
-    // Different naming for different leagues
-    const round = competitionCode === 'PL' ? `Rodada ${matchday}` : `Rodada ${matchday}`;
+    const stage = match.stage || '';
+    let round: string;
+    if (competitionCode === 'WC') {
+      // Use stage name for World Cup (e.g., "GROUP_STAGE", "ROUND_OF_16", etc.)
+      const stageNames: Record<string, string> = {
+        'GROUP_STAGE': 'Fase de Grupos',
+        'ROUND_OF_16': 'Oitavas de Final',
+        'QUARTER_FINALS': 'Quartas de Final',
+        'SEMI_FINALS': 'Semifinais',
+        'THIRD_PLACE': 'Disputa 3º Lugar',
+        'FINAL': 'Final',
+      };
+      round = stageNames[stage] || stage || `Rodada ${matchday}`;
+    } else {
+      round = `Rodada ${matchday}`;
+    }
     
     const matchObj: Match = {
       homeTeam: match.homeTeam?.name || match.homeTeam?.shortName || 'Time Casa',
@@ -116,7 +135,11 @@ function organizeMatchesByRound(matches: any[], competitionName: string, competi
   });
 
   const rounds: Round[] = [];
+  const stageOrder = ['Fase de Grupos', 'Oitavas de Final', 'Quartas de Final', 'Semifinais', 'Disputa 3º Lugar', 'Final'];
   const sortedRounds = Array.from(roundsMap.entries()).sort((a, b) => {
+    const idxA = stageOrder.indexOf(a[0]);
+    const idxB = stageOrder.indexOf(b[0]);
+    if (idxA !== -1 && idxB !== -1) return idxA - idxB;
     const numA = parseInt(a[0].replace('Rodada ', ''));
     const numB = parseInt(b[0].replace('Rodada ', ''));
     return numA - numB;
@@ -215,7 +238,7 @@ serve(async (req) => {
     // Fetch Copa do Mundo 2026
     try {
       console.log(`📡 Fetching ${COMPETITIONS.worldCup.name} (ID ${COMPETITIONS.worldCup.id})...`);
-      const matches = await fetchMatches(COMPETITIONS.worldCup.id);
+      const matches = await fetchMatches(COMPETITIONS.worldCup.id, false);
       console.log(`📊 Received ${matches.length} matches for Copa do Mundo`);
       
       if (matches.length > 0) {
