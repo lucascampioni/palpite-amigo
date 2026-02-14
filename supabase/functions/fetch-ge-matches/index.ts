@@ -94,6 +94,44 @@ async function fetchMatches(competitionId: number, useDateFilter = true): Promis
   return matches;
 }
 
+const TEAM_NAMES_PT: Record<string, string> = {
+  'Afghanistan': 'Afeganistão', 'Albania': 'Albânia', 'Algeria': 'Argélia', 'Argentina': 'Argentina',
+  'Australia': 'Austrália', 'Austria': 'Áustria', 'Belgium': 'Bélgica', 'Bolivia': 'Bolívia',
+  'Bosnia and Herzegovina': 'Bósnia e Herzegovina', 'Brazil': 'Brasil', 'Cameroon': 'Camarões',
+  'Canada': 'Canadá', 'Chile': 'Chile', 'China PR': 'China', 'Colombia': 'Colômbia',
+  'Costa Rica': 'Costa Rica', 'Croatia': 'Croácia', 'Czech Republic': 'República Tcheca',
+  'Denmark': 'Dinamarca', 'Ecuador': 'Equador', 'Egypt': 'Egito', 'England': 'Inglaterra',
+  'Finland': 'Finlândia', 'France': 'França', 'Germany': 'Alemanha', 'Ghana': 'Gana',
+  'Greece': 'Grécia', 'Honduras': 'Honduras', 'Hungary': 'Hungria', 'Iceland': 'Islândia',
+  'Indonesia': 'Indonésia', 'Iran': 'Irã', 'Iraq': 'Iraque', 'Ireland': 'Irlanda',
+  'Israel': 'Israel', 'Italy': 'Itália', 'Ivory Coast': 'Costa do Marfim',
+  "Côte d'Ivoire": 'Costa do Marfim', 'Jamaica': 'Jamaica', 'Japan': 'Japão',
+  'Korea Republic': 'Coreia do Sul', 'South Korea': 'Coreia do Sul',
+  'Mexico': 'México', 'Morocco': 'Marrocos', 'Netherlands': 'Holanda',
+  'New Zealand': 'Nova Zelândia', 'Nigeria': 'Nigéria', 'Norway': 'Noruega',
+  'Panama': 'Panamá', 'Paraguay': 'Paraguai', 'Peru': 'Peru', 'Poland': 'Polônia',
+  'Portugal': 'Portugal', 'Qatar': 'Catar', 'Romania': 'Romênia', 'Russia': 'Rússia',
+  'Saudi Arabia': 'Arábia Saudita', 'Scotland': 'Escócia', 'Senegal': 'Senegal',
+  'Serbia': 'Sérvia', 'Slovakia': 'Eslováquia', 'Slovenia': 'Eslovênia',
+  'South Africa': 'África do Sul', 'Spain': 'Espanha', 'Sweden': 'Suécia',
+  'Switzerland': 'Suíça', 'Tunisia': 'Tunísia', 'Turkey': 'Turquia', 'Türkiye': 'Turquia',
+  'Ukraine': 'Ucrânia', 'United States': 'Estados Unidos', 'USA': 'Estados Unidos',
+  'Uruguay': 'Uruguai', 'Venezuela': 'Venezuela', 'Wales': 'País de Gales',
+  'Congo DR': 'RD Congo', 'DR Congo': 'RD Congo', 'Mali': 'Mali', 'Burkina Faso': 'Burkina Faso',
+  'Guatemala': 'Guatemala', 'El Salvador': 'El Salvador', 'Trinidad and Tobago': 'Trinidad e Tobago',
+  'Cuba': 'Cuba', 'Haiti': 'Haiti', 'Dominican Republic': 'República Dominicana',
+  'Bahrain': 'Bahrein', 'Uzbekistan': 'Uzbequistão', 'Thailand': 'Tailândia',
+  'Vietnam': 'Vietnã', 'Philippines': 'Filipinas', 'Palestine': 'Palestina',
+  'Jordan': 'Jordânia', 'Oman': 'Omã', 'Kuwait': 'Kuwait', 'UAE': 'Emirados Árabes',
+  'United Arab Emirates': 'Emirados Árabes', 'Syria': 'Síria', 'Lebanon': 'Líbano',
+  'Kyrgyzstan': 'Quirguistão', 'Tajikistan': 'Tajiquistão',
+};
+
+function translateTeamName(name: string, competitionCode: string): string {
+  if (competitionCode !== 'WC') return name;
+  return TEAM_NAMES_PT[name] || name;
+}
+
 function organizeMatchesByRound(matches: any[], competitionName: string, competitionCode: string): Championship {
   const roundsMap = new Map<string, Match[]>();
 
@@ -103,7 +141,6 @@ function organizeMatchesByRound(matches: any[], competitionName: string, competi
     const stage = match.stage || '';
     let round: string;
     if (competitionCode === 'WC') {
-      // Use stage name for World Cup (e.g., "GROUP_STAGE", "ROUND_OF_16", etc.)
       const stageNames: Record<string, string> = {
         'GROUP_STAGE': 'Fase de Grupos',
         'ROUND_OF_16': 'Oitavas de Final',
@@ -117,9 +154,12 @@ function organizeMatchesByRound(matches: any[], competitionName: string, competi
       round = `Rodada ${matchday}`;
     }
     
+    const homeTeamRaw = match.homeTeam?.name || match.homeTeam?.shortName || 'Time Casa';
+    const awayTeamRaw = match.awayTeam?.name || match.awayTeam?.shortName || 'Time Visitante';
+    
     const matchObj: Match = {
-      homeTeam: match.homeTeam?.name || match.homeTeam?.shortName || 'Time Casa',
-      awayTeam: match.awayTeam?.name || match.awayTeam?.shortName || 'Time Visitante',
+      homeTeam: translateTeamName(homeTeamRaw, competitionCode),
+      awayTeam: translateTeamName(awayTeamRaw, competitionCode),
       matchDate: match.utcDate || new Date().toISOString(),
       championship: competitionName,
       externalId: `fd_${match.id || Math.random()}`,
