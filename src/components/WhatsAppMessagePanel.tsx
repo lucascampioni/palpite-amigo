@@ -2,8 +2,9 @@ import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { MessageCircle, Send, ChevronDown, ChevronUp, User, Clock, Trophy, AlertTriangle, PartyPopper } from "lucide-react";
+import { MessageCircle, Send, ChevronDown, ChevronUp, User, Clock, Trophy, AlertTriangle, PartyPopper, Copy } from "lucide-react";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { useToast } from "@/hooks/use-toast";
 
 interface Participant {
   id: string;
@@ -105,6 +106,7 @@ const categoryLabels = {
 const WhatsAppMessagePanel = ({ poolTitle, participants, poolDeadline, ranking, phones }: WhatsAppMessagePanelProps) => {
   const [isOpen, setIsOpen] = useState(false);
   const [selectedTemplate, setSelectedTemplate] = useState<string | null>(null);
+  const { toast } = useToast();
 
   const approvedParticipants = participants.filter(p => p.status === "approved");
 
@@ -112,7 +114,18 @@ const WhatsAppMessagePanel = ({ poolTitle, participants, poolDeadline, ranking, 
     const digits = phone.replace(/\D/g, "");
     const phoneWithCountry = digits.startsWith("55") ? digits : `55${digits}`;
     const encoded = encodeURIComponent(message);
-    window.open(`https://wa.me/${phoneWithCountry}?text=${encoded}`, "_blank");
+    const url = `https://wa.me/${phoneWithCountry}?text=${encoded}`;
+    
+    // Try to open directly, fallback to copying to clipboard
+    const newWindow = window.open(url, "_blank");
+    if (!newWindow || newWindow.closed) {
+      navigator.clipboard.writeText(url).then(() => {
+        toast({
+          title: "Link copiado! 📋",
+          description: "O link do WhatsApp foi copiado. Cole em uma nova aba do navegador.",
+        });
+      });
+    }
   };
 
   const getParticipantRankInfo = (participantId: string) => {
