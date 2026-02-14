@@ -494,26 +494,17 @@ export type Database = {
         }
         Returns: boolean
       }
-      is_app_admin: {
-        Args: Record<PropertyKey, never>
-        Returns: boolean
-      }
+      is_app_admin: { Args: never; Returns: boolean }
       is_approved_participant: {
         Args: { pool_uuid: string; user_uuid: string }
         Returns: boolean
       }
-      is_pool_finished: {
-        Args: { pool_uuid: string }
-        Returns: boolean
-      }
+      is_pool_finished: { Args: { pool_uuid: string }; Returns: boolean }
       is_pool_owner: {
         Args: { pool_uuid: string; user_uuid: string }
         Returns: boolean
       }
-      is_user_admin: {
-        Args: Record<PropertyKey, never>
-        Returns: boolean
-      }
+      is_user_admin: { Args: never; Returns: boolean }
     }
     Enums: {
       app_role: "admin" | "user"
