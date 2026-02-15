@@ -77,6 +77,7 @@ const Auth = () => {
   const [cpf, setCpf] = useState("");
   const [cpfError, setCpfError] = useState<string | null>(null);
   const [phone, setPhone] = useState("");
+  const [whatsappConsent, setWhatsappConsent] = useState(false);
   const [forgotPasswordOpen, setForgotPasswordOpen] = useState(false);
   const [resetEmail, setResetEmail] = useState("");
   const [resetLoading, setResetLoading] = useState(false);
@@ -117,6 +118,17 @@ const Auth = () => {
     const phoneRaw = formData.get("phone") as string;
     const phone = phoneRaw.replace(/\D/g, ""); // Remove formatação
     const wantsWhatsappGroup = formData.get("wants-whatsapp") === "on";
+
+    // Verificar consentimento obrigatório
+    if (!whatsappConsent) {
+      toast({
+        variant: "destructive",
+        title: "Consentimento obrigatório",
+        description: "Você precisa concordar em receber comunicações via WhatsApp para se cadastrar.",
+      });
+      setLoading(false);
+      return;
+    }
 
     // Verificar se as senhas coincidem
     if (password !== confirmPassword) {
@@ -542,6 +554,19 @@ const Auth = () => {
                       minLength={8}
                     />
                   </div>
+                  <div className="flex items-start space-x-2 p-4 border-2 rounded-lg bg-muted/30 border-primary/20">
+                    <input
+                      type="checkbox"
+                      id="whatsapp-consent"
+                      checked={whatsappConsent}
+                      onChange={(e) => setWhatsappConsent(e.target.checked)}
+                      className="h-4 w-4 rounded border-gray-300 mt-0.5"
+                      required
+                    />
+                    <Label htmlFor="whatsapp-consent" className="text-sm font-normal cursor-pointer leading-relaxed">
+                      Ao se cadastrar, você concorda em receber comunicações sobre resultados e novos bolões via WhatsApp. <span className="text-destructive">*</span>
+                    </Label>
+                  </div>
                   <div className="flex items-center space-x-2 p-4 border rounded-lg bg-muted/30">
                     <input
                       type="checkbox"
@@ -553,7 +578,7 @@ const Auth = () => {
                       Quero participar do grupo do WhatsApp para receber novidades sobre bolões
                     </Label>
                   </div>
-                  <Button type="submit" className="w-full" disabled={loading || !!cpfError}>
+                  <Button type="submit" className="w-full" disabled={loading || !!cpfError || !whatsappConsent}>
                     {loading ? "Criando conta..." : "Criar conta"}
                   </Button>
                 </form>
