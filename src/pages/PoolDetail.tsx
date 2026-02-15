@@ -48,6 +48,7 @@ const PoolDetail = () => {
   const [participantPhones, setParticipantPhones] = useState<Record<string, string>>({});
   const [rankingData, setRankingData] = useState<{ participant_id: string; participant_name: string; total_points: number }[]>([]);
   const [allUsersWithPhone, setAllUsersWithPhone] = useState<{ id: string; full_name: string; phone: string }[]>([]);
+  const [userHasPhone, setUserHasPhone] = useState<boolean | null>(null);
 
   useEffect(() => {
     const buildSigned = async () => {
@@ -261,6 +262,16 @@ const PoolDetail = () => {
     setPool(poolData);
     setIsOwner(user?.id === poolData.owner_id);
 
+    // Check if user has phone registered
+    if (user) {
+      const { data: profileData } = await supabase
+        .from("profiles")
+        .select("phone")
+        .eq("id", user.id)
+        .single();
+      setUserHasPhone(!!profileData?.phone);
+    }
+
     const { data: participantsData } = await supabase
       .from("participants")
       .select("*")
@@ -380,6 +391,17 @@ const PoolDetail = () => {
         title: "Erro",
         description: "Por favor, insira seu palpite.",
       });
+      return;
+    }
+
+    // Check if user has phone
+    if (!userHasPhone) {
+      toast({
+        variant: "destructive",
+        title: "Telefone obrigatório",
+        description: "Cadastre seu telefone no perfil antes de participar de um bolão.",
+      });
+      navigate("/profile");
       return;
     }
 
@@ -763,6 +785,21 @@ const PoolDetail = () => {
                       🚫 Bolão cheio - Limite de {pool.max_participants} participantes atingido
                     </p>
                   </div>
+                ) : userHasPhone === false ? (
+                  <>
+                    <Separator />
+                    <div className="p-6 rounded-lg bg-yellow-50 dark:bg-yellow-950 border-2 border-yellow-200 dark:border-yellow-800 text-center space-y-3">
+                      <p className="text-lg font-semibold text-yellow-700 dark:text-yellow-300">
+                        📱 Telefone obrigatório
+                      </p>
+                      <p className="text-sm text-muted-foreground">
+                        Para participar de um bolão, você precisa cadastrar seu telefone no perfil.
+                      </p>
+                      <Button onClick={() => navigate("/profile")} variant="default">
+                        Ir para o Perfil
+                      </Button>
+                    </div>
+                  </>
                 ) : (
                   <>
                     <Separator />
