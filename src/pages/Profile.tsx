@@ -1,10 +1,14 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Trophy, Users, Award, ArrowLeft, Mail, Calendar } from "lucide-react";
+import { Trophy, Users, Award, ArrowLeft, Mail, Calendar, Camera, Phone, Lock, Pencil, Loader2 } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Separator } from "@/components/ui/separator";
+import { toast } from "@/hooks/use-toast";
 
 const Profile = () => {
   const navigate = useNavigate();
@@ -13,6 +17,21 @@ const Profile = () => {
   const [userEmail, setUserEmail] = useState<string>("");
   const [memberSince, setMemberSince] = useState<string>("");
   const [loading, setLoading] = useState(true);
+
+  // Edit states
+  const [editingPhone, setEditingPhone] = useState(false);
+  const [editingEmail, setEditingEmail] = useState(false);
+  const [editingPassword, setEditingPassword] = useState(false);
+  const [phone, setPhone] = useState("");
+  const [newEmail, setNewEmail] = useState("");
+  const [currentPassword, setCurrentPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [savingPhone, setSavingPhone] = useState(false);
+  const [savingEmail, setSavingEmail] = useState(false);
+  const [savingPassword, setSavingPassword] = useState(false);
+  const [uploadingAvatar, setUploadingAvatar] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     loadUserData();
@@ -23,9 +42,9 @@ const Profile = () => {
     if (!user) return;
 
     setUserEmail(user.email || "");
+    setNewEmail(user.email || "");
     setMemberSince(new Date(user.created_at).toLocaleDateString('pt-BR'));
 
-    // Load profile
     const { data: profileData } = await supabase
       .from('profiles')
       .select('*')
@@ -33,15 +52,14 @@ const Profile = () => {
       .single();
 
     setProfile(profileData);
+    setPhone(profileData?.phone || "");
 
-    // Load or create stats
     let { data: statsData } = await supabase
       .from('user_stats')
       .select('*')
       .eq('user_id', user.id)
       .single();
 
-    // If stats don't exist, create them
     if (!statsData) {
       const { data: newStats } = await supabase
         .from('user_stats')
@@ -53,6 +71,123 @@ const Profile = () => {
 
     setStats(statsData);
     setLoading(false);
+  };
+
+  const handleAvatarUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith('image/')) {
+      toast({ title: "Erro", description: "Selecione um arquivo de imagem.", variant: "destructive" });
+      return;
+    }
+    if (file.size > 2 * 1024 * 1024) {
+      toast({ title: "Erro", description: "A imagem deve ter no máximo 2MB.", variant: "destructive" });
+      return;
+    }
+
+    setUploadingAvatar(true);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const fileExt = file.name.split('.').pop();
+      const filePath = `${user.id}/avatar.${fileExt}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from('avatars')
+        .upload(filePath, file, { upsert: true });
+
+      if (uploadError) throw uploadError;
+
+      const { data: { publicUrl } } = supabase.storage
+        .from('avatars')
+        .getPublicUrl(filePath);
+
+      const avatarUrl = `${publicUrl}?t=${Date.now()}`;
+
+      const { error: updateError } = await supabase
+        .from('profiles')
+        .update({ avatar_url: avatarUrl })
+        .eq('id', user.id);
+
+      if (updateError) throw updateError;
+
+      setProfile((prev: any) => ({ ...prev, avatar_url: avatarUrl }));
+      toast({ title: "Sucesso", description: "Foto de perfil atualizada!" });
+    } catch (error: any) {
+      toast({ title: "Erro", description: error.message || "Erro ao enviar foto.", variant: "destructive" });
+    } finally {
+      setUploadingAvatar(false);
+    }
+  };
+
+  const handleSavePhone = async () => {
+    setSavingPhone(true);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const { error } = await supabase
+        .from('profiles')
+        .update({ phone })
+        .eq('id', user.id);
+
+      if (error) throw error;
+
+      setProfile((prev: any) => ({ ...prev, phone }));
+      setEditingPhone(false);
+      toast({ title: "Sucesso", description: "Telefone atualizado!" });
+    } catch (error: any) {
+      toast({ title: "Erro", description: error.message, variant: "destructive" });
+    } finally {
+      setSavingPhone(false);
+    }
+  };
+
+  const handleSaveEmail = async () => {
+    if (!newEmail || newEmail === userEmail) {
+      setEditingEmail(false);
+      return;
+    }
+    setSavingEmail(true);
+    try {
+      const { error } = await supabase.auth.updateUser({ email: newEmail });
+      if (error) throw error;
+
+      toast({ title: "Verificação enviada", description: "Verifique seu novo email para confirmar a alteração." });
+      setEditingEmail(false);
+    } catch (error: any) {
+      toast({ title: "Erro", description: error.message, variant: "destructive" });
+    } finally {
+      setSavingEmail(false);
+    }
+  };
+
+  const handleSavePassword = async () => {
+    if (newPassword.length < 8) {
+      toast({ title: "Erro", description: "A senha deve ter no mínimo 8 caracteres.", variant: "destructive" });
+      return;
+    }
+    if (newPassword !== confirmPassword) {
+      toast({ title: "Erro", description: "As senhas não coincidem.", variant: "destructive" });
+      return;
+    }
+    setSavingPassword(true);
+    try {
+      const { error } = await supabase.auth.updateUser({ password: newPassword });
+      if (error) throw error;
+
+      toast({ title: "Sucesso", description: "Senha alterada com sucesso!" });
+      setEditingPassword(false);
+      setCurrentPassword("");
+      setNewPassword("");
+      setConfirmPassword("");
+    } catch (error: any) {
+      toast({ title: "Erro", description: error.message, variant: "destructive" });
+    } finally {
+      setSavingPassword(false);
+    }
   };
 
   if (loading) {
@@ -95,6 +230,8 @@ const Profile = () => {
     },
   ];
 
+  const avatarUrl = profile?.avatar_url;
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-muted to-background p-4">
       <div className="max-w-4xl mx-auto pt-8 pb-16 space-y-6">
@@ -108,12 +245,40 @@ const Profile = () => {
           Voltar para Início
         </Button>
 
-        {/* Profile Header */}
+        {/* Profile Header with Avatar Upload */}
         <Card>
           <CardHeader>
             <div className="flex items-center gap-4">
-              <div className="w-20 h-20 rounded-full bg-gradient-to-br from-primary to-primary-glow flex items-center justify-center text-3xl font-bold text-primary-foreground shadow-lg">
-                {profile?.full_name?.charAt(0).toUpperCase() || 'U'}
+              <div className="relative group">
+                {avatarUrl ? (
+                  <img
+                    src={avatarUrl}
+                    alt="Foto de perfil"
+                    className="w-20 h-20 rounded-full object-cover shadow-lg"
+                  />
+                ) : (
+                  <div className="w-20 h-20 rounded-full bg-gradient-to-br from-primary to-primary-glow flex items-center justify-center text-3xl font-bold text-primary-foreground shadow-lg">
+                    {profile?.full_name?.charAt(0).toUpperCase() || 'U'}
+                  </div>
+                )}
+                <button
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={uploadingAvatar}
+                  className="absolute inset-0 rounded-full bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
+                >
+                  {uploadingAvatar ? (
+                    <Loader2 className="w-6 h-6 text-white animate-spin" />
+                  ) : (
+                    <Camera className="w-6 h-6 text-white" />
+                  )}
+                </button>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={handleAvatarUpload}
+                />
               </div>
               <div className="flex-1">
                 <CardTitle className="text-3xl mb-2">{profile?.full_name || 'Usuário'}</CardTitle>
@@ -130,6 +295,122 @@ const Profile = () => {
               </div>
             </div>
           </CardHeader>
+        </Card>
+
+        {/* Edit Profile Section */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Pencil className="w-5 h-5 text-primary" />
+              Editar Informações
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            {/* Email */}
+            <div className="space-y-2">
+              <Label className="flex items-center gap-2 text-sm font-medium">
+                <Mail className="w-4 h-4 text-muted-foreground" />
+                Email
+              </Label>
+              {editingEmail ? (
+                <div className="flex gap-2">
+                  <Input
+                    type="email"
+                    value={newEmail}
+                    onChange={(e) => setNewEmail(e.target.value)}
+                    placeholder="Novo email"
+                  />
+                  <Button onClick={handleSaveEmail} disabled={savingEmail} size="sm">
+                    {savingEmail ? <Loader2 className="w-4 h-4 animate-spin" /> : "Salvar"}
+                  </Button>
+                  <Button variant="ghost" size="sm" onClick={() => { setEditingEmail(false); setNewEmail(userEmail); }}>
+                    Cancelar
+                  </Button>
+                </div>
+              ) : (
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-muted-foreground">{userEmail}</span>
+                  <Button variant="outline" size="sm" onClick={() => setEditingEmail(true)}>
+                    <Pencil className="w-3 h-3 mr-1" /> Alterar
+                  </Button>
+                </div>
+              )}
+            </div>
+
+            <Separator />
+
+            {/* Phone */}
+            <div className="space-y-2">
+              <Label className="flex items-center gap-2 text-sm font-medium">
+                <Phone className="w-4 h-4 text-muted-foreground" />
+                Telefone
+              </Label>
+              {editingPhone ? (
+                <div className="flex gap-2">
+                  <Input
+                    type="tel"
+                    value={phone}
+                    onChange={(e) => setPhone(e.target.value)}
+                    placeholder="(00) 00000-0000"
+                  />
+                  <Button onClick={handleSavePhone} disabled={savingPhone} size="sm">
+                    {savingPhone ? <Loader2 className="w-4 h-4 animate-spin" /> : "Salvar"}
+                  </Button>
+                  <Button variant="ghost" size="sm" onClick={() => { setEditingPhone(false); setPhone(profile?.phone || ""); }}>
+                    Cancelar
+                  </Button>
+                </div>
+              ) : (
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-muted-foreground">{profile?.phone || "Não informado"}</span>
+                  <Button variant="outline" size="sm" onClick={() => setEditingPhone(true)}>
+                    <Pencil className="w-3 h-3 mr-1" /> Alterar
+                  </Button>
+                </div>
+              )}
+            </div>
+
+            <Separator />
+
+            {/* Password */}
+            <div className="space-y-2">
+              <Label className="flex items-center gap-2 text-sm font-medium">
+                <Lock className="w-4 h-4 text-muted-foreground" />
+                Senha
+              </Label>
+              {editingPassword ? (
+                <div className="space-y-3">
+                  <Input
+                    type="password"
+                    value={newPassword}
+                    onChange={(e) => setNewPassword(e.target.value)}
+                    placeholder="Nova senha (mín. 8 caracteres)"
+                  />
+                  <Input
+                    type="password"
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    placeholder="Confirmar nova senha"
+                  />
+                  <div className="flex gap-2">
+                    <Button onClick={handleSavePassword} disabled={savingPassword} size="sm">
+                      {savingPassword ? <Loader2 className="w-4 h-4 animate-spin" /> : "Alterar Senha"}
+                    </Button>
+                    <Button variant="ghost" size="sm" onClick={() => { setEditingPassword(false); setNewPassword(""); setConfirmPassword(""); }}>
+                      Cancelar
+                    </Button>
+                  </div>
+                </div>
+              ) : (
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-muted-foreground">••••••••</span>
+                  <Button variant="outline" size="sm" onClick={() => setEditingPassword(true)}>
+                    <Pencil className="w-3 h-3 mr-1" /> Alterar
+                  </Button>
+                </div>
+              )}
+            </div>
+          </CardContent>
         </Card>
 
         {/* Stats Grid */}
