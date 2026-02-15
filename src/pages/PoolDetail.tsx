@@ -23,6 +23,7 @@ import { PaymentProofSubmission } from "@/components/PaymentProofSubmission";
 import { AdminPendingParticipants } from "@/components/AdminPendingParticipants";
 import { useUserRole } from "@/hooks/useUserRole";
 import WhatsAppMessagePanel from "@/components/WhatsAppMessagePanel";
+import VipGroupInviteModal from "@/components/VipGroupInviteModal";
 
 const PoolDetail = () => {
   const { id } = useParams();
@@ -49,6 +50,7 @@ const PoolDetail = () => {
   const [rankingData, setRankingData] = useState<{ participant_id: string; participant_name: string; total_points: number }[]>([]);
   const [allUsersWithPhone, setAllUsersWithPhone] = useState<{ id: string; full_name: string; phone: string }[]>([]);
   const [userHasPhone, setUserHasPhone] = useState<boolean | null>(null);
+  const [showVipModal, setShowVipModal] = useState(false);
 
   useEffect(() => {
     const buildSigned = async () => {
@@ -456,6 +458,18 @@ const PoolDetail = () => {
         });
       }
       loadPoolData();
+
+      // Show VIP group invite if user hasn't been invited yet
+      if (userId) {
+        const { data: profile } = await supabase
+          .from("profiles")
+          .select("vip_group_invited_at")
+          .eq("id", userId)
+          .single();
+        if (!profile?.vip_group_invited_at) {
+          setShowVipModal(true);
+        }
+      }
     }
 
     setSubmitting(false);
@@ -1085,6 +1099,16 @@ const PoolDetail = () => {
           onOpenChange={setShowResultDialog}
           onSuccess={loadPoolData}
         />
+
+        {/* VIP Group Invite Modal */}
+        {userId && (
+          <VipGroupInviteModal
+            open={showVipModal}
+            onOpenChange={setShowVipModal}
+            userId={userId}
+            whatsappGroupLink="https://chat.whatsapp.com/SEU_LINK_DO_GRUPO_AQUI"
+          />
+        )}
       </div>
     </div>
   );
