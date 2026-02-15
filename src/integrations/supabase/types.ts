@@ -374,6 +374,7 @@ export type Database = {
       }
       profiles: {
         Row: {
+          avatar_url: string | null
           cpf_hash: string | null
           created_at: string
           full_name: string
@@ -383,6 +384,7 @@ export type Database = {
           wants_whatsapp_group: boolean | null
         }
         Insert: {
+          avatar_url?: string | null
           cpf_hash?: string | null
           created_at?: string
           full_name: string
@@ -392,6 +394,7 @@ export type Database = {
           wants_whatsapp_group?: boolean | null
         }
         Update: {
+          avatar_url?: string | null
           cpf_hash?: string | null
           created_at?: string
           full_name?: string
