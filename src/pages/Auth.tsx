@@ -117,7 +117,7 @@ const Auth = () => {
     const cpf = cpfRaw.replace(/\D/g, ""); // Remove formatação
     const phoneRaw = formData.get("phone") as string;
     const phone = phoneRaw.replace(/\D/g, ""); // Remove formatação
-    const wantsWhatsappGroup = formData.get("wants-whatsapp") === "on";
+    
 
     // Verificar consentimento obrigatório
     if (!whatsappConsent) {
@@ -205,7 +205,7 @@ const Auth = () => {
           last_name: lastName,
           cpf,
           phone,
-          wants_whatsapp_group: wantsWhatsappGroup,
+          wants_whatsapp_group: false,
         },
         emailRedirectTo: `${window.location.origin}/`,
       },
@@ -564,18 +564,7 @@ const Auth = () => {
                       required
                     />
                     <Label htmlFor="whatsapp-consent" className="text-sm font-normal cursor-pointer leading-relaxed">
-                      Ao se cadastrar, você concorda em receber comunicações sobre resultados e novos bolões via WhatsApp. <span className="text-destructive">*</span>
-                    </Label>
-                  </div>
-                  <div className="flex items-center space-x-2 p-4 border rounded-lg bg-muted/30">
-                    <input
-                      type="checkbox"
-                      id="wants-whatsapp"
-                      name="wants-whatsapp"
-                      className="h-4 w-4 rounded border-gray-300"
-                    />
-                    <Label htmlFor="wants-whatsapp" className="text-sm font-normal cursor-pointer">
-                      Quero participar do grupo do WhatsApp para receber novidades sobre bolões
+                      Ao participar, você concorda em receber comunicações operacionais sobre seus bolões via WhatsApp (confirmações, resultados e avisos importantes). <span className="text-destructive">*</span>
                     </Label>
                   </div>
                   <Button type="submit" className="w-full" disabled={loading || !!cpfError || !whatsappConsent}>

@@ -381,6 +381,8 @@ export type Database = {
           id: string
           phone: string | null
           updated_at: string
+          vip_group_accepted: boolean | null
+          vip_group_invited_at: string | null
           wants_whatsapp_group: boolean | null
         }
         Insert: {
@@ -391,6 +393,8 @@ export type Database = {
           id: string
           phone?: string | null
           updated_at?: string
+          vip_group_accepted?: boolean | null
+          vip_group_invited_at?: string | null
           wants_whatsapp_group?: boolean | null
         }
         Update: {
@@ -401,6 +405,8 @@ export type Database = {
           id?: string
           phone?: string | null
           updated_at?: string
+          vip_group_accepted?: boolean | null
+          vip_group_invited_at?: string | null
           wants_whatsapp_group?: boolean | null
         }
         Relationships: []
