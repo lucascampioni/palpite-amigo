@@ -67,10 +67,21 @@ export const AdminParticipantsManager = ({
   const [rejectingParticipant, setRejectingParticipant] = useState<Participant | null>(null);
   const [rejectionReason, setRejectionReason] = useState("");
   const [rejectionDetails, setRejectionDetails] = useState("");
+  const [approveWarningOpen, setApproveWarningOpen] = useState(false);
+  const [approvingParticipantId, setApprovingParticipantId] = useState<string | null>(null);
 
   const approved = participants.filter(p => p.status === "approved");
   const pending = participants.filter(p => p.status === "pending");
   const rejected = participants.filter(p => p.status === "rejected");
+
+  const handleApproveClick = (participant: Participant) => {
+    if (!participant.payment_proof) {
+      setApprovingParticipantId(participant.id);
+      setApproveWarningOpen(true);
+    } else {
+      handleApprove(participant.id);
+    }
+  };
 
   const handleApprove = async (participantId: string) => {
     setProcessing(participantId);
@@ -86,6 +97,8 @@ export const AdminParticipantsManager = ({
       toast({ variant: "destructive", title: "Erro ao aprovar", description: error.message });
     } finally {
       setProcessing(null);
+      setApproveWarningOpen(false);
+      setApprovingParticipantId(null);
     }
   };
 
@@ -213,7 +226,7 @@ export const AdminParticipantsManager = ({
                       <Button
                         variant="ghost"
                         size="icon"
-                        onClick={() => handleApprove(p.id)}
+                        onClick={() => handleApproveClick(p)}
                         disabled={processing === p.id}
                         className="h-7 w-7 text-green-600 hover:text-green-700 hover:bg-green-50"
                         title="Aprovar"
@@ -332,6 +345,24 @@ export const AdminParticipantsManager = ({
             <Button variant="outline" onClick={() => setRejectDialogOpen(false)}>Cancelar</Button>
             <Button variant="destructive" onClick={handleRejectConfirm} disabled={processing === rejectingParticipant?.id}>
               Confirmar Reprovação
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Approve without proof warning */}
+      <Dialog open={approveWarningOpen} onOpenChange={setApproveWarningOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>⚠️ Aprovar sem comprovante</DialogTitle>
+            <DialogDescription>
+              Este participante ainda não enviou o comprovante de pagamento. Tem certeza que deseja aprová-lo mesmo assim?
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => { setApproveWarningOpen(false); setApprovingParticipantId(null); }}>Cancelar</Button>
+            <Button onClick={() => approvingParticipantId && handleApprove(approvingParticipantId)} disabled={processing === approvingParticipantId}>
+              Sim, aprovar
             </Button>
           </DialogFooter>
         </DialogContent>
