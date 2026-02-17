@@ -249,7 +249,7 @@ const EditFootballPool = () => {
           .upsert({
             pool_id: id,
             pix_key: pixKey,
-          });
+          }, { onConflict: 'pool_id' });
 
         if (pixError) throw pixError;
       }
