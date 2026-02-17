@@ -56,8 +56,9 @@ const Index = () => {
           .eq("id", session.user.id)
           .single();
 
-        // Only redirect to verification if user HAS a phone but it's not verified
-        if (profile && profile.phone && !profile.phone_verified) {
+        // Only redirect to verification if user HAS a phone number but it's not verified yet
+        // Users without a phone can access normally and add it later in their profile
+        if (profile && profile.phone !== null && profile.phone !== '' && !profile.phone_verified) {
           navigate("/whatsapp-verification");
           return;
         }
