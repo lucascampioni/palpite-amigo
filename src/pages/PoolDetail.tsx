@@ -681,41 +681,85 @@ const PoolDetail = () => {
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                      {pool.first_place_prize && (
-                        <div className="p-3 rounded-lg bg-gradient-to-br from-yellow-500/20 to-yellow-400/10 border-2 border-yellow-500">
-                          <div className="flex items-center gap-2 mb-1">
-                            <Trophy className="w-4 h-4 text-yellow-600 dark:text-yellow-500" />
-                            <p className="text-sm font-semibold text-yellow-700 dark:text-yellow-400">1º Lugar</p>
+                    {(() => {
+                      const approvedCount = participants.filter(p => p.status === 'approved').length;
+                      const totalCollected = (pool.entry_fee || 0) * approvedCount;
+                      const isPercentage = pool.prize_type === 'percentage';
+                      
+                      const calcPrize = (pct: number) => isPercentage ? (pct / 100) * totalCollected : pct;
+                      const formatPrize = (val: number) => `R$ ${val.toFixed(2).replace('.', ',')}`;
+
+                      return (
+                        <>
+                          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                            {pool.first_place_prize && (
+                              <div className="p-3 rounded-lg bg-gradient-to-br from-yellow-500/20 to-yellow-400/10 border-2 border-yellow-500">
+                                <div className="flex items-center gap-2 mb-1">
+                                  <Trophy className="w-4 h-4 text-yellow-600 dark:text-yellow-500" />
+                                  <p className="text-sm font-semibold text-yellow-700 dark:text-yellow-400">1º Lugar</p>
+                                </div>
+                                <p className="text-xl font-bold text-yellow-800 dark:text-yellow-300">
+                                  {isPercentage
+                                    ? formatPrize(calcPrize(parseFloat(pool.first_place_prize)))
+                                    : formatPrize(parseFloat(pool.first_place_prize))}
+                                </p>
+                                {isPercentage && (
+                                  <p className="text-xs text-yellow-600 dark:text-yellow-500 mt-1">
+                                    ({parseFloat(pool.first_place_prize)}% do arrecadado)
+                                  </p>
+                                )}
+                              </div>
+                            )}
+                            {pool.second_place_prize && (
+                              <div className="p-3 rounded-lg bg-gradient-to-br from-gray-400/20 to-gray-300/10 border-2 border-gray-400">
+                                <div className="flex items-center gap-2 mb-1">
+                                  <Award className="w-4 h-4 text-gray-600 dark:text-gray-400" />
+                                  <p className="text-sm font-semibold text-gray-700 dark:text-gray-300">2º Lugar</p>
+                                </div>
+                                <p className="text-xl font-bold text-gray-800 dark:text-gray-200">
+                                  {isPercentage
+                                    ? formatPrize(calcPrize(parseFloat(pool.second_place_prize)))
+                                    : formatPrize(parseFloat(pool.second_place_prize))}
+                                </p>
+                                {isPercentage && (
+                                  <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">
+                                    ({parseFloat(pool.second_place_prize)}% do arrecadado)
+                                  </p>
+                                )}
+                              </div>
+                            )}
+                            {pool.third_place_prize && (
+                              <div className="p-3 rounded-lg bg-gradient-to-br from-orange-600/20 to-orange-500/10 border-2 border-orange-600">
+                                <div className="flex items-center gap-2 mb-1">
+                                  <Award className="w-4 h-4 text-orange-700 dark:text-orange-500" />
+                                  <p className="text-sm font-semibold text-orange-800 dark:text-orange-400">3º Lugar</p>
+                                </div>
+                                <p className="text-xl font-bold text-orange-900 dark:text-orange-300">
+                                  {isPercentage
+                                    ? formatPrize(calcPrize(parseFloat(pool.third_place_prize)))
+                                    : formatPrize(parseFloat(pool.third_place_prize))}
+                                </p>
+                                {isPercentage && (
+                                  <p className="text-xs text-orange-700 dark:text-orange-500 mt-1">
+                                    ({parseFloat(pool.third_place_prize)}% do arrecadado)
+                                  </p>
+                                )}
+                              </div>
+                            )}
                           </div>
-                          <p className="text-xl font-bold text-yellow-800 dark:text-yellow-300">
-                            R$ {parseFloat(pool.first_place_prize).toFixed(2).replace('.', ',')}
-                          </p>
-                        </div>
-                      )}
-                      {pool.second_place_prize && (
-                        <div className="p-3 rounded-lg bg-gradient-to-br from-gray-400/20 to-gray-300/10 border-2 border-gray-400">
-                          <div className="flex items-center gap-2 mb-1">
-                            <Award className="w-4 h-4 text-gray-600 dark:text-gray-400" />
-                            <p className="text-sm font-semibold text-gray-700 dark:text-gray-300">2º Lugar</p>
-                          </div>
-                          <p className="text-xl font-bold text-gray-800 dark:text-gray-200">
-                            R$ {parseFloat(pool.second_place_prize).toFixed(2).replace('.', ',')}
-                          </p>
-                        </div>
-                      )}
-                      {pool.third_place_prize && (
-                        <div className="p-3 rounded-lg bg-gradient-to-br from-orange-600/20 to-orange-500/10 border-2 border-orange-600">
-                          <div className="flex items-center gap-2 mb-1">
-                            <Award className="w-4 h-4 text-orange-700 dark:text-orange-500" />
-                            <p className="text-sm font-semibold text-orange-800 dark:text-orange-400">3º Lugar</p>
-                          </div>
-                          <p className="text-xl font-bold text-orange-900 dark:text-orange-300">
-                            R$ {parseFloat(pool.third_place_prize).toFixed(2).replace('.', ',')}
-                          </p>
-                        </div>
-                      )}
-                    </div>
+                          {isPercentage && (
+                            <div className="mt-3 p-3 rounded-lg bg-muted/50 border border-border">
+                              <p className="text-sm text-muted-foreground">
+                                📊 Valor total arrecadado: <strong>{formatPrize(totalCollected)}</strong> ({approvedCount} participante{approvedCount !== 1 ? 's' : ''} × {formatPrize(pool.entry_fee || 0)})
+                              </p>
+                              <p className="text-xs text-muted-foreground mt-1">
+                                Os valores acima são atualizados automaticamente conforme novos participantes entram no bolão.
+                              </p>
+                            </div>
+                          )}
+                        </>
+                      );
+                    })()}
                   </CardContent>
                 </Card>
 
