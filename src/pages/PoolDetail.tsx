@@ -747,7 +747,7 @@ const PoolDetail = () => {
                               </div>
                             )}
                           </div>
-                          {isPercentage && (
+                          {isPercentage && isOwner && (
                             <div className="mt-3 p-3 rounded-lg bg-muted/50 border border-border">
                               <p className="text-sm text-muted-foreground">
                                 📊 Valor total arrecadado: <strong>{formatPrize(totalCollected)}</strong> ({approvedCount} participante{approvedCount !== 1 ? 's' : ''} × {formatPrize(pool.entry_fee || 0)})
