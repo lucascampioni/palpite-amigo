@@ -371,16 +371,29 @@ const Index = () => {
               </AlertSection>
             )}
 
-            {/* Quick summary of active pools */}
-            {(myPoolsActiveCount > 0 || participatingActiveCount > 0) && (
+            {/* Bolões que estou concorrendo */}
+            {participatingActiveCount > 0 && (
               <div className="space-y-3">
-                <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Bolões Ativos</h3>
+                <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-2">
+                  <Users className="w-4 h-4 text-blue-500" /> Bolões que estou concorrendo
+                </h3>
+                <div className="space-y-3">
+                  {myParticipatingPools.filter(p => p.status === "active").map((pool) => (
+                    <PoolCard key={pool.id} pool={pool} isUserParticipating onClick={() => navigate(`/pool/${pool.id}`)} />
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Meus bolões (criados por mim) */}
+            {myPoolsActiveCount > 0 && (
+              <div className="space-y-3">
+                <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-2">
+                  ⚽ Meus bolões ativos
+                </h3>
                 <div className="space-y-3">
                   {myCreatedPools.filter(p => p.status === "active").map((pool) => (
                     <PoolCard key={pool.id} pool={pool} onClick={() => navigate(`/pool/${pool.id}`)} />
-                  ))}
-                  {myParticipatingPools.filter(p => p.status === "active").map((pool) => (
-                    <PoolCard key={pool.id} pool={pool} isUserParticipating onClick={() => navigate(`/pool/${pool.id}`)} />
                   ))}
                 </div>
               </div>
