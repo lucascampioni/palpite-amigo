@@ -548,10 +548,12 @@ const PoolDetail = () => {
 
   if (!pool) return null;
 
-  const isPendingPayment = !isOwner && currentUserParticipant?.status === 'pending';
+  const isPendingPayment = !isOwner && currentUserParticipant?.status === 'pending' && !currentUserParticipant?.payment_proof;
+  const isAwaitingApproval = !isOwner && currentUserParticipant?.status === 'pending' && !!currentUserParticipant?.payment_proof;
 
   const getStatusColor = (status: string) => {
     if (status === "finished") return "bg-gray-500 text-white";
+    if (isAwaitingApproval) return "bg-yellow-500 text-white";
     if (isPendingPayment) return "bg-orange-500 text-white";
     if (hasJoined) return "bg-blue-500 text-white";
     return "bg-green-500 text-white";
@@ -559,6 +561,7 @@ const PoolDetail = () => {
 
   const getStatusText = (status: string) => {
     if (status === "finished") return "Finalizado";
+    if (isAwaitingApproval) return "⏳ Pendente Aprovação";
     if (isPendingPayment) return "⚠️ Pagamento Pendente";
     if (hasJoined) return "Participando";
     return "Disponível";
@@ -582,13 +585,26 @@ const PoolDetail = () => {
         </div>
 
         {/* Pending Payment Banner */}
-        {!isOwner && currentUserParticipant?.status === 'pending' && (
+        {isPendingPayment && (
           <div className="p-4 rounded-xl bg-gradient-to-r from-orange-500 to-orange-600 text-white shadow-lg animate-pulse">
             <div className="flex items-center gap-3">
               <span className="text-2xl">⚠️</span>
               <div>
                 <p className="font-bold text-lg">Pagamento Pendente</p>
                 <p className="text-sm text-orange-100">Envie o comprovante de pagamento abaixo para confirmar sua participação.</p>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Awaiting Approval Banner */}
+        {isAwaitingApproval && (
+          <div className="p-4 rounded-xl bg-gradient-to-r from-yellow-500 to-yellow-600 text-white shadow-lg">
+            <div className="flex items-center gap-3">
+              <span className="text-2xl">⏳</span>
+              <div>
+                <p className="font-bold text-lg">Pendente Aprovação</p>
+                <p className="text-sm text-yellow-100">Seu comprovante foi enviado. Aguarde a aprovação do organizador.</p>
               </div>
             </div>
           </div>

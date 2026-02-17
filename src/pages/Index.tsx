@@ -20,7 +20,8 @@ const Index = () => {
   const [myParticipatingPools, setMyParticipatingPools] = useState<any[]>([]);
   const [myAwaitingPixPools, setMyAwaitingPixPools] = useState<any[]>([]); // Pools where user won and needs to submit PIX
   const [myAwaitingPaymentPools, setMyAwaitingPaymentPools] = useState<any[]>([]); // Pools where user submitted PIX and awaits payment
-  const [myPendingPaymentPools, setMyPendingPaymentPools] = useState<any[]>([]); // Pools where user needs to pay entry fee
+  const [myPendingPaymentPools, setMyPendingPaymentPools] = useState<any[]>([]);
+  const [myAwaitingApprovalPools, setMyAwaitingApprovalPools] = useState<any[]>([]);
   const [participantPrizeStatus, setParticipantPrizeStatus] = useState<Record<string, string>>({}); // Map pool_id -> prize_status
   const [officialPools, setOfficialPools] = useState<any[]>([]);
   const [availablePools, setAvailablePools] = useState<any[]>([]);
@@ -73,14 +74,16 @@ const Index = () => {
     // Load pools where user is a participant (approved)
     const { data: participantRecords } = await supabase
       .from("participants")
-      .select("pool_id, status, prize_status")
+      .select("pool_id, status, prize_status, payment_proof")
       .eq("user_id", session.user.id)
       .in("status", ["approved", "pending"]);
     
     const approvedRecords = participantRecords?.filter(p => p.status === 'approved') || [];
-    const pendingRecords = participantRecords?.filter(p => p.status === 'pending') || [];
+    const pendingRecords = participantRecords?.filter(p => p.status === 'pending' && !p.payment_proof) || [];
+    const awaitingApprovalRecords = participantRecords?.filter(p => p.status === 'pending' && p.payment_proof) || [];
     const participantPoolIds = approvedRecords.map(p => p.pool_id);
     const pendingPoolIds = pendingRecords.map(p => p.pool_id);
+    const awaitingApprovalPoolIds = awaitingApprovalRecords.map(p => p.pool_id);
     // Create a map of pool_id -> prize_status for easy lookup
     const prizeStatusMap: Record<string, string> = {};
     participantRecords?.forEach(p => {
@@ -128,6 +131,17 @@ const Index = () => {
         .in("id", pendingPoolIds)
         .order("created_at", { ascending: false });
       pendingPaymentPoolsData = data || [];
+    }
+
+    // Load pools where user has sent proof and awaits approval
+    let awaitingApprovalPoolsData: any[] = [];
+    if (awaitingApprovalPoolIds.length > 0) {
+      const { data } = await supabase
+        .from("pools")
+        .select("*, participants(count)")
+        .in("id", awaitingApprovalPoolIds)
+        .order("created_at", { ascending: false });
+      awaitingApprovalPoolsData = data || [];
     }
 
     // Regular participating pools (approved and no prize status OR prize already sent)
@@ -217,6 +231,7 @@ const Index = () => {
     setMyAwaitingPixPools(awaitingPixPoolsData);
     setMyAwaitingPaymentPools(awaitingPaymentPoolsData);
     setMyPendingPaymentPools(pendingPaymentPoolsData);
+    setMyAwaitingApprovalPools(awaitingApprovalPoolsData);
     setOfficialPools(officialPoolsData || []);
     setAvailablePools(activePools);
     
@@ -352,7 +367,34 @@ const Index = () => {
           </section>
         )}
 
-        {/* Awaiting PIX Submission Section */}
+        {/* Awaiting Approval Section */}
+        {myAwaitingApprovalPools.length > 0 && (
+          <section className="space-y-4">
+            <div className="flex items-center gap-2">
+              <div className="w-8 h-8 rounded-lg bg-yellow-500 flex items-center justify-center">
+                <span className="text-lg">⏳</span>
+              </div>
+              <h3 className="text-2xl font-bold">Pendente Aprovação</h3>
+            </div>
+            <div className="p-4 rounded-lg bg-yellow-50 dark:bg-yellow-950 border border-yellow-200 dark:border-yellow-800">
+              <p className="text-sm text-muted-foreground mb-4">
+                Seu comprovante foi enviado. Aguarde a aprovação do organizador.
+              </p>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {myAwaitingApprovalPools.map((pool) => (
+                  <PoolCard
+                    key={pool.id}
+                    pool={pool}
+                    isUserParticipating={true}
+                    hasAwaitingApproval={true}
+                    onClick={() => navigate(`/pool/${pool.id}`)}
+                  />
+                ))}
+              </div>
+            </div>
+          </section>
+        )}
+
         {myAwaitingPixPools.length > 0 && (
           <section className="space-y-4">
             <div className="flex items-center gap-2">
@@ -541,7 +583,7 @@ const Index = () => {
         )}
 
         {/* Empty State */}
-        {myCreatedPools.length === 0 && myParticipatingPools.length === 0 && myAwaitingPixPools.length === 0 && myAwaitingPaymentPools.length === 0 && myPendingPaymentPools.length === 0 && availablePools.length === 0 && officialPools.length === 0 && (
+        {myCreatedPools.length === 0 && myParticipatingPools.length === 0 && myAwaitingPixPools.length === 0 && myAwaitingPaymentPools.length === 0 && myPendingPaymentPools.length === 0 && myAwaitingApprovalPools.length === 0 && availablePools.length === 0 && officialPools.length === 0 && (
           <div className="text-center py-16 space-y-4">
             <div className="w-24 h-24 mx-auto rounded-full bg-muted flex items-center justify-center">
               <span className="text-5xl">⚽</span>
