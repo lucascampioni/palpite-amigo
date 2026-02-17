@@ -3,7 +3,8 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Trophy, LogOut, User, ChevronDown, ChevronUp, Users, Home, Search, Settings } from "lucide-react";
+import { Plus, Trophy, LogOut, User, ChevronDown, ChevronUp, Users, Home, Search, Settings, X } from "lucide-react";
+import { Input } from "@/components/ui/input";
 import PoolCard from "@/components/PoolCard";
 import { Session } from "@supabase/supabase-js";
 import { NotificationService } from "@/services/NotificationService";
@@ -30,6 +31,7 @@ const Index = () => {
   const [showFinishedCreated, setShowFinishedCreated] = useState(false);
   const [showFinishedParticipating, setShowFinishedParticipating] = useState(false);
   const [activeTab, setActiveTab] = useState("explorar");
+  const [searchQuery, setSearchQuery] = useState("");
 
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
@@ -240,6 +242,12 @@ const Index = () => {
   const participatingFinishedCount = myParticipatingPools.filter(p => p.status === "finished").length;
   const exploreCount = officialPools.length + availablePools.length;
 
+  const filterPools = (pools: any[]) => {
+    if (!searchQuery.trim()) return pools;
+    const q = searchQuery.toLowerCase();
+    return pools.filter(p => p.title?.toLowerCase().includes(q) || p.description?.toLowerCase().includes(q));
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
@@ -284,6 +292,22 @@ const Index = () => {
 
       {/* Main Content with Tabs */}
       <main className="flex-1 max-w-3xl mx-auto w-full px-3 pt-3 pb-4">
+        {/* Search Bar */}
+        <div className="relative mb-3">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+          <Input
+            placeholder="Buscar bolão..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="pl-9 pr-9 h-10 rounded-xl bg-muted/40 border-muted"
+          />
+          {searchQuery && (
+            <button onClick={() => setSearchQuery("")} className="absolute right-3 top-1/2 -translate-y-1/2">
+              <X className="w-4 h-4 text-muted-foreground hover:text-foreground" />
+            </button>
+          )}
+        </div>
+
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
           {/* Tab Navigation */}
           <TabsList className="w-full grid grid-cols-3 mb-4 h-11 bg-muted/60 rounded-xl p-1">
@@ -328,7 +352,7 @@ const Index = () => {
                     subtitle="Envie o comprovante para confirmar sua participação"
                     bgClass="bg-orange-50 dark:bg-orange-950/50 border-orange-200 dark:border-orange-800"
                   >
-                    {myPendingPaymentPools.map((pool) => (
+                    {filterPools(myPendingPaymentPools).map((pool) => (
                       <PoolCard key={pool.id} pool={pool} isUserParticipating hasPendingPayment onClick={() => navigate(`/pool/${pool.id}`)} />
                     ))}
                   </AlertSection>
@@ -341,7 +365,7 @@ const Index = () => {
                     subtitle="Comprovante enviado. Aguarde o organizador."
                     bgClass="bg-yellow-50 dark:bg-yellow-950/50 border-yellow-200 dark:border-yellow-800"
                   >
-                    {myAwaitingApprovalPools.map((pool) => (
+                    {filterPools(myAwaitingApprovalPools).map((pool) => (
                       <PoolCard key={pool.id} pool={pool} isUserParticipating hasAwaitingApproval onClick={() => navigate(`/pool/${pool.id}`)} />
                     ))}
                   </AlertSection>
@@ -354,7 +378,7 @@ const Index = () => {
                     subtitle="Informe sua chave PIX para receber o prêmio"
                     bgClass="bg-yellow-50 dark:bg-yellow-950/50 border-yellow-200 dark:border-yellow-800"
                   >
-                    {myAwaitingPixPools.map((pool) => (
+                    {filterPools(myAwaitingPixPools).map((pool) => (
                       <PoolCard key={pool.id} pool={pool} isUserParticipating hasWonPrize onClick={() => navigate(`/pool/${pool.id}`)} />
                     ))}
                   </AlertSection>
@@ -367,7 +391,7 @@ const Index = () => {
                     subtitle="Sua chave PIX foi enviada. Aguarde o prêmio."
                     bgClass="bg-blue-50 dark:bg-blue-950/50 border-blue-200 dark:border-blue-800"
                   >
-                    {myAwaitingPaymentPools.map((pool) => (
+                    {filterPools(myAwaitingPaymentPools).map((pool) => (
                       <PoolCard key={pool.id} pool={pool} isUserParticipating onClick={() => navigate(`/pool/${pool.id}`)} />
                     ))}
                   </AlertSection>
@@ -381,7 +405,7 @@ const Index = () => {
               <section className="space-y-3">
                 {/* Active */}
                 <div className="space-y-3">
-                  {myParticipatingPools.filter(p => p.status === "active").map((pool) => (
+                  {filterPools(myParticipatingPools.filter(p => p.status === "active")).map((pool) => (
                     <PoolCard key={pool.id} pool={pool} isUserParticipating onClick={() => navigate(`/pool/${pool.id}`)} />
                   ))}
                 </div>
@@ -402,7 +426,7 @@ const Index = () => {
                     </Button>
                     {showFinishedParticipating && (
                       <div className="space-y-3">
-                        {myParticipatingPools.filter(p => p.status === "finished").map((pool) => (
+                        {filterPools(myParticipatingPools.filter(p => p.status === "finished")).map((pool) => (
                           <PoolCard key={pool.id} pool={pool} isUserParticipating prizeReceived={participantPrizeStatus[pool.id] === 'prize_sent'} onClick={() => navigate(`/pool/${pool.id}`)} />
                         ))}
                       </div>
@@ -427,7 +451,7 @@ const Index = () => {
               <section className="space-y-3">
                 {/* Active */}
                 <div className="space-y-3">
-                  {myCreatedPools.filter(p => p.status === "active").map((pool) => (
+                  {filterPools(myCreatedPools.filter(p => p.status === "active")).map((pool) => (
                     <PoolCard key={pool.id} pool={pool} onClick={() => navigate(`/pool/${pool.id}`)} />
                   ))}
                 </div>
@@ -448,7 +472,7 @@ const Index = () => {
                     </Button>
                     {showFinishedCreated && (
                       <div className="space-y-3">
-                        {myCreatedPools.filter(p => p.status === "finished").map((pool) => (
+                        {filterPools(myCreatedPools.filter(p => p.status === "finished")).map((pool) => (
                           <PoolCard key={pool.id} pool={pool} onClick={() => navigate(`/pool/${pool.id}`)} />
                         ))}
                       </div>
@@ -478,7 +502,7 @@ const Index = () => {
                   ⭐ Bolões Oficiais
                 </h3>
                 <div className="space-y-3">
-                  {officialPools.map((pool) => (
+                  {filterPools(officialPools).map((pool) => (
                     <PoolCard key={pool.id} pool={pool} onClick={() => navigate(`/pool/${pool.id}`)} />
                   ))}
                 </div>
@@ -491,7 +515,7 @@ const Index = () => {
                   🌐 Bolões Públicos
                 </h3>
                 <div className="space-y-3">
-                  {availablePools.map((pool) => (
+                  {filterPools(availablePools).map((pool) => (
                     <PoolCard key={pool.id} pool={pool} onClick={() => navigate(`/pool/${pool.id}`)} />
                   ))}
                 </div>
