@@ -2,12 +2,13 @@ import { useEffect, useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Trophy, Users, Award, ArrowLeft, Mail, Calendar, Camera, Phone, Lock, Pencil, Loader2, MessageCircle } from "lucide-react";
+import { Trophy, Users, Award, ArrowLeft, Mail, Calendar, Camera, Phone, Lock, Pencil, Loader2, MessageCircle, Bell } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
+import { Switch } from "@/components/ui/switch";
 import { toast } from "@/hooks/use-toast";
 import { useUserRole } from "@/hooks/useUserRole";
 
@@ -33,6 +34,8 @@ const Profile = () => {
   const [savingEmail, setSavingEmail] = useState(false);
   const [savingPassword, setSavingPassword] = useState(false);
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
+  const [notifyPoolUpdates, setNotifyPoolUpdates] = useState(true);
+  const [notifyNewPools, setNotifyNewPools] = useState(true);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -55,6 +58,8 @@ const Profile = () => {
 
     setProfile(profileData);
     setPhone(profileData?.phone || "");
+    setNotifyPoolUpdates(profileData?.notify_pool_updates ?? true);
+    setNotifyNewPools(profileData?.notify_new_pools ?? true);
 
     let { data: statsData } = await supabase
       .from('user_stats')
@@ -411,6 +416,51 @@ const Profile = () => {
                   </Button>
                 </div>
               )}
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Notification Preferences */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Bell className="w-5 h-5 text-primary" />
+              Notificações WhatsApp
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="flex items-center justify-between">
+              <div className="space-y-0.5">
+                <p className="text-sm font-medium">Atualizações dos bolões</p>
+                <p className="text-xs text-muted-foreground">Receber notificações sobre resultados, posição e pagamentos dos bolões que participo</p>
+              </div>
+              <Switch
+                checked={notifyPoolUpdates}
+                onCheckedChange={async (checked) => {
+                  setNotifyPoolUpdates(checked);
+                  const { data: { user } } = await supabase.auth.getUser();
+                  if (user) {
+                    await supabase.from('profiles').update({ notify_pool_updates: checked }).eq('id', user.id);
+                  }
+                }}
+              />
+            </div>
+            <Separator />
+            <div className="flex items-center justify-between">
+              <div className="space-y-0.5">
+                <p className="text-sm font-medium">Novos bolões disponíveis</p>
+                <p className="text-xs text-muted-foreground">Receber divulgação de novos bolões na plataforma</p>
+              </div>
+              <Switch
+                checked={notifyNewPools}
+                onCheckedChange={async (checked) => {
+                  setNotifyNewPools(checked);
+                  const { data: { user } } = await supabase.auth.getUser();
+                  if (user) {
+                    await supabase.from('profiles').update({ notify_new_pools: checked }).eq('id', user.id);
+                  }
+                }}
+              />
             </div>
           </CardContent>
         </Card>
