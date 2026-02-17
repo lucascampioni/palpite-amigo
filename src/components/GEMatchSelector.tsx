@@ -94,7 +94,7 @@ export const GEMatchSelector = ({ open, onOpenChange, onMatchesSelected }: GEMat
             .sort((a, b) => a[0].localeCompare(b[0]))
             .map(([date, matches]) => ({
               date,
-              displayDate: format(new Date(date), "EEEE, dd/MM/yyyy", { locale: ptBR }),
+              displayDate: format(new Date(date + "T12:00:00"), "EEEE, dd/MM/yyyy", { locale: ptBR }),
               matches: matches.sort((a, b) => 
                 new Date(a.matchDate).getTime() - new Date(b.matchDate).getTime()
               ),
