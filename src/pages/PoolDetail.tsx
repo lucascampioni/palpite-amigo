@@ -1020,7 +1020,7 @@ const PoolDetail = () => {
             {((pool.status === "active" || pool.status === "finished") && (pool.pool_type === "football" || hasFootballMatches)) && (
               <>
                 <Separator />
-                <FootballRanking poolId={pool.id} pool={pool} />
+                <FootballRanking poolId={pool.id} pool={pool} approvedParticipantsCount={participants.filter(p => p.status === 'approved').length} />
               </>
             )}
 

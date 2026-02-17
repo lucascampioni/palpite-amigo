@@ -15,7 +15,10 @@ interface FootballRankingProps {
     third_place_prize?: number;
     scoring_system?: string;
     max_winners?: number;
+    prize_type?: string;
+    entry_fee?: number;
   };
+  approvedParticipantsCount?: number;
 }
 
 interface ParticipantScore {
@@ -40,7 +43,7 @@ interface MatchPrediction {
   away_team_crest: string | null;
 }
 
-const FootballRanking = ({ poolId, pool }: FootballRankingProps) => {
+const FootballRanking = ({ poolId, pool, approvedParticipantsCount }: FootballRankingProps) => {
   const [ranking, setRanking] = useState<ParticipantScore[]>([]);
   const [loading, setLoading] = useState(true);
   const [expandedParticipants, setExpandedParticipants] = useState<Set<string>>(new Set());
@@ -229,17 +232,23 @@ const FootballRanking = ({ poolId, pool }: FootballRankingProps) => {
 
   const calculatePrizeDistribution = (
     ranking: ParticipantScore[],
-    poolData?: { first_place_prize?: number; second_place_prize?: number; third_place_prize?: number; max_winners?: number }
+    poolData?: { first_place_prize?: number; second_place_prize?: number; third_place_prize?: number; max_winners?: number; prize_type?: string; entry_fee?: number }
   ): ParticipantScore[] => {
     if (!poolData || !ranking.length) return ranking;
 
     const maxW = poolData.max_winners || 3;
+    const isPercentage = poolData.prize_type === 'percentage';
+    const totalCollected = isPercentage ? (poolData.entry_fee || 0) * (approvedParticipantsCount || ranking.length) : 0;
 
-    const prizes = [
+    const rawPrizes = [
       poolData.first_place_prize || 0,
       maxW >= 2 ? (poolData.second_place_prize || 0) : 0,
       maxW >= 3 ? (poolData.third_place_prize || 0) : 0,
     ].slice(0, maxW);
+
+    const prizes = isPercentage
+      ? rawPrizes.map(p => (p / 100) * totalCollected)
+      : rawPrizes;
 
     const hasPrizes = prizes.some(p => p > 0);
     if (!hasPrizes) return ranking;
