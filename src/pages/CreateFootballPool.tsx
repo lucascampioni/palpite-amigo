@@ -171,8 +171,19 @@ const CreateFootballPool = () => {
       }
 
       // Validate percentage total
-      if (prizeType === 'percentage' && totalPercentage > 100) {
-        throw new Error("A soma das porcentagens não pode ultrapassar 100%");
+      if (prizeType === 'percentage') {
+        if (totalPercentage > 100) {
+          throw new Error("A soma das porcentagens não pode ultrapassar 100%");
+        }
+        if (!firstPlacePrize || parseFloat(firstPlacePrize) <= 0) {
+          throw new Error("O prêmio do 1º lugar não pode ser 0% no modelo percentual");
+        }
+        if (maxWinners >= 2 && (!secondPlacePrize || parseFloat(secondPlacePrize) <= 0)) {
+          throw new Error("O prêmio do 2º lugar não pode ser 0% no modelo percentual");
+        }
+        if (maxWinners >= 3 && (!thirdPlacePrize || parseFloat(thirdPlacePrize) <= 0)) {
+          throw new Error("O prêmio do 3º lugar não pode ser 0% no modelo percentual");
+        }
       }
     } catch (error) {
       if (error instanceof z.ZodError) {
@@ -446,7 +457,7 @@ const CreateFootballPool = () => {
                       name="first_place_prize"
                       type="number"
                       step={prizeType === 'percentage' ? '1' : '0.01'}
-                      min="0"
+                      min={prizeType === 'percentage' ? '1' : '0'}
                       max={prizeType === 'percentage' ? '100' : undefined}
                       value={firstPlacePrize}
                       onChange={(e) => setFirstPlacePrize(e.target.value)}
@@ -461,7 +472,7 @@ const CreateFootballPool = () => {
                         name="second_place_prize"
                         type="number"
                         step={prizeType === 'percentage' ? '1' : '0.01'}
-                        min="0"
+                        min={prizeType === 'percentage' ? '1' : '0'}
                         max={prizeType === 'percentage' ? '100' : undefined}
                         value={secondPlacePrize}
                         onChange={(e) => setSecondPlacePrize(e.target.value)}
@@ -477,7 +488,7 @@ const CreateFootballPool = () => {
                         name="third_place_prize"
                         type="number"
                         step={prizeType === 'percentage' ? '1' : '0.01'}
-                        min="0"
+                        min={prizeType === 'percentage' ? '1' : '0'}
                         max={prizeType === 'percentage' ? '100' : undefined}
                         value={thirdPlacePrize}
                         onChange={(e) => setThirdPlacePrize(e.target.value)}
