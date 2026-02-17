@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Trophy, LogOut, User, ChevronDown, ChevronUp, Users, Home, Search, Settings, X } from "lucide-react";
+import { Plus, Trophy, LogOut, User, ChevronDown, ChevronUp, Users, Home, Search, Settings, X, AlertTriangle } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import PoolCard from "@/components/PoolCard";
 import { Session } from "@supabase/supabase-js";
@@ -235,7 +235,7 @@ const Index = () => {
   };
 
   // Counts for badges
-  const alertCount = myPendingPaymentPools.length + myAwaitingApprovalPools.length + myAwaitingPixPools.length + myAwaitingPaymentPools.length;
+  const pendenciasCount = myPendingPaymentPools.length + myAwaitingApprovalPools.length + myAwaitingPixPools.length + myAwaitingPaymentPools.length;
   const myPoolsActiveCount = myCreatedPools.filter(p => p.status === "active").length;
   const myPoolsFinishedCount = myCreatedPools.filter(p => p.status === "finished").length;
   const participatingActiveCount = myParticipatingPools.filter(p => p.status === "active").length;
@@ -310,19 +310,28 @@ const Index = () => {
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
           {/* Tab Navigation */}
-          <TabsList className="w-full grid grid-cols-3 mb-4 h-11 bg-muted/60 rounded-xl p-1">
+          <TabsList className="w-full grid grid-cols-4 mb-4 h-11 bg-muted/60 rounded-xl p-1">
             <TabsTrigger value="explorar" className="rounded-lg text-xs sm:text-sm font-medium data-[state=active]:bg-card data-[state=active]:shadow-sm relative">
-              <Home className="w-4 h-4 mr-1.5" />
-              Início
-              {(exploreCount + alertCount) > 0 && (
+              <Home className="w-4 h-4 mr-1" />
+              <span className="hidden sm:inline">Início</span>
+              {exploreCount > 0 && (
                 <Badge className="absolute -top-1.5 -right-1 h-4 min-w-4 px-1 text-[10px] bg-accent text-accent-foreground border-0">
-                  {exploreCount + alertCount}
+                  {exploreCount}
+                </Badge>
+              )}
+            </TabsTrigger>
+            <TabsTrigger value="pendencias" className="rounded-lg text-xs sm:text-sm font-medium data-[state=active]:bg-card data-[state=active]:shadow-sm relative">
+              <AlertTriangle className="w-4 h-4 mr-1" />
+              <span className="hidden sm:inline">Pendências</span>
+              {pendenciasCount > 0 && (
+                <Badge className="absolute -top-1.5 -right-1 h-4 min-w-4 px-1 text-[10px] bg-destructive text-destructive-foreground border-0">
+                  {pendenciasCount}
                 </Badge>
               )}
             </TabsTrigger>
             <TabsTrigger value="concorrendo" className="rounded-lg text-xs sm:text-sm font-medium data-[state=active]:bg-card data-[state=active]:shadow-sm relative">
-              <Users className="w-4 h-4 mr-1.5" />
-              Concorrendo
+              <Users className="w-4 h-4 mr-1" />
+              <span className="hidden sm:inline">Concorrendo</span>
               {participatingActiveCount > 0 && (
                 <Badge className="absolute -top-1.5 -right-1 h-4 min-w-4 px-1 text-[10px] bg-primary text-primary-foreground border-0">
                   {participatingActiveCount}
@@ -330,8 +339,8 @@ const Index = () => {
               )}
             </TabsTrigger>
             <TabsTrigger value="meus" className="rounded-lg text-xs sm:text-sm font-medium data-[state=active]:bg-card data-[state=active]:shadow-sm relative">
-              <Trophy className="w-4 h-4 mr-1.5" />
-              Criados
+              <Trophy className="w-4 h-4 mr-1" />
+              <span className="hidden sm:inline">Criados</span>
               {myPoolsActiveCount > 0 && (
                 <Badge className="absolute -top-1.5 -right-1 h-4 min-w-4 px-1 text-[10px] bg-primary text-primary-foreground border-0">
                   {myPoolsActiveCount}
@@ -342,8 +351,46 @@ const Index = () => {
 
           {/* ========= TAB: EXPLORAR (INÍCIO) ========= */}
           <TabsContent value="explorar" className="space-y-5 mt-0">
-            {/* Alerts section - shown at top if any */}
-            {alertCount > 0 && (
+            {officialPools.length > 0 && (
+              <section className="space-y-3">
+                <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-2">
+                  ⭐ Bolões Oficiais
+                </h3>
+                <div className="space-y-3">
+                  {filterPools(officialPools).map((pool) => (
+                    <PoolCard key={pool.id} pool={pool} onClick={() => navigate(`/pool/${pool.id}`)} />
+                  ))}
+                </div>
+              </section>
+            )}
+
+            {availablePools.length > 0 && (
+              <section className="space-y-3">
+                <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-2">
+                  🌐 Bolões Públicos
+                </h3>
+                <div className="space-y-3">
+                  {filterPools(availablePools).map((pool) => (
+                    <PoolCard key={pool.id} pool={pool} onClick={() => navigate(`/pool/${pool.id}`)} />
+                  ))}
+                </div>
+              </section>
+            )}
+
+            {officialPools.length === 0 && availablePools.length === 0 && (
+              <div className="text-center py-12 space-y-3">
+                <div className="w-20 h-20 mx-auto rounded-full bg-muted flex items-center justify-center">
+                  <Search className="w-8 h-8 text-muted-foreground" />
+                </div>
+                <h3 className="text-lg font-semibold text-muted-foreground">Nenhum bolão disponível</h3>
+                <p className="text-sm text-muted-foreground">Novos bolões aparecerão aqui quando forem criados</p>
+              </div>
+            )}
+          </TabsContent>
+
+          {/* ========= TAB: PENDÊNCIAS ========= */}
+          <TabsContent value="pendencias" className="space-y-5 mt-0">
+            {pendenciasCount > 0 ? (
               <div className="space-y-3">
                 {myPendingPaymentPools.length > 0 && (
                   <AlertSection
@@ -397,41 +444,13 @@ const Index = () => {
                   </AlertSection>
                 )}
               </div>
-            )}
-
-            {officialPools.length > 0 && (
-              <section className="space-y-3">
-                <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-2">
-                  ⭐ Bolões Oficiais
-                </h3>
-                <div className="space-y-3">
-                  {filterPools(officialPools).map((pool) => (
-                    <PoolCard key={pool.id} pool={pool} onClick={() => navigate(`/pool/${pool.id}`)} />
-                  ))}
-                </div>
-              </section>
-            )}
-
-            {availablePools.length > 0 && (
-              <section className="space-y-3">
-                <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-2">
-                  🌐 Bolões Públicos
-                </h3>
-                <div className="space-y-3">
-                  {filterPools(availablePools).map((pool) => (
-                    <PoolCard key={pool.id} pool={pool} onClick={() => navigate(`/pool/${pool.id}`)} />
-                  ))}
-                </div>
-              </section>
-            )}
-
-            {officialPools.length === 0 && availablePools.length === 0 && alertCount === 0 && (
+            ) : (
               <div className="text-center py-12 space-y-3">
                 <div className="w-20 h-20 mx-auto rounded-full bg-muted flex items-center justify-center">
-                  <Search className="w-8 h-8 text-muted-foreground" />
+                  <AlertTriangle className="w-8 h-8 text-muted-foreground" />
                 </div>
-                <h3 className="text-lg font-semibold text-muted-foreground">Nenhum bolão disponível</h3>
-                <p className="text-sm text-muted-foreground">Novos bolões aparecerão aqui quando forem criados</p>
+                <h3 className="text-lg font-semibold text-muted-foreground">Nenhuma pendência</h3>
+                <p className="text-sm text-muted-foreground">Você está em dia! 🎉</p>
               </div>
             )}
           </TabsContent>
