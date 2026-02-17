@@ -23,3 +23,9 @@ verify_jwt = false
 
 [functions.verify-whatsapp-otp]
 verify_jwt = false
+
+[functions.send-payment-reminders]
+verify_jwt = false
+
+[functions.update-football-winners]
+verify_jwt = true
