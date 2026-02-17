@@ -2,15 +2,18 @@ import { useEffect, useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Trophy, Users, Award, ArrowLeft, Mail, Calendar, Camera, Phone, Lock, Pencil, Loader2, MessageCircle, Bell } from "lucide-react";
+import { Trophy, Users, Award, ArrowLeft, Mail, Calendar, Camera, Phone, Lock, Pencil, Loader2, MessageCircle, Bell, Shield } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { Switch } from "@/components/ui/switch";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "@/hooks/use-toast";
 import { useUserRole } from "@/hooks/useUserRole";
+import AdminUserManagement from "@/components/AdminUserManagement";
+import AdminPoolManagement from "@/components/AdminPoolManagement";
 
 const Profile = () => {
   const navigate = useNavigate();
@@ -440,24 +443,39 @@ const Profile = () => {
           </CardContent>
         </Card>
 
-        {/* Admin: WhatsApp Requests */}
+        {/* Admin Panel */}
         {userRole?.isAdmin && (
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
-                <MessageCircle className="w-5 h-5 text-accent" />
-                Administração
+                <Shield className="w-5 h-5 text-accent" />
+                Painel Administrativo
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <Button
-                variant="outline"
-                className="w-full justify-start gap-2 h-12 rounded-xl"
-                onClick={() => navigate("/whatsapp-requests")}
-              >
-                <Users className="w-5 h-5 text-accent" />
-                Solicitações WhatsApp
-              </Button>
+              <Tabs defaultValue="users" className="w-full">
+                <TabsList className="grid w-full grid-cols-3">
+                  <TabsTrigger value="users">Usuários</TabsTrigger>
+                  <TabsTrigger value="pools">Bolões</TabsTrigger>
+                  <TabsTrigger value="other">Outros</TabsTrigger>
+                </TabsList>
+                <TabsContent value="users" className="mt-4">
+                  <AdminUserManagement />
+                </TabsContent>
+                <TabsContent value="pools" className="mt-4">
+                  <AdminPoolManagement />
+                </TabsContent>
+                <TabsContent value="other" className="mt-4">
+                  <Button
+                    variant="outline"
+                    className="w-full justify-start gap-2 h-12 rounded-xl"
+                    onClick={() => navigate("/whatsapp-requests")}
+                  >
+                    <MessageCircle className="w-5 h-5 text-accent" />
+                    Solicitações WhatsApp
+                  </Button>
+                </TabsContent>
+              </Tabs>
             </CardContent>
           </Card>
         )}
