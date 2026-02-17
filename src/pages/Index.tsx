@@ -149,7 +149,6 @@ const Index = () => {
         .from("pools")
         .select("*, participants(count)")
         .in("id", regularParticipantPoolIds)
-        .neq("owner_id", session.user.id)
         .order("created_at", { ascending: false });
       participatingPoolsData = data || [];
     }
