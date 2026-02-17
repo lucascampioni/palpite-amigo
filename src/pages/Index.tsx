@@ -143,21 +143,14 @@ const Index = () => {
     const specialPoolIds = [...awaitingPixPoolIds, ...pixSubmittedPoolIds];
     const regularParticipantPoolIds = participantPoolIds.filter(id => !specialPoolIds.includes(id));
     
-    console.log('🔍 DEBUG participantPoolIds:', participantPoolIds);
-    console.log('🔍 DEBUG specialPoolIds:', specialPoolIds);
-    console.log('🔍 DEBUG regularParticipantPoolIds:', regularParticipantPoolIds);
-    
     let participatingPoolsData: any[] = [];
     if (regularParticipantPoolIds.length > 0) {
-      const { data, error } = await supabase
+      const { data } = await supabase
         .from("pools")
         .select("*, participants(count)")
         .in("id", regularParticipantPoolIds)
         .order("created_at", { ascending: false });
-      console.log('🔍 DEBUG participatingPoolsData:', data, 'error:', error);
       participatingPoolsData = data || [];
-    } else {
-      console.log('🔍 DEBUG: No regularParticipantPoolIds, skipping query');
     }
 
     const excludeFromOfficialIds = [
@@ -220,15 +213,6 @@ const Index = () => {
     
     activePools = activePools.filter(pool => new Date(pool.deadline) > now);
 
-    console.log('🔍 DEBUG Final data:', {
-      ownedPools: ownedPools?.length,
-      participatingPoolsData: participatingPoolsData.length,
-      participatingPoolsDataActive: participatingPoolsData.filter(p => p.status === 'active').length,
-      awaitingPixPoolsData: awaitingPixPoolsData.length,
-      awaitingPaymentPoolsData: awaitingPaymentPoolsData.length,
-      pendingPaymentPoolsData: pendingPaymentPoolsData.length,
-      awaitingApprovalPoolsData: awaitingApprovalPoolsData.length,
-    });
 
     setMyCreatedPools(ownedPools || []);
     setMyParticipatingPools(participatingPoolsData);
@@ -415,6 +399,43 @@ const Index = () => {
               </div>
             )}
 
+            {officialPools.length > 0 && (
+              <section className="space-y-3">
+                <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-2">
+                  ⭐ Bolões Oficiais
+                </h3>
+                <div className="space-y-3">
+                  {filterPools(officialPools).map((pool) => (
+                    <PoolCard key={pool.id} pool={pool} onClick={() => navigate(`/pool/${pool.id}`)} />
+                  ))}
+                </div>
+              </section>
+            )}
+
+            {availablePools.length > 0 && (
+              <section className="space-y-3">
+                <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-2">
+                  🌐 Bolões Públicos
+                </h3>
+                <div className="space-y-3">
+                  {filterPools(availablePools).map((pool) => (
+                    <PoolCard key={pool.id} pool={pool} onClick={() => navigate(`/pool/${pool.id}`)} />
+                  ))}
+                </div>
+              </section>
+            )}
+
+            {officialPools.length === 0 && availablePools.length === 0 && alertCount === 0 && (
+              <div className="text-center py-12 space-y-3">
+                <div className="w-20 h-20 mx-auto rounded-full bg-muted flex items-center justify-center">
+                  <Search className="w-8 h-8 text-muted-foreground" />
+                </div>
+                <h3 className="text-lg font-semibold text-muted-foreground">Nenhum bolão disponível</h3>
+                <p className="text-sm text-muted-foreground">Novos bolões aparecerão aqui quando forem criados</p>
+              </div>
+            )}
+          </TabsContent>
+
           {/* ========= TAB: CONCORRENDO ========= */}
           <TabsContent value="concorrendo" className="space-y-5 mt-0">
             {myParticipatingPools.length > 0 ? (
@@ -508,43 +529,6 @@ const Index = () => {
                     <Plus className="w-4 h-4 mr-2" /> Criar Bolão
                   </Button>
                 )}
-              </div>
-            )}
-          </TabsContent>
-
-            {officialPools.length > 0 && (
-              <section className="space-y-3">
-                <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-2">
-                  ⭐ Bolões Oficiais
-                </h3>
-                <div className="space-y-3">
-                  {filterPools(officialPools).map((pool) => (
-                    <PoolCard key={pool.id} pool={pool} onClick={() => navigate(`/pool/${pool.id}`)} />
-                  ))}
-                </div>
-              </section>
-            )}
-
-            {availablePools.length > 0 && (
-              <section className="space-y-3">
-                <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-2">
-                  🌐 Bolões Públicos
-                </h3>
-                <div className="space-y-3">
-                  {filterPools(availablePools).map((pool) => (
-                    <PoolCard key={pool.id} pool={pool} onClick={() => navigate(`/pool/${pool.id}`)} />
-                  ))}
-                </div>
-              </section>
-            )}
-
-            {officialPools.length === 0 && availablePools.length === 0 && alertCount === 0 && (
-              <div className="text-center py-12 space-y-3">
-                <div className="w-20 h-20 mx-auto rounded-full bg-muted flex items-center justify-center">
-                  <Search className="w-8 h-8 text-muted-foreground" />
-                </div>
-                <h3 className="text-lg font-semibold text-muted-foreground">Nenhum bolão disponível</h3>
-                <p className="text-sm text-muted-foreground">Novos bolões aparecerão aqui quando forem criados</p>
               </div>
             )}
           </TabsContent>
