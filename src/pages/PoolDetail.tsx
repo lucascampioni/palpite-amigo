@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
-import { ArrowLeft, Calendar, Trophy, Users, Share2, Award, Copy, Lock, Unlock, CheckCircle, Edit, ChevronDown, ChevronUp, Info } from "lucide-react";
+import { ArrowLeft, Calendar, Trophy, Users, Share2, Award, Copy, Lock, Unlock, CheckCircle, Edit, ChevronDown, ChevronUp, Info, Trash2 } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { Input } from "@/components/ui/input";
@@ -615,16 +615,40 @@ const PoolDetail = () => {
                   )}
                 </div>
               </div>
-              {userRole?.isAdmin && (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => navigate(`/edit-pool/${id}`)}
-                >
-                  <Edit className="w-4 h-4 mr-2" />
-                  Editar
-                </Button>
-              )}
+              <div className="flex gap-2">
+                {isOwner && participants.length === 0 && (
+                  <Button
+                    variant="destructive"
+                    size="sm"
+                    onClick={async () => {
+                      if (!confirm("Tem certeza que deseja excluir este bolão? Esta ação não pode ser desfeita.")) return;
+                      // Delete matches first, then pool
+                      await supabase.from("pool_payment_info").delete().eq("pool_id", id!);
+                      await supabase.from("football_matches").delete().eq("pool_id", id!);
+                      const { error } = await supabase.from("pools").delete().eq("id", id!);
+                      if (error) {
+                        toast({ variant: "destructive", title: "Erro", description: "Não foi possível excluir o bolão." });
+                      } else {
+                        toast({ title: "Bolão excluído com sucesso!" });
+                        navigate("/");
+                      }
+                    }}
+                  >
+                    <Trash2 className="w-4 h-4 mr-2" />
+                    Excluir
+                  </Button>
+                )}
+                {isOwner && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => navigate(`/edit-pool/${id}`)}
+                  >
+                    <Edit className="w-4 h-4 mr-2" />
+                    Editar
+                  </Button>
+                )}
+              </div>
             </div>
             <CardDescription className="text-base mt-4">{pool.description}</CardDescription>
           </CardHeader>
