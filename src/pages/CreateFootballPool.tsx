@@ -65,15 +65,22 @@ const CreateFootballPool = () => {
   const remainingPercentage = 100 - totalPercentage;
 
   useEffect(() => {
-    if (!isLoadingRole && !userRole?.isAdmin) {
+    if (!isLoadingRole && !userRole?.canCreatePools) {
       toast({
         variant: "destructive",
         title: "Acesso negado",
-        description: "Apenas administradores podem criar bolões",
+        description: "Você não tem permissão para criar bolões",
       });
       navigate("/");
     }
   }, [isLoadingRole, userRole, navigate, toast]);
+
+  // Non-admin pool creators default to percentage prize type
+  useEffect(() => {
+    if (!isLoadingRole && userRole?.canCreatePools && !userRole?.isAdmin) {
+      setPrizeType('percentage');
+    }
+  }, [isLoadingRole, userRole]);
   const [showGESelector, setShowGESelector] = useState(false);
   const [matches, setMatches] = useState<Match[]>([]);
   const [deadline, setDeadline] = useState<string>("");
@@ -124,7 +131,7 @@ const CreateFootballPool = () => {
     });
   };
 
-  if (isLoadingRole || !userRole?.isAdmin) {
+  if (isLoadingRole || !userRole?.canCreatePools) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <p className="text-muted-foreground">Carregando...</p>
@@ -368,17 +375,19 @@ const CreateFootballPool = () => {
                 <div className="space-y-2">
                   <Label>Tipo de premiação</Label>
                   <div className="flex gap-2">
-                    <button
-                      type="button"
-                      onClick={() => setPrizeType('fixed')}
-                      className={`flex-1 py-2 px-4 rounded-lg border-2 font-semibold transition-colors text-sm ${
-                        prizeType === 'fixed'
-                          ? 'border-primary bg-primary/10 text-primary'
-                          : 'border-muted hover:border-primary/50'
-                      }`}
-                    >
-                      💰 Valor Fixo (R$)
-                    </button>
+                    {userRole?.isAdmin && (
+                      <button
+                        type="button"
+                        onClick={() => setPrizeType('fixed')}
+                        className={`flex-1 py-2 px-4 rounded-lg border-2 font-semibold transition-colors text-sm ${
+                          prizeType === 'fixed'
+                            ? 'border-primary bg-primary/10 text-primary'
+                            : 'border-muted hover:border-primary/50'
+                        }`}
+                      >
+                        💰 Valor Fixo (R$)
+                      </button>
+                    )}
                     <button
                       type="button"
                       onClick={() => setPrizeType('percentage')}

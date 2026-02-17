@@ -59,7 +59,7 @@ const EditFootballPool = () => {
   const remainingPercentage = 100 - totalPercentage;
 
   useEffect(() => {
-    if (!isLoadingRole && !userRole?.isAdmin) {
+    if (!isLoadingRole && !userRole?.canCreatePools) {
       toast({
         variant: "destructive",
         title: "Acesso negado",
@@ -70,7 +70,7 @@ const EditFootballPool = () => {
   }, [isLoadingRole, userRole, navigate, toast]);
 
   useEffect(() => {
-    if (userRole?.isAdmin) {
+    if (userRole?.canCreatePools) {
       loadPoolData();
     }
   }, [id, userRole]);
@@ -287,7 +287,7 @@ const EditFootballPool = () => {
     }
   };
 
-  if (isLoadingRole || !userRole?.isAdmin || loadingData) {
+  if (isLoadingRole || !userRole?.canCreatePools || loadingData) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <p className="text-muted-foreground">Carregando...</p>
@@ -378,17 +378,19 @@ const EditFootballPool = () => {
                 <div className="space-y-2">
                   <Label>Tipo de premiação</Label>
                   <div className="flex gap-2">
-                    <button
-                      type="button"
-                      onClick={() => setPrizeType('fixed')}
-                      className={`flex-1 py-2 px-4 rounded-lg border-2 font-semibold transition-colors text-sm ${
-                        prizeType === 'fixed'
-                          ? 'border-primary bg-primary/10 text-primary'
-                          : 'border-muted hover:border-primary/50'
-                      }`}
-                    >
-                      💰 Valor Fixo (R$)
-                    </button>
+                    {userRole?.isAdmin && (
+                      <button
+                        type="button"
+                        onClick={() => setPrizeType('fixed')}
+                        className={`flex-1 py-2 px-4 rounded-lg border-2 font-semibold transition-colors text-sm ${
+                          prizeType === 'fixed'
+                            ? 'border-primary bg-primary/10 text-primary'
+                            : 'border-muted hover:border-primary/50'
+                        }`}
+                      >
+                        💰 Valor Fixo (R$)
+                      </button>
+                    )}
                     <button
                       type="button"
                       onClick={() => setPrizeType('percentage')}

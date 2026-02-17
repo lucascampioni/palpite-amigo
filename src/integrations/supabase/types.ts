@@ -494,6 +494,7 @@ export type Database = {
         }
         Returns: number
       }
+      can_create_pools: { Args: never; Returns: boolean }
       get_football_pool_ranking: {
         Args: { p_pool_id: string }
         Returns: {
@@ -522,7 +523,7 @@ export type Database = {
       is_user_admin: { Args: never; Returns: boolean }
     }
     Enums: {
-      app_role: "admin" | "user"
+      app_role: "admin" | "user" | "pool_creator"
       measurement_unit: "kg" | "cm" | "reais" | "units" | "score"
       participant_status: "pending" | "approved" | "rejected" | "awaiting_proof"
       pool_status: "draft" | "active" | "closed" | "finished"
@@ -654,7 +655,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
-      app_role: ["admin", "user"],
+      app_role: ["admin", "user", "pool_creator"],
       measurement_unit: ["kg", "cm", "reais", "units", "score"],
       participant_status: ["pending", "approved", "rejected", "awaiting_proof"],
       pool_status: ["draft", "active", "closed", "finished"],
