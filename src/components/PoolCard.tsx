@@ -30,9 +30,6 @@ const PoolCard = ({ pool, onClick, isUserParticipating = false, hasWonPrize = fa
   const isInProgress = pool.status === "active" && isExpired && isUserParticipating;
 
   const getStatusColor = (status: string) => {
-    if (hasPendingPayment && status === "active") {
-      return "bg-orange-500 text-white";
-    }
     if (isUserParticipating && status === "active") {
       return "bg-blue-500 text-white";
     }
@@ -46,9 +43,6 @@ const PoolCard = ({ pool, onClick, isUserParticipating = false, hasWonPrize = fa
   };
 
   const getStatusText = (status: string) => {
-    if (hasPendingPayment && status === "active") {
-      return "Aguardando Pagamento";
-    }
     if (isUserParticipating && status === "active") {
       return "Participando";
     }
@@ -82,9 +76,11 @@ const getTypeIcon = (type: string) => {
         <div className="flex flex-col gap-3">
           {/* Badges no topo alinhadas à direita */}
           <div className="flex gap-2 flex-wrap justify-end">
-            <Badge className={cn(getStatusColor(pool.status), "shadow-sm font-medium")}>
-              {getStatusText(pool.status)}
-            </Badge>
+            {!hasPendingPayment && (
+              <Badge className={cn(getStatusColor(pool.status), "shadow-sm font-medium")}>
+                {getStatusText(pool.status)}
+              </Badge>
+            )}
             {hasWonPrize && (
               <Badge className="bg-gradient-to-r from-yellow-400 to-yellow-600 text-white font-semibold shadow-lg border-2 border-yellow-300">
                 🏆 Premiado
