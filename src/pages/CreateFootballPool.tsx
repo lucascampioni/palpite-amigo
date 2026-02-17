@@ -498,7 +498,7 @@ const CreateFootballPool = () => {
                   )}
                 </div>
 
-                {prizeType === 'percentage' && (
+                {prizeType === 'percentage' && totalPercentage > 0 && (
                   <div className={`p-3 rounded-lg text-sm font-medium ${
                     totalPercentage > 100 
                       ? 'bg-destructive/10 text-destructive border border-destructive/30' 
