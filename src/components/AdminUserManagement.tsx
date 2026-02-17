@@ -152,6 +152,23 @@ const AdminUserManagement = () => {
                 <div className="flex flex-wrap gap-2">
                   <Button
                     size="sm"
+                    variant={user.roles.includes("admin") ? "secondary" : "outline"}
+                    onClick={() => toggleRole(user.id, "admin", user.roles.includes("admin"))}
+                    disabled={actionLoading === `role-${user.id}-admin`}
+                    className="text-xs"
+                  >
+                    {actionLoading === `role-${user.id}-admin` ? (
+                      <Loader2 className="w-3 h-3 animate-spin mr-1" />
+                    ) : user.roles.includes("admin") ? (
+                      <ShieldOff className="w-3 h-3 mr-1" />
+                    ) : (
+                      <Shield className="w-3 h-3 mr-1" />
+                    )}
+                    {user.roles.includes("admin") ? "Remover Admin" : "Tornar Admin"}
+                  </Button>
+
+                  <Button
+                    size="sm"
                     variant={user.roles.includes("pool_creator") ? "secondary" : "outline"}
                     onClick={() => toggleRole(user.id, "pool_creator", user.roles.includes("pool_creator"))}
                     disabled={actionLoading === `role-${user.id}-pool_creator`}
