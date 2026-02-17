@@ -20,6 +20,7 @@ const Index = () => {
   const [myParticipatingPools, setMyParticipatingPools] = useState<any[]>([]);
   const [myAwaitingPixPools, setMyAwaitingPixPools] = useState<any[]>([]); // Pools where user won and needs to submit PIX
   const [myAwaitingPaymentPools, setMyAwaitingPaymentPools] = useState<any[]>([]); // Pools where user submitted PIX and awaits payment
+  const [myPendingPaymentPools, setMyPendingPaymentPools] = useState<any[]>([]); // Pools where user needs to pay entry fee
   const [participantPrizeStatus, setParticipantPrizeStatus] = useState<Record<string, string>>({}); // Map pool_id -> prize_status
   const [officialPools, setOfficialPools] = useState<any[]>([]);
   const [availablePools, setAvailablePools] = useState<any[]>([]);
@@ -74,10 +75,12 @@ const Index = () => {
       .from("participants")
       .select("pool_id, status, prize_status")
       .eq("user_id", session.user.id)
-      .eq("status", "approved");
+      .in("status", ["approved", "pending"]);
     
-    const participantPoolIds = participantRecords?.map(p => p.pool_id) || [];
-    
+    const approvedRecords = participantRecords?.filter(p => p.status === 'approved') || [];
+    const pendingRecords = participantRecords?.filter(p => p.status === 'pending') || [];
+    const participantPoolIds = approvedRecords.map(p => p.pool_id);
+    const pendingPoolIds = pendingRecords.map(p => p.pool_id);
     // Create a map of pool_id -> prize_status for easy lookup
     const prizeStatusMap: Record<string, string> = {};
     participantRecords?.forEach(p => {
@@ -116,6 +119,17 @@ const Index = () => {
       awaitingPaymentPoolsData = data || [];
     }
 
+    // Load pools where user has pending payment (status = 'pending')
+    let pendingPaymentPoolsData: any[] = [];
+    if (pendingPoolIds.length > 0) {
+      const { data } = await supabase
+        .from("pools")
+        .select("*, participants(count)")
+        .in("id", pendingPoolIds)
+        .order("created_at", { ascending: false });
+      pendingPaymentPoolsData = data || [];
+    }
+
     // Regular participating pools (approved and no prize status OR prize already sent)
     // Include all pools that are not in special awaiting states
     const specialPoolIds = [...awaitingPixPoolIds, ...pixSubmittedPoolIds];
@@ -138,6 +152,7 @@ const Index = () => {
     const excludeFromOfficialIds = [
       ...ownedPools?.map(p => p.id) || [],
       ...participantPoolIds,
+      ...pendingPoolIds,
     ];
     
     let officialPoolsData: any[] = [];
@@ -170,6 +185,7 @@ const Index = () => {
     const excludeIds = [
       ...ownedPools?.map(p => p.id) || [],
       ...participantPoolIds,
+      ...pendingPoolIds,
       ...officialPoolsData?.map(p => p.id) || [],
     ];
     
@@ -200,6 +216,7 @@ const Index = () => {
     setMyParticipatingPools(participatingPoolsData);
     setMyAwaitingPixPools(awaitingPixPoolsData);
     setMyAwaitingPaymentPools(awaitingPaymentPoolsData);
+    setMyPendingPaymentPools(pendingPaymentPoolsData);
     setOfficialPools(officialPoolsData || []);
     setAvailablePools(activePools);
     
@@ -307,6 +324,33 @@ const Index = () => {
           </section>
         )}
 
+        {/* Pending Payment Section */}
+        {myPendingPaymentPools.length > 0 && (
+          <section className="space-y-4">
+            <div className="flex items-center gap-2">
+              <div className="w-8 h-8 rounded-lg bg-orange-500 flex items-center justify-center">
+                <span className="text-lg">💳</span>
+              </div>
+              <h3 className="text-2xl font-bold">Pagamento Pendente</h3>
+            </div>
+            <div className="p-4 rounded-lg bg-orange-50 dark:bg-orange-950 border border-orange-200 dark:border-orange-800">
+              <p className="text-sm text-muted-foreground mb-4">
+                Envie o comprovante de pagamento para confirmar sua participação nestes bolões.
+              </p>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {myPendingPaymentPools.map((pool) => (
+                  <PoolCard
+                    key={pool.id}
+                    pool={pool}
+                    isUserParticipating={true}
+                    hasPendingPayment={true}
+                    onClick={() => navigate(`/pool/${pool.id}`)}
+                  />
+                ))}
+              </div>
+            </div>
+          </section>
+        )}
 
         {/* Awaiting PIX Submission Section */}
         {myAwaitingPixPools.length > 0 && (
@@ -497,7 +541,7 @@ const Index = () => {
         )}
 
         {/* Empty State */}
-        {myCreatedPools.length === 0 && myParticipatingPools.length === 0 && myAwaitingPixPools.length === 0 && myAwaitingPaymentPools.length === 0 && availablePools.length === 0 && officialPools.length === 0 && (
+        {myCreatedPools.length === 0 && myParticipatingPools.length === 0 && myAwaitingPixPools.length === 0 && myAwaitingPaymentPools.length === 0 && myPendingPaymentPools.length === 0 && availablePools.length === 0 && officialPools.length === 0 && (
           <div className="text-center py-16 space-y-4">
             <div className="w-24 h-24 mx-auto rounded-full bg-muted flex items-center justify-center">
               <span className="text-5xl">⚽</span>
