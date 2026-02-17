@@ -52,6 +52,7 @@ const PoolDetail = () => {
   const [userHasPhone, setUserHasPhone] = useState<boolean | null>(null);
   const [showVipModal, setShowVipModal] = useState(false);
   const [showPoolInfo, setShowPoolInfo] = useState(false);
+  const [ownerName, setOwnerName] = useState<string | null>(null);
 
   useEffect(() => {
     const buildSigned = async () => {
@@ -264,6 +265,14 @@ const PoolDetail = () => {
 
     setPool(poolData);
     setIsOwner(user?.id === poolData.owner_id);
+
+    // Load owner name
+    const { data: ownerProfile } = await supabase
+      .from("profiles")
+      .select("full_name")
+      .eq("id", poolData.owner_id)
+      .single();
+    setOwnerName(ownerProfile?.full_name || null);
 
     // Check if user has phone registered
     if (user) {
@@ -593,6 +602,11 @@ const PoolDetail = () => {
             <div className="flex items-start justify-between">
               <div className="space-y-2">
                 <CardTitle className="text-3xl">{pool.title}</CardTitle>
+                {ownerName && (
+                  <p className="text-sm text-muted-foreground">
+                    Criado por <span className="font-medium">{ownerName}</span>
+                  </p>
+                )}
                 <div className="flex gap-2 flex-wrap">
                   <Badge className={getStatusColor(pool.status)}>
                     {getStatusText(pool.status)}
