@@ -266,13 +266,10 @@ const PoolDetail = () => {
     setPool(poolData);
     setIsOwner(user?.id === poolData.owner_id);
 
-    // Load owner name
-    const { data: ownerProfile } = await supabase
-      .from("profiles")
-      .select("full_name")
-      .eq("id", poolData.owner_id)
-      .single();
-    setOwnerName(ownerProfile?.full_name || null);
+    // Load owner name using security definer function
+    const { data: ownerNameData } = await supabase
+      .rpc("get_pool_owner_name", { pool_uuid: poolData.id });
+    setOwnerName(ownerNameData || null);
 
     // Check if user has phone registered
     if (user) {
