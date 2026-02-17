@@ -747,12 +747,14 @@ const PoolDetail = () => {
                               </div>
                             )}
                           </div>
-                          {isPercentage && isOwner && (
+                          {isPercentage && (
                             <div className="mt-3 p-3 rounded-lg bg-muted/50 border border-border">
-                              <p className="text-sm text-muted-foreground">
-                                📊 Valor total arrecadado: <strong>{formatPrize(totalCollected)}</strong> ({approvedCount} participante{approvedCount !== 1 ? 's' : ''} × {formatPrize(pool.entry_fee || 0)})
-                              </p>
-                              <p className="text-xs text-muted-foreground mt-1">
+                              {isOwner && (
+                                <p className="text-sm text-muted-foreground">
+                                  📊 Valor total arrecadado: <strong>{formatPrize(totalCollected)}</strong> ({approvedCount} participante{approvedCount !== 1 ? 's' : ''} × {formatPrize(pool.entry_fee || 0)})
+                                </p>
+                              )}
+                              <p className={`text-xs text-muted-foreground ${isOwner ? 'mt-1' : ''}`}>
                                 Os valores acima são atualizados automaticamente conforme novos participantes entram no bolão.
                               </p>
                             </div>
