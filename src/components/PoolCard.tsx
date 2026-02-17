@@ -30,6 +30,9 @@ const PoolCard = ({ pool, onClick, isUserParticipating = false, hasWonPrize = fa
   const isInProgress = pool.status === "active" && isExpired && isUserParticipating;
 
   const getStatusColor = (status: string) => {
+    if (hasPendingPayment && status === "active") {
+      return "bg-orange-500 text-white";
+    }
     if (isUserParticipating && status === "active") {
       return "bg-blue-500 text-white";
     }
@@ -43,6 +46,9 @@ const PoolCard = ({ pool, onClick, isUserParticipating = false, hasWonPrize = fa
   };
 
   const getStatusText = (status: string) => {
+    if (hasPendingPayment && status === "active") {
+      return "Aguardando Pagamento";
+    }
     if (isUserParticipating && status === "active") {
       return "Participando";
     }
