@@ -24,6 +24,7 @@ const Index = () => {
   const [myAwaitingPaymentPools, setMyAwaitingPaymentPools] = useState<any[]>([]);
   const [myPendingPaymentPools, setMyPendingPaymentPools] = useState<any[]>([]);
   const [myAwaitingApprovalPools, setMyAwaitingApprovalPools] = useState<any[]>([]);
+  const [myPoolsPendingApprovals, setMyPoolsPendingApprovals] = useState<{pool: any, pendingCount: number}[]>([]);
   const [participantPrizeStatus, setParticipantPrizeStatus] = useState<Record<string, string>>({});
   const [officialPools, setOfficialPools] = useState<any[]>([]);
   const [availablePools, setAvailablePools] = useState<any[]>([]);
@@ -214,12 +215,36 @@ const Index = () => {
     activePools = activePools.filter(pool => new Date(pool.deadline) > now);
 
 
+    // Fetch pending approvals for pools the user created
+    const poolsPendingApprovals: {pool: any, pendingCount: number}[] = [];
+    if (ownedPools && ownedPools.length > 0) {
+      const ownedPoolIds = ownedPools.map(p => p.id);
+      const { data: pendingParticipants } = await supabase
+        .from("participants")
+        .select("pool_id")
+        .in("pool_id", ownedPoolIds)
+        .eq("status", "pending")
+        .not("payment_proof", "is", null);
+      
+      if (pendingParticipants && pendingParticipants.length > 0) {
+        const countByPool: Record<string, number> = {};
+        pendingParticipants.forEach(p => {
+          countByPool[p.pool_id] = (countByPool[p.pool_id] || 0) + 1;
+        });
+        Object.entries(countByPool).forEach(([poolId, count]) => {
+          const pool = ownedPools.find(p => p.id === poolId);
+          if (pool) poolsPendingApprovals.push({ pool, pendingCount: count });
+        });
+      }
+    }
+
     setMyCreatedPools(ownedPools || []);
     setMyParticipatingPools(participatingPoolsData);
     setMyAwaitingPixPools(awaitingPixPoolsData);
     setMyAwaitingPaymentPools(awaitingPaymentPoolsData);
     setMyPendingPaymentPools(pendingPaymentPoolsData);
     setMyAwaitingApprovalPools(awaitingApprovalPoolsData);
+    setMyPoolsPendingApprovals(poolsPendingApprovals);
     setOfficialPools(officialPoolsData || []);
     setAvailablePools(activePools);
     
@@ -235,7 +260,7 @@ const Index = () => {
   };
 
   // Counts for badges
-  const pendenciasCount = myPendingPaymentPools.length + myAwaitingApprovalPools.length + myAwaitingPixPools.length + myAwaitingPaymentPools.length;
+  const pendenciasCount = myPendingPaymentPools.length + myAwaitingApprovalPools.length + myAwaitingPixPools.length + myAwaitingPaymentPools.length + myPoolsPendingApprovals.length;
   const myPoolsActiveCount = myCreatedPools.filter(p => p.status === "active").length;
   const myPoolsFinishedCount = myCreatedPools.filter(p => p.status === "finished").length;
   const participatingActiveCount = myParticipatingPools.filter(p => p.status === "active").length;
@@ -442,6 +467,27 @@ const Index = () => {
                   >
                     {filterPools(myAwaitingPaymentPools).map((pool) => (
                       <PoolCard key={pool.id} pool={pool} isUserParticipating onClick={() => navigate(`/pool/${pool.id}`)} />
+                    ))}
+                  </AlertSection>
+                )}
+                {myPoolsPendingApprovals.length > 0 && (
+                  <AlertSection
+                    icon="📋"
+                    title="Solicitações Pendentes nos seus Bolões"
+                    subtitle="Participantes aguardando sua aprovação"
+                    bgClass="bg-purple-50 dark:bg-purple-950/50 border-purple-200 dark:border-purple-800"
+                  >
+                    {myPoolsPendingApprovals.map(({ pool, pendingCount }) => (
+                      <button
+                        key={pool.id}
+                        onClick={() => navigate(`/pool/${pool.id}`)}
+                        className="w-full text-left p-3 rounded-lg bg-card border hover:border-primary/50 hover:shadow-sm transition-all"
+                      >
+                        <p className="font-medium text-sm">{pool.title}</p>
+                        <p className="text-xs text-muted-foreground mt-0.5">
+                          Você tem <span className="font-bold text-foreground">{pendingCount}</span> solicitação(ões) pendente(s) de aprovação
+                        </p>
+                      </button>
                     ))}
                   </AlertSection>
                 )}
