@@ -196,6 +196,25 @@ const Auth = () => {
       console.error("Falha ao verificar CPF duplicado");
     }
 
+    // Verificar duplicidade de telefone antes de criar a conta
+    try {
+      const { data, error: fnError } = await supabase.functions.invoke("check-phone-exists", {
+        body: { phone },
+      });
+      if (fnError) throw fnError as any;
+      if (data?.exists) {
+        toast({
+          variant: "destructive",
+          title: "Cadastro não permitido",
+          description: "Este telefone já está cadastrado no sistema.",
+        });
+        setLoading(false);
+        return;
+      }
+    } catch (err) {
+      console.error("Falha ao verificar telefone duplicado");
+    }
+
     const { data, error } = await supabase.auth.signUp({
       email,
       password,

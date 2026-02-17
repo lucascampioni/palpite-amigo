@@ -23,15 +23,12 @@ const Profile = () => {
 
   // Edit states
   const [editingPhone, setEditingPhone] = useState(false);
-  const [editingEmail, setEditingEmail] = useState(false);
   const [editingPassword, setEditingPassword] = useState(false);
   const [phone, setPhone] = useState("");
-  const [newEmail, setNewEmail] = useState("");
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [savingPhone, setSavingPhone] = useState(false);
-  const [savingEmail, setSavingEmail] = useState(false);
   const [savingPassword, setSavingPassword] = useState(false);
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
   const [notifyPoolUpdates, setNotifyPoolUpdates] = useState(true);
@@ -47,7 +44,7 @@ const Profile = () => {
     if (!user) return;
 
     setUserEmail(user.email || "");
-    setNewEmail(user.email || "");
+    
     setMemberSince(new Date(user.created_at).toLocaleDateString('pt-BR'));
 
     const { data: profileData } = await supabase
@@ -130,21 +127,37 @@ const Profile = () => {
   };
 
   const handleSavePhone = async () => {
+    const cleanPhone = phone.replace(/\D/g, '');
+    if (!/^\d{10,11}$/.test(cleanPhone)) {
+      toast({ title: "Erro", description: "Telefone inválido. Use 10 ou 11 dígitos.", variant: "destructive" });
+      return;
+    }
     setSavingPhone(true);
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
+      // Check if phone already exists
+      const { data: checkData } = await supabase.functions.invoke("check-phone-exists", {
+        body: { phone: cleanPhone },
+      });
+      if (checkData?.exists) {
+        toast({ title: "Erro", description: "Este telefone já está cadastrado por outro usuário.", variant: "destructive" });
+        setSavingPhone(false);
+        return;
+      }
+
       const { error } = await supabase
         .from('profiles')
-        .update({ phone })
+        .update({ phone: cleanPhone, phone_verified: false })
         .eq('id', user.id);
 
       if (error) throw error;
 
-      setProfile((prev: any) => ({ ...prev, phone }));
+      setProfile((prev: any) => ({ ...prev, phone: cleanPhone, phone_verified: false }));
       setEditingPhone(false);
-      toast({ title: "Sucesso", description: "Telefone atualizado!" });
+      toast({ title: "Telefone atualizado", description: "Você precisa verificar o novo número via WhatsApp." });
+      navigate("/whatsapp-verification");
     } catch (error: any) {
       toast({ title: "Erro", description: error.message, variant: "destructive" });
     } finally {
@@ -152,24 +165,6 @@ const Profile = () => {
     }
   };
 
-  const handleSaveEmail = async () => {
-    if (!newEmail || newEmail === userEmail) {
-      setEditingEmail(false);
-      return;
-    }
-    setSavingEmail(true);
-    try {
-      const { error } = await supabase.auth.updateUser({ email: newEmail });
-      if (error) throw error;
-
-      toast({ title: "Verificação enviada", description: "Verifique seu novo email para confirmar a alteração." });
-      setEditingEmail(false);
-    } catch (error: any) {
-      toast({ title: "Erro", description: error.message, variant: "destructive" });
-    } finally {
-      setSavingEmail(false);
-    }
-  };
 
   const handleSavePassword = async () => {
     if (newPassword.length < 8) {
@@ -313,35 +308,15 @@ const Profile = () => {
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-6">
-            {/* Email */}
+            {/* Email (não editável) */}
             <div className="space-y-2">
               <Label className="flex items-center gap-2 text-sm font-medium">
                 <Mail className="w-4 h-4 text-muted-foreground" />
                 Email
               </Label>
-              {editingEmail ? (
-                <div className="flex gap-2">
-                  <Input
-                    type="email"
-                    value={newEmail}
-                    onChange={(e) => setNewEmail(e.target.value)}
-                    placeholder="Novo email"
-                  />
-                  <Button onClick={handleSaveEmail} disabled={savingEmail} size="sm">
-                    {savingEmail ? <Loader2 className="w-4 h-4 animate-spin" /> : "Salvar"}
-                  </Button>
-                  <Button variant="ghost" size="sm" onClick={() => { setEditingEmail(false); setNewEmail(userEmail); }}>
-                    Cancelar
-                  </Button>
-                </div>
-              ) : (
-                <div className="flex items-center justify-between">
-                  <span className="text-sm text-muted-foreground">{userEmail}</span>
-                  <Button variant="outline" size="sm" onClick={() => setEditingEmail(true)}>
-                    <Pencil className="w-3 h-3 mr-1" /> Alterar
-                  </Button>
-                </div>
-              )}
+              <div className="flex items-center justify-between">
+                <span className="text-sm text-muted-foreground">{userEmail}</span>
+              </div>
             </div>
 
             <Separator />
