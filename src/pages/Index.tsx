@@ -392,16 +392,6 @@ const Index = () => {
             )}
 
             {/* Admin: WhatsApp Requests */}
-            {userRole?.canCreatePools && (
-              <Button
-                variant="outline"
-                className="w-full justify-start gap-2 h-12 rounded-xl"
-                onClick={() => navigate("/whatsapp-requests")}
-              >
-                <Users className="w-5 h-5 text-accent" />
-                Solicitações WhatsApp
-              </Button>
-            )}
           </TabsContent>
 
           {/* ========= TAB: CONCORRENDO ========= */}
