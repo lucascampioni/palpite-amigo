@@ -811,6 +811,15 @@ const PoolDetail = () => {
               )}
             </div>
 
+            {/* Admin: Participants Manager (collapsible approved/pending/rejected) */}
+            {(userRole?.isAdmin || isOwner) && (
+              <AdminParticipantsManager
+                poolId={pool.id}
+                participants={participants}
+                onSuccess={loadPoolData}
+              />
+            )}
+
             {/* Prize Information */}
             {!isPendingPayment && (pool.first_place_prize || pool.second_place_prize || pool.third_place_prize) && (
               <>
@@ -1353,17 +1362,6 @@ const PoolDetail = () => {
               </>
             )}
 
-            {/* Admin: Participants Manager (collapsible approved/pending/rejected) */}
-            {(userRole?.isAdmin || isOwner) && (
-              <>
-                <Separator />
-                <AdminParticipantsManager
-                  poolId={pool.id}
-                  participants={participants}
-                  onSuccess={loadPoolData}
-                />
-              </>
-            )}
 
             {/* WhatsApp Message Panel for admin/owner */}
             {(userRole?.isAdmin || isOwner) && (pool.pool_type === "football" || hasFootballMatches) && (
