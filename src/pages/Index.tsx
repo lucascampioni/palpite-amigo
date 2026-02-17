@@ -29,7 +29,7 @@ const Index = () => {
   const [loading, setLoading] = useState(true);
   const [showFinishedCreated, setShowFinishedCreated] = useState(false);
   const [showFinishedParticipating, setShowFinishedParticipating] = useState(false);
-  const [activeTab, setActiveTab] = useState("inicio");
+  const [activeTab, setActiveTab] = useState("explorar");
 
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
@@ -286,31 +286,40 @@ const Index = () => {
       <main className="flex-1 max-w-3xl mx-auto w-full px-3 pt-3 pb-4">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
           {/* Tab Navigation */}
-          <TabsList className="w-full grid grid-cols-3 mb-4 h-11 bg-muted/60 rounded-xl p-1">
-            <TabsTrigger value="inicio" className="rounded-lg text-xs sm:text-sm font-medium data-[state=active]:bg-card data-[state=active]:shadow-sm relative">
-              <Home className="w-4 h-4 mr-1.5" />
-              Início
-              {alertCount > 0 && (
-                <Badge className="absolute -top-1.5 -right-1 h-4 min-w-4 px-1 text-[10px] bg-destructive text-destructive-foreground border-0">
-                  {alertCount}
-                </Badge>
-              )}
-            </TabsTrigger>
-            <TabsTrigger value="meus" className="rounded-lg text-xs sm:text-sm font-medium data-[state=active]:bg-card data-[state=active]:shadow-sm relative">
-              <Trophy className="w-4 h-4 mr-1.5" />
-              Meus Bolões
-              {(myPoolsActiveCount + participatingActiveCount) > 0 && (
-                <Badge className="absolute -top-1.5 -right-1 h-4 min-w-4 px-1 text-[10px] bg-primary text-primary-foreground border-0">
-                  {myPoolsActiveCount + participatingActiveCount}
-                </Badge>
-              )}
-            </TabsTrigger>
+          <TabsList className="w-full grid grid-cols-4 mb-4 h-11 bg-muted/60 rounded-xl p-1">
             <TabsTrigger value="explorar" className="rounded-lg text-xs sm:text-sm font-medium data-[state=active]:bg-card data-[state=active]:shadow-sm relative">
               <Search className="w-4 h-4 mr-1.5" />
               Explorar
               {exploreCount > 0 && (
                 <Badge className="absolute -top-1.5 -right-1 h-4 min-w-4 px-1 text-[10px] bg-accent text-accent-foreground border-0">
                   {exploreCount}
+                </Badge>
+              )}
+            </TabsTrigger>
+            <TabsTrigger value="concorrendo" className="rounded-lg text-xs sm:text-sm font-medium data-[state=active]:bg-card data-[state=active]:shadow-sm relative">
+              <Users className="w-4 h-4 mr-1.5" />
+              Concorrendo
+              {participatingActiveCount > 0 && (
+                <Badge className="absolute -top-1.5 -right-1 h-4 min-w-4 px-1 text-[10px] bg-primary text-primary-foreground border-0">
+                  {participatingActiveCount}
+                </Badge>
+              )}
+            </TabsTrigger>
+            <TabsTrigger value="meus" className="rounded-lg text-xs sm:text-sm font-medium data-[state=active]:bg-card data-[state=active]:shadow-sm relative">
+              <Trophy className="w-4 h-4 mr-1.5" />
+              Criados
+              {myPoolsActiveCount > 0 && (
+                <Badge className="absolute -top-1.5 -right-1 h-4 min-w-4 px-1 text-[10px] bg-primary text-primary-foreground border-0">
+                  {myPoolsActiveCount}
+                </Badge>
+              )}
+            </TabsTrigger>
+            <TabsTrigger value="inicio" className="rounded-lg text-xs sm:text-sm font-medium data-[state=active]:bg-card data-[state=active]:shadow-sm relative">
+              <Home className="w-4 h-4 mr-1.5" />
+              Alertas
+              {alertCount > 0 && (
+                <Badge className="absolute -top-1.5 -right-1 h-4 min-w-4 px-1 text-[10px] bg-destructive text-destructive-foreground border-0">
+                  {alertCount}
                 </Badge>
               )}
             </TabsTrigger>
@@ -371,53 +380,11 @@ const Index = () => {
               </AlertSection>
             )}
 
-            {/* Bolões que estou concorrendo */}
-            {participatingActiveCount > 0 && (
-              <div className="space-y-3">
-                <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-2">
-                  <Users className="w-4 h-4 text-blue-500" /> Bolões que estou concorrendo
-                </h3>
-                <div className="space-y-3">
-                  {myParticipatingPools.filter(p => p.status === "active").map((pool) => (
-                    <PoolCard key={pool.id} pool={pool} isUserParticipating onClick={() => navigate(`/pool/${pool.id}`)} />
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* Meus bolões (criados por mim) */}
-            {myPoolsActiveCount > 0 && (
-              <div className="space-y-3">
-                <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-2">
-                  ⚽ Meus bolões ativos
-                </h3>
-                <div className="space-y-3">
-                  {myCreatedPools.filter(p => p.status === "active").map((pool) => (
-                    <PoolCard key={pool.id} pool={pool} onClick={() => navigate(`/pool/${pool.id}`)} />
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* Official Pools on home */}
-            {officialPools.length > 0 && (
-              <div className="space-y-3">
-                <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-2">
-                  <span>⭐</span> Bolões Oficiais
-                </h3>
-                <div className="space-y-3">
-                  {officialPools.map((pool) => (
-                    <PoolCard key={pool.id} pool={pool} onClick={() => navigate(`/pool/${pool.id}`)} />
-                  ))}
-                </div>
-              </div>
-            )}
-
             {/* Empty state */}
-            {alertCount === 0 && myPoolsActiveCount === 0 && participatingActiveCount === 0 && officialPools.length === 0 && (
+            {alertCount === 0 && (
               <div className="text-center py-12 space-y-3">
                 <div className="w-20 h-20 mx-auto rounded-full bg-muted flex items-center justify-center">
-                  <span className="text-4xl">⚽</span>
+                  <span className="text-4xl">✅</span>
                 </div>
                 <h3 className="text-lg font-semibold text-muted-foreground">Nenhuma pendência</h3>
                 <p className="text-sm text-muted-foreground">Explore bolões disponíveis na aba "Explorar"</p>
@@ -437,55 +404,10 @@ const Index = () => {
             )}
           </TabsContent>
 
-          {/* ========= TAB: MEUS BOLÕES ========= */}
-          <TabsContent value="meus" className="space-y-5 mt-0">
-            {/* Pools I Created */}
-            {myCreatedPools.length > 0 && (
+          {/* ========= TAB: CONCORRENDO ========= */}
+          <TabsContent value="concorrendo" className="space-y-5 mt-0">
+            {myParticipatingPools.length > 0 ? (
               <section className="space-y-3">
-                <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-2">
-                  ⚽ Bolões que criei
-                </h3>
-                
-                {/* Active */}
-                <div className="space-y-3">
-                  {myCreatedPools.filter(p => p.status === "active").map((pool) => (
-                    <PoolCard key={pool.id} pool={pool} onClick={() => navigate(`/pool/${pool.id}`)} />
-                  ))}
-                </div>
-
-                {/* Finished - collapsible */}
-                {myPoolsFinishedCount > 0 && (
-                  <div className="space-y-2">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="w-full justify-between h-9 text-muted-foreground hover:text-foreground"
-                      onClick={() => setShowFinishedCreated(!showFinishedCreated)}
-                    >
-                      <span className="text-xs font-medium">
-                        Finalizados ({myPoolsFinishedCount})
-                      </span>
-                      {showFinishedCreated ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
-                    </Button>
-                    {showFinishedCreated && (
-                      <div className="space-y-3">
-                        {myCreatedPools.filter(p => p.status === "finished").map((pool) => (
-                          <PoolCard key={pool.id} pool={pool} onClick={() => navigate(`/pool/${pool.id}`)} />
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                )}
-              </section>
-            )}
-
-            {/* Pools I'm Participating */}
-            {myParticipatingPools.length > 0 && (
-              <section className="space-y-3">
-                <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-2">
-                  <Users className="w-4 h-4" /> Bolões que participo
-                </h3>
-                
                 {/* Active */}
                 <div className="space-y-3">
                   {myParticipatingPools.filter(p => p.status === "active").map((pool) => (
@@ -517,15 +439,59 @@ const Index = () => {
                   </div>
                 )}
               </section>
+            ) : (
+              <div className="text-center py-12 space-y-3">
+                <div className="w-20 h-20 mx-auto rounded-full bg-muted flex items-center justify-center">
+                  <Users className="w-8 h-8 text-muted-foreground" />
+                </div>
+                <h3 className="text-lg font-semibold text-muted-foreground">Nenhum bolão</h3>
+                <p className="text-sm text-muted-foreground">Você ainda não está participando de nenhum bolão</p>
+              </div>
             )}
+          </TabsContent>
 
-            {myCreatedPools.length === 0 && myParticipatingPools.length === 0 && (
+          {/* ========= TAB: CRIADOS ========= */}
+          <TabsContent value="meus" className="space-y-5 mt-0">
+            {myCreatedPools.length > 0 ? (
+              <section className="space-y-3">
+                {/* Active */}
+                <div className="space-y-3">
+                  {myCreatedPools.filter(p => p.status === "active").map((pool) => (
+                    <PoolCard key={pool.id} pool={pool} onClick={() => navigate(`/pool/${pool.id}`)} />
+                  ))}
+                </div>
+
+                {/* Finished - collapsible */}
+                {myPoolsFinishedCount > 0 && (
+                  <div className="space-y-2">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="w-full justify-between h-9 text-muted-foreground hover:text-foreground"
+                      onClick={() => setShowFinishedCreated(!showFinishedCreated)}
+                    >
+                      <span className="text-xs font-medium">
+                        Finalizados ({myPoolsFinishedCount})
+                      </span>
+                      {showFinishedCreated ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+                    </Button>
+                    {showFinishedCreated && (
+                      <div className="space-y-3">
+                        {myCreatedPools.filter(p => p.status === "finished").map((pool) => (
+                          <PoolCard key={pool.id} pool={pool} onClick={() => navigate(`/pool/${pool.id}`)} />
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
+              </section>
+            ) : (
               <div className="text-center py-12 space-y-3">
                 <div className="w-20 h-20 mx-auto rounded-full bg-muted flex items-center justify-center">
                   <Trophy className="w-8 h-8 text-muted-foreground" />
                 </div>
-                <h3 className="text-lg font-semibold text-muted-foreground">Nenhum bolão ainda</h3>
-                <p className="text-sm text-muted-foreground">Participe de bolões ou crie o seu próprio!</p>
+                <h3 className="text-lg font-semibold text-muted-foreground">Nenhum bolão criado</h3>
+                <p className="text-sm text-muted-foreground">Crie seu próprio bolão!</p>
                 {userRole?.canCreatePools && (
                   <Button className="mt-2 rounded-xl" onClick={() => navigate("/create-football")}>
                     <Plus className="w-4 h-4 mr-2" /> Criar Bolão
