@@ -591,18 +591,25 @@ const CreateFootballPool = () => {
                 )}
               </div>
 
-              <div className="flex items-center justify-between rounded-lg border p-4">
+              <div className="flex items-center justify-between rounded-lg border p-4 bg-muted/30">
                 <div className="space-y-0.5">
-                  <Label htmlFor="is-private">Bolão Privado</Label>
-                  <p className="text-sm text-muted-foreground">
-                    Se ativado, apenas pessoas com o link poderão acessar
+                  <Label htmlFor="is-private" className="text-base font-semibold">Privacidade do Bolão</Label>
+                  <p className="text-sm text-muted-foreground flex items-center gap-1.5">
+                    {isPrivate ? (
+                      <>🔒 Bolão está PRIVADO - Apenas pessoas com o link poderão acessar</>
+                    ) : (
+                      <>🌐 Bolão está PÚBLICO - Visível na lista de bolões públicos</>
+                    )}
                   </p>
                 </div>
-                <Switch
-                  id="is-private"
-                  checked={isPrivate}
-                  onCheckedChange={setIsPrivate}
-                />
+                <div className="flex items-center gap-2">
+                  <span className="text-sm font-medium">{isPrivate ? 'Privado' : 'Público'}</span>
+                  <Switch
+                    id="is-private"
+                    checked={!isPrivate}
+                    onCheckedChange={(checked) => setIsPrivate(!checked)}
+                  />
+                </div>
               </div>
 
               {userRole?.isAdmin && (
