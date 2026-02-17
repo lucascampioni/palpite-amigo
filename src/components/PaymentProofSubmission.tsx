@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
-import { Upload, AlertCircle, DollarSign } from "lucide-react";
+import { Upload, AlertCircle, DollarSign, Copy, Check } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 
 interface PaymentProofSubmissionProps {
@@ -28,6 +28,19 @@ export const PaymentProofSubmission = ({
   const { toast } = useToast();
   const [proofFile, setProofFile] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
+  const [copied, setCopied] = useState(false);
+
+  const handleCopyPix = async () => {
+    if (!pixKey) return;
+    try {
+      await navigator.clipboard.writeText(pixKey);
+      setCopied(true);
+      toast({ title: "Chave PIX copiada!", description: "Cole no seu app de pagamento." });
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      toast({ variant: "destructive", title: "Erro", description: "Não foi possível copiar." });
+    }
+  };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -131,11 +144,23 @@ export const PaymentProofSubmission = ({
                 Valor da entrada: R$ {entryFee.toFixed(2).replace('.', ',')}
               </p>
               {pixKey && (
-                <div>
+                <div className="space-y-2">
                   <p className="text-sm">Chave PIX para pagamento:</p>
-                  <p className="font-mono text-sm bg-background p-2 rounded mt-1 break-all">
-                    {pixKey}
-                  </p>
+                  <div className="flex items-center gap-2">
+                    <p className="font-mono text-sm bg-background p-2 rounded break-all flex-1 border">
+                      {pixKey}
+                    </p>
+                    <Button
+                      type="button"
+                      variant={copied ? "default" : "outline"}
+                      size="sm"
+                      className="shrink-0"
+                      onClick={handleCopyPix}
+                    >
+                      {copied ? <Check className="w-4 h-4 mr-1" /> : <Copy className="w-4 h-4 mr-1" />}
+                      {copied ? "Copiado!" : "Copiar"}
+                    </Button>
+                  </div>
                 </div>
               )}
               <p className="text-sm">
