@@ -23,9 +23,10 @@ interface PoolCardProps {
   hasWonPrize?: boolean;
   prizeReceived?: boolean;
   hasPendingPayment?: boolean;
+  hasAwaitingApproval?: boolean;
 }
 
-const PoolCard = ({ pool, onClick, isUserParticipating = false, hasWonPrize = false, prizeReceived = false, hasPendingPayment = false }: PoolCardProps) => {
+const PoolCard = ({ pool, onClick, isUserParticipating = false, hasWonPrize = false, prizeReceived = false, hasPendingPayment = false, hasAwaitingApproval = false }: PoolCardProps) => {
   const isExpired = isPast(new Date(pool.deadline));
   const isInProgress = pool.status === "active" && isExpired && isUserParticipating;
 
@@ -76,7 +77,7 @@ const getTypeIcon = (type: string) => {
         <div className="flex flex-col gap-3">
           {/* Badges no topo alinhadas à direita */}
           <div className="flex gap-2 flex-wrap justify-end">
-            {!hasPendingPayment && (
+            {!hasPendingPayment && !hasAwaitingApproval && (
               <Badge className={cn(getStatusColor(pool.status), "shadow-sm font-medium")}>
                 {getStatusText(pool.status)}
               </Badge>
@@ -94,6 +95,11 @@ const getTypeIcon = (type: string) => {
             {hasPendingPayment && (
               <Badge className="bg-gradient-to-r from-orange-500 to-orange-600 text-white font-semibold shadow-lg border-2 border-orange-300 animate-pulse">
                 ⚠️ Pagamento Pendente
+              </Badge>
+            )}
+            {hasAwaitingApproval && (
+              <Badge className="bg-gradient-to-r from-yellow-500 to-yellow-600 text-white font-semibold shadow-lg border-2 border-yellow-300">
+                ⏳ Pendente Aprovação
               </Badge>
             )}
             {pool.entry_fee && pool.entry_fee > 0 ? (
