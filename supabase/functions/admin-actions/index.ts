@@ -183,11 +183,15 @@ serve(async (req) => {
         const { pool_id } = body;
         if (!pool_id) throw new Error("pool_id é obrigatório");
 
-        // Delete participants first
-        await adminClient.from("football_predictions").delete().in(
-          "participant_id",
-          adminClient.from("participants").select("id").eq("pool_id", pool_id)
-        );
+        // Get participant IDs first, then delete predictions
+        const { data: participantRows } = await adminClient
+          .from("participants")
+          .select("id")
+          .eq("pool_id", pool_id);
+        const participantIds = (participantRows || []).map((p: any) => p.id);
+        if (participantIds.length > 0) {
+          await adminClient.from("football_predictions").delete().in("participant_id", participantIds);
+        }
         await adminClient.from("participants").delete().eq("pool_id", pool_id);
         await adminClient.from("football_matches").delete().eq("pool_id", pool_id);
         await adminClient.from("pool_payment_info").delete().eq("pool_id", pool_id);
