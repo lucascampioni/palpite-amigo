@@ -503,6 +503,7 @@ export type Database = {
           total_points: number
         }[]
       }
+      get_pool_owner_name: { Args: { pool_uuid: string }; Returns: string }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
