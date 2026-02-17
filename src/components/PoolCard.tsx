@@ -22,9 +22,10 @@ interface PoolCardProps {
   isUserParticipating?: boolean;
   hasWonPrize?: boolean;
   prizeReceived?: boolean;
+  hasPendingPayment?: boolean;
 }
 
-const PoolCard = ({ pool, onClick, isUserParticipating = false, hasWonPrize = false, prizeReceived = false }: PoolCardProps) => {
+const PoolCard = ({ pool, onClick, isUserParticipating = false, hasWonPrize = false, prizeReceived = false, hasPendingPayment = false }: PoolCardProps) => {
   const isExpired = isPast(new Date(pool.deadline));
   const isInProgress = pool.status === "active" && isExpired && isUserParticipating;
 
@@ -86,6 +87,11 @@ const getTypeIcon = (type: string) => {
             {prizeReceived && (
               <Badge className="bg-gradient-to-r from-green-500 to-green-700 text-white font-semibold shadow-lg border-2 border-green-300">
                 ✅ Prêmio Recebido
+              </Badge>
+            )}
+            {hasPendingPayment && (
+              <Badge className="bg-gradient-to-r from-orange-500 to-orange-600 text-white font-semibold shadow-lg border-2 border-orange-300 animate-pulse">
+                ⚠️ Pagamento Pendente
               </Badge>
             )}
             {pool.entry_fee && pool.entry_fee > 0 ? (
