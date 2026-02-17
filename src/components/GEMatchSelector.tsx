@@ -80,7 +80,7 @@ export const GEMatchSelector = ({ open, onOpenChange, onMatchesSelected }: GEMat
           champ.rounds?.forEach((round: any) => {
             round.matches?.forEach((match: any) => {
               const matchDate = new Date(match.matchDate);
-              const dateKey = matchDate.toISOString().split('T')[0];
+              const dateKey = format(matchDate, 'yyyy-MM-dd');
               
               if (!dayMap.has(dateKey)) {
                 dayMap.set(dateKey, []);
