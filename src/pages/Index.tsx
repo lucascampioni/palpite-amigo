@@ -52,11 +52,12 @@ const Index = () => {
         // Check if phone is verified
         const { data: profile } = await supabase
           .from("profiles")
-          .select("phone_verified")
+          .select("phone, phone_verified")
           .eq("id", session.user.id)
           .single();
 
-        if (profile && !profile.phone_verified) {
+        // Only redirect to verification if user HAS a phone but it's not verified
+        if (profile && profile.phone && !profile.phone_verified) {
           navigate("/whatsapp-verification");
           return;
         }
