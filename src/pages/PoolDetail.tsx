@@ -622,7 +622,6 @@ const PoolDetail = () => {
                     size="sm"
                     onClick={async () => {
                       if (!confirm("Tem certeza que deseja excluir este bolão? Esta ação não pode ser desfeita.")) return;
-                      // Delete matches first, then pool
                       await supabase.from("pool_payment_info").delete().eq("pool_id", id!);
                       await supabase.from("football_matches").delete().eq("pool_id", id!);
                       const { error } = await supabase.from("pools").delete().eq("id", id!);
@@ -638,7 +637,7 @@ const PoolDetail = () => {
                     Excluir
                   </Button>
                 )}
-                {isOwner && (
+                {isOwner && participants.length === 0 && (
                   <Button
                     variant="outline"
                     size="sm"
