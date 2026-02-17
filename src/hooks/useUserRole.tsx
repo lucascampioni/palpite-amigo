@@ -6,7 +6,7 @@ export const useUserRole = () => {
     queryKey: ["user-role"],
     queryFn: async () => {
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return { isAdmin: false, role: null };
+      if (!user) return { isAdmin: false, isPoolCreator: false, canCreatePools: false, role: null };
 
       // Check if user is app admin (via email check)
       const { data: isAppAdmin, error: appAdminError } = await supabase
@@ -17,23 +17,28 @@ export const useUserRole = () => {
       }
 
       if (isAppAdmin) {
-        return { isAdmin: true, role: "admin" };
+        return { isAdmin: true, isPoolCreator: false, canCreatePools: true, role: "admin" };
       }
 
-      // Also check user_roles table for backward compatibility
+      // Check user_roles table
       const { data, error } = await supabase
         .from("user_roles")
         .select("role")
-        .eq("user_id", user.id)
-        .single();
+        .eq("user_id", user.id);
 
-      if (error && error.code !== 'PGRST116') { // Ignore "no rows" error
+      if (error) {
         console.error("Error fetching user role:", error);
       }
 
+      const roles = data?.map(r => r.role) || [];
+      const isAdmin = roles.includes("admin");
+      const isPoolCreator = roles.includes("pool_creator");
+
       return {
-        isAdmin: data?.role === "admin" || false,
-        role: data?.role || null,
+        isAdmin,
+        isPoolCreator,
+        canCreatePools: isAdmin || isPoolCreator,
+        role: isAdmin ? "admin" : isPoolCreator ? "pool_creator" : (roles[0] || null),
       };
     },
   });

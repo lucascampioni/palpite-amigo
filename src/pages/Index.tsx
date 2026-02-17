@@ -264,7 +264,7 @@ const Index = () => {
       <main className="max-w-7xl mx-auto px-2 sm:px-4 py-4 sm:py-6 space-y-6 sm:space-y-8">
 
         {/* Hero Section */}
-        {userRole?.isAdmin ? (
+        {userRole?.canCreatePools ? (
           <div className="text-center space-y-3 sm:space-y-4 py-2 sm:py-4">
             <div className="inline-block mb-1 sm:mb-2">
               <img src={palpiteAmigoLogo} alt="Palpite Amigo" className="h-32 sm:h-40 md:h-52 w-auto mx-auto" />
