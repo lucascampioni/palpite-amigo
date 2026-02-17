@@ -2,16 +2,18 @@ import { useEffect, useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Trophy, Users, Award, ArrowLeft, Mail, Calendar, Camera, Phone, Lock, Pencil, Loader2 } from "lucide-react";
+import { Trophy, Users, Award, ArrowLeft, Mail, Calendar, Camera, Phone, Lock, Pencil, Loader2, MessageCircle } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { toast } from "@/hooks/use-toast";
+import { useUserRole } from "@/hooks/useUserRole";
 
 const Profile = () => {
   const navigate = useNavigate();
+  const { data: userRole } = useUserRole();
   const [stats, setStats] = useState<any>(null);
   const [profile, setProfile] = useState<any>(null);
   const [userEmail, setUserEmail] = useState<string>("");
@@ -412,6 +414,28 @@ const Profile = () => {
             </div>
           </CardContent>
         </Card>
+
+        {/* Admin: WhatsApp Requests */}
+        {userRole?.isAdmin && (
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <MessageCircle className="w-5 h-5 text-accent" />
+                Administração
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <Button
+                variant="outline"
+                className="w-full justify-start gap-2 h-12 rounded-xl"
+                onClick={() => navigate("/whatsapp-requests")}
+              >
+                <Users className="w-5 h-5 text-accent" />
+                Solicitações WhatsApp
+              </Button>
+            </CardContent>
+          </Card>
+        )}
 
         {/* Stats Grid */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
