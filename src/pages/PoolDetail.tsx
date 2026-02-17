@@ -22,6 +22,7 @@ import { AdminPrizeManagement } from "@/components/AdminPrizeManagement";
 import { PaymentProofSubmission } from "@/components/PaymentProofSubmission";
 import { AdminPendingParticipants } from "@/components/AdminPendingParticipants";
 import { AdminRejectedParticipants } from "@/components/AdminRejectedParticipants";
+import { AdminParticipantsManager } from "@/components/AdminParticipantsManager";
 import { useUserRole } from "@/hooks/useUserRole";
 import WhatsAppMessagePanel from "@/components/WhatsAppMessagePanel";
 import VipGroupInviteModal from "@/components/VipGroupInviteModal";
@@ -785,18 +786,20 @@ const PoolDetail = () => {
                   </p>
                 </div>
               </div>
-              <div className="flex items-center gap-3 p-3 rounded-lg bg-muted/50">
-                <Users className="w-5 h-5 text-primary" />
-                <div>
-                  <p className="text-sm text-muted-foreground">Participantes</p>
-                  <p className="font-medium">
-                    {approvedParticipants.length} aprovado(s)
-                    {pool.max_participants && approvedParticipants.length >= pool.max_participants && (
-                      <span className="ml-2 text-xs text-destructive">(Cheio)</span>
-                    )}
-                  </p>
+              {!isOwner && (
+                <div className="flex items-center gap-3 p-3 rounded-lg bg-muted/50">
+                  <Users className="w-5 h-5 text-primary" />
+                  <div>
+                    <p className="text-sm text-muted-foreground">Participantes</p>
+                    <p className="font-medium">
+                      {approvedParticipants.length} aprovado(s)
+                      {pool.max_participants && approvedParticipants.length >= pool.max_participants && (
+                        <span className="ml-2 text-xs text-destructive">(Cheio)</span>
+                      )}
+                    </p>
+                  </div>
                 </div>
-              </div>
+              )}
               {pool.entry_fee && parseFloat(pool.entry_fee) > 0 && (
                 <div className="flex items-center gap-3 p-3 rounded-lg bg-muted/50">
                   <span className="text-lg">💰</span>
@@ -1350,47 +1353,15 @@ const PoolDetail = () => {
               </>
             )}
 
-            {/* Admin: Pending Participants Management */}
-            {(userRole?.isAdmin || isOwner) && pool.status === "active" && (
+            {/* Admin: Participants Manager (collapsible approved/pending/rejected) */}
+            {(userRole?.isAdmin || isOwner) && (
               <>
-                {(() => {
-                  const pendingParticipants = participants.filter(p => p.status === 'pending');
-                  if (pendingParticipants.length > 0) {
-                    return (
-                      <>
-                        <Separator />
-                        <AdminPendingParticipants
-                          poolId={pool.id}
-                          participants={pendingParticipants}
-                          onSuccess={loadPoolData}
-                        />
-                      </>
-                    );
-                  }
-                  return null;
-                })()}
-              </>
-            )}
-
-            {/* Admin: Rejected Participants Management */}
-            {(userRole?.isAdmin || isOwner) && pool.status === "active" && (
-              <>
-                {(() => {
-                  const rejectedParticipants = participants.filter(p => p.status === 'rejected');
-                  if (rejectedParticipants.length > 0) {
-                    return (
-                      <>
-                        <Separator />
-                        <AdminRejectedParticipants
-                          poolId={pool.id}
-                          participants={rejectedParticipants}
-                          onSuccess={loadPoolData}
-                        />
-                      </>
-                    );
-                  }
-                  return null;
-                })()}
+                <Separator />
+                <AdminParticipantsManager
+                  poolId={pool.id}
+                  participants={participants}
+                  onSuccess={loadPoolData}
+                />
               </>
             )}
 
