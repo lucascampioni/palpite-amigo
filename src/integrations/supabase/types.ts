@@ -391,6 +391,8 @@ export type Database = {
           created_at: string
           full_name: string
           id: string
+          notify_new_pools: boolean
+          notify_pool_updates: boolean
           phone: string | null
           updated_at: string
           vip_group_accepted: boolean | null
@@ -403,6 +405,8 @@ export type Database = {
           created_at?: string
           full_name: string
           id: string
+          notify_new_pools?: boolean
+          notify_pool_updates?: boolean
           phone?: string | null
           updated_at?: string
           vip_group_accepted?: boolean | null
@@ -415,6 +419,8 @@ export type Database = {
           created_at?: string
           full_name?: string
           id?: string
+          notify_new_pools?: boolean
+          notify_pool_updates?: boolean
           phone?: string | null
           updated_at?: string
           vip_group_accepted?: boolean | null

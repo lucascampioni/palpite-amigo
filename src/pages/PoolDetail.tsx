@@ -50,7 +50,7 @@ const PoolDetail = () => {
   const [hasAnyMatchResult, setHasAnyMatchResult] = useState(false);
   const [participantPhones, setParticipantPhones] = useState<Record<string, string>>({});
   const [rankingData, setRankingData] = useState<{ participant_id: string; participant_name: string; total_points: number }[]>([]);
-  const [allUsersWithPhone, setAllUsersWithPhone] = useState<{ id: string; full_name: string; phone: string }[]>([]);
+  const [allUsersWithPhone, setAllUsersWithPhone] = useState<{ id: string; full_name: string; phone: string; notify_pool_updates?: boolean; notify_new_pools?: boolean }[]>([]);
   const [userHasPhone, setUserHasPhone] = useState<boolean | null>(null);
   const [showVipModal, setShowVipModal] = useState(false);
   const [showPoolInfo, setShowPoolInfo] = useState(false);
@@ -350,10 +350,10 @@ const PoolDetail = () => {
     // Load all registered users with phone for promotional WhatsApp messages
     const { data: allProfiles } = await supabase
       .from("profiles")
-      .select("id, full_name, phone")
+      .select("id, full_name, phone, notify_pool_updates, notify_new_pools")
       .not("phone", "is", null);
     if (allProfiles) {
-      setAllUsersWithPhone(allProfiles.filter(p => p.phone).map(p => ({ id: p.id, full_name: p.full_name, phone: p.phone! })));
+      setAllUsersWithPhone(allProfiles.filter(p => p.phone).map(p => ({ id: p.id, full_name: p.full_name, phone: p.phone!, notify_pool_updates: p.notify_pool_updates ?? true, notify_new_pools: p.notify_new_pools ?? true })));
     }
     
     // Load pool payment info

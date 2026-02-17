@@ -20,9 +20,12 @@ interface AllUser {
   id: string;
   full_name: string;
   phone: string;
+  notify_pool_updates?: boolean;
+  notify_new_pools?: boolean;
 }
 
 type TemplateCategory = "divulgacao" | "lembrete" | "resultado" | "pagamento";
+type TemplateMode = "copy" | "api" | "both";
 
 interface MessageTemplate {
   id: string;
@@ -31,6 +34,7 @@ interface MessageTemplate {
   getMessage: (participantName: string, poolTitle: string, poolLink: string, extra?: Record<string, any>) => string;
   category: TemplateCategory;
   targetAllUsers?: boolean;
+  mode: TemplateMode; // "copy" = creator copy only, "api" = admin API only, "both" = both
 }
 
 interface WhatsAppMessagePanelProps {
@@ -59,6 +63,7 @@ const createMessageTemplates = (): MessageTemplate[] => [
     },
     category: "divulgacao",
     targetAllUsers: true,
+    mode: "api", // Only admin sends via API (filtered by notify_new_pools)
   },
   {
     id: "deadline_30min",
@@ -67,6 +72,7 @@ const createMessageTemplates = (): MessageTemplate[] => [
     getMessage: (name, pool, poolLink) =>
       `🎯 *Palpite Amigo*\n\nOlá ${name}! ⏰\n\nOs palpites do bolão "${pool}" se encerram em *30 minutos*!\n\nCorra para fazer seus palpites antes que o prazo acabe! 🏃‍♂️⚽\n\n👉 ${poolLink}`,
     category: "lembrete",
+    mode: "copy", // Creator copies to group
   },
   {
     id: "deadline_1h",
@@ -75,6 +81,7 @@ const createMessageTemplates = (): MessageTemplate[] => [
     getMessage: (name, pool, poolLink) =>
       `🎯 *Palpite Amigo*\n\nOlá ${name}! ⏰\n\nOs palpites do bolão "${pool}" se encerram em *1 hora*!\n\nNão perca o prazo! Faça seus palpites agora. ⚽\n\n👉 ${poolLink}`,
     category: "lembrete",
+    mode: "copy",
   },
   {
     id: "reminder_join",
@@ -83,6 +90,7 @@ const createMessageTemplates = (): MessageTemplate[] => [
     getMessage: (name, pool, poolLink) =>
       `🎯 *Palpite Amigo*\n\nOlá ${name}! 👋\n\nVocê ainda não enviou seus palpites no bolão "${pool}"!\n\nParticipe antes que o prazo acabe! 🎯⚽\n\n👉 ${poolLink}`,
     category: "lembrete",
+    mode: "copy",
   },
   {
     id: "position_update",
@@ -91,6 +99,7 @@ const createMessageTemplates = (): MessageTemplate[] => [
     getMessage: (name, pool, poolLink, extra) =>
       `🎯 *Palpite Amigo*\n\nOlá ${name}! 📊\n\nAtualização do bolão "${pool}":\n\nVocê está na *${extra?.position || "?"}ª posição* com *${extra?.points || 0} pontos*!\n\n${extra?.position && extra.position <= 3 ? "Continue assim! Você está no pódio! 🏆" : "Ainda dá tempo de subir no ranking! 💪"}\n\n👉 ${poolLink}`,
     category: "resultado",
+    mode: "api", // Admin sends via API (filtered by notify_pool_updates)
   },
   {
     id: "pool_finished",
@@ -99,6 +108,7 @@ const createMessageTemplates = (): MessageTemplate[] => [
     getMessage: (name, pool, poolLink) =>
       `🎯 *Palpite Amigo*\n\nOlá ${name}! 🎉\n\nO bolão "${pool}" foi *finalizado*!\n\nAcesse o app para ver o resultado final e o ranking completo! 🏆📊\n\n👉 ${poolLink}`,
     category: "resultado",
+    mode: "both", // Creator can copy, admin can send via API
   },
   {
     id: "winner_congrats",
@@ -107,14 +117,16 @@ const createMessageTemplates = (): MessageTemplate[] => [
     getMessage: (name, pool, poolLink) =>
       `🎯 *Palpite Amigo*\n\nParabéns ${name}! 🏆🎉\n\nVocê venceu o bolão "${pool}"!\n\nEnvie sua chave PIX no app para receber o prêmio! 💰\n\n👉 ${poolLink}`,
     category: "resultado",
+    mode: "api", // Admin sends via API
   },
   {
     id: "send_pix",
-    label: "Enviar chave PIX",
+    label: "Cobrar chave PIX",
     icon: <Send className="w-4 h-4" />,
     getMessage: (name, pool, poolLink) =>
       `🎯 *Palpite Amigo*\n\nOlá ${name}! 💰\n\nVocê ganhou no bolão "${pool}"!\n\nPor favor, envie sua *chave PIX* no app para receber o prêmio. Estamos aguardando! 🙏\n\n👉 ${poolLink}`,
     category: "pagamento",
+    mode: "api",
   },
   {
     id: "payment_pending",
@@ -123,9 +135,9 @@ const createMessageTemplates = (): MessageTemplate[] => [
     getMessage: (name, pool, poolLink) =>
       `🎯 *Palpite Amigo*\n\nOlá ${name}! 💳\n\nSeu pagamento da taxa de participação do bolão "${pool}" ainda está *pendente*.\n\nEnvie o comprovante no app para ser aprovado! 📱\n\n👉 ${poolLink}`,
     category: "pagamento",
+    mode: "api",
   },
 ];
-
 const categoryLabels: Record<TemplateCategory, string> = {
   divulgacao: "📣 Divulgação",
   lembrete: "📢 Lembretes",
@@ -190,15 +202,25 @@ const WhatsAppMessagePanel = ({ poolTitle, poolId, participants, poolDeadline, r
 
   const selectedTemplateObj = messageTemplates.find(t => t.id === selectedTemplate);
   const isPromoTemplate = selectedTemplateObj?.targetAllUsers;
-  // For non-admin (pool creators), filter out promo template since they can't send to all users
+  // Determine if current template should show API send or copy mode
+  const showApiMode = isAdmin && selectedTemplateObj && (selectedTemplateObj.mode === "api" || selectedTemplateObj.mode === "both");
+  const showCopyMode = !isAdmin || (selectedTemplateObj && selectedTemplateObj.mode === "copy") || (selectedTemplateObj && selectedTemplateObj.mode === "both" && !isAdmin);
+  
+  // Filter templates: admin sees api+both, creator sees copy+both
   const availableTemplates = isAdmin
-    ? messageTemplates
-    : messageTemplates.filter(t => !t.targetAllUsers);
+    ? messageTemplates.filter(t => t.mode === "api" || t.mode === "both")
+    : messageTemplates.filter(t => t.mode === "copy" || t.mode === "both");
 
   const participantsWithPhone = approvedParticipants.filter(p => phones[p.user_id]);
 
+  // Filter by notification preferences for API sends
+  const filteredAllUsers = (allUsersWithPhone || []).filter(u => {
+    if (isPromoTemplate) return u.notify_new_pools !== false;
+    return u.notify_pool_updates !== false;
+  });
+
   const currentTargetList = isPromoTemplate
-    ? (allUsersWithPhone || []).map(u => ({ id: u.id, name: u.full_name, phone: u.phone, participantId: undefined as string | undefined }))
+    ? filteredAllUsers.map(u => ({ id: u.id, name: u.full_name, phone: u.phone, participantId: undefined as string | undefined }))
     : participantsWithPhone.map(p => ({ id: p.user_id, name: p.participant_name, phone: phones[p.user_id], participantId: p.id }));
 
   const handleCopyMessage = (templateObj: MessageTemplate) => {
@@ -314,8 +336,8 @@ const WhatsAppMessagePanel = ({ poolTitle, poolId, participants, poolDeadline, r
               })}
             </div>
 
-            {/* Copy mode for non-admin (pool creators) */}
-            {selectedTemplate && selectedTemplateObj && !isAdmin && (
+            {/* Copy mode for creators (or both mode for non-admin) */}
+            {selectedTemplate && selectedTemplateObj && showCopyMode && !showApiMode && (
               <div className="space-y-3 mt-4">
                 <p className="text-sm font-medium">Prévia da mensagem:</p>
                 <Textarea
@@ -348,7 +370,7 @@ const WhatsAppMessagePanel = ({ poolTitle, poolId, participants, poolDeadline, r
             )}
 
             {/* API send mode for admin */}
-            {selectedTemplate && isAdmin && (
+            {selectedTemplate && showApiMode && (
               <div className="space-y-2 mt-4">
                 {currentTargetList.length === 0 ? (
                   <p className="text-sm text-muted-foreground text-center py-4">

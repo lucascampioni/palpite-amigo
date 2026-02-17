@@ -117,7 +117,8 @@ const Auth = () => {
     const cpf = cpfRaw.replace(/\D/g, ""); // Remove formatação
     const phoneRaw = formData.get("phone") as string;
     const phone = phoneRaw.replace(/\D/g, ""); // Remove formatação
-    
+    const notifyPoolUpdates = (e.currentTarget.querySelector('#notify-pool-updates') as HTMLInputElement)?.checked ?? true;
+    const notifyNewPools = (e.currentTarget.querySelector('#notify-new-pools') as HTMLInputElement)?.checked ?? true;
 
     // Verificar consentimento obrigatório
     if (!whatsappConsent) {
@@ -206,6 +207,8 @@ const Auth = () => {
           cpf,
           phone,
           wants_whatsapp_group: false,
+          notify_pool_updates: notifyPoolUpdates,
+          notify_new_pools: notifyNewPools,
         },
         emailRedirectTo: `${window.location.origin}/`,
       },
@@ -554,19 +557,44 @@ const Auth = () => {
                       minLength={8}
                     />
                   </div>
-                  <div className="flex items-start space-x-2 p-4 border-2 rounded-lg bg-muted/30 border-primary/20">
-                    <input
-                      type="checkbox"
-                      id="whatsapp-consent"
-                      checked={whatsappConsent}
-                      onChange={(e) => setWhatsappConsent(e.target.checked)}
-                      className="h-4 w-4 rounded border-gray-300 mt-0.5"
-                      required
-                    />
-                    <Label htmlFor="whatsapp-consent" className="text-sm font-normal cursor-pointer leading-relaxed">
-                      Ao participar, você concorda em receber comunicações operacionais sobre seus bolões via WhatsApp (confirmações, resultados e avisos importantes). <span className="text-destructive">*</span>
-                    </Label>
-                  </div>
+                   <div className="flex items-start space-x-2 p-4 border-2 rounded-lg bg-muted/30 border-primary/20">
+                     <input
+                       type="checkbox"
+                       id="whatsapp-consent"
+                       checked={whatsappConsent}
+                       onChange={(e) => setWhatsappConsent(e.target.checked)}
+                       className="h-4 w-4 rounded border-gray-300 mt-0.5"
+                       required
+                     />
+                     <Label htmlFor="whatsapp-consent" className="text-sm font-normal cursor-pointer leading-relaxed">
+                       Ao participar, você concorda em receber comunicações operacionais sobre seus bolões via WhatsApp (confirmações, resultados e avisos importantes). <span className="text-destructive">*</span>
+                     </Label>
+                   </div>
+                   <div className="space-y-3 p-4 border rounded-lg bg-muted/20">
+                     <p className="text-sm font-medium">Notificações WhatsApp (opcional)</p>
+                     <div className="flex items-start space-x-2">
+                       <input
+                         type="checkbox"
+                         id="notify-pool-updates"
+                         defaultChecked={true}
+                         className="h-4 w-4 rounded border-gray-300 mt-0.5"
+                       />
+                       <Label htmlFor="notify-pool-updates" className="text-sm font-normal cursor-pointer">
+                         Receber atualizações dos bolões que participo (posição, resultados)
+                       </Label>
+                     </div>
+                     <div className="flex items-start space-x-2">
+                       <input
+                         type="checkbox"
+                         id="notify-new-pools"
+                         defaultChecked={true}
+                         className="h-4 w-4 rounded border-gray-300 mt-0.5"
+                       />
+                       <Label htmlFor="notify-new-pools" className="text-sm font-normal cursor-pointer">
+                         Receber divulgação de novos bolões disponíveis
+                       </Label>
+                     </div>
+                   </div>
                   <Button type="submit" className="w-full" disabled={loading || !!cpfError || !whatsappConsent}>
                     {loading ? "Criando conta..." : "Criar conta"}
                   </Button>
