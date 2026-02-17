@@ -260,8 +260,8 @@ const Auth = () => {
         description: errorMessage,
       });
     } else {
-      // Redireciona para a tela de confirmação de email
-      navigate(`/email-confirmation?email=${encodeURIComponent(email)}`);
+      // Redireciona para a verificação do WhatsApp
+      navigate("/whatsapp-verification");
     }
 
     setLoading(false);

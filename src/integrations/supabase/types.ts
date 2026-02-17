@@ -394,6 +394,7 @@ export type Database = {
           notify_new_pools: boolean
           notify_pool_updates: boolean
           phone: string | null
+          phone_verified: boolean
           updated_at: string
           vip_group_accepted: boolean | null
           vip_group_invited_at: string | null
@@ -408,6 +409,7 @@ export type Database = {
           notify_new_pools?: boolean
           notify_pool_updates?: boolean
           phone?: string | null
+          phone_verified?: boolean
           updated_at?: string
           vip_group_accepted?: boolean | null
           vip_group_invited_at?: string | null
@@ -422,6 +424,7 @@ export type Database = {
           notify_new_pools?: boolean
           notify_pool_updates?: boolean
           phone?: string | null
+          phone_verified?: boolean
           updated_at?: string
           vip_group_accepted?: boolean | null
           vip_group_invited_at?: string | null
@@ -491,6 +494,36 @@ export type Database = {
           },
         ]
       }
+      whatsapp_otp: {
+        Row: {
+          code: string
+          created_at: string
+          expires_at: string
+          id: string
+          phone: string
+          user_id: string | null
+          verified: boolean
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          expires_at: string
+          id?: string
+          phone: string
+          user_id?: string | null
+          verified?: boolean
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          expires_at?: string
+          id?: string
+          phone?: string
+          user_id?: string | null
+          verified?: boolean
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
@@ -507,6 +540,7 @@ export type Database = {
         Returns: number
       }
       can_create_pools: { Args: never; Returns: boolean }
+      cleanup_expired_otp: { Args: never; Returns: undefined }
       get_football_pool_ranking: {
         Args: { p_pool_id: string }
         Returns: {

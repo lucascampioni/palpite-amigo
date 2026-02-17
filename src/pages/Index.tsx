@@ -44,11 +44,23 @@ const Index = () => {
       }
     );
 
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    supabase.auth.getSession().then(async ({ data: { session } }) => {
       setSession(session);
       if (!session) {
         navigate("/auth");
       } else {
+        // Check if phone is verified
+        const { data: profile } = await supabase
+          .from("profiles")
+          .select("phone_verified")
+          .eq("id", session.user.id)
+          .single();
+
+        if (profile && !profile.phone_verified) {
+          navigate("/whatsapp-verification");
+          return;
+        }
+
         NotificationService.requestPermissions();
         NotificationService.setupRealtimeNotifications(session.user.id);
       }
