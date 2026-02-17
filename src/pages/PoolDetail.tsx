@@ -884,14 +884,30 @@ const PoolDetail = () => {
                     {currentUserParticipant?.status === 'pending' ? (
                       <>
                         <Separator />
-                        <PaymentProofSubmission
-                          participantId={currentUserParticipant.id}
-                          poolId={pool.id}
-                          poolTitle={pool.title}
-                          entryFee={pool.entry_fee ? parseFloat(pool.entry_fee) : 0}
-                          pixKey={pool.pix_key}
-                          onSuccess={loadPoolData}
-                        />
+                        {currentUserParticipant?.payment_proof ? (
+                          <Card className="border-2 border-orange-500/20 bg-gradient-to-br from-orange-500/5 to-orange-500/10">
+                            <CardContent className="p-6 text-center space-y-2">
+                              <div className="w-12 h-12 mx-auto rounded-full bg-orange-100 dark:bg-orange-900/30 flex items-center justify-center">
+                                <CheckCircle className="w-6 h-6 text-orange-500" />
+                              </div>
+                              <p className="text-lg font-semibold text-orange-600 dark:text-orange-400">
+                                Aguardando aprovação
+                              </p>
+                              <p className="text-sm text-muted-foreground">
+                                Seu comprovante foi enviado com sucesso. O organizador irá analisar e aprovar sua participação.
+                              </p>
+                            </CardContent>
+                          </Card>
+                        ) : (
+                          <PaymentProofSubmission
+                            participantId={currentUserParticipant.id}
+                            poolId={pool.id}
+                            poolTitle={pool.title}
+                            entryFee={pool.entry_fee ? parseFloat(pool.entry_fee) : 0}
+                            pixKey={pool.pix_key}
+                            onSuccess={loadPoolData}
+                          />
+                        )}
 
                         {/* Collapsible Pool Info */}
                         <div className="border rounded-lg overflow-hidden">
