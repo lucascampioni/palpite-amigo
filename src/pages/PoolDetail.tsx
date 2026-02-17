@@ -736,6 +736,15 @@ const PoolDetail = () => {
                   </p>
                 </div>
               </div>
+              {pool.entry_fee && parseFloat(pool.entry_fee) > 0 && (
+                <div className="flex items-center gap-3 p-3 rounded-lg bg-muted/50">
+                  <span className="text-lg">💰</span>
+                  <div>
+                    <p className="text-sm text-muted-foreground">Valor de Entrada</p>
+                    <p className="font-medium">R$ {parseFloat(pool.entry_fee).toFixed(2).replace('.', ',')}</p>
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* Prize Information */}
