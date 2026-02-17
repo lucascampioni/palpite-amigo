@@ -143,14 +143,21 @@ const Index = () => {
     const specialPoolIds = [...awaitingPixPoolIds, ...pixSubmittedPoolIds];
     const regularParticipantPoolIds = participantPoolIds.filter(id => !specialPoolIds.includes(id));
     
+    console.log('🔍 DEBUG participantPoolIds:', participantPoolIds);
+    console.log('🔍 DEBUG specialPoolIds:', specialPoolIds);
+    console.log('🔍 DEBUG regularParticipantPoolIds:', regularParticipantPoolIds);
+    
     let participatingPoolsData: any[] = [];
     if (regularParticipantPoolIds.length > 0) {
-      const { data } = await supabase
+      const { data, error } = await supabase
         .from("pools")
         .select("*, participants(count)")
         .in("id", regularParticipantPoolIds)
         .order("created_at", { ascending: false });
+      console.log('🔍 DEBUG participatingPoolsData:', data, 'error:', error);
       participatingPoolsData = data || [];
+    } else {
+      console.log('🔍 DEBUG: No regularParticipantPoolIds, skipping query');
     }
 
     const excludeFromOfficialIds = [
@@ -212,6 +219,16 @@ const Index = () => {
     }
     
     activePools = activePools.filter(pool => new Date(pool.deadline) > now);
+
+    console.log('🔍 DEBUG Final data:', {
+      ownedPools: ownedPools?.length,
+      participatingPoolsData: participatingPoolsData.length,
+      participatingPoolsDataActive: participatingPoolsData.filter(p => p.status === 'active').length,
+      awaitingPixPoolsData: awaitingPixPoolsData.length,
+      awaitingPaymentPoolsData: awaitingPaymentPoolsData.length,
+      pendingPaymentPoolsData: pendingPaymentPoolsData.length,
+      awaitingApprovalPoolsData: awaitingApprovalPoolsData.length,
+    });
 
     setMyCreatedPools(ownedPools || []);
     setMyParticipatingPools(participatingPoolsData);
