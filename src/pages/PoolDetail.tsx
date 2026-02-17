@@ -570,6 +570,19 @@ const PoolDetail = () => {
           </Button>
         </div>
 
+        {/* Pending Payment Banner */}
+        {!isOwner && currentUserParticipant?.status === 'pending' && (
+          <div className="p-4 rounded-xl bg-gradient-to-r from-orange-500 to-orange-600 text-white shadow-lg animate-pulse">
+            <div className="flex items-center gap-3">
+              <span className="text-2xl">⚠️</span>
+              <div>
+                <p className="font-bold text-lg">Pagamento Pendente</p>
+                <p className="text-sm text-orange-100">Envie o comprovante de pagamento abaixo para confirmar sua participação.</p>
+              </div>
+            </div>
+          </div>
+        )}
+
         <Card>
           <CardHeader>
             <div className="flex items-start justify-between">
