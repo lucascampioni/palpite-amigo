@@ -195,7 +195,7 @@ export const GEMatchSelector = ({ open, onOpenChange, onMatchesSelected }: GEMat
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogContent className="max-w-4xl max-h-[85vh] overflow-y-auto">
+      <DialogContent className="w-[95vw] max-w-4xl max-h-[85vh] overflow-y-auto p-3 sm:p-6">
         <DialogHeader>
           <DialogTitle>⚽ Selecione os Jogos</DialogTitle>
           <DialogDescription>
@@ -213,10 +213,10 @@ export const GEMatchSelector = ({ open, onOpenChange, onMatchesSelected }: GEMat
           </div>
         ) : (
           <Tabs defaultValue={championships[0]?.id} className="w-full">
-            <TabsList className="w-full grid" style={{ gridTemplateColumns: `repeat(${championships.length}, 1fr)` }}>
+            <TabsList className="w-full flex flex-wrap gap-1 h-auto p-1">
               {championships.map((champ) => (
-                <TabsTrigger key={champ.id} value={champ.id}>
-                  {champ.name === 'Premier League' ? '🏴󠁧󠁢󠁥󠁮󠁧󠁿 Premier League' : champ.name === 'Copa do Mundo 2026' ? '🏆 Copa do Mundo' : '🇧🇷 Brasileirão'}
+                <TabsTrigger key={champ.id} value={champ.id} className="flex-1 min-w-0 text-xs sm:text-sm px-2 py-1.5">
+                  {champ.name === 'Premier League' ? '🏴󠁧󠁢󠁥󠁮󠁧󠁿 Premier' : champ.name === 'Copa do Mundo 2026' ? '🏆 Copa' : '🇧🇷 Brasileirão'}
                 </TabsTrigger>
               ))}
             </TabsList>
@@ -262,34 +262,34 @@ export const GEMatchSelector = ({ open, onOpenChange, onMatchesSelected }: GEMat
                                       onCheckedChange={() => !isUnavailable && toggleMatch(match.externalId, match.matchDate)}
                                       onClick={(e) => e.stopPropagation()}
                                     />
-                                  <div className="flex-1">
-                                    <div className="flex items-center justify-between mb-1">
-                                      <div className="flex items-center gap-2 flex-1">
+                                  <div className="flex-1 min-w-0">
+                                    <div className="flex items-center justify-between mb-1 gap-1">
+                                      <div className="flex items-center gap-1 sm:gap-2 flex-1 min-w-0 flex-wrap">
                                         {match.homeTeamCrest && (
                                           <img 
                                             src={match.homeTeamCrest} 
                                             alt={match.homeTeam}
-                                            className="w-6 h-6 object-contain"
+                                            className="w-5 h-5 sm:w-6 sm:h-6 object-contain flex-shrink-0"
                                             onError={(e) => {
                                               e.currentTarget.style.display = 'none';
                                             }}
                                           />
                                         )}
-                                        <span className="font-medium">{match.homeTeam}</span>
-                                        <span className="text-muted-foreground mx-1">x</span>
-                                        <span className="font-medium">{match.awayTeam}</span>
+                                        <span className="font-medium text-xs sm:text-sm truncate">{match.homeTeam}</span>
+                                        <span className="text-muted-foreground text-xs">x</span>
+                                        <span className="font-medium text-xs sm:text-sm truncate">{match.awayTeam}</span>
                                         {match.awayTeamCrest && (
                                           <img 
                                             src={match.awayTeamCrest} 
                                             alt={match.awayTeam}
-                                            className="w-6 h-6 object-contain"
+                                            className="w-5 h-5 sm:w-6 sm:h-6 object-contain flex-shrink-0"
                                             onError={(e) => {
                                               e.currentTarget.style.display = 'none';
                                             }}
                                           />
                                         )}
                                       </div>
-                                      <span className="text-sm text-muted-foreground ml-2">
+                                      <span className="text-xs sm:text-sm text-muted-foreground ml-1 flex-shrink-0">
                                         {format(new Date(match.matchDate), "HH:mm", { locale: ptBR })}
                                       </span>
                                     </div>
