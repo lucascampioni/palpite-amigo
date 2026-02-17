@@ -13,6 +13,7 @@ import Privacy from "./pages/Privacy";
 import EmailConfirmation from "./pages/EmailConfirmation";
 import ResetPassword from "./pages/ResetPassword";
 import WhatsAppRequests from "./pages/WhatsAppRequests";
+import WhatsAppVerification from "./pages/WhatsAppVerification";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -34,6 +35,7 @@ const App = () => (
           <Route path="/profile" element={<Profile />} />
           <Route path="/privacy" element={<Privacy />} />
           <Route path="/whatsapp-requests" element={<WhatsAppRequests />} />
+          <Route path="/whatsapp-verification" element={<WhatsAppVerification />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>
