@@ -310,22 +310,13 @@ const Index = () => {
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
           {/* Tab Navigation */}
-          <TabsList className="w-full grid grid-cols-4 mb-4 h-11 bg-muted/60 rounded-xl p-1">
+          <TabsList className={`w-full grid ${userRole?.canCreatePools ? 'grid-cols-4' : 'grid-cols-3'} mb-4 h-11 bg-muted/60 rounded-xl p-1`}>
             <TabsTrigger value="explorar" className="rounded-lg text-xs sm:text-sm font-medium data-[state=active]:bg-card data-[state=active]:shadow-sm relative">
               <Home className="w-4 h-4 mr-1" />
               <span className="hidden sm:inline">Início</span>
               {exploreCount > 0 && (
                 <Badge className="absolute -top-1.5 -right-1 h-4 min-w-4 px-1 text-[10px] bg-accent text-accent-foreground border-0">
                   {exploreCount}
-                </Badge>
-              )}
-            </TabsTrigger>
-            <TabsTrigger value="pendencias" className="rounded-lg text-xs sm:text-sm font-medium data-[state=active]:bg-card data-[state=active]:shadow-sm relative">
-              <AlertTriangle className="w-4 h-4 mr-1" />
-              <span className="hidden sm:inline">Pendências</span>
-              {pendenciasCount > 0 && (
-                <Badge className="absolute -top-1.5 -right-1 h-4 min-w-4 px-1 text-[10px] bg-destructive text-destructive-foreground border-0">
-                  {pendenciasCount}
                 </Badge>
               )}
             </TabsTrigger>
@@ -338,12 +329,23 @@ const Index = () => {
                 </Badge>
               )}
             </TabsTrigger>
-            <TabsTrigger value="meus" className="rounded-lg text-xs sm:text-sm font-medium data-[state=active]:bg-card data-[state=active]:shadow-sm relative">
-              <Trophy className="w-4 h-4 mr-1" />
-              <span className="hidden sm:inline">Criados</span>
-              {myPoolsActiveCount > 0 && (
-                <Badge className="absolute -top-1.5 -right-1 h-4 min-w-4 px-1 text-[10px] bg-primary text-primary-foreground border-0">
-                  {myPoolsActiveCount}
+            {userRole?.canCreatePools && (
+              <TabsTrigger value="meus" className="rounded-lg text-xs sm:text-sm font-medium data-[state=active]:bg-card data-[state=active]:shadow-sm relative">
+                <Trophy className="w-4 h-4 mr-1" />
+                <span className="hidden sm:inline">Criados</span>
+                {myPoolsActiveCount > 0 && (
+                  <Badge className="absolute -top-1.5 -right-1 h-4 min-w-4 px-1 text-[10px] bg-primary text-primary-foreground border-0">
+                    {myPoolsActiveCount}
+                  </Badge>
+                )}
+              </TabsTrigger>
+            )}
+            <TabsTrigger value="pendencias" className="rounded-lg text-xs sm:text-sm font-medium data-[state=active]:bg-card data-[state=active]:shadow-sm relative">
+              <AlertTriangle className="w-4 h-4 mr-1" />
+              <span className="hidden sm:inline">Pendências</span>
+              {pendenciasCount > 0 && (
+                <Badge className="absolute -top-1.5 -right-1 h-4 min-w-4 px-1 text-[10px] bg-destructive text-destructive-foreground border-0">
+                  {pendenciasCount}
                 </Badge>
               )}
             </TabsTrigger>
