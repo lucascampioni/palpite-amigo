@@ -54,7 +54,7 @@ serve(async (req) => {
     // Get pool details for prize information
     const { data: pool, error: poolError } = await supabaseClient
       .from('pools')
-      .select('first_place_prize, second_place_prize, third_place_prize')
+      .select('first_place_prize, second_place_prize, third_place_prize, max_winners')
       .eq('id', pool_id)
       .single();
 
@@ -101,17 +101,18 @@ serve(async (req) => {
 
     console.log('Participants with points:', participantsWithPoints);
 
-    // Identify top 3 positions considering ties
+    // Identify top positions considering ties and max_winners
+    const maxWinners = pool.max_winners || 3;
     const prizes = [
       pool.first_place_prize ? parseFloat(pool.first_place_prize.toString()) : 0,
-      pool.second_place_prize ? parseFloat(pool.second_place_prize.toString()) : 0,
-      pool.third_place_prize ? parseFloat(pool.third_place_prize.toString()) : 0
-    ];
+      maxWinners >= 2 && pool.second_place_prize ? parseFloat(pool.second_place_prize.toString()) : 0,
+      maxWinners >= 3 && pool.third_place_prize ? parseFloat(pool.third_place_prize.toString()) : 0
+    ].slice(0, maxWinners);
 
     const winnersToUpdate: string[] = [];
     let currentPosition = 0;
 
-    while (currentPosition < participantsWithPoints.length && currentPosition < 3) {
+    while (currentPosition < participantsWithPoints.length && currentPosition < maxWinners) {
       const currentScore = participantsWithPoints[currentPosition].total_points;
       
       // Skip if score is 0
@@ -126,13 +127,8 @@ serve(async (req) => {
         tieGroupEnd++;
       }
 
-      const tieGroupSize = tieGroupEnd - currentPosition;
-
-      // Calculate how many positions this tie group overlaps with prizes (top 3)
-      const prizePositionsEnd = Math.min(tieGroupEnd - 1, 2); // indices 0, 1, 2
-      
       // If this group touches any prize position, they all get a share
-      if (currentPosition <= 2) {
+      if (currentPosition < maxWinners) {
         for (let i = currentPosition; i < tieGroupEnd; i++) {
           if (participantsWithPoints[i].total_points > 0) {
             winnersToUpdate.push(participantsWithPoints[i].id);

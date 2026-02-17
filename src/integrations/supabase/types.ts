@@ -295,6 +295,7 @@ export type Database = {
           is_official: boolean | null
           is_private: boolean
           max_participants: number | null
+          max_winners: number
           measurement_unit: Database["public"]["Enums"]["measurement_unit"]
           owner_id: string
           pool_type: Database["public"]["Enums"]["pool_type"]
@@ -319,6 +320,7 @@ export type Database = {
           is_official?: boolean | null
           is_private?: boolean
           max_participants?: number | null
+          max_winners?: number
           measurement_unit?: Database["public"]["Enums"]["measurement_unit"]
           owner_id: string
           pool_type?: Database["public"]["Enums"]["pool_type"]
@@ -343,6 +345,7 @@ export type Database = {
           is_official?: boolean | null
           is_private?: boolean
           max_participants?: number | null
+          max_winners?: number
           measurement_unit?: Database["public"]["Enums"]["measurement_unit"]
           owner_id?: string
           pool_type?: Database["public"]["Enums"]["pool_type"]

@@ -14,6 +14,7 @@ interface FootballRankingProps {
     second_place_prize?: number;
     third_place_prize?: number;
     scoring_system?: string;
+    max_winners?: number;
   };
 }
 
@@ -228,15 +229,17 @@ const FootballRanking = ({ poolId, pool }: FootballRankingProps) => {
 
   const calculatePrizeDistribution = (
     ranking: ParticipantScore[],
-    poolData?: { first_place_prize?: number; second_place_prize?: number; third_place_prize?: number }
+    poolData?: { first_place_prize?: number; second_place_prize?: number; third_place_prize?: number; max_winners?: number }
   ): ParticipantScore[] => {
     if (!poolData || !ranking.length) return ranking;
 
+    const maxW = poolData.max_winners || 3;
+
     const prizes = [
       poolData.first_place_prize || 0,
-      poolData.second_place_prize || 0,
-      poolData.third_place_prize || 0,
-    ];
+      maxW >= 2 ? (poolData.second_place_prize || 0) : 0,
+      maxW >= 3 ? (poolData.third_place_prize || 0) : 0,
+    ].slice(0, maxW);
 
     const hasPrizes = prizes.some(p => p > 0);
     if (!hasPrizes) return ranking;
@@ -244,20 +247,20 @@ const FootballRanking = ({ poolId, pool }: FootballRankingProps) => {
     const result = [...ranking];
     let currentPosition = 0;
 
-    while (currentPosition < result.length && currentPosition < 3) {
+    while (currentPosition < result.length && currentPosition < maxW) {
       const currentScore = result[currentPosition].total_points;
       
-      // Find all participants with the same score (tied) - but only consider those in top 3 positions
-      const tiedInTop3 = [];
-      for (let i = currentPosition; i < result.length && i < 3 && result[i].total_points === currentScore; i++) {
-        tiedInTop3.push(result[i]);
+      // Find all participants with the same score (tied) - but only consider those in top positions
+      const tiedInTop = [];
+      for (let i = currentPosition; i < result.length && i < maxW && result[i].total_points === currentScore; i++) {
+        tiedInTop.push(result[i]);
       }
       
-      const tiedCount = tiedInTop3.length;
+      const tiedCount = tiedInTop.length;
       
       // Calculate sum of prizes for tied positions
       let prizeSum = 0;
-      for (let i = currentPosition; i < Math.min(currentPosition + tiedCount, 3); i++) {
+      for (let i = currentPosition; i < Math.min(currentPosition + tiedCount, maxW); i++) {
         prizeSum += prizes[i];
       }
 
@@ -265,7 +268,7 @@ const FootballRanking = ({ poolId, pool }: FootballRankingProps) => {
       const prizePerParticipant = tiedCount > 0 ? prizeSum / tiedCount : 0;
 
       // Assign prize to all tied participants
-      tiedInTop3.forEach(participant => {
+      tiedInTop.forEach(participant => {
         const index = result.findIndex(p => p.id === participant.id);
         if (index !== -1) {
           result[index].prize_amount = prizePerParticipant;
@@ -447,7 +450,8 @@ const FootballRanking = ({ poolId, pool }: FootballRankingProps) => {
   };
 
   // Group participants by points to handle ties (excluding 0 points)
-  const getTopThreeGroups = () => {
+  const getTopGroups = () => {
+    const maxW = pool?.max_winners || 3;
     const groups: { position: number; participants: ParticipantScore[]; podiumIndex: number }[] = [];
     let currentPosition = 1;
     let podiumIndex = 0;
@@ -465,7 +469,7 @@ const FootballRanking = ({ poolId, pool }: FootballRankingProps) => {
       }
       
       // Stop if we've filled 3 different positions
-      if (positionsCount >= 3) break;
+      if (positionsCount >= maxW) break;
       
       const existingGroup = groups.find(g => g.position === currentPosition);
       if (existingGroup) {
@@ -492,12 +496,15 @@ const FootballRanking = ({ poolId, pool }: FootballRankingProps) => {
       </CardHeader>
       <CardContent>
         {/* Podium for top 3 positions - only show when all matches are finished */}
-        {allMatchesFinished && ranking.length >= 3 && (
+        {allMatchesFinished && ranking.length >= (pool?.max_winners || 3) && (
           <div className="mb-6 pb-4 border-b">
             <h3 className="text-base sm:text-lg font-semibold mb-3 text-center">Pódio</h3>
             <div className="flex items-end justify-center gap-2 sm:gap-4 px-2">
-              {[1, 0, 2].map((visualIndex) => {
-                const topGroups = getTopThreeGroups();
+              {(() => {
+                const maxW = pool?.max_winners || 3;
+                const visualOrder = maxW === 1 ? [0] : maxW === 2 ? [1, 0] : [1, 0, 2];
+                return visualOrder.map((visualIndex) => {
+                const topGroups = getTopGroups();
                 const group = topGroups.find(g => g.podiumIndex === visualIndex);
                 
                 if (!group) return null;
@@ -531,7 +538,8 @@ const FootballRanking = ({ poolId, pool }: FootballRankingProps) => {
                     </div>
                   </div>
                 );
-              })}
+              });
+              })()}
             </div>
           </div>
         )}
