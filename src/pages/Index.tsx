@@ -286,13 +286,13 @@ const Index = () => {
       <main className="flex-1 max-w-3xl mx-auto w-full px-3 pt-3 pb-4">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
           {/* Tab Navigation */}
-          <TabsList className="w-full grid grid-cols-4 mb-4 h-11 bg-muted/60 rounded-xl p-1">
+          <TabsList className="w-full grid grid-cols-3 mb-4 h-11 bg-muted/60 rounded-xl p-1">
             <TabsTrigger value="explorar" className="rounded-lg text-xs sm:text-sm font-medium data-[state=active]:bg-card data-[state=active]:shadow-sm relative">
-              <Search className="w-4 h-4 mr-1.5" />
-              Explorar
-              {exploreCount > 0 && (
+              <Home className="w-4 h-4 mr-1.5" />
+              Início
+              {(exploreCount + alertCount) > 0 && (
                 <Badge className="absolute -top-1.5 -right-1 h-4 min-w-4 px-1 text-[10px] bg-accent text-accent-foreground border-0">
-                  {exploreCount}
+                  {exploreCount + alertCount}
                 </Badge>
               )}
             </TabsTrigger>
@@ -314,85 +314,66 @@ const Index = () => {
                 </Badge>
               )}
             </TabsTrigger>
-            <TabsTrigger value="inicio" className="rounded-lg text-xs sm:text-sm font-medium data-[state=active]:bg-card data-[state=active]:shadow-sm relative">
-              <Home className="w-4 h-4 mr-1.5" />
-              Alertas
-              {alertCount > 0 && (
-                <Badge className="absolute -top-1.5 -right-1 h-4 min-w-4 px-1 text-[10px] bg-destructive text-destructive-foreground border-0">
-                  {alertCount}
-                </Badge>
-              )}
-            </TabsTrigger>
           </TabsList>
 
-          {/* ========= TAB: INÍCIO ========= */}
-          <TabsContent value="inicio" className="space-y-4 mt-0">
-            {/* Priority Alerts */}
-            {myPendingPaymentPools.length > 0 && (
-              <AlertSection
-                icon="💳"
-                title="Pagamento Pendente"
-                subtitle="Envie o comprovante para confirmar sua participação"
-                bgClass="bg-orange-50 dark:bg-orange-950/50 border-orange-200 dark:border-orange-800"
-              >
-                {myPendingPaymentPools.map((pool) => (
-                  <PoolCard key={pool.id} pool={pool} isUserParticipating hasPendingPayment onClick={() => navigate(`/pool/${pool.id}`)} />
-                ))}
-              </AlertSection>
-            )}
+          {/* ========= TAB: EXPLORAR (INÍCIO) ========= */}
+          <TabsContent value="explorar" className="space-y-5 mt-0">
+            {/* Alerts section - shown at top if any */}
+            {alertCount > 0 && (
+              <div className="space-y-3">
+                {myPendingPaymentPools.length > 0 && (
+                  <AlertSection
+                    icon="💳"
+                    title="Pagamento Pendente"
+                    subtitle="Envie o comprovante para confirmar sua participação"
+                    bgClass="bg-orange-50 dark:bg-orange-950/50 border-orange-200 dark:border-orange-800"
+                  >
+                    {myPendingPaymentPools.map((pool) => (
+                      <PoolCard key={pool.id} pool={pool} isUserParticipating hasPendingPayment onClick={() => navigate(`/pool/${pool.id}`)} />
+                    ))}
+                  </AlertSection>
+                )}
 
-            {myAwaitingApprovalPools.length > 0 && (
-              <AlertSection
-                icon="⏳"
-                title="Pendente Aprovação"
-                subtitle="Comprovante enviado. Aguarde o organizador."
-                bgClass="bg-yellow-50 dark:bg-yellow-950/50 border-yellow-200 dark:border-yellow-800"
-              >
-                {myAwaitingApprovalPools.map((pool) => (
-                  <PoolCard key={pool.id} pool={pool} isUserParticipating hasAwaitingApproval onClick={() => navigate(`/pool/${pool.id}`)} />
-                ))}
-              </AlertSection>
-            )}
+                {myAwaitingApprovalPools.length > 0 && (
+                  <AlertSection
+                    icon="⏳"
+                    title="Pendente Aprovação"
+                    subtitle="Comprovante enviado. Aguarde o organizador."
+                    bgClass="bg-yellow-50 dark:bg-yellow-950/50 border-yellow-200 dark:border-yellow-800"
+                  >
+                    {myAwaitingApprovalPools.map((pool) => (
+                      <PoolCard key={pool.id} pool={pool} isUserParticipating hasAwaitingApproval onClick={() => navigate(`/pool/${pool.id}`)} />
+                    ))}
+                  </AlertSection>
+                )}
 
-            {myAwaitingPixPools.length > 0 && (
-              <AlertSection
-                icon="🏆"
-                title="Você Ganhou! Envie sua Chave PIX"
-                subtitle="Informe sua chave PIX para receber o prêmio"
-                bgClass="bg-yellow-50 dark:bg-yellow-950/50 border-yellow-200 dark:border-yellow-800"
-              >
-                {myAwaitingPixPools.map((pool) => (
-                  <PoolCard key={pool.id} pool={pool} isUserParticipating hasWonPrize onClick={() => navigate(`/pool/${pool.id}`)} />
-                ))}
-              </AlertSection>
-            )}
+                {myAwaitingPixPools.length > 0 && (
+                  <AlertSection
+                    icon="🏆"
+                    title="Você Ganhou! Envie sua Chave PIX"
+                    subtitle="Informe sua chave PIX para receber o prêmio"
+                    bgClass="bg-yellow-50 dark:bg-yellow-950/50 border-yellow-200 dark:border-yellow-800"
+                  >
+                    {myAwaitingPixPools.map((pool) => (
+                      <PoolCard key={pool.id} pool={pool} isUserParticipating hasWonPrize onClick={() => navigate(`/pool/${pool.id}`)} />
+                    ))}
+                  </AlertSection>
+                )}
 
-            {myAwaitingPaymentPools.length > 0 && (
-              <AlertSection
-                icon="⏳"
-                title="Aguardando Pagamento"
-                subtitle="Sua chave PIX foi enviada. Aguarde o prêmio."
-                bgClass="bg-blue-50 dark:bg-blue-950/50 border-blue-200 dark:border-blue-800"
-              >
-                {myAwaitingPaymentPools.map((pool) => (
-                  <PoolCard key={pool.id} pool={pool} isUserParticipating onClick={() => navigate(`/pool/${pool.id}`)} />
-                ))}
-              </AlertSection>
-            )}
-
-            {/* Empty state */}
-            {alertCount === 0 && (
-              <div className="text-center py-12 space-y-3">
-                <div className="w-20 h-20 mx-auto rounded-full bg-muted flex items-center justify-center">
-                  <span className="text-4xl">✅</span>
-                </div>
-                <h3 className="text-lg font-semibold text-muted-foreground">Nenhuma pendência</h3>
-                <p className="text-sm text-muted-foreground">Explore bolões disponíveis na aba "Explorar"</p>
+                {myAwaitingPaymentPools.length > 0 && (
+                  <AlertSection
+                    icon="⏳"
+                    title="Aguardando Pagamento"
+                    subtitle="Sua chave PIX foi enviada. Aguarde o prêmio."
+                    bgClass="bg-blue-50 dark:bg-blue-950/50 border-blue-200 dark:border-blue-800"
+                  >
+                    {myAwaitingPaymentPools.map((pool) => (
+                      <PoolCard key={pool.id} pool={pool} isUserParticipating onClick={() => navigate(`/pool/${pool.id}`)} />
+                    ))}
+                  </AlertSection>
+                )}
               </div>
             )}
-
-            {/* Admin: WhatsApp Requests */}
-          </TabsContent>
 
           {/* ========= TAB: CONCORRENDO ========= */}
           <TabsContent value="concorrendo" className="space-y-5 mt-0">
@@ -491,8 +472,6 @@ const Index = () => {
             )}
           </TabsContent>
 
-          {/* ========= TAB: EXPLORAR ========= */}
-          <TabsContent value="explorar" className="space-y-5 mt-0">
             {officialPools.length > 0 && (
               <section className="space-y-3">
                 <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-2">
@@ -519,7 +498,7 @@ const Index = () => {
               </section>
             )}
 
-            {officialPools.length === 0 && availablePools.length === 0 && (
+            {officialPools.length === 0 && availablePools.length === 0 && alertCount === 0 && (
               <div className="text-center py-12 space-y-3">
                 <div className="w-20 h-20 mx-auto rounded-full bg-muted flex items-center justify-center">
                   <Search className="w-8 h-8 text-muted-foreground" />
