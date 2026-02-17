@@ -61,7 +61,7 @@ export const AdminParticipantsManager = ({
   const { toast } = useToast();
   const [processing, setProcessing] = useState<string | null>(null);
   const [approvedOpen, setApprovedOpen] = useState(false);
-  const [pendingOpen, setPendingOpen] = useState(true);
+  const [pendingOpen, setPendingOpen] = useState(false);
   const [rejectedOpen, setRejectedOpen] = useState(false);
   const [rejectDialogOpen, setRejectDialogOpen] = useState(false);
   const [rejectingParticipant, setRejectingParticipant] = useState<Participant | null>(null);
@@ -216,13 +216,13 @@ export const AdminParticipantsManager = ({
                         </p>
                       </div>
                     </div>
-                    <div className="flex gap-1.5">
+                    <div className="flex flex-wrap gap-1.5">
                       {p.payment_proof && (
                         <Button
                           variant="outline"
                           size="sm"
                           onClick={() => viewProof(p.payment_proof!)}
-                          className="flex-1 h-8 text-xs"
+                          className="h-8 text-xs px-2"
                         >
                           <Eye className="w-3.5 h-3.5 mr-1" />
                           Comprovante
@@ -233,7 +233,7 @@ export const AdminParticipantsManager = ({
                         size="sm"
                         onClick={() => handleApprove(p.id)}
                         disabled={processing === p.id}
-                        className="flex-1 h-8 text-xs"
+                        className="h-8 text-xs px-2"
                       >
                         <Check className="w-3.5 h-3.5 mr-1" />
                         Aprovar
@@ -243,7 +243,7 @@ export const AdminParticipantsManager = ({
                         size="sm"
                         onClick={() => openRejectDialog(p)}
                         disabled={processing === p.id}
-                        className="flex-1 h-8 text-xs"
+                        className="h-8 text-xs px-2"
                       >
                         <X className="w-3.5 h-3.5 mr-1" />
                         Rejeitar
