@@ -882,6 +882,7 @@ const PoolDetail = () => {
                         userId={userId!}
                         onSuccess={loadPoolData}
                         pool={pool}
+                        pixKey={pool.pix_key}
                       />
                     ) : (
                       <div className="space-y-4">
