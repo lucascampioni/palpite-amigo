@@ -154,10 +154,20 @@ const CreateFootballPool = () => {
     try {
       footballPoolSchema.parse({ title, description, pixKey, entryFee, maxParticipants });
       
-      // Additional validation for PIX key when entry fee is present
-      const hasEntryFee = entryFee && parseFloat(entryFee) > 0;
-      if (hasEntryFee && !pixKey.trim()) {
-        throw new Error("Chave PIX é obrigatória quando há valor de entrada");
+      // Additional validation for non-admin users
+      if (!userRole?.isAdmin) {
+        if (!entryFee || parseFloat(entryFee) <= 0) {
+          throw new Error("Valor de entrada é obrigatório");
+        }
+        if (!pixKey.trim()) {
+          throw new Error("Chave PIX é obrigatória");
+        }
+      } else {
+        // Admin: PIX required only if entry fee is set
+        const hasEntryFee = entryFee && parseFloat(entryFee) > 0;
+        if (hasEntryFee && !pixKey.trim()) {
+          throw new Error("Chave PIX é obrigatória quando há valor de entrada");
+        }
       }
 
       // Validate percentage total
@@ -341,7 +351,7 @@ const CreateFootballPool = () => {
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="entry_fee">Valor de Entrada (opcional)</Label>
+                  <Label htmlFor="entry_fee">Valor de Entrada {userRole?.isAdmin ? '(opcional)' : '*'}</Label>
                   <Input
                     id="entry_fee"
                     name="entry_fee"
@@ -349,6 +359,7 @@ const CreateFootballPool = () => {
                     step="0.01"
                     min="0"
                     placeholder="Ex: 10.00"
+                    required={!userRole?.isAdmin}
                   />
                 </div>
 
@@ -554,16 +565,19 @@ const CreateFootballPool = () => {
 
               <div className="space-y-2">
                 <Label htmlFor="pix_key">
-                  Chave PIX {(document.getElementById('entry_fee') as HTMLInputElement)?.value && parseFloat((document.getElementById('entry_fee') as HTMLInputElement).value) > 0 ? '*' : '(opcional)'}
+                  Chave PIX {userRole?.isAdmin ? '(opcional)' : '*'}
                 </Label>
                 <Input
                   id="pix_key"
                   name="pix_key"
                   placeholder="Digite sua chave PIX para receber pagamentos"
+                  required={!userRole?.isAdmin}
                 />
-                <p className="text-xs text-muted-foreground">
-                  * Obrigatório se houver valor de entrada
-                </p>
+                {userRole?.isAdmin && (
+                  <p className="text-xs text-muted-foreground">
+                    * Obrigatório se houver valor de entrada
+                  </p>
+                )}
               </div>
 
               <div className="flex items-center justify-between rounded-lg border p-4">
