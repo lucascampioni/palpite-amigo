@@ -8,6 +8,8 @@ import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { Copy, Upload } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { PaymentProofSubmission } from "@/components/PaymentProofSubmission";
 
 interface FootballPredictionFormProps {
   poolId: string;
@@ -15,6 +17,7 @@ interface FootballPredictionFormProps {
   onSuccess: () => void;
   entryFee?: number | null;
   pool?: any;
+  pixKey?: string;
 }
 
 interface Match {
@@ -35,13 +38,15 @@ interface Prediction {
   awayScore: string;
 }
 
-const FootballPredictionForm = ({ poolId, userId, onSuccess, entryFee, pool }: FootballPredictionFormProps) => {
+const FootballPredictionForm = ({ poolId, userId, onSuccess, entryFee, pool, pixKey }: FootballPredictionFormProps) => {
   const { toast } = useToast();
   const [matches, setMatches] = useState<Match[]>([]);
   const [predictions, setPredictions] = useState<Prediction[]>([]);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
+  const [showPaymentDialog, setShowPaymentDialog] = useState(false);
+  const [createdParticipantId, setCreatedParticipantId] = useState<string | null>(null);
 
   useEffect(() => {
     loadMatches();
@@ -179,11 +184,8 @@ const FootballPredictionForm = ({ poolId, userId, onSuccess, entryFee, pool }: F
       await supabase.from("participants").delete().eq("id", participant.id);
     } else {
       if (hasEntryFee) {
-        toast({
-          title: "Palpites registrados!",
-          description: "Envie o comprovante de pagamento para ser aprovado.",
-          duration: 5000,
-        });
+        setCreatedParticipantId(participant.id);
+        setShowPaymentDialog(true);
       } else {
         toast({
           title: "🎉 Você está inscrito no bolão!",
@@ -198,17 +200,61 @@ const FootballPredictionForm = ({ poolId, userId, onSuccess, entryFee, pool }: F
     setSubmitting(false);
   };
 
+  const handlePaymentDialogClose = () => {
+    setShowPaymentDialog(false);
+  };
+
   if (submitted) {
+    const hasEntryFee = pool?.entry_fee && parseFloat(pool.entry_fee) > 0;
     return (
       <div className="space-y-4">
-        <div className="p-6 rounded-lg bg-green-50 dark:bg-green-950 border-2 border-green-200 dark:border-green-800 text-center">
-          <p className="text-lg font-semibold text-green-700 dark:text-green-300 mb-2">
-            🎉 Você está inscrito no bolão!
-          </p>
-          <p className="text-sm text-muted-foreground">
-            Boa sorte! Seus palpites foram salvos. Agora é só esperar a conclusão dos jogos. 🍀
-          </p>
-        </div>
+        {hasEntryFee ? (
+          <>
+            <div className="p-6 rounded-lg bg-orange-50 dark:bg-orange-950 border-2 border-orange-200 dark:border-orange-800 text-center">
+              <p className="text-lg font-semibold text-orange-700 dark:text-orange-300 mb-2">
+                ⚠️ Palpites registrados!
+              </p>
+              <p className="text-sm text-muted-foreground">
+                Para confirmar sua participação, envie o comprovante de pagamento abaixo.
+              </p>
+            </div>
+
+            <Dialog open={showPaymentDialog} onOpenChange={setShowPaymentDialog}>
+              <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
+                <DialogHeader>
+                  <DialogTitle className="flex items-center gap-2">
+                    💳 Pagamento necessário
+                  </DialogTitle>
+                  <DialogDescription>
+                    Seus palpites foram salvos! Agora envie o comprovante para ser aprovado no bolão.
+                  </DialogDescription>
+                </DialogHeader>
+                {createdParticipantId && (
+                  <PaymentProofSubmission
+                    participantId={createdParticipantId}
+                    poolId={poolId}
+                    poolTitle={pool?.title || ''}
+                    entryFee={pool?.entry_fee ? parseFloat(pool.entry_fee) : 0}
+                    pixKey={pixKey}
+                    onSuccess={() => {
+                      setShowPaymentDialog(false);
+                      onSuccess();
+                    }}
+                  />
+                )}
+              </DialogContent>
+            </Dialog>
+          </>
+        ) : (
+          <div className="p-6 rounded-lg bg-green-50 dark:bg-green-950 border-2 border-green-200 dark:border-green-800 text-center">
+            <p className="text-lg font-semibold text-green-700 dark:text-green-300 mb-2">
+              🎉 Você está inscrito no bolão!
+            </p>
+            <p className="text-sm text-muted-foreground">
+              Boa sorte! Seus palpites foram salvos. Agora é só esperar a conclusão dos jogos. 🍀
+            </p>
+          </div>
+        )}
       </div>
     );
   }
