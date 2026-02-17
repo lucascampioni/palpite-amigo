@@ -2,7 +2,8 @@ import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { MessageCircle, Send, ChevronDown, ChevronUp, User, Clock, Trophy, AlertTriangle, PartyPopper, Megaphone, Loader2, CheckCircle2, XCircle } from "lucide-react";
+import { MessageCircle, Send, ChevronDown, ChevronUp, User, Clock, Trophy, AlertTriangle, PartyPopper, Megaphone, Loader2, CheckCircle2, XCircle, Copy, Check } from "lucide-react";
+import { Textarea } from "@/components/ui/textarea";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
@@ -40,6 +41,7 @@ interface WhatsAppMessagePanelProps {
   ranking?: { participant_id: string; participant_name: string; total_points: number }[];
   phones: Record<string, string>;
   allUsersWithPhone?: AllUser[];
+  isAdmin?: boolean;
   poolPrizes?: { first?: number; second?: number; third?: number };
 }
 
@@ -133,11 +135,12 @@ const categoryLabels: Record<TemplateCategory, string> = {
 
 type SendStatus = "idle" | "sending" | "success" | "error";
 
-const WhatsAppMessagePanel = ({ poolTitle, poolId, participants, poolDeadline, ranking, phones, allUsersWithPhone, poolPrizes }: WhatsAppMessagePanelProps) => {
+const WhatsAppMessagePanel = ({ poolTitle, poolId, participants, poolDeadline, ranking, phones, allUsersWithPhone, isAdmin = false, poolPrizes }: WhatsAppMessagePanelProps) => {
   const [isOpen, setIsOpen] = useState(false);
   const [selectedTemplate, setSelectedTemplate] = useState<string | null>(null);
   const [sendingAll, setSendingAll] = useState(false);
   const [individualStatus, setIndividualStatus] = useState<Record<string, SendStatus>>({});
+  const [copiedTemplate, setCopiedTemplate] = useState<string | null>(null);
   const { toast } = useToast();
 
   const messageTemplates = createMessageTemplates();
@@ -187,12 +190,26 @@ const WhatsAppMessagePanel = ({ poolTitle, poolId, participants, poolDeadline, r
 
   const selectedTemplateObj = messageTemplates.find(t => t.id === selectedTemplate);
   const isPromoTemplate = selectedTemplateObj?.targetAllUsers;
+  // For non-admin (pool creators), filter out promo template since they can't send to all users
+  const availableTemplates = isAdmin
+    ? messageTemplates
+    : messageTemplates.filter(t => !t.targetAllUsers);
 
   const participantsWithPhone = approvedParticipants.filter(p => phones[p.user_id]);
 
   const currentTargetList = isPromoTemplate
     ? (allUsersWithPhone || []).map(u => ({ id: u.id, name: u.full_name, phone: u.phone, participantId: undefined as string | undefined }))
     : participantsWithPhone.map(p => ({ id: p.user_id, name: p.participant_name, phone: phones[p.user_id], participantId: p.id }));
+
+  const handleCopyMessage = (templateObj: MessageTemplate) => {
+    const message = getMessageForParticipant(templateObj, "", undefined)
+      .replace("Olá ! ", "Olá! ")
+      .replace("Parabéns ! ", "Parabéns! ");
+    navigator.clipboard.writeText(message);
+    setCopiedTemplate(templateObj.id);
+    toast({ title: "Mensagem copiada!", description: "Cole no seu grupo do WhatsApp." });
+    setTimeout(() => setCopiedTemplate(null), 2000);
+  };
 
   const sendToAll = async () => {
     if (!selectedTemplateObj || sendingAll) return;
@@ -261,7 +278,7 @@ const WhatsAppMessagePanel = ({ poolTitle, poolId, participants, poolDeadline, r
               <div className="flex items-center gap-2">
                 <MessageCircle className="w-5 h-5 text-green-600 dark:text-green-400" />
                 Mensagens WhatsApp
-                <Badge variant="outline" className="text-xs bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300">API</Badge>
+                {isAdmin && <Badge variant="outline" className="text-xs bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300">API</Badge>}
               </div>
               {isOpen ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
             </CardTitle>
@@ -272,13 +289,14 @@ const WhatsAppMessagePanel = ({ poolTitle, poolId, participants, poolDeadline, r
             {/* Template Selection */}
             <div className="space-y-3">
               <p className="text-sm font-medium">Escolha a mensagem:</p>
-              {categories.map(cat => (
-                <div key={cat} className="space-y-2">
-                  <p className="text-xs font-semibold text-muted-foreground">{categoryLabels[cat]}</p>
-                  <div className="flex flex-wrap gap-2">
-                    {messageTemplates
-                      .filter(t => t.category === cat)
-                      .map(template => (
+              {categories.map(cat => {
+                const templatesInCat = availableTemplates.filter(t => t.category === cat);
+                if (templatesInCat.length === 0) return null;
+                return (
+                  <div key={cat} className="space-y-2">
+                    <p className="text-xs font-semibold text-muted-foreground">{categoryLabels[cat]}</p>
+                    <div className="flex flex-wrap gap-2">
+                      {templatesInCat.map(template => (
                         <Button
                           key={template.id}
                           variant={selectedTemplate === template.id ? "default" : "outline"}
@@ -290,13 +308,47 @@ const WhatsAppMessagePanel = ({ poolTitle, poolId, participants, poolDeadline, r
                           <span className="ml-1">{template.label}</span>
                         </Button>
                       ))}
+                    </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
 
-            {/* Target List with Send Buttons */}
-            {selectedTemplate && (
+            {/* Copy mode for non-admin (pool creators) */}
+            {selectedTemplate && selectedTemplateObj && !isAdmin && (
+              <div className="space-y-3 mt-4">
+                <p className="text-sm font-medium">Prévia da mensagem:</p>
+                <Textarea
+                  readOnly
+                  value={getMessageForParticipant(selectedTemplateObj, "", undefined)
+                    .replace("Olá ! ", "Olá! ")
+                    .replace("Parabéns ! ", "Parabéns! ")}
+                  className="min-h-[160px] text-sm"
+                />
+                <Button
+                  onClick={() => handleCopyMessage(selectedTemplateObj)}
+                  className="w-full bg-green-600 hover:bg-green-700 text-white"
+                >
+                  {copiedTemplate === selectedTemplateObj.id ? (
+                    <>
+                      <Check className="w-4 h-4 mr-1" />
+                      Copiada!
+                    </>
+                  ) : (
+                    <>
+                      <Copy className="w-4 h-4 mr-1" />
+                      Copiar mensagem
+                    </>
+                  )}
+                </Button>
+                <p className="text-xs text-muted-foreground text-center">
+                  Cole a mensagem no seu grupo do WhatsApp
+                </p>
+              </div>
+            )}
+
+            {/* API send mode for admin */}
+            {selectedTemplate && isAdmin && (
               <div className="space-y-2 mt-4">
                 {currentTargetList.length === 0 ? (
                   <p className="text-sm text-muted-foreground text-center py-4">

@@ -1375,6 +1375,7 @@ const PoolDetail = () => {
                   ranking={rankingData}
                   phones={participantPhones}
                   allUsersWithPhone={allUsersWithPhone}
+                  isAdmin={!!userRole?.isAdmin}
                   poolPrizes={{
                     first: pool.first_place_prize ? parseFloat(pool.first_place_prize) : undefined,
                     second: pool.second_place_prize ? parseFloat(pool.second_place_prize) : undefined,
