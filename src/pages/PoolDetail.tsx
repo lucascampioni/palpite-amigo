@@ -557,7 +557,7 @@ const PoolDetail = () => {
     return "Disponível";
   };
 
-  const approvedParticipants = participants;
+  const approvedParticipants = participants.filter(p => p.status === 'approved');
   const isPastDeadline = new Date() > new Date(pool.deadline);
 
   return (
