@@ -144,6 +144,8 @@ export type Database = {
           prize_sent_at: string | null
           prize_status: string | null
           prize_submitted_at: string | null
+          rejection_details: string | null
+          rejection_reason: string | null
           status: Database["public"]["Enums"]["participant_status"]
           updated_at: string
           user_id: string
@@ -164,6 +166,8 @@ export type Database = {
           prize_sent_at?: string | null
           prize_status?: string | null
           prize_submitted_at?: string | null
+          rejection_details?: string | null
+          rejection_reason?: string | null
           status?: Database["public"]["Enums"]["participant_status"]
           updated_at?: string
           user_id: string
@@ -184,6 +188,8 @@ export type Database = {
           prize_sent_at?: string | null
           prize_status?: string | null
           prize_submitted_at?: string | null
+          rejection_details?: string | null
+          rejection_reason?: string | null
           status?: Database["public"]["Enums"]["participant_status"]
           updated_at?: string
           user_id?: string
