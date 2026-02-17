@@ -155,21 +155,11 @@ export const AdminParticipantsManager = ({
           {/* Summary header */}
           <div className="flex items-center gap-3">
             <Users className="w-5 h-5 text-primary" />
-            <div className="flex items-center gap-2 flex-wrap">
+          <div className="flex items-center gap-2 flex-wrap">
               <span className="text-sm font-semibold">Participantes</span>
-              <Badge variant="secondary" className="text-xs">
-                ✅ {approved.length} aprovado(s)
-              </Badge>
-              {pending.length > 0 && (
-                <Badge className="text-xs bg-orange-500 hover:bg-orange-600">
-                  ⏳ {pending.length} pendente(s)
-                </Badge>
-              )}
-              {rejected.length > 0 && (
-                <Badge variant="destructive" className="text-xs">
-                  ❌ {rejected.length} rejeitado(s)
-                </Badge>
-              )}
+              <span className="text-xs text-muted-foreground">
+                {approved.length} aprovado(s){pending.length > 0 && ` · ${pending.length} pendente(s)`}{rejected.length > 0 && ` · ${rejected.length} rejeitado(s)`}
+              </span>
             </div>
           </div>
 
@@ -204,49 +194,41 @@ export const AdminParticipantsManager = ({
                 </span>
                 {pendingOpen ? <ChevronUp className="w-4 h-4 text-orange-600" /> : <ChevronDown className="w-4 h-4 text-orange-600" />}
               </CollapsibleTrigger>
-              <CollapsibleContent className="mt-2 space-y-2">
+              <CollapsibleContent className="mt-2 space-y-1">
                 {pending.map((p) => (
-                  <div key={p.id} className="p-3 rounded-lg bg-card border space-y-2">
-                    <div className="flex items-center justify-between">
-                      <div className="min-w-0">
-                        <p className="font-medium text-sm truncate">{p.participant_name}</p>
-                        <p className="text-[11px] text-muted-foreground">
-                          {new Date(p.created_at).toLocaleDateString("pt-BR")}
-                          {!p.payment_proof && " · ⚠️ Sem comprovante"}
-                        </p>
-                      </div>
-                    </div>
-                    <div className="flex flex-wrap gap-1.5">
+                  <div key={p.id} className="flex items-center justify-between py-2 px-3 rounded-lg bg-card border text-sm">
+                    <span className="font-medium truncate min-w-0 flex-1">{p.participant_name}</span>
+                    <div className="flex items-center gap-1 shrink-0 ml-2">
                       {p.payment_proof && (
                         <Button
-                          variant="outline"
-                          size="sm"
+                          variant="ghost"
+                          size="icon"
                           onClick={() => viewProof(p.payment_proof!)}
-                          className="h-8 text-xs px-2"
+                          className="h-7 w-7"
+                          title="Ver comprovante"
                         >
-                          <Eye className="w-3.5 h-3.5 mr-1" />
-                          Comprovante
+                          <Eye className="w-4 h-4 text-muted-foreground" />
                         </Button>
                       )}
                       <Button
-                        variant="default"
-                        size="sm"
+                        variant="ghost"
+                        size="icon"
                         onClick={() => handleApprove(p.id)}
                         disabled={processing === p.id}
-                        className="h-8 text-xs px-2"
+                        className="h-7 w-7 text-green-600 hover:text-green-700 hover:bg-green-50"
+                        title="Aprovar"
                       >
-                        <Check className="w-3.5 h-3.5 mr-1" />
-                        Aprovar
+                        <Check className="w-4 h-4" />
                       </Button>
                       <Button
-                        variant="destructive"
-                        size="sm"
+                        variant="ghost"
+                        size="icon"
                         onClick={() => openRejectDialog(p)}
                         disabled={processing === p.id}
-                        className="h-8 text-xs px-2"
+                        className="h-7 w-7 text-destructive hover:text-destructive hover:bg-destructive/10"
+                        title="Rejeitar"
                       >
-                        <X className="w-3.5 h-3.5 mr-1" />
-                        Rejeitar
+                        <X className="w-4 h-4" />
                       </Button>
                     </div>
                   </div>
