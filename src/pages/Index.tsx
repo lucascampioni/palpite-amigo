@@ -3,13 +3,14 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Trophy, LogOut, User, ChevronDown, ChevronUp, Users } from "lucide-react";
+import { Plus, Trophy, LogOut, User, ChevronDown, ChevronUp, Users, Home, Search, Settings } from "lucide-react";
 import PoolCard from "@/components/PoolCard";
-import PoolStats from "@/components/PoolStats";
 import { Session } from "@supabase/supabase-js";
 import { NotificationService } from "@/services/NotificationService";
 import { useUserRole } from "@/hooks/useUserRole";
 import palpiteAmigoLogo from "@/assets/logo-icon.png";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Badge } from "@/components/ui/badge";
 
 const Index = () => {
   const navigate = useNavigate();
@@ -18,16 +19,17 @@ const Index = () => {
   const [session, setSession] = useState<Session | null>(null);
   const [myCreatedPools, setMyCreatedPools] = useState<any[]>([]);
   const [myParticipatingPools, setMyParticipatingPools] = useState<any[]>([]);
-  const [myAwaitingPixPools, setMyAwaitingPixPools] = useState<any[]>([]); // Pools where user won and needs to submit PIX
-  const [myAwaitingPaymentPools, setMyAwaitingPaymentPools] = useState<any[]>([]); // Pools where user submitted PIX and awaits payment
+  const [myAwaitingPixPools, setMyAwaitingPixPools] = useState<any[]>([]);
+  const [myAwaitingPaymentPools, setMyAwaitingPaymentPools] = useState<any[]>([]);
   const [myPendingPaymentPools, setMyPendingPaymentPools] = useState<any[]>([]);
   const [myAwaitingApprovalPools, setMyAwaitingApprovalPools] = useState<any[]>([]);
-  const [participantPrizeStatus, setParticipantPrizeStatus] = useState<Record<string, string>>({}); // Map pool_id -> prize_status
+  const [participantPrizeStatus, setParticipantPrizeStatus] = useState<Record<string, string>>({});
   const [officialPools, setOfficialPools] = useState<any[]>([]);
   const [availablePools, setAvailablePools] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [showFinishedCreated, setShowFinishedCreated] = useState(false);
   const [showFinishedParticipating, setShowFinishedParticipating] = useState(false);
+  const [activeTab, setActiveTab] = useState("inicio");
 
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
@@ -44,7 +46,6 @@ const Index = () => {
       if (!session) {
         navigate("/auth");
       } else {
-        // Setup notifications
         NotificationService.requestPermissions();
         NotificationService.setupRealtimeNotifications(session.user.id);
       }
@@ -64,14 +65,12 @@ const Index = () => {
 
     setLoading(true);
 
-    // Load pools owned by user
     const { data: ownedPools } = await supabase
       .from("pools")
       .select("*, participants(count)")
       .eq("owner_id", session.user.id)
       .order("created_at", { ascending: false });
 
-    // Load pools where user is a participant (approved)
     const { data: participantRecords } = await supabase
       .from("participants")
       .select("pool_id, status, prize_status, payment_proof")
@@ -84,7 +83,7 @@ const Index = () => {
     const participantPoolIds = approvedRecords.map(p => p.pool_id);
     const pendingPoolIds = pendingRecords.map(p => p.pool_id);
     const awaitingApprovalPoolIds = awaitingApprovalRecords.map(p => p.pool_id);
-    // Create a map of pool_id -> prize_status for easy lookup
+
     const prizeStatusMap: Record<string, string> = {};
     participantRecords?.forEach(p => {
       if (p.prize_status) {
@@ -93,14 +92,12 @@ const Index = () => {
     });
     setParticipantPrizeStatus(prizeStatusMap);
     
-    // Separate pools by prize status
     const awaitingPixParticipants = participantRecords?.filter(p => p.prize_status === 'awaiting_pix') || [];
     const pixSubmittedParticipants = participantRecords?.filter(p => p.prize_status === 'pix_submitted') || [];
     
     const awaitingPixPoolIds = awaitingPixParticipants.map(p => p.pool_id);
     const pixSubmittedPoolIds = pixSubmittedParticipants.map(p => p.pool_id);
     
-    // Load pools where user needs to submit PIX
     let awaitingPixPoolsData: any[] = [];
     if (awaitingPixPoolIds.length > 0) {
       const { data } = await supabase
@@ -111,7 +108,6 @@ const Index = () => {
       awaitingPixPoolsData = data || [];
     }
 
-    // Load pools where user submitted PIX and awaits payment
     let awaitingPaymentPoolsData: any[] = [];
     if (pixSubmittedPoolIds.length > 0) {
       const { data } = await supabase
@@ -122,7 +118,6 @@ const Index = () => {
       awaitingPaymentPoolsData = data || [];
     }
 
-    // Load pools where user has pending payment (status = 'pending')
     let pendingPaymentPoolsData: any[] = [];
     if (pendingPoolIds.length > 0) {
       const { data } = await supabase
@@ -133,7 +128,6 @@ const Index = () => {
       pendingPaymentPoolsData = data || [];
     }
 
-    // Load pools where user has sent proof and awaits approval
     let awaitingApprovalPoolsData: any[] = [];
     if (awaitingApprovalPoolIds.length > 0) {
       const { data } = await supabase
@@ -144,8 +138,6 @@ const Index = () => {
       awaitingApprovalPoolsData = data || [];
     }
 
-    // Regular participating pools (approved and no prize status OR prize already sent)
-    // Include all pools that are not in special awaiting states
     const specialPoolIds = [...awaitingPixPoolIds, ...pixSubmittedPoolIds];
     const regularParticipantPoolIds = participantPoolIds.filter(id => !specialPoolIds.includes(id));
     
@@ -160,9 +152,6 @@ const Index = () => {
       participatingPoolsData = data || [];
     }
 
-
-    // Load official pools (marked as official by app admin)
-    // Exclude pools where user is owner or participant
     const excludeFromOfficialIds = [
       ...ownedPools?.map(p => p.id) || [],
       ...participantPoolIds,
@@ -191,11 +180,9 @@ const Index = () => {
       officialPoolsData = data || [];
     }
     
-    // Filter out pools with expired deadline where user hasn't participated
     const now = new Date();
     officialPoolsData = officialPoolsData.filter(pool => new Date(pool.deadline) > now);
 
-    // Load other public pools (excluding owned, participating, and official)
     const excludeIds = [
       ...ownedPools?.map(p => p.id) || [],
       ...participantPoolIds,
@@ -223,7 +210,6 @@ const Index = () => {
       activePools = data || [];
     }
     
-    // Filter out pools with expired deadline where user hasn't participated
     activePools = activePools.filter(pool => new Date(pool.deadline) > now);
 
     setMyCreatedPools(ownedPools || []);
@@ -246,359 +232,366 @@ const Index = () => {
     });
   };
 
+  // Counts for badges
+  const alertCount = myPendingPaymentPools.length + myAwaitingApprovalPools.length + myAwaitingPixPools.length + myAwaitingPaymentPools.length;
+  const myPoolsActiveCount = myCreatedPools.filter(p => p.status === "active").length;
+  const myPoolsFinishedCount = myCreatedPools.filter(p => p.status === "finished").length;
+  const participatingActiveCount = myParticipatingPools.filter(p => p.status === "active").length;
+  const participatingFinishedCount = myParticipatingPools.filter(p => p.status === "finished").length;
+  const exploreCount = officialPools.length + availablePools.length;
+
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background via-muted to-background">
-        <p className="text-muted-foreground">Carregando...</p>
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="flex flex-col items-center gap-3">
+          <img src={palpiteAmigoLogo} alt="Palpite Amigo" className="h-20 w-auto animate-pulse" />
+          <p className="text-muted-foreground text-sm">Carregando...</p>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background via-muted to-background">
-      {/* Header */}
-      <header className="border-b bg-card/80 backdrop-blur-md sticky top-0 z-10 shadow-sm">
-        <div className="max-w-7xl mx-auto px-2 sm:px-4 py-2 sm:py-3 flex items-center justify-between">
-          <div className="flex items-center gap-2 sm:gap-3">
-            <img src={palpiteAmigoLogo} alt="Palpite Amigo" className="h-16 sm:h-20 md:h-24 w-auto" />
+    <div className="min-h-screen bg-background flex flex-col">
+      {/* Compact Header */}
+      <header className="border-b bg-card/90 backdrop-blur-md sticky top-0 z-20 shadow-sm">
+        <div className="max-w-3xl mx-auto px-3 py-2 flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <img src={palpiteAmigoLogo} alt="Palpite Amigo" className="h-10 w-auto" />
+            <span className="font-bold text-lg text-foreground hidden sm:inline">Palpite Amigo</span>
           </div>
-          <div className="flex items-center gap-1 sm:gap-2">
-            <Button variant="ghost" size="sm" onClick={() => navigate("/profile")} className="hover:bg-primary/10 text-xs sm:text-sm px-2 sm:px-3">
-              <User className="w-3 h-3 sm:w-4 sm:h-4 sm:mr-2" />
-              <span className="hidden sm:inline">Perfil</span>
+          <div className="flex items-center gap-1">
+            {userRole?.canCreatePools && (
+              <Button
+                size="sm"
+                className="rounded-full bg-primary text-primary-foreground shadow-md h-9 px-3 text-xs font-semibold"
+                onClick={() => navigate("/create-football")}
+              >
+                <Plus className="w-4 h-4 mr-1" />
+                <span className="hidden sm:inline">Criar Bolão</span>
+                <span className="sm:hidden">Novo</span>
+              </Button>
+            )}
+            <Button variant="ghost" size="icon" className="h-9 w-9 rounded-full" onClick={() => navigate("/profile")}>
+              <User className="w-4 h-4" />
             </Button>
-            <Button variant="ghost" size="sm" onClick={handleSignOut} className="hover:bg-destructive/10 hover:text-destructive text-xs sm:text-sm px-2 sm:px-3">
-              <LogOut className="w-3 h-3 sm:w-4 sm:h-4 sm:mr-2" />
-              <span className="hidden sm:inline">Sair</span>
+            <Button variant="ghost" size="icon" className="h-9 w-9 rounded-full hover:text-destructive" onClick={handleSignOut}>
+              <LogOut className="w-4 h-4" />
             </Button>
           </div>
         </div>
       </header>
 
-      {/* Main Content */}
-      <main className="max-w-7xl mx-auto px-2 sm:px-4 py-4 sm:py-6 space-y-6 sm:space-y-8">
+      {/* Main Content with Tabs */}
+      <main className="flex-1 max-w-3xl mx-auto w-full px-3 pt-3 pb-4">
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+          {/* Tab Navigation */}
+          <TabsList className="w-full grid grid-cols-3 mb-4 h-11 bg-muted/60 rounded-xl p-1">
+            <TabsTrigger value="inicio" className="rounded-lg text-xs sm:text-sm font-medium data-[state=active]:bg-card data-[state=active]:shadow-sm relative">
+              <Home className="w-4 h-4 mr-1.5" />
+              Início
+              {alertCount > 0 && (
+                <Badge className="absolute -top-1.5 -right-1 h-4 min-w-4 px-1 text-[10px] bg-destructive text-destructive-foreground border-0">
+                  {alertCount}
+                </Badge>
+              )}
+            </TabsTrigger>
+            <TabsTrigger value="meus" className="rounded-lg text-xs sm:text-sm font-medium data-[state=active]:bg-card data-[state=active]:shadow-sm relative">
+              <Trophy className="w-4 h-4 mr-1.5" />
+              Meus Bolões
+              {(myPoolsActiveCount + participatingActiveCount) > 0 && (
+                <Badge className="absolute -top-1.5 -right-1 h-4 min-w-4 px-1 text-[10px] bg-primary text-primary-foreground border-0">
+                  {myPoolsActiveCount + participatingActiveCount}
+                </Badge>
+              )}
+            </TabsTrigger>
+            <TabsTrigger value="explorar" className="rounded-lg text-xs sm:text-sm font-medium data-[state=active]:bg-card data-[state=active]:shadow-sm relative">
+              <Search className="w-4 h-4 mr-1.5" />
+              Explorar
+              {exploreCount > 0 && (
+                <Badge className="absolute -top-1.5 -right-1 h-4 min-w-4 px-1 text-[10px] bg-accent text-accent-foreground border-0">
+                  {exploreCount}
+                </Badge>
+              )}
+            </TabsTrigger>
+          </TabsList>
 
-        {/* Hero Section */}
-        {userRole?.canCreatePools ? (
-          <div className="text-center space-y-3 sm:space-y-4 py-2 sm:py-4">
-            <div className="inline-block mb-1 sm:mb-2">
-              <img src={palpiteAmigoLogo} alt="Palpite Amigo" className="h-32 sm:h-40 md:h-52 w-auto mx-auto" />
-            </div>
-            <p className="text-muted-foreground text-base sm:text-lg md:text-xl max-w-2xl mx-auto px-4">
-              Gerencie bolões de futebol e divirta-se com seus amigos
-            </p>
-            <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 justify-center pt-2 sm:pt-4 px-4">
-              <Button
-                size="lg"
-                className="shadow-xl hover:shadow-2xl transition-all text-base sm:text-lg px-6 sm:px-8 py-5 sm:py-6 rounded-xl bg-gradient-to-r from-primary to-primary-glow hover:from-primary-glow hover:to-accent"
-                onClick={() => navigate("/create-football")}
+          {/* ========= TAB: INÍCIO ========= */}
+          <TabsContent value="inicio" className="space-y-4 mt-0">
+            {/* Priority Alerts */}
+            {myPendingPaymentPools.length > 0 && (
+              <AlertSection
+                icon="💳"
+                title="Pagamento Pendente"
+                subtitle="Envie o comprovante para confirmar sua participação"
+                bgClass="bg-orange-50 dark:bg-orange-950/50 border-orange-200 dark:border-orange-800"
               >
-                <Plus className="w-5 h-5 sm:w-6 sm:h-6 mr-2" />
-                Criar Bolão de Futebol
-              </Button>
+                {myPendingPaymentPools.map((pool) => (
+                  <PoolCard key={pool.id} pool={pool} isUserParticipating hasPendingPayment onClick={() => navigate(`/pool/${pool.id}`)} />
+                ))}
+              </AlertSection>
+            )}
+
+            {myAwaitingApprovalPools.length > 0 && (
+              <AlertSection
+                icon="⏳"
+                title="Pendente Aprovação"
+                subtitle="Comprovante enviado. Aguarde o organizador."
+                bgClass="bg-yellow-50 dark:bg-yellow-950/50 border-yellow-200 dark:border-yellow-800"
+              >
+                {myAwaitingApprovalPools.map((pool) => (
+                  <PoolCard key={pool.id} pool={pool} isUserParticipating hasAwaitingApproval onClick={() => navigate(`/pool/${pool.id}`)} />
+                ))}
+              </AlertSection>
+            )}
+
+            {myAwaitingPixPools.length > 0 && (
+              <AlertSection
+                icon="🏆"
+                title="Você Ganhou! Envie sua Chave PIX"
+                subtitle="Informe sua chave PIX para receber o prêmio"
+                bgClass="bg-yellow-50 dark:bg-yellow-950/50 border-yellow-200 dark:border-yellow-800"
+              >
+                {myAwaitingPixPools.map((pool) => (
+                  <PoolCard key={pool.id} pool={pool} isUserParticipating hasWonPrize onClick={() => navigate(`/pool/${pool.id}`)} />
+                ))}
+              </AlertSection>
+            )}
+
+            {myAwaitingPaymentPools.length > 0 && (
+              <AlertSection
+                icon="⏳"
+                title="Aguardando Pagamento"
+                subtitle="Sua chave PIX foi enviada. Aguarde o prêmio."
+                bgClass="bg-blue-50 dark:bg-blue-950/50 border-blue-200 dark:border-blue-800"
+              >
+                {myAwaitingPaymentPools.map((pool) => (
+                  <PoolCard key={pool.id} pool={pool} isUserParticipating onClick={() => navigate(`/pool/${pool.id}`)} />
+                ))}
+              </AlertSection>
+            )}
+
+            {/* Quick summary of active pools */}
+            {(myPoolsActiveCount > 0 || participatingActiveCount > 0) && (
+              <div className="space-y-3">
+                <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Bolões Ativos</h3>
+                <div className="space-y-3">
+                  {myCreatedPools.filter(p => p.status === "active").map((pool) => (
+                    <PoolCard key={pool.id} pool={pool} onClick={() => navigate(`/pool/${pool.id}`)} />
+                  ))}
+                  {myParticipatingPools.filter(p => p.status === "active").map((pool) => (
+                    <PoolCard key={pool.id} pool={pool} isUserParticipating onClick={() => navigate(`/pool/${pool.id}`)} />
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Official Pools on home */}
+            {officialPools.length > 0 && (
+              <div className="space-y-3">
+                <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-2">
+                  <span>⭐</span> Bolões Oficiais
+                </h3>
+                <div className="space-y-3">
+                  {officialPools.map((pool) => (
+                    <PoolCard key={pool.id} pool={pool} onClick={() => navigate(`/pool/${pool.id}`)} />
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Empty state */}
+            {alertCount === 0 && myPoolsActiveCount === 0 && participatingActiveCount === 0 && officialPools.length === 0 && (
+              <div className="text-center py-12 space-y-3">
+                <div className="w-20 h-20 mx-auto rounded-full bg-muted flex items-center justify-center">
+                  <span className="text-4xl">⚽</span>
+                </div>
+                <h3 className="text-lg font-semibold text-muted-foreground">Nenhuma pendência</h3>
+                <p className="text-sm text-muted-foreground">Explore bolões disponíveis na aba "Explorar"</p>
+              </div>
+            )}
+
+            {/* Admin: WhatsApp Requests */}
+            {userRole?.canCreatePools && (
               <Button
-                size="lg"
                 variant="outline"
-                className="shadow-lg hover:shadow-xl transition-all text-base sm:text-lg px-6 sm:px-8 py-5 sm:py-6 rounded-xl"
+                className="w-full justify-start gap-2 h-12 rounded-xl"
                 onClick={() => navigate("/whatsapp-requests")}
               >
-                <Users className="w-5 h-5 sm:w-6 sm:h-6 mr-2" />
+                <Users className="w-5 h-5 text-accent" />
                 Solicitações WhatsApp
               </Button>
-            </div>
-          </div>
-        ) : (
-          <div className="text-center space-y-3 sm:space-y-4 py-2 sm:py-4">
-            <div className="inline-block mb-1 sm:mb-2">
-              <img src={palpiteAmigoLogo} alt="Palpite Amigo" className="h-32 sm:h-40 md:h-52 w-auto mx-auto" />
-            </div>
-            <p className="text-muted-foreground text-base sm:text-lg md:text-xl max-w-2xl mx-auto px-4">
-              Mostre que entende de futebol — desafie seus amigos no Palpite Amigo!
-            </p>
-          </div>
-        )}
+            )}
+          </TabsContent>
 
-        {/* Official Pools Section */}
-        {officialPools.length > 0 && (
-          <section className="space-y-6">
-            <div className="flex items-center gap-3">
-              <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-secondary to-accent flex items-center justify-center shadow-lg">
-                <Trophy className="w-6 h-6 text-primary" />
-              </div>
-              <h3 className="text-3xl font-bold">Bolões Oficiais disponíveis</h3>
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {officialPools.map((pool) => (
-                <PoolCard
-                  key={pool.id}
-                  pool={pool}
-                  onClick={() => navigate(`/pool/${pool.id}`)}
-                />
-              ))}
-            </div>
-          </section>
-        )}
-
-        {/* Pending Payment Section */}
-        {myPendingPaymentPools.length > 0 && (
-          <section className="space-y-4">
-            <div className="flex items-center gap-2">
-              <div className="w-8 h-8 rounded-lg bg-orange-500 flex items-center justify-center">
-                <span className="text-lg">💳</span>
-              </div>
-              <h3 className="text-2xl font-bold">Pagamento Pendente</h3>
-            </div>
-            <div className="p-4 rounded-lg bg-orange-50 dark:bg-orange-950 border border-orange-200 dark:border-orange-800">
-              <p className="text-sm text-muted-foreground mb-4">
-                Envie o comprovante de pagamento para confirmar sua participação nestes bolões.
-              </p>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {myPendingPaymentPools.map((pool) => (
-                  <PoolCard
-                    key={pool.id}
-                    pool={pool}
-                    isUserParticipating={true}
-                    hasPendingPayment={true}
-                    onClick={() => navigate(`/pool/${pool.id}`)}
-                  />
-                ))}
-              </div>
-            </div>
-          </section>
-        )}
-
-        {/* Awaiting Approval Section */}
-        {myAwaitingApprovalPools.length > 0 && (
-          <section className="space-y-4">
-            <div className="flex items-center gap-2">
-              <div className="w-8 h-8 rounded-lg bg-yellow-500 flex items-center justify-center">
-                <span className="text-lg">⏳</span>
-              </div>
-              <h3 className="text-2xl font-bold">Pendente Aprovação</h3>
-            </div>
-            <div className="p-4 rounded-lg bg-yellow-50 dark:bg-yellow-950 border border-yellow-200 dark:border-yellow-800">
-              <p className="text-sm text-muted-foreground mb-4">
-                Seu comprovante foi enviado. Aguarde a aprovação do organizador.
-              </p>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {myAwaitingApprovalPools.map((pool) => (
-                  <PoolCard
-                    key={pool.id}
-                    pool={pool}
-                    isUserParticipating={true}
-                    hasAwaitingApproval={true}
-                    onClick={() => navigate(`/pool/${pool.id}`)}
-                  />
-                ))}
-              </div>
-            </div>
-          </section>
-        )}
-
-        {myAwaitingPixPools.length > 0 && (
-          <section className="space-y-4">
-            <div className="flex items-center gap-2">
-              <div className="w-8 h-8 rounded-lg bg-yellow-500 flex items-center justify-center">
-                <span className="text-lg">🏆</span>
-              </div>
-              <h3 className="text-2xl font-bold">🎉 Você Ganhou! Envie sua Chave PIX</h3>
-            </div>
-            <div className="p-4 rounded-lg bg-yellow-50 dark:bg-yellow-950 border border-yellow-200 dark:border-yellow-800">
-              <p className="text-sm text-muted-foreground mb-4">
-                Parabéns! Informe sua chave PIX para receber o prêmio.
-              </p>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {myAwaitingPixPools.map((pool) => (
-                  <PoolCard
-                    key={pool.id}
-                    pool={pool}
-                    isUserParticipating={true}
-                    hasWonPrize={true}
-                    onClick={() => navigate(`/pool/${pool.id}`)}
-                  />
-                ))}
-              </div>
-            </div>
-          </section>
-        )}
-
-        {/* Awaiting Payment Section */}
-        {myAwaitingPaymentPools.length > 0 && (
-          <section className="space-y-4">
-            <div className="flex items-center gap-2">
-              <div className="w-8 h-8 rounded-lg bg-blue-500 flex items-center justify-center">
-                <span className="text-lg">⏳</span>
-              </div>
-              <h3 className="text-2xl font-bold">Aguardando Pagamento</h3>
-            </div>
-            <div className="p-4 rounded-lg bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-800">
-              <p className="text-sm text-muted-foreground mb-4">
-                Sua chave PIX foi enviada. Aguarde o pagamento do prêmio.
-              </p>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {myAwaitingPaymentPools.map((pool) => (
-                  <PoolCard
-                    key={pool.id}
-                    pool={pool}
-                    isUserParticipating={true}
-                    onClick={() => navigate(`/pool/${pool.id}`)}
-                  />
-                ))}
-              </div>
-            </div>
-          </section>
-        )}
-
-        {/* Pools I Created Section */}
-        {myCreatedPools.length > 0 && (
-          <section className="space-y-4">
-            <div className="flex items-center gap-2">
-              <span className="text-2xl">⚽</span>
-              <h3 className="text-2xl font-bold">Bolões que criei</h3>
-            </div>
-            
-            {/* Active Pools */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {myCreatedPools.filter(p => p.status === "active").map((pool) => (
-                <PoolCard
-                  key={pool.id}
-                  pool={pool}
-                  onClick={() => navigate(`/pool/${pool.id}`)}
-                />
-              ))}
-            </div>
-
-            {/* Finished Pools Collapsible */}
-            {myCreatedPools.filter(p => p.status === "finished").length > 0 && (
-              <div className="space-y-3 pt-4">
-                <Button
-                  variant="ghost"
-                  className="w-full justify-between"
-                  onClick={() => setShowFinishedCreated(!showFinishedCreated)}
-                >
-                  <span className="text-sm font-medium text-muted-foreground">
-                    Bolões Finalizados ({myCreatedPools.filter(p => p.status === "finished").length})
-                  </span>
-                  {showFinishedCreated ? (
-                    <ChevronUp className="w-4 h-4" />
-                  ) : (
-                    <ChevronDown className="w-4 h-4" />
-                  )}
-                </Button>
+          {/* ========= TAB: MEUS BOLÕES ========= */}
+          <TabsContent value="meus" className="space-y-5 mt-0">
+            {/* Pools I Created */}
+            {myCreatedPools.length > 0 && (
+              <section className="space-y-3">
+                <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-2">
+                  ⚽ Bolões que criei
+                </h3>
                 
-                {showFinishedCreated && (
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {myCreatedPools.filter(p => p.status === "finished").map((pool) => (
-                      <PoolCard
-                        key={pool.id}
-                        pool={pool}
-                        onClick={() => navigate(`/pool/${pool.id}`)}
-                      />
-                    ))}
+                {/* Active */}
+                <div className="space-y-3">
+                  {myCreatedPools.filter(p => p.status === "active").map((pool) => (
+                    <PoolCard key={pool.id} pool={pool} onClick={() => navigate(`/pool/${pool.id}`)} />
+                  ))}
+                </div>
+
+                {/* Finished - collapsible */}
+                {myPoolsFinishedCount > 0 && (
+                  <div className="space-y-2">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="w-full justify-between h-9 text-muted-foreground hover:text-foreground"
+                      onClick={() => setShowFinishedCreated(!showFinishedCreated)}
+                    >
+                      <span className="text-xs font-medium">
+                        Finalizados ({myPoolsFinishedCount})
+                      </span>
+                      {showFinishedCreated ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+                    </Button>
+                    {showFinishedCreated && (
+                      <div className="space-y-3">
+                        {myCreatedPools.filter(p => p.status === "finished").map((pool) => (
+                          <PoolCard key={pool.id} pool={pool} onClick={() => navigate(`/pool/${pool.id}`)} />
+                        ))}
+                      </div>
+                    )}
                   </div>
+                )}
+              </section>
+            )}
+
+            {/* Pools I'm Participating */}
+            {myParticipatingPools.length > 0 && (
+              <section className="space-y-3">
+                <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-2">
+                  <Users className="w-4 h-4" /> Bolões que participo
+                </h3>
+                
+                {/* Active */}
+                <div className="space-y-3">
+                  {myParticipatingPools.filter(p => p.status === "active").map((pool) => (
+                    <PoolCard key={pool.id} pool={pool} isUserParticipating onClick={() => navigate(`/pool/${pool.id}`)} />
+                  ))}
+                </div>
+
+                {/* Finished - collapsible */}
+                {participatingFinishedCount > 0 && (
+                  <div className="space-y-2">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="w-full justify-between h-9 text-muted-foreground hover:text-foreground"
+                      onClick={() => setShowFinishedParticipating(!showFinishedParticipating)}
+                    >
+                      <span className="text-xs font-medium">
+                        Finalizados ({participatingFinishedCount})
+                      </span>
+                      {showFinishedParticipating ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+                    </Button>
+                    {showFinishedParticipating && (
+                      <div className="space-y-3">
+                        {myParticipatingPools.filter(p => p.status === "finished").map((pool) => (
+                          <PoolCard key={pool.id} pool={pool} isUserParticipating prizeReceived={participantPrizeStatus[pool.id] === 'prize_sent'} onClick={() => navigate(`/pool/${pool.id}`)} />
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
+              </section>
+            )}
+
+            {myCreatedPools.length === 0 && myParticipatingPools.length === 0 && (
+              <div className="text-center py-12 space-y-3">
+                <div className="w-20 h-20 mx-auto rounded-full bg-muted flex items-center justify-center">
+                  <Trophy className="w-8 h-8 text-muted-foreground" />
+                </div>
+                <h3 className="text-lg font-semibold text-muted-foreground">Nenhum bolão ainda</h3>
+                <p className="text-sm text-muted-foreground">Participe de bolões ou crie o seu próprio!</p>
+                {userRole?.canCreatePools && (
+                  <Button className="mt-2 rounded-xl" onClick={() => navigate("/create-football")}>
+                    <Plus className="w-4 h-4 mr-2" /> Criar Bolão
+                  </Button>
                 )}
               </div>
             )}
-          </section>
-        )}
+          </TabsContent>
 
-        {/* Pools I'm Participating Section */}
-        {myParticipatingPools.length > 0 && (
-          <section className="space-y-6">
-            <div className="flex items-center gap-3">
-              <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-accent to-primary-glow flex items-center justify-center shadow-lg">
-                <Users className="w-6 h-6 text-white" />
-              </div>
-              <div>
-                <h3 className="text-3xl font-bold">Bolões que participo</h3>
-                <p className="text-muted-foreground">Seus palpites estão salvos</p>
-              </div>
-            </div>
-            
-            {/* Active Pools */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {myParticipatingPools.filter(p => p.status === "active").map((pool) => (
-                <PoolCard
-                  key={pool.id}
-                  pool={pool}
-                  onClick={() => navigate(`/pool/${pool.id}`)}
-                  isUserParticipating={true}
-                />
-              ))}
-            </div>
+          {/* ========= TAB: EXPLORAR ========= */}
+          <TabsContent value="explorar" className="space-y-5 mt-0">
+            {officialPools.length > 0 && (
+              <section className="space-y-3">
+                <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-2">
+                  ⭐ Bolões Oficiais
+                </h3>
+                <div className="space-y-3">
+                  {officialPools.map((pool) => (
+                    <PoolCard key={pool.id} pool={pool} onClick={() => navigate(`/pool/${pool.id}`)} />
+                  ))}
+                </div>
+              </section>
+            )}
 
-            {/* Finished Pools Collapsible */}
-            {myParticipatingPools.filter(p => p.status === "finished").length > 0 && (
-              <div className="space-y-3 pt-4">
-                <Button
-                  variant="ghost"
-                  className="w-full justify-between"
-                  onClick={() => setShowFinishedParticipating(!showFinishedParticipating)}
-                >
-                  <span className="text-sm font-medium text-muted-foreground">
-                    Bolões Finalizados ({myParticipatingPools.filter(p => p.status === "finished").length})
-                  </span>
-                  {showFinishedParticipating ? (
-                    <ChevronUp className="w-4 h-4" />
-                  ) : (
-                    <ChevronDown className="w-4 h-4" />
-                  )}
-                </Button>
-                
-                {showFinishedParticipating && (
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {myParticipatingPools.filter(p => p.status === "finished").map((pool) => (
-                      <PoolCard
-                        key={pool.id}
-                        pool={pool}
-                        onClick={() => navigate(`/pool/${pool.id}`)}
-                        isUserParticipating={true}
-                        prizeReceived={participantPrizeStatus[pool.id] === 'prize_sent'}
-                      />
-                    ))}
-                  </div>
-                )}
+            {availablePools.length > 0 && (
+              <section className="space-y-3">
+                <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-2">
+                  🌐 Bolões Públicos
+                </h3>
+                <div className="space-y-3">
+                  {availablePools.map((pool) => (
+                    <PoolCard key={pool.id} pool={pool} onClick={() => navigate(`/pool/${pool.id}`)} />
+                  ))}
+                </div>
+              </section>
+            )}
+
+            {officialPools.length === 0 && availablePools.length === 0 && (
+              <div className="text-center py-12 space-y-3">
+                <div className="w-20 h-20 mx-auto rounded-full bg-muted flex items-center justify-center">
+                  <Search className="w-8 h-8 text-muted-foreground" />
+                </div>
+                <h3 className="text-lg font-semibold text-muted-foreground">Nenhum bolão disponível</h3>
+                <p className="text-sm text-muted-foreground">Novos bolões aparecerão aqui quando forem criados</p>
               </div>
             )}
-          </section>
-        )}
-
-        {/* Available Pools Section */}
-        {availablePools.length > 0 && (
-          <section className="space-y-4">
-            <div className="flex items-center gap-2">
-              <span className="text-2xl">🌐</span>
-              <h3 className="text-2xl font-bold">Bolões públicos</h3>
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {availablePools.map((pool) => (
-                <PoolCard
-                  key={pool.id}
-                  pool={pool}
-                  onClick={() => navigate(`/pool/${pool.id}`)}
-                />
-              ))}
-            </div>
-          </section>
-        )}
-
-        {/* Empty State */}
-        {myCreatedPools.length === 0 && myParticipatingPools.length === 0 && myAwaitingPixPools.length === 0 && myAwaitingPaymentPools.length === 0 && myPendingPaymentPools.length === 0 && myAwaitingApprovalPools.length === 0 && availablePools.length === 0 && officialPools.length === 0 && (
-          <div className="text-center py-16 space-y-4">
-            <div className="w-24 h-24 mx-auto rounded-full bg-muted flex items-center justify-center">
-              <span className="text-5xl">⚽</span>
-            </div>
-            <h3 className="text-xl font-semibold text-muted-foreground">
-              Nenhum bolão encontrado
-            </h3>
-            <p className="text-muted-foreground">
-              Seja o primeiro a criar um bolão de futebol!
-            </p>
-          </div>
-        )}
+          </TabsContent>
+        </Tabs>
       </main>
     </div>
   );
 };
+
+// Reusable alert section component
+const AlertSection = ({
+  icon,
+  title,
+  subtitle,
+  bgClass,
+  children,
+}: {
+  icon: string;
+  title: string;
+  subtitle: string;
+  bgClass: string;
+  children: React.ReactNode;
+}) => (
+  <div className={`p-3 rounded-xl border ${bgClass}`}>
+    <div className="flex items-center gap-2 mb-2">
+      <span className="text-lg">{icon}</span>
+      <div>
+        <h4 className="text-sm font-bold">{title}</h4>
+        <p className="text-xs text-muted-foreground">{subtitle}</p>
+      </div>
+    </div>
+    <div className="space-y-3">
+      {children}
+    </div>
+  </div>
+);
 
 export default Index;
