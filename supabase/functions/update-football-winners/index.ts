@@ -54,7 +54,7 @@ serve(async (req) => {
     // Get pool details for prize information
     const { data: pool, error: poolError } = await supabaseClient
       .from('pools')
-      .select('first_place_prize, second_place_prize, third_place_prize, max_winners')
+      .select('first_place_prize, second_place_prize, third_place_prize, max_winners, prize_type, entry_fee')
       .eq('id', pool_id)
       .single();
 

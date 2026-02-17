@@ -299,6 +299,7 @@ export type Database = {
           measurement_unit: Database["public"]["Enums"]["measurement_unit"]
           owner_id: string
           pool_type: Database["public"]["Enums"]["pool_type"]
+          prize_type: string
           result_value: string | null
           scoring_system: string
           second_place_prize: number | null
@@ -324,6 +325,7 @@ export type Database = {
           measurement_unit?: Database["public"]["Enums"]["measurement_unit"]
           owner_id: string
           pool_type?: Database["public"]["Enums"]["pool_type"]
+          prize_type?: string
           result_value?: string | null
           scoring_system?: string
           second_place_prize?: number | null
@@ -349,6 +351,7 @@ export type Database = {
           measurement_unit?: Database["public"]["Enums"]["measurement_unit"]
           owner_id?: string
           pool_type?: Database["public"]["Enums"]["pool_type"]
+          prize_type?: string
           result_value?: string | null
           scoring_system?: string
           second_place_prize?: number | null
