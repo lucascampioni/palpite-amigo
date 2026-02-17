@@ -727,12 +727,25 @@ const PoolDetail = () => {
                         <CheckCircle className="w-4 h-4 text-blue-600 dark:text-blue-400" />
                         Critério de empate:
                       </p>
-                      <p className="text-sm text-muted-foreground">
-                        Se houver empate entre participantes, os valores das posições empatadas serão somados e divididos igualmente entre os vencedores.
-                      </p>
-                      <p className="text-sm text-muted-foreground">
-                        <strong>Exemplo:</strong> se o 1º lugar paga R$50,00 e o 2º R$30,00, e dois jogadores empatarem em 1º, cada um receberá R$40,00.
-                      </p>
+                      {pool.max_winners === 1 ? (
+                        <>
+                          <p className="text-sm text-muted-foreground">
+                            Se houver empate na maior pontuação, o prêmio do 1º lugar será dividido igualmente entre todos os participantes empatados.
+                          </p>
+                          <p className="text-sm text-muted-foreground">
+                            <strong>Exemplo:</strong> se o prêmio é R$100,00 e 3 jogadores empatarem com a maior pontuação, cada um receberá R$33,33.
+                          </p>
+                        </>
+                      ) : (
+                        <>
+                          <p className="text-sm text-muted-foreground">
+                            Se houver empate entre participantes, os valores das posições empatadas serão somados e divididos igualmente entre os vencedores.
+                          </p>
+                          <p className="text-sm text-muted-foreground">
+                            <strong>Exemplo:</strong> se o 1º lugar paga R$50,00 e o 2º R$30,00, e dois jogadores empatarem em 1º, cada um receberá R$40,00.
+                          </p>
+                        </>
+                      )}
                     </div>
                   </CardContent>
                 </Card>
