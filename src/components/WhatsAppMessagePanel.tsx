@@ -2,9 +2,10 @@ import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { MessageCircle, Send, ChevronDown, ChevronUp, User, Clock, Trophy, AlertTriangle, PartyPopper, Megaphone } from "lucide-react";
+import { MessageCircle, Send, ChevronDown, ChevronUp, User, Clock, Trophy, AlertTriangle, PartyPopper, Megaphone, Loader2, CheckCircle2, XCircle } from "lucide-react";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
 
 interface Participant {
   id: string;
@@ -45,7 +46,7 @@ interface WhatsAppMessagePanelProps {
 const createMessageTemplates = (): MessageTemplate[] => [
   {
     id: "promote_pool",
-    label: "Divulgar bolão (todos os cadastrados)",
+    label: "Divulgar bolão (todos)",
     icon: <Megaphone className="w-4 h-4" />,
     getMessage: (name, pool, poolLink, extra) => {
       const prizes = extra?.prizes;
@@ -59,7 +60,7 @@ const createMessageTemplates = (): MessageTemplate[] => [
   },
   {
     id: "deadline_30min",
-    label: "Palpites encerram em 30min",
+    label: "Encerra em 30min",
     icon: <Clock className="w-4 h-4" />,
     getMessage: (name, pool, poolLink) =>
       `🎯 *Palpite Amigo*\n\nOlá ${name}! ⏰\n\nOs palpites do bolão "${pool}" se encerram em *30 minutos*!\n\nCorra para fazer seus palpites antes que o prazo acabe! 🏃‍♂️⚽\n\n👉 ${poolLink}`,
@@ -67,7 +68,7 @@ const createMessageTemplates = (): MessageTemplate[] => [
   },
   {
     id: "deadline_1h",
-    label: "Palpites encerram em 1 hora",
+    label: "Encerra em 1 hora",
     icon: <Clock className="w-4 h-4" />,
     getMessage: (name, pool, poolLink) =>
       `🎯 *Palpite Amigo*\n\nOlá ${name}! ⏰\n\nOs palpites do bolão "${pool}" se encerram em *1 hora*!\n\nNão perca o prazo! Faça seus palpites agora. ⚽\n\n👉 ${poolLink}`,
@@ -75,7 +76,7 @@ const createMessageTemplates = (): MessageTemplate[] => [
   },
   {
     id: "reminder_join",
-    label: "Lembrete para participar",
+    label: "Lembrete participar",
     icon: <AlertTriangle className="w-4 h-4" />,
     getMessage: (name, pool, poolLink) =>
       `🎯 *Palpite Amigo*\n\nOlá ${name}! 👋\n\nVocê ainda não enviou seus palpites no bolão "${pool}"!\n\nParticipe antes que o prazo acabe! 🎯⚽\n\n👉 ${poolLink}`,
@@ -83,7 +84,7 @@ const createMessageTemplates = (): MessageTemplate[] => [
   },
   {
     id: "position_update",
-    label: "Atualização de posição",
+    label: "Atualização posição",
     icon: <Trophy className="w-4 h-4" />,
     getMessage: (name, pool, poolLink, extra) =>
       `🎯 *Palpite Amigo*\n\nOlá ${name}! 📊\n\nAtualização do bolão "${pool}":\n\nVocê está na *${extra?.position || "?"}ª posição* com *${extra?.points || 0} pontos*!\n\n${extra?.position && extra.position <= 3 ? "Continue assim! Você está no pódio! 🏆" : "Ainda dá tempo de subir no ranking! 💪"}\n\n👉 ${poolLink}`,
@@ -99,7 +100,7 @@ const createMessageTemplates = (): MessageTemplate[] => [
   },
   {
     id: "winner_congrats",
-    label: "Parabéns ao vencedor",
+    label: "Parabéns vencedor",
     icon: <Trophy className="w-4 h-4" />,
     getMessage: (name, pool, poolLink) =>
       `🎯 *Palpite Amigo*\n\nParabéns ${name}! 🏆🎉\n\nVocê venceu o bolão "${pool}"!\n\nEnvie sua chave PIX no app para receber o prêmio! 💰\n\n👉 ${poolLink}`,
@@ -115,7 +116,7 @@ const createMessageTemplates = (): MessageTemplate[] => [
   },
   {
     id: "payment_pending",
-    label: "Pagamento pendente (taxa)",
+    label: "Pagamento pendente",
     icon: <AlertTriangle className="w-4 h-4" />,
     getMessage: (name, pool, poolLink) =>
       `🎯 *Palpite Amigo*\n\nOlá ${name}! 💳\n\nSeu pagamento da taxa de participação do bolão "${pool}" ainda está *pendente*.\n\nEnvie o comprovante no app para ser aprovado! 📱\n\n👉 ${poolLink}`,
@@ -130,25 +131,18 @@ const categoryLabels: Record<TemplateCategory, string> = {
   pagamento: "💰 Pagamentos",
 };
 
+type SendStatus = "idle" | "sending" | "success" | "error";
+
 const WhatsAppMessagePanel = ({ poolTitle, poolId, participants, poolDeadline, ranking, phones, allUsersWithPhone, poolPrizes }: WhatsAppMessagePanelProps) => {
   const [isOpen, setIsOpen] = useState(false);
   const [selectedTemplate, setSelectedTemplate] = useState<string | null>(null);
+  const [sendingAll, setSendingAll] = useState(false);
+  const [individualStatus, setIndividualStatus] = useState<Record<string, SendStatus>>({});
   const { toast } = useToast();
 
   const messageTemplates = createMessageTemplates();
   const poolLink = `https://palpiteamigo.com.br/pool/${poolId}`;
   const approvedParticipants = participants.filter(p => p.status === "approved");
-
-  const buildWhatsAppUrl = (phone: string, message: string) => {
-    const digits = phone.replace(/\D/g, "");
-    const phoneWithCountry = digits.startsWith("55") ? digits : `55${digits}`;
-    const encoded = encodeURIComponent(message);
-    return `https://wa.me/${phoneWithCountry}?text=${encoded}`;
-  };
-
-  const sendWhatsApp = (phone: string, message: string) => {
-    window.location.href = buildWhatsAppUrl(phone, message);
-  };
 
   const getParticipantRankInfo = (participantId: string) => {
     if (!ranking) return null;
@@ -170,37 +164,93 @@ const WhatsAppMessagePanel = ({ poolTitle, poolId, participants, poolDeadline, r
     return template.getMessage(name, poolTitle, poolLink, extra);
   };
 
+  const sendViaApi = async (phone: string, message: string) => {
+    const { data, error } = await supabase.functions.invoke("send-whatsapp", {
+      body: { phone, message },
+    });
+    if (error) throw error;
+    if (data && !data.success) throw new Error(data.error || "Falha ao enviar");
+    return data;
+  };
+
+  const sendToOne = async (targetId: string, phone: string, message: string) => {
+    setIndividualStatus(prev => ({ ...prev, [targetId]: "sending" }));
+    try {
+      await sendViaApi(phone, message);
+      setIndividualStatus(prev => ({ ...prev, [targetId]: "success" }));
+    } catch (err) {
+      setIndividualStatus(prev => ({ ...prev, [targetId]: "error" }));
+      const errorMsg = err instanceof Error ? err.message : "Erro desconhecido";
+      toast({ variant: "destructive", title: "Erro ao enviar", description: errorMsg });
+    }
+  };
+
   const selectedTemplateObj = messageTemplates.find(t => t.id === selectedTemplate);
   const isPromoTemplate = selectedTemplateObj?.targetAllUsers;
 
-  // For promo template: use all registered users; for others: use approved participants with phone
   const participantsWithPhone = approvedParticipants.filter(p => phones[p.user_id]);
 
   const currentTargetList = isPromoTemplate
     ? (allUsersWithPhone || []).map(u => ({ id: u.id, name: u.full_name, phone: u.phone, participantId: undefined as string | undefined }))
     : participantsWithPhone.map(p => ({ id: p.user_id, name: p.participant_name, phone: phones[p.user_id], participantId: p.id }));
 
-  const sendToAll = () => {
-    if (!selectedTemplateObj) return;
-    const urls = currentTargetList.map(t =>
-      buildWhatsAppUrl(t.phone, getMessageForParticipant(selectedTemplateObj, t.name, t.participantId))
-    );
+  const sendToAll = async () => {
+    if (!selectedTemplateObj || sendingAll) return;
+    setSendingAll(true);
 
-    urls.forEach((url, i) => {
-      setTimeout(() => {
-        window.open(url, "_blank");
-      }, i * 1500);
-    });
+    const messages = currentTargetList.map(t => ({
+      phone: t.phone,
+      message: getMessageForParticipant(selectedTemplateObj, t.name, t.participantId),
+    }));
 
-    toast({
-      title: `Enviando para ${urls.length} pessoas... 📤`,
-      description: "As janelas do WhatsApp serão abertas uma a uma.",
-      duration: urls.length * 1500 + 2000,
-    });
+    // Mark all as sending
+    const allSending: Record<string, SendStatus> = {};
+    currentTargetList.forEach(t => { allSending[t.id] = "sending"; });
+    setIndividualStatus(prev => ({ ...prev, ...allSending }));
+
+    try {
+      const { data, error } = await supabase.functions.invoke("send-whatsapp", {
+        body: { messages },
+      });
+
+      if (error) throw error;
+
+      // Update individual statuses from results
+      if (data?.results) {
+        const statusUpdate: Record<string, SendStatus> = {};
+        data.results.forEach((r: any, i: number) => {
+          if (i < currentTargetList.length) {
+            statusUpdate[currentTargetList[i].id] = r.success ? "success" : "error";
+          }
+        });
+        setIndividualStatus(prev => ({ ...prev, ...statusUpdate }));
+      }
+
+      toast({
+        title: `✅ Envio concluído`,
+        description: `${data?.successCount || 0} enviado(s), ${data?.failCount || 0} falha(s)`,
+      });
+    } catch (err) {
+      const errorMsg = err instanceof Error ? err.message : "Erro desconhecido";
+      toast({ variant: "destructive", title: "Erro no envio em massa", description: errorMsg });
+      // Mark all as error
+      const allError: Record<string, SendStatus> = {};
+      currentTargetList.forEach(t => { allError[t.id] = "error"; });
+      setIndividualStatus(prev => ({ ...prev, ...allError }));
+    } finally {
+      setSendingAll(false);
+    }
   };
 
-  const totalWithPhone = isPromoTemplate ? (allUsersWithPhone?.length || 0) : participantsWithPhone.length;
   const categories: TemplateCategory[] = ["divulgacao", "lembrete", "resultado", "pagamento"];
+
+  const getStatusIcon = (id: string) => {
+    const status = individualStatus[id];
+    if (status === "sending") return <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />;
+    if (status === "success") return <CheckCircle2 className="w-4 h-4 text-green-600" />;
+    if (status === "error") return <XCircle className="w-4 h-4 text-destructive" />;
+    return null;
+  };
 
   return (
     <Collapsible open={isOpen} onOpenChange={setIsOpen}>
@@ -211,6 +261,7 @@ const WhatsAppMessagePanel = ({ poolTitle, poolId, participants, poolDeadline, r
               <div className="flex items-center gap-2">
                 <MessageCircle className="w-5 h-5 text-green-600 dark:text-green-400" />
                 Mensagens WhatsApp
+                <Badge variant="outline" className="text-xs bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300">API</Badge>
               </div>
               {isOpen ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
             </CardTitle>
@@ -257,20 +308,26 @@ const WhatsAppMessagePanel = ({ poolTitle, poolId, participants, poolDeadline, r
                   <>
                     <div className="flex items-center justify-between">
                       <p className="text-sm font-medium">
-                        Enviar para{isPromoTemplate ? " (todos os cadastrados)" : ""}:
+                        Enviar para{isPromoTemplate ? " (todos)" : ""}:
                       </p>
                       <Button
                         size="sm"
                         onClick={sendToAll}
+                        disabled={sendingAll}
                         className="bg-green-600 hover:bg-green-700 text-white"
                       >
-                        <Send className="w-4 h-4 mr-1" />
-                        Enviar para todos ({currentTargetList.length})
+                        {sendingAll ? (
+                          <Loader2 className="w-4 h-4 mr-1 animate-spin" />
+                        ) : (
+                          <Send className="w-4 h-4 mr-1" />
+                        )}
+                        {sendingAll ? "Enviando..." : `Enviar para todos (${currentTargetList.length})`}
                       </Button>
                     </div>
                     <div className="space-y-2 max-h-64 overflow-y-auto">
                       {currentTargetList.map(target => {
                         const rankInfo = target.participantId ? getParticipantRankInfo(target.participantId) : null;
+                        const status = individualStatus[target.id];
 
                         return (
                           <div
@@ -285,15 +342,29 @@ const WhatsAppMessagePanel = ({ poolTitle, poolId, participants, poolDeadline, r
                                   {rankInfo.position}º • {rankInfo.points}pts
                                 </Badge>
                               )}
+                              {getStatusIcon(target.id)}
                             </div>
                             <Button
                               size="sm"
                               variant="outline"
                               className="flex-shrink-0 text-green-600 border-green-300 hover:bg-green-50 dark:hover:bg-green-950"
-                              onClick={() => sendWhatsApp(target.phone, getMessageForParticipant(selectedTemplateObj!, target.name, target.participantId))}
+                              disabled={status === "sending" || sendingAll}
+                              onClick={() =>
+                                sendToOne(
+                                  target.id,
+                                  target.phone,
+                                  getMessageForParticipant(selectedTemplateObj!, target.name, target.participantId)
+                                )
+                              }
                             >
-                              <MessageCircle className="w-4 h-4 mr-1" />
-                              Enviar
+                              {status === "sending" ? (
+                                <Loader2 className="w-4 h-4 animate-spin" />
+                              ) : (
+                                <>
+                                  <MessageCircle className="w-4 h-4 mr-1" />
+                                  Enviar
+                                </>
+                              )}
                             </Button>
                           </div>
                         );
