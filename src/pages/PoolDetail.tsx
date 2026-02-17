@@ -273,13 +273,10 @@ const PoolDetail = () => {
       .rpc("get_pool_owner_name", { pool_uuid: poolData.id });
     setOwnerName(ownerNameData || null);
 
-    // Load owner phone for WhatsApp contact
-    const { data: ownerProfile } = await supabase
-      .from("profiles")
-      .select("phone")
-      .eq("id", poolData.owner_id)
-      .single();
-    setOwnerPhone(ownerProfile?.phone || null);
+    // Load owner phone for WhatsApp contact (using security definer function)
+    const { data: ownerPhoneData } = await supabase
+      .rpc("get_pool_owner_phone", { pool_uuid: poolData.id });
+    setOwnerPhone(ownerPhoneData || null);
 
     // Check if user has phone registered
     if (user) {
