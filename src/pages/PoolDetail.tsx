@@ -21,6 +21,7 @@ import { PrizePixSubmission } from "@/components/PrizePixSubmission";
 import { AdminPrizeManagement } from "@/components/AdminPrizeManagement";
 import { PaymentProofSubmission } from "@/components/PaymentProofSubmission";
 import { AdminPendingParticipants } from "@/components/AdminPendingParticipants";
+import { AdminRejectedParticipants } from "@/components/AdminRejectedParticipants";
 import { useUserRole } from "@/hooks/useUserRole";
 import WhatsAppMessagePanel from "@/components/WhatsAppMessagePanel";
 import VipGroupInviteModal from "@/components/VipGroupInviteModal";
@@ -53,6 +54,7 @@ const PoolDetail = () => {
   const [showVipModal, setShowVipModal] = useState(false);
   const [showPoolInfo, setShowPoolInfo] = useState(false);
   const [ownerName, setOwnerName] = useState<string | null>(null);
+  const [ownerPhone, setOwnerPhone] = useState<string | null>(null);
 
   useEffect(() => {
     const buildSigned = async () => {
@@ -270,6 +272,14 @@ const PoolDetail = () => {
     const { data: ownerNameData } = await supabase
       .rpc("get_pool_owner_name", { pool_uuid: poolData.id });
     setOwnerName(ownerNameData || null);
+
+    // Load owner phone for WhatsApp contact
+    const { data: ownerProfile } = await supabase
+      .from("profiles")
+      .select("phone")
+      .eq("id", poolData.owner_id)
+      .single();
+    setOwnerPhone(ownerProfile?.phone || null);
 
     // Check if user has phone registered
     if (user) {
@@ -631,9 +641,9 @@ const PoolDetail = () => {
         {/* Rejected Banner */}
         {isRejected && (
           <div className="p-4 rounded-xl bg-gradient-to-r from-destructive to-destructive/80 text-destructive-foreground shadow-lg">
-            <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3">
               <span className="text-2xl">❌</span>
-              <div>
+              <div className="flex-1">
                 <p className="font-bold text-lg">Participação Reprovada</p>
                 <p className="text-sm opacity-90">
                   <strong>Motivo:</strong> {currentUserParticipant?.rejection_reason || 'Não informado'}
@@ -645,6 +655,22 @@ const PoolDetail = () => {
                 )}
               </div>
             </div>
+            {ownerPhone && (
+              <Button
+                variant="outline"
+                size="sm"
+                className="mt-3 w-full bg-white/10 border-white/20 hover:bg-white/20 text-white"
+                onClick={() => {
+                  const phone = ownerPhone.replace(/\D/g, '');
+                  const message = encodeURIComponent(
+                    `Olá ${ownerName || ''}! Minha participação no bolão "${pool.title}" foi reprovada. Motivo: ${currentUserParticipant?.rejection_reason || 'Não informado'}. Podemos resolver?`
+                  );
+                  window.open(`https://wa.me/55${phone}?text=${message}`, '_blank');
+                }}
+              >
+                📱 Falar com o organizador no WhatsApp
+              </Button>
+            )}
           </div>
         )}
 
@@ -964,7 +990,6 @@ const PoolDetail = () => {
                             <Button
                               variant="outline"
                               onClick={async () => {
-                                // Reset participation to pending so user can retry
                                 const { error } = await supabase
                                   .from("participants")
                                   .update({ 
@@ -992,6 +1017,22 @@ const PoolDetail = () => {
                             >
                               🔄 Tentar novamente com novo palpite
                             </Button>
+                            {ownerPhone && (
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => {
+                                  const phone = ownerPhone.replace(/\D/g, '');
+                                  const message = encodeURIComponent(
+                                    `Olá ${ownerName || ''}! Minha participação no bolão "${pool.title}" foi reprovada. Motivo: ${currentUserParticipant?.rejection_reason || 'Não informado'}. Podemos resolver?`
+                                  );
+                                  window.open(`https://wa.me/55${phone}?text=${message}`, '_blank');
+                                }}
+                                className="w-full"
+                              >
+                                📱 Falar com o organizador no WhatsApp
+                              </Button>
+                            )}
                           </CardContent>
                         </Card>
                       </>
@@ -1324,6 +1365,28 @@ const PoolDetail = () => {
                         <AdminPendingParticipants
                           poolId={pool.id}
                           participants={pendingParticipants}
+                          onSuccess={loadPoolData}
+                        />
+                      </>
+                    );
+                  }
+                  return null;
+                })()}
+              </>
+            )}
+
+            {/* Admin: Rejected Participants Management */}
+            {(userRole?.isAdmin || isOwner) && pool.status === "active" && (
+              <>
+                {(() => {
+                  const rejectedParticipants = participants.filter(p => p.status === 'rejected');
+                  if (rejectedParticipants.length > 0) {
+                    return (
+                      <>
+                        <Separator />
+                        <AdminRejectedParticipants
+                          poolId={pool.id}
+                          participants={rejectedParticipants}
                           onSuccess={loadPoolData}
                         />
                       </>
