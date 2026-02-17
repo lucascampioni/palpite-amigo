@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
-import { ArrowLeft, Calendar, Trophy, Users, Share2, Award, Copy, Lock, Unlock, CheckCircle, Edit } from "lucide-react";
+import { ArrowLeft, Calendar, Trophy, Users, Share2, Award, Copy, Lock, Unlock, CheckCircle, Edit, ChevronDown, ChevronUp, Info } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { Input } from "@/components/ui/input";
@@ -51,6 +51,7 @@ const PoolDetail = () => {
   const [allUsersWithPhone, setAllUsersWithPhone] = useState<{ id: string; full_name: string; phone: string }[]>([]);
   const [userHasPhone, setUserHasPhone] = useState<boolean | null>(null);
   const [showVipModal, setShowVipModal] = useState(false);
+  const [showPoolInfo, setShowPoolInfo] = useState(false);
 
   useEffect(() => {
     const buildSigned = async () => {
@@ -857,6 +858,103 @@ const PoolDetail = () => {
                           pixKey={pool.pix_key}
                           onSuccess={loadPoolData}
                         />
+
+                        {/* Collapsible Pool Info */}
+                        <div className="border rounded-lg overflow-hidden">
+                          <button
+                            onClick={() => setShowPoolInfo(!showPoolInfo)}
+                            className="w-full flex items-center justify-between p-4 bg-muted/30 hover:bg-muted/50 transition-colors"
+                          >
+                            <span className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
+                              <Info className="w-4 h-4" />
+                              Informações do bolão
+                            </span>
+                            {showPoolInfo ? (
+                              <ChevronUp className="w-4 h-4 text-muted-foreground" />
+                            ) : (
+                              <ChevronDown className="w-4 h-4 text-muted-foreground" />
+                            )}
+                          </button>
+                          {showPoolInfo && (
+                            <div className="p-4 space-y-4 border-t">
+                              {/* Prize Info */}
+                              {(pool.first_place_prize || pool.second_place_prize || pool.third_place_prize) && (
+                                <Card className="border-2 border-primary/20 bg-gradient-to-br from-primary/5 to-primary/10">
+                                  <CardHeader className="pb-2">
+                                    <CardTitle className="text-base flex items-center gap-2">
+                                      <Trophy className="w-4 h-4 text-primary" />
+                                      Premiação
+                                    </CardTitle>
+                                  </CardHeader>
+                                  <CardContent>
+                                    {(() => {
+                                      const approvedCount = participants.filter(p => p.status === 'approved').length;
+                                      const totalCollected = (pool.entry_fee || 0) * approvedCount;
+                                      const isPercentage = pool.prize_type === 'percentage';
+                                      const calcPrize = (pct: number) => isPercentage ? (pct / 100) * totalCollected : pct;
+                                      const formatPrize = (val: number) => `R$ ${val.toFixed(2).replace('.', ',')}`;
+                                      return (
+                                        <div className="grid grid-cols-1 gap-2">
+                                          {pool.first_place_prize && (
+                                            <div className="p-2 rounded-lg bg-gradient-to-br from-yellow-500/20 to-yellow-400/10 border border-yellow-500">
+                                              <p className="text-sm font-semibold text-yellow-700 dark:text-yellow-400">1º Lugar: {isPercentage ? formatPrize(calcPrize(parseFloat(pool.first_place_prize))) : formatPrize(parseFloat(pool.first_place_prize))} {isPercentage && <span className="text-xs">({parseFloat(pool.first_place_prize)}%)</span>}</p>
+                                            </div>
+                                          )}
+                                          {pool.second_place_prize && (
+                                            <div className="p-2 rounded-lg bg-gradient-to-br from-gray-400/20 to-gray-300/10 border border-gray-400">
+                                              <p className="text-sm font-semibold text-gray-700 dark:text-gray-300">2º Lugar: {isPercentage ? formatPrize(calcPrize(parseFloat(pool.second_place_prize))) : formatPrize(parseFloat(pool.second_place_prize))} {isPercentage && <span className="text-xs">({parseFloat(pool.second_place_prize)}%)</span>}</p>
+                                            </div>
+                                          )}
+                                          {pool.third_place_prize && (
+                                            <div className="p-2 rounded-lg bg-gradient-to-br from-orange-600/20 to-orange-500/10 border border-orange-600">
+                                              <p className="text-sm font-semibold text-orange-800 dark:text-orange-400">3º Lugar: {isPercentage ? formatPrize(calcPrize(parseFloat(pool.third_place_prize))) : formatPrize(parseFloat(pool.third_place_prize))} {isPercentage && <span className="text-xs">({parseFloat(pool.third_place_prize)}%)</span>}</p>
+                                            </div>
+                                          )}
+                                          {isPercentage && (
+                                            <p className="text-xs text-muted-foreground mt-1">
+                                              Os valores são atualizados conforme novos participantes entram no bolão.
+                                            </p>
+                                          )}
+                                        </div>
+                                      );
+                                    })()}
+                                  </CardContent>
+                                </Card>
+                              )}
+
+                              {/* Tie Breaker */}
+                              <Card className="border border-blue-500/20 bg-gradient-to-br from-blue-500/5 to-blue-500/10">
+                                <CardContent className="pt-4">
+                                  <div className="space-y-2">
+                                    <p className="font-semibold text-sm flex items-center gap-2">
+                                      <CheckCircle className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+                                      Critério de empate:
+                                    </p>
+                                    {pool.max_winners === 1 ? (
+                                      <>
+                                        <p className="text-sm text-muted-foreground">
+                                          Se houver empate na maior pontuação, o prêmio do 1º lugar será dividido igualmente entre todos os participantes empatados.
+                                        </p>
+                                        <p className="text-sm text-muted-foreground">
+                                          <strong>Exemplo:</strong> se o prêmio é R$100,00 e 4 jogadores empatarem com a maior pontuação, cada um receberá R$25,00.
+                                        </p>
+                                      </>
+                                    ) : (
+                                      <>
+                                        <p className="text-sm text-muted-foreground">
+                                          Se houver empate entre participantes, os valores das posições empatadas serão somados e divididos igualmente entre os vencedores.
+                                        </p>
+                                        <p className="text-sm text-muted-foreground">
+                                          <strong>Exemplo:</strong> se o 1º lugar paga R$50,00 e o 2º R$30,00, e dois jogadores empatarem em 1º, cada um receberá R$40,00.
+                                        </p>
+                                      </>
+                                    )}
+                                  </div>
+                                </CardContent>
+                              </Card>
+                            </div>
+                          )}
+                        </div>
                       </>
                     ) : (
                       <div className="p-6 rounded-lg bg-green-50 dark:bg-green-950 border-2 border-green-200 dark:border-green-800 text-center">
