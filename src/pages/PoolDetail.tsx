@@ -541,14 +541,18 @@ const PoolDetail = () => {
 
   if (!pool) return null;
 
+  const isPendingPayment = !isOwner && currentUserParticipant?.status === 'pending';
+
   const getStatusColor = (status: string) => {
     if (status === "finished") return "bg-gray-500 text-white";
+    if (isPendingPayment) return "bg-orange-500 text-white";
     if (hasJoined) return "bg-blue-500 text-white";
     return "bg-green-500 text-white";
   };
 
   const getStatusText = (status: string) => {
     if (status === "finished") return "Finalizado";
+    if (isPendingPayment) return "⚠️ Pagamento Pendente";
     if (hasJoined) return "Participando";
     return "Disponível";
   };
