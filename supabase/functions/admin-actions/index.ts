@@ -39,8 +39,10 @@ serve(async (req) => {
     }
 
     // Check admin via is_app_admin
-    const { data: isAdmin } = await anonClient.rpc("is_app_admin");
-    if (!isAdmin) {
+    // Check admin via is_app_admin (email-based) OR is_user_admin (role-based)
+    const { data: isAppAdmin } = await anonClient.rpc("is_app_admin");
+    const { data: isUserAdmin } = await anonClient.rpc("is_user_admin");
+    if (!isAppAdmin && !isUserAdmin) {
       return new Response(JSON.stringify({ error: "Acesso negado" }), {
         status: 403,
         headers: { "Content-Type": "application/json", ...corsHeaders },
