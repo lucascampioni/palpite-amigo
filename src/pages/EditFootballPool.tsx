@@ -202,14 +202,21 @@ const EditFootballPool = () => {
     setLoading(true);
 
     // Validate percentage total
-    if (prizeType === 'percentage' && totalPercentage > 100) {
-      toast({
-        variant: "destructive",
-        title: "Erro de validação",
-        description: "A soma das porcentagens não pode ultrapassar 100%",
-      });
-      setLoading(false);
-      return;
+    if (prizeType === 'percentage') {
+      if (totalPercentage > 100) {
+        toast({ variant: "destructive", title: "Erro de validação", description: "A soma das porcentagens não pode ultrapassar 100%" });
+        setLoading(false);
+        return;
+      }
+      const errors: string[] = [];
+      if (!firstPlacePrize || parseFloat(firstPlacePrize) <= 0) errors.push("1º lugar");
+      if (maxWinners >= 2 && (!secondPlacePrize || parseFloat(secondPlacePrize) <= 0)) errors.push("2º lugar");
+      if (maxWinners >= 3 && (!thirdPlacePrize || parseFloat(thirdPlacePrize) <= 0)) errors.push("3º lugar");
+      if (errors.length > 0) {
+        toast({ variant: "destructive", title: "Erro de validação", description: `O prêmio do ${errors.join(", ")} não pode ser 0% no modelo percentual` });
+        setLoading(false);
+        return;
+      }
     }
 
     try {
@@ -437,7 +444,7 @@ const EditFootballPool = () => {
                       id="first_place_prize"
                       type="number"
                       step={prizeType === 'percentage' ? '1' : '0.01'}
-                      min="0"
+                      min={prizeType === 'percentage' ? '1' : '0'}
                       max={prizeType === 'percentage' ? '100' : undefined}
                       value={firstPlacePrize}
                       onChange={(e) => setFirstPlacePrize(e.target.value)}
@@ -451,7 +458,7 @@ const EditFootballPool = () => {
                         id="second_place_prize"
                         type="number"
                         step={prizeType === 'percentage' ? '1' : '0.01'}
-                        min="0"
+                        min={prizeType === 'percentage' ? '1' : '0'}
                         max={prizeType === 'percentage' ? '100' : undefined}
                         value={secondPlacePrize}
                         onChange={(e) => setSecondPlacePrize(e.target.value)}
@@ -466,7 +473,7 @@ const EditFootballPool = () => {
                         id="third_place_prize"
                         type="number"
                         step={prizeType === 'percentage' ? '1' : '0.01'}
-                        min="0"
+                        min={prizeType === 'percentage' ? '1' : '0'}
                         max={prizeType === 'percentage' ? '100' : undefined}
                         value={thirdPlacePrize}
                         onChange={(e) => setThirdPlacePrize(e.target.value)}
