@@ -7,9 +7,10 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { Copy, Upload } from "lucide-react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { Copy, Upload, AlertTriangle } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { PaymentProofSubmission } from "@/components/PaymentProofSubmission";
+import { Checkbox } from "@/components/ui/checkbox";
 
 interface FootballPredictionFormProps {
   poolId: string;
@@ -46,6 +47,8 @@ const FootballPredictionForm = ({ poolId, userId, onSuccess, entryFee, pool, pix
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [showPaymentDialog, setShowPaymentDialog] = useState(false);
+  const [showDisclaimerDialog, setShowDisclaimerDialog] = useState(false);
+  const [disclaimerAccepted, setDisclaimerAccepted] = useState(false);
   const [createdParticipantId, setCreatedParticipantId] = useState<string | null>(null);
 
   useEffect(() => {
@@ -115,7 +118,7 @@ const FootballPredictionForm = ({ poolId, userId, onSuccess, entryFee, pool, pix
     }
   };
 
-  const handleSubmit = async () => {
+  const handleSubmitClick = () => {
     // Validate all predictions are filled
     const hasEmptyPredictions = predictions.some(p => p.homeScore === '' || p.awayScore === '');
     if (hasEmptyPredictions) {
@@ -126,6 +129,13 @@ const FootballPredictionForm = ({ poolId, userId, onSuccess, entryFee, pool, pix
       });
       return;
     }
+    // Show disclaimer dialog
+    setDisclaimerAccepted(false);
+    setShowDisclaimerDialog(true);
+  };
+
+  const handleConfirmSubmit = async () => {
+    setShowDisclaimerDialog(false);
 
     setSubmitting(true);
 
@@ -355,9 +365,51 @@ const FootballPredictionForm = ({ poolId, userId, onSuccess, entryFee, pool, pix
         )}
       </div>
 
-      <Button onClick={handleSubmit} disabled={submitting} className="w-full" size="lg">
+      <Button onClick={handleSubmitClick} disabled={submitting} className="w-full" size="lg">
         {submitting ? "Enviando..." : "Enviar Palpites e Participar"}
       </Button>
+
+      {/* Disclaimer Dialog */}
+      <Dialog open={showDisclaimerDialog} onOpenChange={setShowDisclaimerDialog}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-destructive">
+              <AlertTriangle className="w-5 h-5" />
+              Aviso Importante
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="p-4 rounded-lg bg-destructive/10 border-2 border-destructive/30">
+              <p className="text-sm font-bold text-destructive mb-2">
+                ⚠️ ATENÇÃO: Leia com cuidado antes de continuar
+              </p>
+              <p className="text-sm text-foreground leading-relaxed">
+                A <strong>responsabilidade pelo pagamento da premiação é exclusivamente do criador do bolão</strong>. 
+                O <strong>Palpite Amigo</strong> é apenas uma plataforma que facilita a organização de bolões e <strong>não se responsabiliza</strong> pelo pagamento de prêmios, valores de entrada ou quaisquer transações financeiras entre os participantes e organizadores.
+              </p>
+            </div>
+            <div className="flex items-start gap-3 p-3 rounded-lg bg-muted/50">
+              <Checkbox
+                id="disclaimer-accept"
+                checked={disclaimerAccepted}
+                onCheckedChange={(checked) => setDisclaimerAccepted(checked === true)}
+                className="mt-0.5"
+              />
+              <label htmlFor="disclaimer-accept" className="text-sm font-medium cursor-pointer leading-snug">
+                Estou ciente de que a responsabilidade pelo pagamento da premiação é do criador do bolão e não do Palpite Amigo.
+              </label>
+            </div>
+          </div>
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button variant="outline" onClick={() => setShowDisclaimerDialog(false)}>
+              Cancelar
+            </Button>
+            <Button onClick={handleConfirmSubmit} disabled={!disclaimerAccepted || submitting}>
+              {submitting ? "Enviando..." : "Confirmar e Enviar"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
