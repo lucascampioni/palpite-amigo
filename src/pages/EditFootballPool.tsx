@@ -50,6 +50,7 @@ const EditFootballPool = () => {
   const [firstPlacePrize, setFirstPlacePrize] = useState("");
   const [secondPlacePrize, setSecondPlacePrize] = useState("");
   const [thirdPlacePrize, setThirdPlacePrize] = useState("");
+  const [maxWinners, setMaxWinners] = useState<number>(3);
 
   useEffect(() => {
     if (!isLoadingRole && !userRole?.isAdmin) {
@@ -98,6 +99,7 @@ const EditFootballPool = () => {
     setFirstPlacePrize(poolData.first_place_prize ? poolData.first_place_prize.toString() : "");
     setSecondPlacePrize(poolData.second_place_prize ? poolData.second_place_prize.toString() : "");
     setThirdPlacePrize(poolData.third_place_prize ? poolData.third_place_prize.toString() : "");
+    setMaxWinners(poolData.max_winners || 3);
     
     // Format deadline for datetime-local input
     const deadlineDate = new Date(poolData.deadline);
@@ -205,9 +207,10 @@ const EditFootballPool = () => {
           scoring_system: scoringSystem,
           entry_fee: entryFee ? parseFloat(entryFee) : null,
           max_participants: maxParticipants !== "unlimited" ? parseInt(maxParticipants) : null,
+          max_winners: maxWinners,
           first_place_prize: firstPlacePrize ? parseFloat(firstPlacePrize) : null,
-          second_place_prize: secondPlacePrize ? parseFloat(secondPlacePrize) : null,
-          third_place_prize: thirdPlacePrize ? parseFloat(thirdPlacePrize) : null,
+          second_place_prize: maxWinners >= 2 && secondPlacePrize ? parseFloat(secondPlacePrize) : null,
+          third_place_prize: maxWinners >= 3 && thirdPlacePrize ? parseFloat(thirdPlacePrize) : null,
         })
         .eq("id", id);
 
@@ -350,12 +353,30 @@ const EditFootballPool = () => {
                 </div>
               </div>
 
-              <div className="space-y-2">
+              <div className="space-y-4">
                 <Label className="text-lg">🏆 Premiação (opcional)</Label>
-                <p className="text-sm text-muted-foreground mb-4">
-                  Defina os valores de premiação para os 3 primeiros lugares
-                </p>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                
+                <div className="space-y-2">
+                  <Label>Quantos lugares serão premiados?</Label>
+                  <div className="flex gap-2">
+                    {[1, 2, 3].map((n) => (
+                      <button
+                        key={n}
+                        type="button"
+                        onClick={() => setMaxWinners(n)}
+                        className={`flex-1 py-2 px-4 rounded-lg border-2 font-semibold transition-colors ${
+                          maxWinners === n
+                            ? 'border-primary bg-primary/10 text-primary'
+                            : 'border-muted hover:border-primary/50'
+                        }`}
+                      >
+                        Top {n}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div className={`grid grid-cols-1 ${maxWinners >= 2 ? (maxWinners >= 3 ? 'md:grid-cols-3' : 'md:grid-cols-2') : ''} gap-4`}>
                   <div className="space-y-2">
                     <Label htmlFor="first_place_prize">1º Lugar</Label>
                     <Input
@@ -368,30 +389,34 @@ const EditFootballPool = () => {
                       placeholder="Ex: 100.00"
                     />
                   </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="second_place_prize">2º Lugar</Label>
-                    <Input
-                      id="second_place_prize"
-                      type="number"
-                      step="0.01"
-                      min="0"
-                      value={secondPlacePrize}
-                      onChange={(e) => setSecondPlacePrize(e.target.value)}
-                      placeholder="Ex: 50.00"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="third_place_prize">3º Lugar</Label>
-                    <Input
-                      id="third_place_prize"
-                      type="number"
-                      step="0.01"
-                      min="0"
-                      value={thirdPlacePrize}
-                      onChange={(e) => setThirdPlacePrize(e.target.value)}
-                      placeholder="Ex: 25.00"
-                    />
-                  </div>
+                  {maxWinners >= 2 && (
+                    <div className="space-y-2">
+                      <Label htmlFor="second_place_prize">2º Lugar</Label>
+                      <Input
+                        id="second_place_prize"
+                        type="number"
+                        step="0.01"
+                        min="0"
+                        value={secondPlacePrize}
+                        onChange={(e) => setSecondPlacePrize(e.target.value)}
+                        placeholder="Ex: 50.00"
+                      />
+                    </div>
+                  )}
+                  {maxWinners >= 3 && (
+                    <div className="space-y-2">
+                      <Label htmlFor="third_place_prize">3º Lugar</Label>
+                      <Input
+                        id="third_place_prize"
+                        type="number"
+                        step="0.01"
+                        min="0"
+                        value={thirdPlacePrize}
+                        onChange={(e) => setThirdPlacePrize(e.target.value)}
+                        placeholder="Ex: 25.00"
+                      />
+                    </div>
+                  )}
                 </div>
               </div>
 

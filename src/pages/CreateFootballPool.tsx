@@ -53,6 +53,7 @@ const CreateFootballPool = () => {
   const [isPrivate, setIsPrivate] = useState(false);
   const [isOfficial, setIsOfficial] = useState(false);
   const [scoringSystem, setScoringSystem] = useState<'standard' | 'exact_only'>('exact_only');
+  const [maxWinners, setMaxWinners] = useState<number>(3);
 
   useEffect(() => {
     if (!isLoadingRole && !userRole?.isAdmin) {
@@ -206,9 +207,10 @@ const CreateFootballPool = () => {
         entry_fee: entryFee ? parseFloat(entryFee) : null,
         max_participants: maxParticipants && maxParticipants !== "unlimited" ? parseInt(maxParticipants) : null,
         is_official: isOfficial,
+        max_winners: maxWinners,
         first_place_prize: firstPlacePrize ? parseFloat(firstPlacePrize) : null,
-        second_place_prize: secondPlacePrize ? parseFloat(secondPlacePrize) : null,
-        third_place_prize: thirdPlacePrize ? parseFloat(thirdPlacePrize) : null,
+        second_place_prize: maxWinners >= 2 && secondPlacePrize ? parseFloat(secondPlacePrize) : null,
+        third_place_prize: maxWinners >= 3 && thirdPlacePrize ? parseFloat(thirdPlacePrize) : null,
       }])
       .select()
       .single();
@@ -348,12 +350,30 @@ const CreateFootballPool = () => {
                 </div>
               </div>
 
-              <div className="space-y-2">
+              <div className="space-y-4">
                 <Label className="text-lg">🏆 Premiação (opcional)</Label>
-                <p className="text-sm text-muted-foreground mb-4">
-                  Defina os valores de premiação para os 3 primeiros lugares
-                </p>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                
+                <div className="space-y-2">
+                  <Label>Quantos lugares serão premiados?</Label>
+                  <div className="flex gap-2">
+                    {[1, 2, 3].map((n) => (
+                      <button
+                        key={n}
+                        type="button"
+                        onClick={() => setMaxWinners(n)}
+                        className={`flex-1 py-2 px-4 rounded-lg border-2 font-semibold transition-colors ${
+                          maxWinners === n
+                            ? 'border-primary bg-primary/10 text-primary'
+                            : 'border-muted hover:border-primary/50'
+                        }`}
+                      >
+                        Top {n}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div className={`grid grid-cols-1 ${maxWinners >= 2 ? (maxWinners >= 3 ? 'md:grid-cols-3' : 'md:grid-cols-2') : ''} gap-4`}>
                   <div className="space-y-2">
                     <Label htmlFor="first_place_prize">1º Lugar</Label>
                     <Input
@@ -365,28 +385,32 @@ const CreateFootballPool = () => {
                       placeholder="Ex: 100.00"
                     />
                   </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="second_place_prize">2º Lugar</Label>
-                    <Input
-                      id="second_place_prize"
-                      name="second_place_prize"
-                      type="number"
-                      step="0.01"
-                      min="0"
-                      placeholder="Ex: 50.00"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="third_place_prize">3º Lugar</Label>
-                    <Input
-                      id="third_place_prize"
-                      name="third_place_prize"
-                      type="number"
-                      step="0.01"
-                      min="0"
-                      placeholder="Ex: 25.00"
-                    />
-                  </div>
+                  {maxWinners >= 2 && (
+                    <div className="space-y-2">
+                      <Label htmlFor="second_place_prize">2º Lugar</Label>
+                      <Input
+                        id="second_place_prize"
+                        name="second_place_prize"
+                        type="number"
+                        step="0.01"
+                        min="0"
+                        placeholder="Ex: 50.00"
+                      />
+                    </div>
+                  )}
+                  {maxWinners >= 3 && (
+                    <div className="space-y-2">
+                      <Label htmlFor="third_place_prize">3º Lugar</Label>
+                      <Input
+                        id="third_place_prize"
+                        name="third_place_prize"
+                        type="number"
+                        step="0.01"
+                        min="0"
+                        placeholder="Ex: 25.00"
+                      />
+                    </div>
+                  )}
                 </div>
               </div>
 
