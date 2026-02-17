@@ -55,6 +55,14 @@ const CreateFootballPool = () => {
   const [scoringSystem, setScoringSystem] = useState<'standard' | 'exact_only'>('exact_only');
   const [maxWinners, setMaxWinners] = useState<number>(3);
   const [prizeType, setPrizeType] = useState<'fixed' | 'percentage'>('fixed');
+  const [firstPlacePrize, setFirstPlacePrize] = useState("");
+  const [secondPlacePrize, setSecondPlacePrize] = useState("");
+  const [thirdPlacePrize, setThirdPlacePrize] = useState("");
+
+  const totalPercentage = prizeType === 'percentage'
+    ? (parseFloat(firstPlacePrize) || 0) + (maxWinners >= 2 ? (parseFloat(secondPlacePrize) || 0) : 0) + (maxWinners >= 3 ? (parseFloat(thirdPlacePrize) || 0) : 0)
+    : 0;
+  const remainingPercentage = 100 - totalPercentage;
 
   useEffect(() => {
     if (!isLoadingRole && !userRole?.isAdmin) {
@@ -134,9 +142,6 @@ const CreateFootballPool = () => {
     const pixKey = formData.get("pix_key") as string;
     const entryFee = formData.get("entry_fee") as string;
     const maxParticipants = formData.get("max_participants") as string;
-    const firstPlacePrize = formData.get("first_place_prize") as string;
-    const secondPlacePrize = formData.get("second_place_prize") as string;
-    const thirdPlacePrize = formData.get("third_place_prize") as string;
 
     // Validate input
     try {
@@ -146,6 +151,11 @@ const CreateFootballPool = () => {
       const hasEntryFee = entryFee && parseFloat(entryFee) > 0;
       if (hasEntryFee && !pixKey.trim()) {
         throw new Error("Chave PIX é obrigatória quando há valor de entrada");
+      }
+
+      // Validate percentage total
+      if (prizeType === 'percentage' && totalPercentage > 100) {
+        throw new Error("A soma das porcentagens não pode ultrapassar 100%");
       }
     } catch (error) {
       if (error instanceof z.ZodError) {
@@ -418,6 +428,8 @@ const CreateFootballPool = () => {
                       step={prizeType === 'percentage' ? '1' : '0.01'}
                       min="0"
                       max={prizeType === 'percentage' ? '100' : undefined}
+                      value={firstPlacePrize}
+                      onChange={(e) => setFirstPlacePrize(e.target.value)}
                       placeholder={prizeType === 'percentage' ? 'Ex: 60' : 'Ex: 100.00'}
                     />
                   </div>
@@ -431,6 +443,8 @@ const CreateFootballPool = () => {
                         step={prizeType === 'percentage' ? '1' : '0.01'}
                         min="0"
                         max={prizeType === 'percentage' ? '100' : undefined}
+                        value={secondPlacePrize}
+                        onChange={(e) => setSecondPlacePrize(e.target.value)}
                         placeholder={prizeType === 'percentage' ? 'Ex: 30' : 'Ex: 50.00'}
                       />
                     </div>
@@ -445,11 +459,29 @@ const CreateFootballPool = () => {
                         step={prizeType === 'percentage' ? '1' : '0.01'}
                         min="0"
                         max={prizeType === 'percentage' ? '100' : undefined}
+                        value={thirdPlacePrize}
+                        onChange={(e) => setThirdPlacePrize(e.target.value)}
                         placeholder={prizeType === 'percentage' ? 'Ex: 10' : 'Ex: 25.00'}
                       />
                     </div>
                   )}
                 </div>
+
+                {prizeType === 'percentage' && (
+                  <div className={`p-3 rounded-lg text-sm font-medium ${
+                    totalPercentage > 100 
+                      ? 'bg-destructive/10 text-destructive border border-destructive/30' 
+                      : 'bg-muted/50 text-muted-foreground'
+                  }`}>
+                    {totalPercentage > 100 ? (
+                      <p>⚠️ A soma das porcentagens ({totalPercentage}%) ultrapassa 100%!</p>
+                    ) : remainingPercentage > 0 ? (
+                      <p>💰 {remainingPercentage}% do valor arrecadado ficará com você (organizador)</p>
+                    ) : (
+                      <p>✅ 100% do valor arrecadado será distribuído como premiação</p>
+                    )}
+                  </div>
+                )}
               </div>
 
               <div className="space-y-4 rounded-lg border p-4 bg-muted/30">

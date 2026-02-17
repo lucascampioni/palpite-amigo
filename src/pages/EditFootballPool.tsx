@@ -53,6 +53,11 @@ const EditFootballPool = () => {
   const [maxWinners, setMaxWinners] = useState<number>(3);
   const [prizeType, setPrizeType] = useState<'fixed' | 'percentage'>('fixed');
 
+  const totalPercentage = prizeType === 'percentage'
+    ? (parseFloat(firstPlacePrize) || 0) + (maxWinners >= 2 ? (parseFloat(secondPlacePrize) || 0) : 0) + (maxWinners >= 3 ? (parseFloat(thirdPlacePrize) || 0) : 0)
+    : 0;
+  const remainingPercentage = 100 - totalPercentage;
+
   useEffect(() => {
     if (!isLoadingRole && !userRole?.isAdmin) {
       toast({
@@ -195,6 +200,17 @@ const EditFootballPool = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
+
+    // Validate percentage total
+    if (prizeType === 'percentage' && totalPercentage > 100) {
+      toast({
+        variant: "destructive",
+        title: "Erro de validação",
+        description: "A soma das porcentagens não pode ultrapassar 100%",
+      });
+      setLoading(false);
+      return;
+    }
 
     try {
       // Update pool
@@ -457,6 +473,22 @@ const EditFootballPool = () => {
                     </div>
                   )}
                 </div>
+
+                {prizeType === 'percentage' && (
+                  <div className={`p-3 rounded-lg text-sm font-medium ${
+                    totalPercentage > 100 
+                      ? 'bg-destructive/10 text-destructive border border-destructive/30' 
+                      : 'bg-muted/50 text-muted-foreground'
+                  }`}>
+                    {totalPercentage > 100 ? (
+                      <p>⚠️ A soma das porcentagens ({totalPercentage}%) ultrapassa 100%!</p>
+                    ) : remainingPercentage > 0 ? (
+                      <p>💰 {remainingPercentage}% do valor arrecadado ficará com você (organizador)</p>
+                    ) : (
+                      <p>✅ 100% do valor arrecadado será distribuído como premiação</p>
+                    )}
+                  </div>
+                )}
               </div>
 
               <div className="space-y-2">
