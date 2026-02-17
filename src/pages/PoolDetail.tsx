@@ -796,7 +796,7 @@ const PoolDetail = () => {
                             Se houver empate na maior pontuação, o prêmio do 1º lugar será dividido igualmente entre todos os participantes empatados.
                           </p>
                           <p className="text-sm text-muted-foreground">
-                            <strong>Exemplo:</strong> se o prêmio é R$100,00 e 3 jogadores empatarem com a maior pontuação, cada um receberá R$33,33.
+                            <strong>Exemplo:</strong> se o prêmio é R$100,00 e 4 jogadores empatarem com a maior pontuação, cada um receberá R$25,00.
                           </p>
                         </>
                       ) : (
