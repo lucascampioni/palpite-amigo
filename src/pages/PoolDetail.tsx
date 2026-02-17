@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
-import { ArrowLeft, Calendar, Trophy, Users, Share2, Award, Copy, Lock, Unlock, CheckCircle, Edit, ChevronDown, ChevronUp, Info, Trash2 } from "lucide-react";
+import { ArrowLeft, Calendar, Trophy, Users, Share2, Award, Copy, Lock, Unlock, CheckCircle, Edit, ChevronDown, ChevronUp, Info, Trash2, X } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { Input } from "@/components/ui/input";
@@ -482,7 +482,6 @@ const PoolDetail = () => {
     setSubmitting(false);
   };
 
-
   const handleShare = () => {
     const url = window.location.href;
     navigator.clipboard.writeText(url);
@@ -550,9 +549,11 @@ const PoolDetail = () => {
 
   const isPendingPayment = !isOwner && currentUserParticipant?.status === 'pending' && !currentUserParticipant?.payment_proof;
   const isAwaitingApproval = !isOwner && currentUserParticipant?.status === 'pending' && !!currentUserParticipant?.payment_proof;
+  const isRejected = !isOwner && currentUserParticipant?.status === 'rejected';
 
   const getStatusColor = (status: string) => {
     if (status === "finished") return "bg-gray-500 text-white";
+    if (isRejected) return "bg-destructive text-destructive-foreground";
     if (isAwaitingApproval) return "bg-yellow-500 text-white";
     if (isPendingPayment) return "bg-orange-500 text-white";
     if (hasJoined) return "bg-blue-500 text-white";
@@ -561,6 +562,7 @@ const PoolDetail = () => {
 
   const getStatusText = (status: string) => {
     if (status === "finished") return "Finalizado";
+    if (isRejected) return "❌ Participação Reprovada";
     if (isAwaitingApproval) return "⏳ Pendente Aprovação";
     if (isPendingPayment) return "⚠️ Pagamento Pendente";
     if (hasJoined) return "Participando";
@@ -590,8 +592,24 @@ const PoolDetail = () => {
             <div className="flex items-center gap-3">
               <span className="text-2xl">⚠️</span>
               <div>
-                <p className="font-bold text-lg">Pagamento Pendente</p>
-                <p className="text-sm text-orange-100">Envie o comprovante de pagamento abaixo para confirmar sua participação.</p>
+                <p className="font-bold text-lg">
+                  {currentUserParticipant?.rejection_reason ? 'Comprovante Recusado' : 'Pagamento Pendente'}
+                </p>
+                {currentUserParticipant?.rejection_reason ? (
+                  <>
+                    <p className="text-sm text-orange-100">
+                      <strong>Motivo:</strong> {currentUserParticipant.rejection_reason}
+                    </p>
+                    {currentUserParticipant.rejection_details && (
+                      <p className="text-sm text-orange-100 mt-1">
+                        <strong>Detalhes:</strong> {currentUserParticipant.rejection_details}
+                      </p>
+                    )}
+                    <p className="text-sm text-orange-100 mt-1">Envie um novo comprovante abaixo.</p>
+                  </>
+                ) : (
+                  <p className="text-sm text-orange-100">Envie o comprovante de pagamento abaixo para confirmar sua participação.</p>
+                )}
               </div>
             </div>
           </div>
@@ -605,6 +623,26 @@ const PoolDetail = () => {
               <div>
                 <p className="font-bold text-lg">Pendente Aprovação</p>
                 <p className="text-sm text-yellow-100">Seu comprovante foi enviado. Aguarde a aprovação do organizador.</p>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Rejected Banner */}
+        {isRejected && (
+          <div className="p-4 rounded-xl bg-gradient-to-r from-destructive to-destructive/80 text-destructive-foreground shadow-lg">
+            <div className="flex items-center gap-3">
+              <span className="text-2xl">❌</span>
+              <div>
+                <p className="font-bold text-lg">Participação Reprovada</p>
+                <p className="text-sm opacity-90">
+                  <strong>Motivo:</strong> {currentUserParticipant?.rejection_reason || 'Não informado'}
+                </p>
+                {currentUserParticipant?.rejection_details && (
+                  <p className="text-sm opacity-80 mt-1">
+                    <strong>Detalhes:</strong> {currentUserParticipant.rejection_details}
+                  </p>
+                )}
               </div>
             </div>
           </div>
@@ -906,7 +944,58 @@ const PoolDetail = () => {
               <>
                 {hasJoined ? (
                   <>
-                    {currentUserParticipant?.status === 'pending' ? (
+                    {currentUserParticipant?.status === 'rejected' ? (
+                      <>
+                        <Separator />
+                        <Card className="border-2 border-destructive/20 bg-gradient-to-br from-destructive/5 to-destructive/10">
+                          <CardContent className="p-6 text-center space-y-3">
+                            <div className="w-12 h-12 mx-auto rounded-full bg-destructive/10 flex items-center justify-center">
+                              <X className="w-6 h-6 text-destructive" />
+                            </div>
+                            <p className="text-lg font-semibold text-destructive">
+                              Participação Reprovada
+                            </p>
+                            <div className="text-sm text-muted-foreground space-y-1">
+                              <p><strong>Motivo:</strong> {currentUserParticipant?.rejection_reason || 'Não informado'}</p>
+                              {currentUserParticipant?.rejection_details && (
+                                <p><strong>Detalhes:</strong> {currentUserParticipant.rejection_details}</p>
+                              )}
+                            </div>
+                            <Button
+                              variant="outline"
+                              onClick={async () => {
+                                // Reset participation to pending so user can retry
+                                const { error } = await supabase
+                                  .from("participants")
+                                  .update({ 
+                                    status: "pending" as any, 
+                                    payment_proof: null, 
+                                    rejection_reason: null, 
+                                    rejection_details: null 
+                                  })
+                                  .eq("id", currentUserParticipant.id);
+                                if (!error) {
+                                  toast({
+                                    title: "Pronto!",
+                                    description: "Você pode enviar um novo palpite.",
+                                  });
+                                  loadPoolData();
+                                } else {
+                                  toast({
+                                    variant: "destructive",
+                                    title: "Erro",
+                                    description: error.message,
+                                  });
+                                }
+                              }}
+                              className="w-full"
+                            >
+                              🔄 Tentar novamente com novo palpite
+                            </Button>
+                          </CardContent>
+                        </Card>
+                      </>
+                    ) : currentUserParticipant?.status === 'pending' ? (
                       <>
                         <Separator />
                         {currentUserParticipant?.payment_proof ? (
@@ -1265,7 +1354,6 @@ const PoolDetail = () => {
                 />
               </>
             )}
-
 
             {((pool.status === "active" || pool.status === "finished") && (pool.pool_type === "football" || hasFootballMatches)) && (
               <>
