@@ -35,3 +35,12 @@ verify_jwt = false
 
 [functions.update-football-winners]
 verify_jwt = true
+
+[functions.migrate-match-ids]
+verify_jwt = false
+
+[functions.admin-actions]
+verify_jwt = true
+
+[functions.check-phone-exists]
+verify_jwt = false
