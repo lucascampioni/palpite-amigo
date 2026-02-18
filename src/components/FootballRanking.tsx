@@ -128,13 +128,42 @@ const FootballRanking = ({ poolId, pool, approvedParticipantsCount }: FootballRa
     }
   };
 
+  // Client-side points calculation mirroring the DB function
+  const calculatePointsClientSide = (
+    predictedHome: number, predictedAway: number,
+    actualHome: number, actualAway: number,
+    system: string
+  ): number => {
+    // Exact score
+    if (predictedHome === actualHome && predictedAway === actualAway) {
+      if (system === 'exact_only') return 1;
+      if (system === 'simplified') return 3;
+      return 5;
+    }
+
+    if (system === 'exact_only') return 0;
+
+    const predictedResult = predictedHome > predictedAway ? 'home' : predictedHome < predictedAway ? 'away' : 'draw';
+    const actualResult = actualHome > actualAway ? 'home' : actualHome < actualAway ? 'away' : 'draw';
+
+    if (system === 'simplified') {
+      return predictedResult === actualResult ? 1 : 0;
+    }
+
+    // Standard
+    let points = 0;
+    if (predictedResult === actualResult) points += 3;
+    if ((predictedHome - predictedAway) === (actualHome - actualAway)) points += 1;
+    return points;
+  };
+
   const loadRanking = async () => {
     setLoading(true);
 
     // Check match statuses
     const { data: matches } = await supabase
       .from("football_matches")
-      .select("home_score, away_score, status")
+      .select("id, home_score, away_score, status")
       .eq("pool_id", poolId);
 
     const allFinished = matches?.every(m => m.status === 'finished') ?? false;
@@ -144,16 +173,61 @@ const FootballRanking = ({ poolId, pool, approvedParticipantsCount }: FootballRa
     const anyLive = matches?.some(m => liveStatuses.includes(m.status)) ?? false;
     setHasLiveMatches(anyLive);
 
+    // Find live matches that have scores (for partial points calculation)
+    const liveMatchesWithScores = (matches || []).filter(
+      m => liveStatuses.includes(m.status) && m.home_score !== null && m.away_score !== null
+    );
+
+    // Get the scoring system
+    const currentScoringSystem = pool?.scoring_system || scoringSystem || 'standard';
+
     // Prefer a secured RPC that exposes only public ranking fields (works for everyone)
     const { data: rpcData, error: rpcError } = await (supabase as any)
       .rpc('get_football_pool_ranking', { p_pool_id: poolId });
 
     if (!rpcError && rpcData) {
-      const baseRanking: ParticipantScore[] = rpcData.map((r: any) => ({
+      let baseRanking: ParticipantScore[] = rpcData.map((r: any) => ({
         id: r.participant_id,
         participant_name: r.participant_name,
         total_points: r.total_points ?? 0,
       }));
+
+      // If there are live matches, calculate partial points and add to totals
+      if (liveMatchesWithScores.length > 0) {
+        const participantIds = baseRanking.map(r => r.id);
+        const liveMatchIds = liveMatchesWithScores.map(m => m.id);
+
+        const { data: livePredictions } = await supabase
+          .from("football_predictions")
+          .select("participant_id, match_id, home_score_prediction, away_score_prediction")
+          .in("participant_id", participantIds)
+          .in("match_id", liveMatchIds);
+
+        if (livePredictions) {
+          const partialPointsMap: Record<string, number> = {};
+          for (const pred of livePredictions) {
+            const match = liveMatchesWithScores.find(m => m.id === pred.match_id);
+            if (!match) continue;
+            const pts = calculatePointsClientSide(
+              pred.home_score_prediction, pred.away_score_prediction,
+              match.home_score!, match.away_score!,
+              currentScoringSystem
+            );
+            partialPointsMap[pred.participant_id] = (partialPointsMap[pred.participant_id] || 0) + pts;
+          }
+
+          baseRanking = baseRanking.map(p => ({
+            ...p,
+            total_points: p.total_points + (partialPointsMap[p.id] || 0),
+          }));
+        }
+
+        // Re-sort after adding partial points
+        baseRanking.sort((a, b) => {
+          if (b.total_points !== a.total_points) return b.total_points - a.total_points;
+          return a.participant_name.localeCompare(b.participant_name);
+        });
+      }
 
       const rankingWithPrizes = allFinished ? calculatePrizeDistribution(baseRanking, pool) : baseRanking;
       setRanking(rankingWithPrizes);
@@ -177,10 +251,24 @@ const FootballRanking = ({ poolId, pool, approvedParticipantsCount }: FootballRa
       participants.map(async (participant) => {
         const { data: predictions } = await supabase
           .from("football_predictions")
-          .select("points_earned")
+          .select("points_earned, match_id, home_score_prediction, away_score_prediction")
           .eq("participant_id", participant.id);
 
-        const total_points = predictions?.reduce((sum, p) => sum + (p.points_earned || 0), 0) || 0;
+        let total_points = predictions?.reduce((sum, p) => sum + (p.points_earned || 0), 0) || 0;
+
+        // Add partial points for live matches
+        if (predictions && liveMatchesWithScores.length > 0) {
+          for (const pred of predictions) {
+            const liveMatch = liveMatchesWithScores.find(m => m.id === pred.match_id);
+            if (liveMatch) {
+              total_points += calculatePointsClientSide(
+                pred.home_score_prediction, pred.away_score_prediction,
+                liveMatch.home_score!, liveMatch.away_score!,
+                currentScoringSystem
+              );
+            }
+          }
+        }
 
         return {
           id: participant.id,
@@ -199,8 +287,6 @@ const FootballRanking = ({ poolId, pool, approvedParticipantsCount }: FootballRa
     });
 
     const rankingWithPrizes = calculatePrizeDistribution(rankingData, pool);
-
-    // Do not auto-update prize status here to avoid RLS errors for public viewers
 
     setRanking(rankingWithPrizes);
     setLoading(false);
@@ -735,12 +821,21 @@ const FootballRanking = ({ poolId, pool, approvedParticipantsCount }: FootballRa
                                       </p>
                                     )}
                                   </div>
-                                  <Badge 
-                                    variant={pred.points_earned > 0 ? "default" : "secondary"}
-                                    className="text-xs flex-shrink-0"
-                                  >
-                                    {pred.points_earned} pt{pred.points_earned !== 1 ? 's' : ''}
-                                  </Badge>
+                                  {(() => {
+                                    const liveStatuses = ['1H', '2H', 'HT', 'ET', 'P'];
+                                    const isLive = liveStatuses.includes(pred.status);
+                                    const displayPoints = isLive && pred.home_score !== null && pred.away_score !== null
+                                      ? calculatePointsClientSide(pred.home_score_prediction, pred.away_score_prediction, pred.home_score, pred.away_score, scoringSystem)
+                                      : pred.points_earned;
+                                    return (
+                                      <Badge 
+                                        variant={displayPoints > 0 ? "default" : "secondary"}
+                                        className="text-xs flex-shrink-0"
+                                      >
+                                        {displayPoints} pt{displayPoints !== 1 ? 's' : ''}
+                                      </Badge>
+                                    );
+                                  })()}
                                 </div>
                               );
                             })
@@ -895,12 +990,21 @@ const FootballRanking = ({ poolId, pool, approvedParticipantsCount }: FootballRa
                                       </p>
                                     )}
                                   </div>
-                                  <Badge 
-                                    variant={pred.points_earned > 0 ? "default" : "secondary"}
-                                    className="text-xs flex-shrink-0"
-                                  >
-                                    {pred.points_earned} pt{pred.points_earned !== 1 ? 's' : ''}
-                                  </Badge>
+                                  {(() => {
+                                    const liveStatuses2 = ['1H', '2H', 'HT', 'ET', 'P'];
+                                    const isLive2 = liveStatuses2.includes(pred.status);
+                                    const displayPoints2 = isLive2 && pred.home_score !== null && pred.away_score !== null
+                                      ? calculatePointsClientSide(pred.home_score_prediction, pred.away_score_prediction, pred.home_score, pred.away_score, scoringSystem)
+                                      : pred.points_earned;
+                                    return (
+                                      <Badge 
+                                        variant={displayPoints2 > 0 ? "default" : "secondary"}
+                                        className="text-xs flex-shrink-0"
+                                      >
+                                        {displayPoints2} pt{displayPoints2 !== 1 ? 's' : ''}
+                                      </Badge>
+                                    );
+                                  })()}
                                 </div>
                               );
                             })
