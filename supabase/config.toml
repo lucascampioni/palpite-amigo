@@ -6,6 +6,12 @@ verify_jwt = true
 [functions.sync-match-results]
 verify_jwt = true
 
+[functions.sync-live-scores]
+verify_jwt = false
+
+[functions.sync-daily-fixtures]
+verify_jwt = false
+
 [functions.get-match-crests]
 verify_jwt = true
 

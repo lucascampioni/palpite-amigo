@@ -14,6 +14,39 @@ export type Database = {
   }
   public: {
     Tables: {
+      api_sync_control: {
+        Row: {
+          created_at: string
+          daily_request_count: number
+          id: string
+          last_sync_at: string | null
+          league_id: string | null
+          request_count_date: string
+          sync_type: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          daily_request_count?: number
+          id?: string
+          last_sync_at?: string | null
+          league_id?: string | null
+          request_count_date?: string
+          sync_type: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          daily_request_count?: number
+          id?: string
+          last_sync_at?: string | null
+          league_id?: string | null
+          request_count_date?: string
+          sync_type?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       football_matches: {
         Row: {
           away_score: number | null
