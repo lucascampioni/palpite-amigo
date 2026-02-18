@@ -44,6 +44,11 @@ const COMPETITIONS = {
     code: 'PL',
     name: 'Premier League'
   },
+  championsLeague: {
+    id: 2001,
+    code: 'CL',
+    name: 'UEFA Champions League'
+  },
   worldCup: {
     id: 2000,
     code: 'WC',
@@ -140,14 +145,16 @@ function organizeMatchesByRound(matches: any[], competitionName: string, competi
     const matchday = match.matchday || 1;
     const stage = match.stage || '';
     let round: string;
-    if (competitionCode === 'WC') {
+    if (competitionCode === 'WC' || competitionCode === 'CL') {
       const stageNames: Record<string, string> = {
         'GROUP_STAGE': 'Fase de Grupos',
+        'LEAGUE_STAGE': 'Fase de Liga',
         'ROUND_OF_16': 'Oitavas de Final',
         'QUARTER_FINALS': 'Quartas de Final',
         'SEMI_FINALS': 'Semifinais',
         'THIRD_PLACE': 'Disputa 3º Lugar',
         'FINAL': 'Final',
+        'PLAYOFF': 'Playoff',
       };
       round = stageNames[stage] || stage || `Rodada ${matchday}`;
     } else {
@@ -275,7 +282,26 @@ serve(async (req) => {
       console.error('Error details:', error instanceof Error ? error.message : String(error));
     }
 
-    // Fetch Copa do Mundo 2026
+    // Fetch UEFA Champions League
+    try {
+      console.log(`📡 Fetching ${COMPETITIONS.championsLeague.name} (ID ${COMPETITIONS.championsLeague.id})...`);
+      const matches = await fetchMatches(COMPETITIONS.championsLeague.id);
+      console.log(`📊 Received ${matches.length} matches for Champions League`);
+      
+      if (matches.length > 0) {
+        const clChamp = organizeMatchesByRound(
+          matches,
+          COMPETITIONS.championsLeague.name,
+          COMPETITIONS.championsLeague.code
+        );
+        championships.push(clChamp);
+        console.log(`✅ Organized into ${clChamp.rounds.length} rounds`);
+      }
+    } catch (error) {
+      console.error('❌ Error fetching Champions League:', error);
+      console.error('Error details:', error instanceof Error ? error.message : String(error));
+    }
+
     try {
       console.log(`📡 Fetching ${COMPETITIONS.worldCup.name} (ID ${COMPETITIONS.worldCup.id})...`);
       const matches = await fetchMatches(COMPETITIONS.worldCup.id, false);
