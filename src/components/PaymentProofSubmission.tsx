@@ -147,22 +147,24 @@ export const PaymentProofSubmission = ({
                 <div className="space-y-2">
                   <p className="text-sm">Chave PIX para pagamento:</p>
                   <div 
-                    className="flex items-center gap-2 bg-background p-2.5 rounded-lg border cursor-pointer active:bg-muted/50 transition-colors"
+                    className="bg-background rounded-lg border cursor-pointer active:bg-muted/50 transition-colors"
                     onClick={handleCopyPix}
                   >
-                    <p className="font-mono text-sm flex-1 truncate select-all">
+                    <p className="font-mono text-sm p-3 break-all select-all text-center">
                       {pixKey}
                     </p>
-                    <Button
-                      type="button"
-                      variant={copied ? "default" : "outline"}
-                      size="sm"
-                      className="shrink-0 h-8 px-3"
-                      onClick={(e) => { e.stopPropagation(); handleCopyPix(); }}
-                    >
-                      {copied ? <Check className="w-4 h-4 mr-1" /> : <Copy className="w-4 h-4 mr-1" />}
-                      {copied ? "Copiado!" : "Copiar"}
-                    </Button>
+                    <div className="border-t px-3 py-2 flex justify-center">
+                      <Button
+                        type="button"
+                        variant={copied ? "default" : "ghost"}
+                        size="sm"
+                        className="h-7 px-4 text-xs w-full"
+                        onClick={(e) => { e.stopPropagation(); handleCopyPix(); }}
+                      >
+                        {copied ? <Check className="w-3.5 h-3.5 mr-1.5" /> : <Copy className="w-3.5 h-3.5 mr-1.5" />}
+                        {copied ? "Copiado!" : "Toque para copiar"}
+                      </Button>
+                    </div>
                   </div>
                 </div>
               )}
