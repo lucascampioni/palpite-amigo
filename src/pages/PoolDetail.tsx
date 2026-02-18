@@ -245,6 +245,7 @@ const PoolDetail = () => {
   }, [id, navigate]);
 
   const loadPoolData = async () => {
+    try {
     setLoading(true);
 
     const { data: { user } } = await supabase.auth.getUser();
@@ -361,9 +362,9 @@ const PoolDetail = () => {
       .from('pool_payment_info')
       .select('pix_key')
       .eq('pool_id', id)
-      .single();
+      .maybeSingle();
     
-    setPool({ ...poolData, pix_key: paymentInfo?.pix_key });
+    setPool({ ...poolData, pix_key: paymentInfo?.pix_key || null });
     
     // Load winners if pool is finished
     if (poolData.status === 'finished') {
@@ -390,6 +391,10 @@ const PoolDetail = () => {
     }
     
     setLoading(false);
+    } catch (error) {
+      console.error('Error loading pool data:', error);
+      setLoading(false);
+    }
   };
 
   const handleJoinPool = async () => {
