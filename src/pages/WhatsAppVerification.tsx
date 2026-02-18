@@ -6,7 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp";
 import { MessageCircle, CheckCircle, Loader2, RefreshCw } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import palpiteAmigoLogo from "@/assets/logo-icon.png";
+import delfosLogo from "@/assets/delfos-logo.png";
 
 const WhatsAppVerification = () => {
   const navigate = useNavigate();
@@ -117,7 +117,7 @@ const WhatsAppVerification = () => {
       <div className="w-full max-w-md">
         <div className="text-center mb-8 space-y-4">
           <div className="inline-flex items-center justify-center mb-2">
-            <img src={palpiteAmigoLogo} alt="Delphos" className="h-32 w-auto" />
+            <img src={delfosLogo} alt="Delphos" className="h-32 w-auto" />
           </div>
         </div>
 

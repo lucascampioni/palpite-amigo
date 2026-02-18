@@ -10,7 +10,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { useToast } from "@/hooks/use-toast";
 import { Trophy } from "lucide-react";
 import { z } from "zod";
-import palpiteAmigoLogo from "@/assets/logo-icon.png";
+import delfosLogo from "@/assets/delfos-logo.png";
 
 const cpfSchema = z.string()
   .regex(/^\d{11}$/, "CPF deve conter 11 dígitos")
@@ -356,7 +356,7 @@ const Auth = () => {
       <div className="w-full max-w-md">
         <div className="text-center mb-8 space-y-4">
           <div className="inline-flex items-center justify-center mb-2">
-            <img src={palpiteAmigoLogo} alt="Delphos" className="h-40 w-auto" />
+            <img src={delfosLogo} alt="Delphos" className="h-40 w-auto" />
           </div>
           <p className="text-muted-foreground text-lg">Participe dos bolões e divirta-se com os amigos!</p>
         </div>
