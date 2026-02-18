@@ -146,16 +146,19 @@ export const PaymentProofSubmission = ({
               {pixKey && (
                 <div className="space-y-2">
                   <p className="text-sm">Chave PIX para pagamento:</p>
-                  <div className="flex items-center gap-2">
-                    <p className="font-mono text-sm bg-background p-2 rounded break-all flex-1 border">
+                  <div 
+                    className="flex items-center gap-2 bg-background p-2.5 rounded-lg border cursor-pointer active:bg-muted/50 transition-colors"
+                    onClick={handleCopyPix}
+                  >
+                    <p className="font-mono text-sm flex-1 truncate select-all">
                       {pixKey}
                     </p>
                     <Button
                       type="button"
                       variant={copied ? "default" : "outline"}
                       size="sm"
-                      className="shrink-0"
-                      onClick={handleCopyPix}
+                      className="shrink-0 h-8 px-3"
+                      onClick={(e) => { e.stopPropagation(); handleCopyPix(); }}
                     >
                       {copied ? <Check className="w-4 h-4 mr-1" /> : <Copy className="w-4 h-4 mr-1" />}
                       {copied ? "Copiado!" : "Copiar"}
