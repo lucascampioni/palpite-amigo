@@ -291,7 +291,7 @@ const Index = () => {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
         <div className="flex flex-col items-center gap-3">
-          <img src={delfosLogo} alt="Delphos" className="h-20 w-auto animate-pulse" />
+          <img src={delfosLogo} alt="Delfos" className="h-20 w-auto animate-pulse" />
           <p className="text-muted-foreground text-sm">Carregando...</p>
         </div>
       </div>
@@ -300,18 +300,17 @@ const Index = () => {
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
-      {/* Compact Header */}
-      <header className="border-b bg-card/90 backdrop-blur-md sticky top-0 z-20 shadow-sm">
+      {/* Header with gradient accent */}
+      <header className="sticky top-0 z-20 bg-card/95 backdrop-blur-lg border-b border-border/50 shadow-md">
         <div className="max-w-3xl mx-auto px-3 py-2 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <img src={delfosLogo} alt="Delphos" className="h-10 w-auto" />
-            <span className="font-bold text-lg text-foreground hidden sm:inline">Delphos</span>
+          <div className="flex items-center">
+            <img src={delfosLogo} alt="Delfos" className="h-10 w-auto" />
           </div>
           <div className="flex items-center gap-1">
             {userRole?.canCreatePools && (
               <Button
                 size="sm"
-                className="rounded-full bg-primary text-primary-foreground shadow-md h-9 px-3 text-xs font-semibold"
+                className="rounded-full bg-gradient-to-r from-primary to-primary/80 text-primary-foreground shadow-lg h-9 px-4 text-xs font-semibold hover:shadow-xl transition-all"
                 onClick={() => navigate("/create-football")}
               >
                 <Plus className="w-4 h-4 mr-1" />
@@ -319,14 +318,15 @@ const Index = () => {
                 <span className="sm:hidden">Novo</span>
               </Button>
             )}
-            <Button variant="ghost" size="icon" className="h-9 w-9 rounded-full" onClick={() => navigate("/profile")}>
+            <Button variant="ghost" size="icon" className="h-9 w-9 rounded-full hover:bg-primary/10" onClick={() => navigate("/profile")}>
               <User className="w-4 h-4" />
             </Button>
-            <Button variant="ghost" size="icon" className="h-9 w-9 rounded-full hover:text-destructive" onClick={handleSignOut}>
+            <Button variant="ghost" size="icon" className="h-9 w-9 rounded-full hover:bg-destructive/10 hover:text-destructive" onClick={handleSignOut}>
               <LogOut className="w-4 h-4" />
             </Button>
           </div>
         </div>
+        <div className="h-[2px] bg-gradient-to-r from-primary via-secondary to-accent" />
       </header>
 
       {/* Main Content with Tabs */}

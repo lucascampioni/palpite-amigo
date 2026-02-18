@@ -385,7 +385,7 @@ const FootballPredictionForm = ({ poolId, userId, onSuccess, entryFee, pool, pix
               </p>
               <p className="text-sm text-foreground leading-relaxed">
                 A <strong>responsabilidade pelo pagamento da premiação é exclusivamente do criador do bolão</strong>. 
-                O <strong>Delphos</strong> é apenas uma plataforma que facilita a organização de bolões e <strong>não se responsabiliza</strong> pelo pagamento de prêmios, valores de entrada ou quaisquer transações financeiras entre os participantes e organizadores.
+                O <strong>Delfos</strong> é apenas uma plataforma que facilita a organização de bolões e <strong>não se responsabiliza</strong> pelo pagamento de prêmios, valores de entrada ou quaisquer transações financeiras entre os participantes e organizadores.
               </p>
             </div>
             <div className="flex items-start gap-3 p-3 rounded-lg bg-muted/50">
@@ -396,7 +396,7 @@ const FootballPredictionForm = ({ poolId, userId, onSuccess, entryFee, pool, pix
                 className="mt-0.5"
               />
               <label htmlFor="disclaimer-accept" className="text-sm font-medium cursor-pointer leading-snug">
-                Estou ciente de que a responsabilidade pelo pagamento da premiação é do criador do bolão e não do Delphos.
+                Estou ciente de que a responsabilidade pelo pagamento da premiação é do criador do bolão e não do Delfos.
               </label>
             </div>
           </div>

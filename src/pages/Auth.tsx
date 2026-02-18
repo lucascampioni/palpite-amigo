@@ -352,13 +352,14 @@ const Auth = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-4 bg-gradient-to-br from-background via-muted to-background">
+    <div className="min-h-screen flex items-center justify-center p-4 bg-gradient-to-br from-background via-primary/5 to-accent/5">
       <div className="w-full max-w-md">
         <div className="text-center mb-8 space-y-4">
           <div className="inline-flex items-center justify-center mb-2">
-            <img src={delfosLogo} alt="Delphos" className="h-40 w-auto" />
+            <img src={delfosLogo} alt="Delfos" className="h-40 w-auto" />
           </div>
           <p className="text-muted-foreground text-lg">Participe dos bolões e divirta-se com os amigos!</p>
+          <div className="h-1 w-24 mx-auto rounded-full bg-gradient-to-r from-primary via-secondary to-accent" />
         </div>
 
         <Tabs defaultValue="login" className="w-full">
