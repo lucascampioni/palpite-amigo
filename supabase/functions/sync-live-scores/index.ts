@@ -7,7 +7,6 @@ const corsHeaders = {
 };
 
 const API_FOOTBALL_KEY = Deno.env.get('API_FOOTBALL_KEY');
-const FOOTBALL_DATA_API_KEY = Deno.env.get('FOOTBALL_DATA_API_KEY');
 const API_FOOTBALL_BASE = 'https://v3.football.api-sports.io';
 const DAILY_LIMIT = 95; // safety margin below 100
 
@@ -169,7 +168,7 @@ serve(async (req) => {
       }
     }
 
-    // 6. Fallback using football-data.org for matches stuck as live in DB
+    // 6. Fallback: check matches stuck as live in DB but missing from live feed
     const liveDbStatuses = ['1H', '2H', 'HT', 'ET', 'P'];
     const { data: stillLiveInDb } = await supabase
       .from('football_matches')
@@ -185,82 +184,32 @@ serve(async (req) => {
         (m: any) => !liveFixtureExternalIds.has(m.external_id)
       );
 
-      if (missedMatches.length > 0) {
-        console.log(`🔍 Found ${missedMatches.length} matches still live in DB but not in API-Football feed.`);
+      if (missedMatches.length > 0 && dailyCount < DAILY_LIMIT) {
+        console.log(`🔍 Found ${missedMatches.length} matches still live in DB but not in live feed. Using date fallback.`);
 
-        // Try football-data.org as fallback for each missed match
-        if (FOOTBALL_DATA_API_KEY) {
-          // Fetch today's matches from football-data.org (Champions League = 2001)
-          try {
-            const todayStr = new Date().toISOString().split('T')[0];
-            const fdResp = await fetch(
-              `https://api.football-data.org/v4/matches?dateFrom=${todayStr}&dateTo=${todayStr}`,
-              { headers: { 'X-Auth-Token': FOOTBALL_DATA_API_KEY } }
-            );
+        // Fetch today's fixtures from API-Football by date (1 extra request)
+        const todayStr = new Date().toISOString().split('T')[0];
+        try {
+          const fallbackResp = await fetch(`${API_FOOTBALL_BASE}/fixtures?date=${todayStr}`, {
+            headers: { 'x-apisports-key': API_FOOTBALL_KEY },
+          });
+          dailyCount++;
 
-            if (fdResp.ok) {
-              const fdData = await fdResp.json();
-              const fdMatches = fdData.matches || [];
-              console.log(`📋 Football-data.org fallback: got ${fdMatches.length} matches for ${todayStr}`);
+          if (fallbackResp.ok) {
+            const fallbackData = await fallbackResp.json();
+            const fallbackFixtures = fallbackData.response || [];
+            console.log(`📋 Date fallback: got ${fallbackFixtures.length} fixtures for ${todayStr}`);
 
-              for (const missed of missedMatches) {
-                // Try to match by team names (fuzzy)
-                const fdMatch = fdMatches.find((fd: any) => {
-                  const fdHome = fd.homeTeam?.name?.toLowerCase() || '';
-                  const fdAway = fd.awayTeam?.name?.toLowerCase() || '';
-                  const dbHome = missed.home_team.toLowerCase();
-                  const dbAway = missed.away_team.toLowerCase();
-                  
-                  // Check if team names partially match
-                  return (fdHome.includes(dbHome.split(' ')[0]) || dbHome.includes(fdHome.split(' ')[0])) &&
-                         (fdAway.includes(dbAway.split(' ')[0]) || dbAway.includes(fdAway.split(' ')[0]));
-                });
+            for (const missed of missedMatches) {
+              const apifbId = missed.external_id?.replace('apifb_', '');
+              const fbMatch = fallbackFixtures.find((f: any) => String(f.fixture?.id) === apifbId);
 
-                if (fdMatch) {
-                  const fdStatus = mapFootballDataStatus(fdMatch.status);
-                  const fdHome = fdMatch.score?.fullTime?.home ?? fdMatch.score?.halfTime?.home ?? null;
-                  const fdAway = fdMatch.score?.fullTime?.away ?? fdMatch.score?.halfTime?.away ?? null;
+              if (fbMatch) {
+                const fbStatus = mapApiStatus(fbMatch.fixture?.status?.short);
+                const fbHome = fbMatch.goals?.home ?? null;
+                const fbAway = fbMatch.goals?.away ?? null;
 
-                  console.log(`📋 FD Fallback: ${missed.home_team} -> status=${fdStatus}, score=${fdHome}-${fdAway}`);
-
-                  if (fdHome !== null && fdAway !== null) {
-                    const { data: poolData } = await supabase
-                      .from('pools')
-                      .select('scoring_system')
-                      .eq('id', missed.pool_id)
-                      .single();
-
-                    const { error: updateErr } = await supabase
-                      .from('football_matches')
-                      .update({
-                        home_score: fdHome,
-                        away_score: fdAway,
-                        status: fdStatus,
-                        last_sync_at: new Date().toISOString(),
-                      })
-                      .eq('id', missed.id);
-
-                    if (!updateErr) {
-                      updatedCount++;
-                      console.log(`✅ FD Fallback updated: ${missed.home_team} ${fdHome} x ${fdAway} ${missed.away_team} [${fdStatus}]`);
-
-                      if (fdStatus === 'finished' && fdHome !== null && fdAway !== null) {
-                        finishedPoolIds.add(missed.pool_id);
-                        const matchWithPool = { ...missed, pools: { scoring_system: poolData?.scoring_system || 'standard' } };
-                        await calculateMatchPoints(supabase, matchWithPool, fdHome, fdAway);
-                      }
-                    }
-                    continue;
-                  }
-                }
-
-                // If football-data.org didn't have the match either, use safety net
-                const kickoff = new Date(missed.match_date).getTime();
-                const hoursSinceKickoff = (Date.now() - kickoff) / (1000 * 60 * 60);
-
-                if (hoursSinceKickoff >= 2.5 && missed.home_score !== null && missed.away_score !== null) {
-                  console.log(`⏰ Safety net: ${missed.home_team} vs ${missed.away_team} (${hoursSinceKickoff.toFixed(1)}h ago), marking finished with ${missed.home_score}-${missed.away_score}`);
-
+                if (fbHome !== null && fbAway !== null) {
                   const { data: poolData } = await supabase
                     .from('pools')
                     .select('scoring_system')
@@ -269,25 +218,53 @@ serve(async (req) => {
 
                   await supabase
                     .from('football_matches')
-                    .update({ status: 'finished', last_sync_at: new Date().toISOString() })
+                    .update({
+                      home_score: fbHome,
+                      away_score: fbAway,
+                      status: fbStatus,
+                      last_sync_at: new Date().toISOString(),
+                    })
                     .eq('id', missed.id);
 
                   updatedCount++;
-                  finishedPoolIds.add(missed.pool_id);
-                  const matchWithPool = { ...missed, pools: { scoring_system: poolData?.scoring_system || 'standard' } };
-                  await calculateMatchPoints(supabase, matchWithPool, missed.home_score, missed.away_score);
-                } else {
-                  console.log(`⚠️ ${missed.home_team} vs ${missed.away_team}: not in any feed (${hoursSinceKickoff.toFixed(1)}h since kickoff)`);
+                  console.log(`✅ Fallback updated: ${missed.home_team} ${fbHome} x ${fbAway} ${missed.away_team} [${fbStatus}]`);
+
+                  if (fbStatus === 'finished') {
+                    finishedPoolIds.add(missed.pool_id);
+                    const matchWithPool = { ...missed, pools: { scoring_system: poolData?.scoring_system || 'standard' } };
+                    await calculateMatchPoints(supabase, matchWithPool, fbHome, fbAway);
+                  }
+                  continue;
                 }
               }
-            } else {
-              console.log(`⚠️ Football-data.org fallback failed: ${fdResp.status}`);
+
+              // Safety net: mark as finished if >2.5h since kickoff
+              const kickoff = new Date(missed.match_date).getTime();
+              const hoursSinceKickoff = (Date.now() - kickoff) / (1000 * 60 * 60);
+
+              if (hoursSinceKickoff >= 2.5 && missed.home_score !== null && missed.away_score !== null) {
+                console.log(`⏰ Safety net: ${missed.home_team} vs ${missed.away_team} (${hoursSinceKickoff.toFixed(1)}h), marking finished`);
+
+                const { data: poolData } = await supabase
+                  .from('pools')
+                  .select('scoring_system')
+                  .eq('id', missed.pool_id)
+                  .single();
+
+                await supabase
+                  .from('football_matches')
+                  .update({ status: 'finished', last_sync_at: new Date().toISOString() })
+                  .eq('id', missed.id);
+
+                updatedCount++;
+                finishedPoolIds.add(missed.pool_id);
+                const matchWithPool = { ...missed, pools: { scoring_system: poolData?.scoring_system || 'standard' } };
+                await calculateMatchPoints(supabase, matchWithPool, missed.home_score, missed.away_score);
+              }
             }
-          } catch (fdError) {
-            console.error('❌ Football-data.org fallback error:', fdError);
           }
-        } else {
-          console.log('⚠️ FOOTBALL_DATA_API_KEY not set, skipping fallback');
+        } catch (fbError) {
+          console.error('❌ Date fallback error:', fbError);
         }
 
         // Update daily count
@@ -351,22 +328,7 @@ function mapApiStatus(apiStatus: string): string {
   };
   return statusMap[apiStatus] || 'scheduled';
 }
-function mapFootballDataStatus(fdStatus: string): string {
-  const statusMap: Record<string, string> = {
-    'SCHEDULED': 'scheduled',
-    'TIMED': 'scheduled',
-    'IN_PLAY': '2H',
-    'PAUSED': 'HT',
-    'EXTRA_TIME': 'ET',
-    'PENALTY_SHOOTOUT': 'P',
-    'FINISHED': 'finished',
-    'SUSPENDED': 'suspended',
-    'POSTPONED': 'postponed',
-    'CANCELLED': 'cancelled',
-    'AWARDED': 'finished',
-  };
-  return statusMap[fdStatus] || 'scheduled';
-}
+
 
 
 async function calculateMatchPoints(supabase: any, match: any, homeGoals: number, awayGoals: number) {
