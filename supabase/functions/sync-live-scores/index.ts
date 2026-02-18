@@ -7,6 +7,7 @@ const corsHeaders = {
 };
 
 const API_FOOTBALL_KEY = Deno.env.get('API_FOOTBALL_KEY');
+const FOOTBALL_DATA_API_KEY = Deno.env.get('FOOTBALL_DATA_API_KEY');
 const API_FOOTBALL_BASE = 'https://v3.football.api-sports.io';
 const DAILY_LIMIT = 95; // safety margin below 100
 
@@ -168,8 +169,7 @@ serve(async (req) => {
       }
     }
 
-    // 6. Fallback: check DB matches marked as live that were NOT in the live feed
-    // This handles matches that finished between sync intervals
+    // 6. Fallback using football-data.org for matches stuck as live in DB
     const liveDbStatuses = ['1H', '2H', 'HT', 'ET', 'P'];
     const { data: stillLiveInDb } = await supabase
       .from('football_matches')
@@ -178,7 +178,6 @@ serve(async (req) => {
       .not('external_id', 'is', null);
 
     if (stillLiveInDb && stillLiveInDb.length > 0) {
-      // Filter out matches that were already updated from the live feed
       const liveFixtureExternalIds = new Set(
         fixtures.map((f: any) => `apifb_${f.fixture?.id}`)
       );
@@ -186,108 +185,116 @@ serve(async (req) => {
         (m: any) => !liveFixtureExternalIds.has(m.external_id)
       );
 
-      if (missedMatches.length > 0 && dailyCount < DAILY_LIMIT) {
-        console.log(`🔍 Found ${missedMatches.length} matches still live in DB but not in feed. Fetching today's fixtures...`);
-        
-        // Use /fixtures?date=today which works on free plan (1 request for all today's games)
-        const todayStr = new Date().toISOString().split('T')[0];
-        const fallbackResp = await fetch(`${API_FOOTBALL_BASE}/fixtures?date=${todayStr}`, {
-          headers: { 'x-apisports-key': API_FOOTBALL_KEY },
-        });
-        dailyCount++;
+      if (missedMatches.length > 0) {
+        console.log(`🔍 Found ${missedMatches.length} matches still live in DB but not in API-Football feed.`);
 
-        if (fallbackResp.ok) {
-          const fallbackData = await fallbackResp.json();
-          const allTodayFixtures = fallbackData.response || [];
-          console.log(`📋 Fallback: got ${allTodayFixtures.length} fixtures for ${todayStr}`);
+        // Try football-data.org as fallback for each missed match
+        if (FOOTBALL_DATA_API_KEY) {
+          // Fetch today's matches from football-data.org (Champions League = 2001)
+          try {
+            const todayStr = new Date().toISOString().split('T')[0];
+            const fdResp = await fetch(
+              `https://api.football-data.org/v4/matches?dateFrom=${todayStr}&dateTo=${todayStr}`,
+              { headers: { 'X-Auth-Token': FOOTBALL_DATA_API_KEY } }
+            );
 
-          // Build a lookup by external_id
-          const fixtureMap = new Map<string, any>();
-          for (const f of allTodayFixtures) {
-            fixtureMap.set(`apifb_${f.fixture?.id}`, f);
-          }
+            if (fdResp.ok) {
+              const fdData = await fdResp.json();
+              const fdMatches = fdData.matches || [];
+              console.log(`📋 Football-data.org fallback: got ${fdMatches.length} matches for ${todayStr}`);
 
-          for (const missed of missedMatches) {
-            const fbFixture = fixtureMap.get(missed.external_id);
-            if (!fbFixture) {
-              // Safety net: if match kicked off >3h ago and not in any feed, mark as finished
-              const kickoff = new Date(missed.match_date).getTime();
-              const now = Date.now();
-              const hoursSinceKickoff = (now - kickoff) / (1000 * 60 * 60);
-              
-              if (hoursSinceKickoff >= 2.5 && missed.home_score !== null && missed.away_score !== null) {
-                console.log(`⏰ Safety net: ${missed.home_team} vs ${missed.away_team} started ${hoursSinceKickoff.toFixed(1)}h ago, marking as finished with last known score ${missed.home_score}-${missed.away_score}`);
-                
-                const { data: poolData } = await supabase
-                  .from('pools')
-                  .select('scoring_system')
-                  .eq('id', missed.pool_id)
-                  .single();
+              for (const missed of missedMatches) {
+                // Try to match by team names (fuzzy)
+                const fdMatch = fdMatches.find((fd: any) => {
+                  const fdHome = fd.homeTeam?.name?.toLowerCase() || '';
+                  const fdAway = fd.awayTeam?.name?.toLowerCase() || '';
+                  const dbHome = missed.home_team.toLowerCase();
+                  const dbAway = missed.away_team.toLowerCase();
+                  
+                  // Check if team names partially match
+                  return (fdHome.includes(dbHome.split(' ')[0]) || dbHome.includes(fdHome.split(' ')[0])) &&
+                         (fdAway.includes(dbAway.split(' ')[0]) || dbAway.includes(fdAway.split(' ')[0]));
+                });
 
-                await supabase
-                  .from('football_matches')
-                  .update({
-                    status: 'finished',
-                    last_sync_at: new Date().toISOString(),
-                  })
-                  .eq('id', missed.id);
+                if (fdMatch) {
+                  const fdStatus = mapFootballDataStatus(fdMatch.status);
+                  const fdHome = fdMatch.score?.fullTime?.home ?? fdMatch.score?.halfTime?.home ?? null;
+                  const fdAway = fdMatch.score?.fullTime?.away ?? fdMatch.score?.halfTime?.away ?? null;
 
-                updatedCount++;
-                finishedPoolIds.add(missed.pool_id);
-                const matchWithPool = { ...missed, pools: { scoring_system: poolData?.scoring_system || 'standard' } };
-                await calculateMatchPoints(supabase, matchWithPool, missed.home_score, missed.away_score);
-              } else {
-                console.log(`⚠️ Fixture ${missed.external_id} not found in today's feed (${hoursSinceKickoff.toFixed(1)}h since kickoff)`);
+                  console.log(`📋 FD Fallback: ${missed.home_team} -> status=${fdStatus}, score=${fdHome}-${fdAway}`);
+
+                  if (fdHome !== null && fdAway !== null) {
+                    const { data: poolData } = await supabase
+                      .from('pools')
+                      .select('scoring_system')
+                      .eq('id', missed.pool_id)
+                      .single();
+
+                    const { error: updateErr } = await supabase
+                      .from('football_matches')
+                      .update({
+                        home_score: fdHome,
+                        away_score: fdAway,
+                        status: fdStatus,
+                        last_sync_at: new Date().toISOString(),
+                      })
+                      .eq('id', missed.id);
+
+                    if (!updateErr) {
+                      updatedCount++;
+                      console.log(`✅ FD Fallback updated: ${missed.home_team} ${fdHome} x ${fdAway} ${missed.away_team} [${fdStatus}]`);
+
+                      if (fdStatus === 'finished' && fdHome !== null && fdAway !== null) {
+                        finishedPoolIds.add(missed.pool_id);
+                        const matchWithPool = { ...missed, pools: { scoring_system: poolData?.scoring_system || 'standard' } };
+                        await calculateMatchPoints(supabase, matchWithPool, fdHome, fdAway);
+                      }
+                    }
+                    continue;
+                  }
+                }
+
+                // If football-data.org didn't have the match either, use safety net
+                const kickoff = new Date(missed.match_date).getTime();
+                const hoursSinceKickoff = (Date.now() - kickoff) / (1000 * 60 * 60);
+
+                if (hoursSinceKickoff >= 2.5 && missed.home_score !== null && missed.away_score !== null) {
+                  console.log(`⏰ Safety net: ${missed.home_team} vs ${missed.away_team} (${hoursSinceKickoff.toFixed(1)}h ago), marking finished with ${missed.home_score}-${missed.away_score}`);
+
+                  const { data: poolData } = await supabase
+                    .from('pools')
+                    .select('scoring_system')
+                    .eq('id', missed.pool_id)
+                    .single();
+
+                  await supabase
+                    .from('football_matches')
+                    .update({ status: 'finished', last_sync_at: new Date().toISOString() })
+                    .eq('id', missed.id);
+
+                  updatedCount++;
+                  finishedPoolIds.add(missed.pool_id);
+                  const matchWithPool = { ...missed, pools: { scoring_system: poolData?.scoring_system || 'standard' } };
+                  await calculateMatchPoints(supabase, matchWithPool, missed.home_score, missed.away_score);
+                } else {
+                  console.log(`⚠️ ${missed.home_team} vs ${missed.away_team}: not in any feed (${hoursSinceKickoff.toFixed(1)}h since kickoff)`);
+                }
               }
-              continue;
+            } else {
+              console.log(`⚠️ Football-data.org fallback failed: ${fdResp.status}`);
             }
-
-            const fbStatus = mapApiStatus(fbFixture.fixture?.status?.short);
-            const fbHome = fbFixture.goals?.home ?? null;
-            const fbAway = fbFixture.goals?.away ?? null;
-
-            console.log(`📋 Fallback: ${missed.home_team} -> status=${fbStatus}, score=${fbHome}-${fbAway}`);
-
-            const { data: poolData } = await supabase
-              .from('pools')
-              .select('scoring_system')
-              .eq('id', missed.pool_id)
-              .single();
-
-            const { error: fbUpdateError } = await supabase
-              .from('football_matches')
-              .update({
-                home_score: fbHome,
-                away_score: fbAway,
-                status: fbStatus,
-                last_sync_at: new Date().toISOString(),
-              })
-              .eq('id', missed.id);
-
-            if (fbUpdateError) {
-              console.error(`❌ Fallback update error for ${missed.id}:`, fbUpdateError);
-              continue;
-            }
-
-            updatedCount++;
-            console.log(`✅ Fallback updated: ${missed.home_team} ${fbHome} x ${fbAway} ${missed.away_team} [${fbStatus}]`);
-
-            if (fbStatus === 'finished' && fbHome !== null && fbAway !== null) {
-              finishedPoolIds.add(missed.pool_id);
-              const matchWithPool = { ...missed, pools: { scoring_system: poolData?.scoring_system || 'standard' } };
-              await calculateMatchPoints(supabase, matchWithPool, fbHome, fbAway);
-            }
+          } catch (fdError) {
+            console.error('❌ Football-data.org fallback error:', fdError);
           }
+        } else {
+          console.log('⚠️ FOOTBALL_DATA_API_KEY not set, skipping fallback');
         }
 
-        // Update daily count after fallback requests
+        // Update daily count
         if (controlRow) {
           await supabase
             .from('api_sync_control')
-            .update({
-              daily_request_count: dailyCount,
-              request_count_date: today,
-            })
+            .update({ daily_request_count: dailyCount, request_count_date: today })
             .eq('id', controlRow.id);
         }
       }
@@ -344,6 +351,23 @@ function mapApiStatus(apiStatus: string): string {
   };
   return statusMap[apiStatus] || 'scheduled';
 }
+function mapFootballDataStatus(fdStatus: string): string {
+  const statusMap: Record<string, string> = {
+    'SCHEDULED': 'scheduled',
+    'TIMED': 'scheduled',
+    'IN_PLAY': '2H',
+    'PAUSED': 'HT',
+    'EXTRA_TIME': 'ET',
+    'PENALTY_SHOOTOUT': 'P',
+    'FINISHED': 'finished',
+    'SUSPENDED': 'suspended',
+    'POSTPONED': 'postponed',
+    'CANCELLED': 'cancelled',
+    'AWARDED': 'finished',
+  };
+  return statusMap[fdStatus] || 'scheduled';
+}
+
 
 async function calculateMatchPoints(supabase: any, match: any, homeGoals: number, awayGoals: number) {
   const scoringSystem = (match.pools as any)?.scoring_system || 'standard';
