@@ -150,12 +150,12 @@ const PoolDetail = () => {
       // Check if all matches are finished
       const { data: matches } = await supabase
         .from('football_matches')
-        .select('id, home_score, away_score')
+        .select('id, home_score, away_score, status')
         .eq('pool_id', id);
 
       if (!matches || matches.length === 0) return;
 
-      const allMatchesFinished = matches.every(m => m.home_score !== null && m.away_score !== null);
+      const allMatchesFinished = matches.every(m => m.status === 'finished');
       if (!allMatchesFinished) return;
 
       console.log('All matches finished, updating winners prize_status...');

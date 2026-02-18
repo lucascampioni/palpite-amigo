@@ -41,6 +41,7 @@ interface MatchPrediction {
   match_date: string;
   home_team_crest: string | null;
   away_team_crest: string | null;
+  status: string;
 }
 
 const FootballRanking = ({ poolId, pool, approvedParticipantsCount }: FootballRankingProps) => {
@@ -49,6 +50,7 @@ const FootballRanking = ({ poolId, pool, approvedParticipantsCount }: FootballRa
   const [expandedParticipants, setExpandedParticipants] = useState<Set<string>>(new Set());
   const [participantPredictions, setParticipantPredictions] = useState<Record<string, MatchPrediction[]>>({});
   const [allMatchesFinished, setAllMatchesFinished] = useState(false);
+  const [hasLiveMatches, setHasLiveMatches] = useState(false);
   const [scoringSystem, setScoringSystem] = useState<string>('standard');
   const [currentUserParticipantId, setCurrentUserParticipantId] = useState<string | null>(null);
   const [myPositionExpanded, setMyPositionExpanded] = useState(false);
@@ -129,14 +131,18 @@ const FootballRanking = ({ poolId, pool, approvedParticipantsCount }: FootballRa
   const loadRanking = async () => {
     setLoading(true);
 
-    // Check if all matches have results
+    // Check match statuses
     const { data: matches } = await supabase
       .from("football_matches")
-      .select("home_score, away_score")
+      .select("home_score, away_score, status")
       .eq("pool_id", poolId);
 
-    const allFinished = matches?.every(m => m.home_score !== null && m.away_score !== null) ?? false;
+    const allFinished = matches?.every(m => m.status === 'finished') ?? false;
     setAllMatchesFinished(allFinished);
+    
+    const liveStatuses = ['1H', '2H', 'HT', 'ET', 'P'];
+    const anyLive = matches?.some(m => liveStatuses.includes(m.status)) ?? false;
+    setHasLiveMatches(anyLive);
 
     // Prefer a secured RPC that exposes only public ranking fields (works for everyone)
     const { data: rpcData, error: rpcError } = await (supabase as any)
@@ -308,7 +314,8 @@ const FootballRanking = ({ poolId, pool, approvedParticipantsCount }: FootballRa
           away_score,
           match_date,
           home_team_crest,
-          away_team_crest
+          away_team_crest,
+          status
         )
       `)
       .eq("participant_id", participantId)
@@ -327,6 +334,7 @@ const FootballRanking = ({ poolId, pool, approvedParticipantsCount }: FootballRa
         match_date: p.football_matches.match_date,
         home_team_crest: p.football_matches.home_team_crest,
         away_team_crest: p.football_matches.away_team_crest,
+        status: p.football_matches.status,
       }));
 
       setParticipantPredictions(prev => ({
@@ -393,8 +401,20 @@ const FootballRanking = ({ poolId, pool, approvedParticipantsCount }: FootballRa
     prediction: MatchPrediction,
     system: string
   ): string => {
+    const liveStatuses = ['1H', '2H', 'HT', 'ET', 'P'];
+    const isLive = liveStatuses.includes(prediction.status);
+    const isFinished = prediction.status === 'finished';
+    
+    if (!isFinished && !isLive) {
+      return "Jogo ainda não começou";
+    }
+    
+    if (isLive) {
+      return "Jogo em andamento — pontuação parcial";
+    }
+
     if (prediction.home_score === null || prediction.away_score === null) {
-      return "Jogo não finalizado";
+      return "Aguardando resultado";
     }
 
     if (prediction.points_earned === 0) {
@@ -444,8 +464,30 @@ const FootballRanking = ({ poolId, pool, approvedParticipantsCount }: FootballRa
     return reasons.join(" + ");
   };
 
+  const getMatchStatusLabel = (status: string): { label: string; className: string } | null => {
+    const map: Record<string, { label: string; className: string }> = {
+      '1H': { label: '🔴 1º Tempo', className: 'bg-red-500 text-white animate-pulse' },
+      '2H': { label: '🔴 2º Tempo', className: 'bg-red-500 text-white animate-pulse' },
+      'HT': { label: '⏸️ Intervalo', className: 'bg-yellow-500 text-black' },
+      'ET': { label: '🔴 Prorrogação', className: 'bg-red-500 text-white animate-pulse' },
+      'P': { label: '🔴 Pênaltis', className: 'bg-red-500 text-white animate-pulse' },
+      'finished': { label: '✅ Encerrado', className: 'bg-muted text-muted-foreground' },
+      'scheduled': { label: '⏳ Agendado', className: 'bg-muted text-muted-foreground' },
+      'suspended': { label: '⚠️ Suspenso', className: 'bg-orange-500 text-white' },
+      'postponed': { label: '📅 Adiado', className: 'bg-muted text-muted-foreground' },
+      'cancelled': { label: '❌ Cancelado', className: 'bg-muted text-muted-foreground' },
+    };
+    return map[status] || null;
+  };
+
   const getPredictionBgColor = (prediction: MatchPrediction): string => {
-    const isFinished = prediction.home_score !== null && prediction.away_score !== null;
+    const liveStatuses = ['1H', '2H', 'HT', 'ET', 'P'];
+    const isLive = liveStatuses.includes(prediction.status);
+    const isFinished = prediction.status === 'finished';
+    
+    if (isLive) {
+      return "bg-blue-50 dark:bg-blue-950/30 border-l-4 border-blue-500";
+    }
     
     if (!isFinished) {
       return "bg-yellow-50 dark:bg-yellow-950/20 border-l-4 border-yellow-400";
@@ -500,7 +542,12 @@ const FootballRanking = ({ poolId, pool, approvedParticipantsCount }: FootballRa
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <Trophy className="w-5 h-5 text-primary" />
-          Ranking de Pontos
+          {allMatchesFinished ? 'Ranking Final' : 'Ranking Parcial'}
+          {hasLiveMatches && (
+            <Badge className="bg-red-500 text-white text-[0.6rem] px-1.5 py-0 animate-pulse">
+              AO VIVO
+            </Badge>
+          )}
         </CardTitle>
       </CardHeader>
       <CardContent>
@@ -652,7 +699,7 @@ const FootballRanking = ({ poolId, pool, approvedParticipantsCount }: FootballRa
                               return (
                                 <div key={pred.match_id} className={`flex items-start justify-between text-sm rounded p-3 gap-3 ${bgColor}`}>
                                   <div className="flex-1 space-y-2">
-                                    <div className="flex items-center gap-1.5">
+                                    <div className="flex items-center gap-1.5 flex-wrap">
                                       {pred.home_team_crest && (
                                         <img src={pred.home_team_crest} alt={pred.home_team} className="w-4 h-4 flex-shrink-0 object-contain" />
                                       )}
@@ -660,6 +707,14 @@ const FootballRanking = ({ poolId, pool, approvedParticipantsCount }: FootballRa
                                       {pred.away_team_crest && (
                                         <img src={pred.away_team_crest} alt={pred.away_team} className="w-4 h-4 flex-shrink-0 object-contain" />
                                       )}
+                                      {(() => {
+                                        const statusInfo = getMatchStatusLabel(pred.status);
+                                        return statusInfo ? (
+                                          <Badge className={`text-[0.6rem] px-1.5 py-0 ${statusInfo.className}`}>
+                                            {statusInfo.label}
+                                          </Badge>
+                                        ) : null;
+                                      })()}
                                     </div>
                                     <p className="text-xs text-muted-foreground">
                                       {format(new Date(pred.match_date), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
@@ -669,8 +724,8 @@ const FootballRanking = ({ poolId, pool, approvedParticipantsCount }: FootballRa
                                         Palpite: {pred.home_score_prediction} - {pred.away_score_prediction}
                                       </span>
                                       {pred.home_score !== null && pred.away_score !== null && (
-                                        <span className="text-xs text-muted-foreground">
-                                          | Real: {pred.home_score} - {pred.away_score}
+                                        <span className="text-xs font-semibold">
+                                          | Placar: {pred.home_score} - {pred.away_score}
                                         </span>
                                       )}
                                     </div>
@@ -804,7 +859,7 @@ const FootballRanking = ({ poolId, pool, approvedParticipantsCount }: FootballRa
                               return (
                                 <div key={pred.match_id} className={`flex items-start justify-between text-sm rounded p-3 gap-3 ${bgColor}`}>
                                   <div className="flex-1 space-y-2">
-                                    <div className="flex items-center gap-1.5">
+                                    <div className="flex items-center gap-1.5 flex-wrap">
                                       {pred.home_team_crest && (
                                         <img src={pred.home_team_crest} alt={pred.home_team} className="w-4 h-4 flex-shrink-0 object-contain" />
                                       )}
@@ -812,6 +867,14 @@ const FootballRanking = ({ poolId, pool, approvedParticipantsCount }: FootballRa
                                       {pred.away_team_crest && (
                                         <img src={pred.away_team_crest} alt={pred.away_team} className="w-4 h-4 flex-shrink-0 object-contain" />
                                       )}
+                                      {(() => {
+                                        const statusInfo = getMatchStatusLabel(pred.status);
+                                        return statusInfo ? (
+                                          <Badge className={`text-[0.6rem] px-1.5 py-0 ${statusInfo.className}`}>
+                                            {statusInfo.label}
+                                          </Badge>
+                                        ) : null;
+                                      })()}
                                     </div>
                                     <p className="text-xs text-muted-foreground">
                                       {format(new Date(pred.match_date), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
@@ -821,8 +884,8 @@ const FootballRanking = ({ poolId, pool, approvedParticipantsCount }: FootballRa
                                         Palpite: {pred.home_score_prediction} - {pred.away_score_prediction}
                                       </span>
                                       {pred.home_score !== null && pred.away_score !== null && (
-                                        <span className="text-xs text-muted-foreground">
-                                          | Real: {pred.home_score} - {pred.away_score}
+                                        <span className="text-xs font-semibold">
+                                          | Placar: {pred.home_score} - {pred.away_score}
                                         </span>
                                       )}
                                     </div>
