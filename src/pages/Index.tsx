@@ -9,7 +9,7 @@ import PoolCard from "@/components/PoolCard";
 import { Session } from "@supabase/supabase-js";
 import { NotificationService } from "@/services/NotificationService";
 import { useUserRole } from "@/hooks/useUserRole";
-import palpiteAmigoLogo from "@/assets/logo-icon.png";
+import delfosLogo from "@/assets/delfos-logo.png";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 
@@ -291,7 +291,7 @@ const Index = () => {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
         <div className="flex flex-col items-center gap-3">
-          <img src={palpiteAmigoLogo} alt="Delphos" className="h-20 w-auto animate-pulse" />
+          <img src={delfosLogo} alt="Delphos" className="h-20 w-auto animate-pulse" />
           <p className="text-muted-foreground text-sm">Carregando...</p>
         </div>
       </div>
@@ -304,7 +304,7 @@ const Index = () => {
       <header className="border-b bg-card/90 backdrop-blur-md sticky top-0 z-20 shadow-sm">
         <div className="max-w-3xl mx-auto px-3 py-2 flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <img src={palpiteAmigoLogo} alt="Delphos" className="h-10 w-auto" />
+            <img src={delfosLogo} alt="Delphos" className="h-10 w-auto" />
             <span className="font-bold text-lg text-foreground hidden sm:inline">Delphos</span>
           </div>
           <div className="flex items-center gap-1">

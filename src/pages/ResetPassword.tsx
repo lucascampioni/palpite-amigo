@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { z } from "zod";
-import palpiteAmigoLogo from "@/assets/logo-icon.png";
+import delfosLogo from "@/assets/delfos-logo.png";
 
 const passwordSchema = z.string()
   .min(8, "Senha deve ter no mínimo 8 caracteres")
@@ -97,7 +97,7 @@ const ResetPassword = () => {
       <div className="w-full max-w-md">
         <div className="text-center mb-8 space-y-4">
           <div className="inline-flex items-center justify-center mb-2">
-            <img src={palpiteAmigoLogo} alt="Palpite Amigo" className="h-40 w-auto" />
+            <img src={delfosLogo} alt="Delphos" className="h-40 w-auto" />
           </div>
           <h1 className="text-2xl font-bold">Redefinir Senha</h1>
           <p className="text-muted-foreground">Digite sua nova senha abaixo</p>
