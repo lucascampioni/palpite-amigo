@@ -61,6 +61,20 @@ const FootballRanking = ({ poolId, pool, approvedParticipantsCount }: FootballRa
     loadPoolScoringSystem();
     loadCurrentUserParticipant();
 
+    // Poll every 60 seconds for live updates
+    const interval = setInterval(() => {
+      loadRanking();
+      // Also refresh expanded participant predictions
+      expandedParticipants.forEach(pid => {
+        setParticipantPredictions(prev => {
+          const copy = { ...prev };
+          delete copy[pid];
+          return copy;
+        });
+        loadParticipantPredictions(pid);
+      });
+    }, 60000);
+
     // Subscribe to real-time updates on football_predictions and football_matches
     const channel = supabase
       .channel('football_ranking_changes')
@@ -72,7 +86,6 @@ const FootballRanking = ({ poolId, pool, approvedParticipantsCount }: FootballRa
           table: 'football_predictions'
         },
         () => {
-          // Reload ranking when predictions are updated
           loadRanking();
         }
       )
@@ -84,13 +97,13 @@ const FootballRanking = ({ poolId, pool, approvedParticipantsCount }: FootballRa
           table: 'football_matches'
         },
         () => {
-          // Reload ranking when match results are updated (real-time during games)
           loadRanking();
         }
       )
       .subscribe();
 
     return () => {
+      clearInterval(interval);
       supabase.removeChannel(channel);
     };
   }, [poolId]);
