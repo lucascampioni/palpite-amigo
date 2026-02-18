@@ -11,6 +11,7 @@ import { useToast } from "@/hooks/use-toast";
 import { ArrowLeft, Save, Trash2, Plus } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { GEMatchSelector } from "@/components/GEMatchSelector";
+import { PixKeyInput } from "@/components/PixKeyInput";
 import { format } from "date-fns";
 
 interface Match {
@@ -500,15 +501,12 @@ const EditFootballPool = () => {
                 )}
               </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="pix_key">Chave PIX (opcional)</Label>
-                <Input
-                  id="pix_key"
-                  value={pixKey}
-                  onChange={(e) => setPixKey(e.target.value)}
-                  placeholder="Digite sua chave PIX para receber pagamentos"
-                />
-              </div>
+              <PixKeyInput
+                value={pixKey}
+                onChange={setPixKey}
+                label="Chave PIX (opcional)"
+                adminNote
+              />
 
               <div className="space-y-2">
                 <Label htmlFor="deadline">Prazo para Palpites *</Label>
