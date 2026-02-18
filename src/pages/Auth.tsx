@@ -356,7 +356,7 @@ const Auth = () => {
       <div className="w-full max-w-md">
         <div className="text-center mb-8 space-y-4">
           <div className="inline-flex items-center justify-center mb-2">
-            <img src={palpiteAmigoLogo} alt="Palpite Amigo" className="h-40 w-auto" />
+            <img src={palpiteAmigoLogo} alt="Delphos" className="h-40 w-auto" />
           </div>
           <p className="text-muted-foreground text-lg">Participe dos bolões e divirta-se com os amigos!</p>
         </div>

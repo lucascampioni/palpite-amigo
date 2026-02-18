@@ -140,7 +140,7 @@ serve(async (req) => {
         const timeLeft = reminderType === '3h' ? '3 horas' : '1 hora e 30 minutos';
         const urgency = reminderType === '1h30' ? '⚠️ ÚLTIMO AVISO! ' : '';
 
-        const message = `${urgency}⏰ *Pagamento Pendente - ${pool.title}*\n\nOlá ${participant.participant_name}! Faltam apenas *${timeLeft}* para o início do jogo e você ainda não enviou o comprovante de pagamento.\n\n💰 Valor: R$ ${Number(pool.entry_fee).toFixed(2).replace('.', ',')}\n\nEnvie seu comprovante pelo app para garantir sua participação! Sem o comprovante, sua inscrição não será aprovada.\n\n🎯 *Palpite Amigo*`;
+        const message = `${urgency}⏰ *Pagamento Pendente - ${pool.title}*\n\nOlá ${participant.participant_name}! Faltam apenas *${timeLeft}* para o início do jogo e você ainda não enviou o comprovante de pagamento.\n\n💰 Valor: R$ ${Number(pool.entry_fee).toFixed(2).replace('.', ',')}\n\nEnvie seu comprovante pelo app para garantir sua participação! Sem o comprovante, sua inscrição não será aprovada.\n\n🎯 *Delphos*`;
 
         try {
           const url = `https://api.z-api.io/instances/${ZAPI_INSTANCE_ID}/token/${ZAPI_TOKEN}/send-text`;

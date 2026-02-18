@@ -59,7 +59,7 @@ const createMessageTemplates = (): MessageTemplate[] => [
       const prizeText = prizes?.first
         ? `\n\n💰 *Premiação:*\n🥇 1º lugar: R$ ${prizes.first}${prizes.second ? `\n🥈 2º lugar: R$ ${prizes.second}` : ""}${prizes.third ? `\n🥉 3º lugar: R$ ${prizes.third}` : ""}`
         : "";
-      return `🎯 *Palpite Amigo*\n\nOlá ${name}! ⚽🔥\n\nO bolão *"${pool}"* está aberto e aceitando palpites!${prizeText}\n\nFaça seus palpites e concorra aos prêmios! 🏆\n\n👉 Participe aqui: ${poolLink}`;
+      return `🎯 *Delphos*\n\nOlá ${name}! ⚽🔥\n\nO bolão *"${pool}"* está aberto e aceitando palpites!${prizeText}\n\nFaça seus palpites e concorra aos prêmios! 🏆\n\n👉 Participe aqui: ${poolLink}`;
     },
     category: "divulgacao",
     targetAllUsers: true,
@@ -70,7 +70,7 @@ const createMessageTemplates = (): MessageTemplate[] => [
     label: "Encerra em 30min",
     icon: <Clock className="w-4 h-4" />,
     getMessage: (name, pool, poolLink) =>
-      `🎯 *Palpite Amigo*\n\nOlá ${name}! ⏰\n\nOs palpites do bolão "${pool}" se encerram em *30 minutos*!\n\nCorra para fazer seus palpites antes que o prazo acabe! 🏃‍♂️⚽\n\n👉 ${poolLink}`,
+      `🎯 *Delphos*\n\nOlá ${name}! ⏰\n\nOs palpites do bolão "${pool}" se encerram em *30 minutos*!\n\nCorra para fazer seus palpites antes que o prazo acabe! 🏃‍♂️⚽\n\n👉 ${poolLink}`,
     category: "lembrete",
     mode: "copy", // Creator copies to group
   },
@@ -79,7 +79,7 @@ const createMessageTemplates = (): MessageTemplate[] => [
     label: "Encerra em 1 hora",
     icon: <Clock className="w-4 h-4" />,
     getMessage: (name, pool, poolLink) =>
-      `🎯 *Palpite Amigo*\n\nOlá ${name}! ⏰\n\nOs palpites do bolão "${pool}" se encerram em *1 hora*!\n\nNão perca o prazo! Faça seus palpites agora. ⚽\n\n👉 ${poolLink}`,
+      `🎯 *Delphos*\n\nOlá ${name}! ⏰\n\nOs palpites do bolão "${pool}" se encerram em *1 hora*!\n\nNão perca o prazo! Faça seus palpites agora. ⚽\n\n👉 ${poolLink}`,
     category: "lembrete",
     mode: "copy",
   },
@@ -88,7 +88,7 @@ const createMessageTemplates = (): MessageTemplate[] => [
     label: "Lembrete participar",
     icon: <AlertTriangle className="w-4 h-4" />,
     getMessage: (name, pool, poolLink) =>
-      `🎯 *Palpite Amigo*\n\nOlá ${name}! 👋\n\nVocê ainda não enviou seus palpites no bolão "${pool}"!\n\nParticipe antes que o prazo acabe! 🎯⚽\n\n👉 ${poolLink}`,
+      `🎯 *Delphos*\n\nOlá ${name}! 👋\n\nVocê ainda não enviou seus palpites no bolão "${pool}"!\n\nParticipe antes que o prazo acabe! 🎯⚽\n\n👉 ${poolLink}`,
     category: "lembrete",
     mode: "copy",
   },
@@ -97,7 +97,7 @@ const createMessageTemplates = (): MessageTemplate[] => [
     label: "Atualização posição",
     icon: <Trophy className="w-4 h-4" />,
     getMessage: (name, pool, poolLink, extra) =>
-      `🎯 *Palpite Amigo*\n\nOlá ${name}! 📊\n\nAtualização do bolão "${pool}":\n\nVocê está na *${extra?.position || "?"}ª posição* com *${extra?.points || 0} pontos*!\n\n${extra?.position && extra.position <= 3 ? "Continue assim! Você está no pódio! 🏆" : "Ainda dá tempo de subir no ranking! 💪"}\n\n👉 ${poolLink}`,
+      `🎯 *Delphos*\n\nOlá ${name}! 📊\n\nAtualização do bolão "${pool}":\n\nVocê está na *${extra?.position || "?"}ª posição* com *${extra?.points || 0} pontos*!\n\n${extra?.position && extra.position <= 3 ? "Continue assim! Você está no pódio! 🏆" : "Ainda dá tempo de subir no ranking! 💪"}\n\n👉 ${poolLink}`,
     category: "resultado",
     mode: "api", // Admin sends via API (filtered by notify_pool_updates)
   },
@@ -106,7 +106,7 @@ const createMessageTemplates = (): MessageTemplate[] => [
     label: "Bolão finalizado",
     icon: <PartyPopper className="w-4 h-4" />,
     getMessage: (name, pool, poolLink) =>
-      `🎯 *Palpite Amigo*\n\nOlá ${name}! 🎉\n\nO bolão "${pool}" foi *finalizado*!\n\nAcesse o app para ver o resultado final e o ranking completo! 🏆📊\n\n👉 ${poolLink}`,
+      `🎯 *Delphos*\n\nOlá ${name}! 🎉\n\nO bolão "${pool}" foi *finalizado*!\n\nAcesse o app para ver o resultado final e o ranking completo! 🏆📊\n\n👉 ${poolLink}`,
     category: "resultado",
     mode: "both", // Creator can copy, admin can send via API
   },
@@ -115,7 +115,7 @@ const createMessageTemplates = (): MessageTemplate[] => [
     label: "Parabéns vencedor",
     icon: <Trophy className="w-4 h-4" />,
     getMessage: (name, pool, poolLink) =>
-      `🎯 *Palpite Amigo*\n\nParabéns ${name}! 🏆🎉\n\nVocê venceu o bolão "${pool}"!\n\nEnvie sua chave PIX no app para receber o prêmio! 💰\n\n👉 ${poolLink}`,
+      `🎯 *Delphos*\n\nParabéns ${name}! 🏆🎉\n\nVocê venceu o bolão "${pool}"!\n\nEnvie sua chave PIX no app para receber o prêmio! 💰\n\n👉 ${poolLink}`,
     category: "resultado",
     mode: "api", // Admin sends via API
   },
@@ -124,7 +124,7 @@ const createMessageTemplates = (): MessageTemplate[] => [
     label: "Cobrar chave PIX",
     icon: <Send className="w-4 h-4" />,
     getMessage: (name, pool, poolLink) =>
-      `🎯 *Palpite Amigo*\n\nOlá ${name}! 💰\n\nVocê ganhou no bolão "${pool}"!\n\nPor favor, envie sua *chave PIX* no app para receber o prêmio. Estamos aguardando! 🙏\n\n👉 ${poolLink}`,
+      `🎯 *Delphos*\n\nOlá ${name}! 💰\n\nVocê ganhou no bolão "${pool}"!\n\nPor favor, envie sua *chave PIX* no app para receber o prêmio. Estamos aguardando! 🙏\n\n👉 ${poolLink}`,
     category: "pagamento",
     mode: "api",
   },
@@ -133,7 +133,7 @@ const createMessageTemplates = (): MessageTemplate[] => [
     label: "Pagamento pendente",
     icon: <AlertTriangle className="w-4 h-4" />,
     getMessage: (name, pool, poolLink) =>
-      `🎯 *Palpite Amigo*\n\nOlá ${name}! 💳\n\nSeu pagamento da taxa de participação do bolão "${pool}" ainda está *pendente*.\n\nEnvie o comprovante no app para ser aprovado! 📱\n\n👉 ${poolLink}`,
+      `🎯 *Delphos*\n\nOlá ${name}! 💳\n\nSeu pagamento da taxa de participação do bolão "${pool}" ainda está *pendente*.\n\nEnvie o comprovante no app para ser aprovado! 📱\n\n👉 ${poolLink}`,
     category: "pagamento",
     mode: "api",
   },
@@ -156,7 +156,7 @@ const WhatsAppMessagePanel = ({ poolTitle, poolId, participants, poolDeadline, r
   const { toast } = useToast();
 
   const messageTemplates = createMessageTemplates();
-  const poolLink = `https://palpiteamigo.com.br/pool/${poolId}`;
+  const poolLink = `https://app-delfos.lovable.app/pool/${poolId}`;
   const approvedParticipants = participants.filter(p => p.status === "approved");
 
   const getParticipantRankInfo = (participantId: string) => {
