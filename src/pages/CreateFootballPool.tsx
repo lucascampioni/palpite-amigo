@@ -11,6 +11,7 @@ import { useToast } from "@/hooks/use-toast";
 import { ArrowLeft, Trash2, Plus } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { GEMatchSelector } from "@/components/GEMatchSelector";
+import { PixKeyInput } from "@/components/PixKeyInput";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { z } from "zod";
@@ -51,6 +52,7 @@ const CreateFootballPool = () => {
   const { data: userRole, isLoading: isLoadingRole } = useUserRole();
   const [loading, setLoading] = useState(false);
   const [isPrivate, setIsPrivate] = useState(false);
+  const [pixKey, setPixKey] = useState("");
   const [isOfficial, setIsOfficial] = useState(false);
   const [scoringSystem, setScoringSystem] = useState<'standard' | 'exact_only'>('exact_only');
   const [maxWinners, setMaxWinners] = useState<number>(3);
@@ -146,26 +148,26 @@ const CreateFootballPool = () => {
     const formData = new FormData(e.currentTarget);
     const title = formData.get("title") as string;
     const description = formData.get("description") as string;
-    const pixKey = formData.get("pix_key") as string;
+    const pixKeyValue = pixKey;
     const entryFee = formData.get("entry_fee") as string;
     const maxParticipants = formData.get("max_participants") as string;
 
     // Validate input
     try {
-      footballPoolSchema.parse({ title, description, pixKey, entryFee, maxParticipants });
+      footballPoolSchema.parse({ title, description, pixKey: pixKeyValue, entryFee, maxParticipants });
       
       // Additional validation for non-admin users
       if (!userRole?.isAdmin) {
         if (!entryFee || parseFloat(entryFee) <= 0) {
           throw new Error("Valor de entrada é obrigatório");
         }
-        if (!pixKey.trim()) {
+        if (!pixKeyValue.trim()) {
           throw new Error("Chave PIX é obrigatória");
         }
       } else {
         // Admin: PIX required only if entry fee is set
         const hasEntryFee = entryFee && parseFloat(entryFee) > 0;
-        if (hasEntryFee && !pixKey.trim()) {
+        if (hasEntryFee && !pixKeyValue.trim()) {
           throw new Error("Chave PIX é obrigatória quando há valor de entrada");
         }
       }
@@ -266,12 +268,12 @@ const CreateFootballPool = () => {
     }
 
     // Save PIX key to separate payment info table if provided
-    if (pixKey) {
+    if (pixKeyValue) {
       const { error: paymentError } = await supabase
         .from("pool_payment_info")
         .insert({
           pool_id: pool.id,
-          pix_key: pixKey,
+          pix_key: pixKeyValue,
         });
 
       if (paymentError) {
@@ -574,22 +576,13 @@ const CreateFootballPool = () => {
                 </div>
               </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="pix_key">
-                  Chave PIX {userRole?.isAdmin ? '(opcional)' : '*'}
-                </Label>
-                <Input
-                  id="pix_key"
-                  name="pix_key"
-                  placeholder="Digite sua chave PIX para receber pagamentos"
-                  required={!userRole?.isAdmin}
-                />
-                {userRole?.isAdmin && (
-                  <p className="text-xs text-muted-foreground">
-                    * Obrigatório se houver valor de entrada
-                  </p>
-                )}
-              </div>
+              <PixKeyInput
+                value={pixKey}
+                onChange={setPixKey}
+                required={!userRole?.isAdmin}
+                label={`Chave PIX ${userRole?.isAdmin ? '(opcional)' : ''}`}
+                adminNote={userRole?.isAdmin}
+              />
 
               <div className="flex items-center justify-between rounded-lg border p-4 bg-muted/30">
                 <div className="space-y-0.5">
