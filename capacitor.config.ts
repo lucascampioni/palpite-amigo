@@ -2,7 +2,7 @@ import { CapacitorConfig } from '@capacitor/core';
 
 const config: CapacitorConfig = {
   appId: 'app.lovable.7d4ee358831147f9b535ade781adce50',
-  appName: 'Delphos',
+  appName: 'Delfos',
   webDir: 'dist',
   server: {
     url: 'https://7d4ee358-8311-47f9-b535-ade781adce50.lovableproject.com?forceHideBadge=true',

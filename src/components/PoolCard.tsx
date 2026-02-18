@@ -32,13 +32,13 @@ const PoolCard = ({ pool, onClick, isUserParticipating = false, hasWonPrize = fa
 
   const getStatusColor = (status: string) => {
     if (isUserParticipating && status === "active") {
-      return "bg-blue-500 text-white";
+      return "bg-primary text-primary-foreground";
     }
     if (status === "active") {
-      return "bg-green-500 text-white";
+      return "bg-accent text-accent-foreground";
     }
     if (status === "finished") {
-      return "bg-gray-500 text-white";
+      return "bg-muted text-muted-foreground";
     }
     return "bg-muted text-muted-foreground";
   };
@@ -56,7 +56,7 @@ const PoolCard = ({ pool, onClick, isUserParticipating = false, hasWonPrize = fa
     return status;
   };
 
-const getTypeIcon = (type: string) => {
+  const getTypeIcon = (type: string) => {
     return "⚽";
   };
 
@@ -64,14 +64,16 @@ const getTypeIcon = (type: string) => {
     <Card
       className={cn(
         "group cursor-pointer transition-all duration-500 hover:shadow-xl hover:-translate-y-1",
-        "border hover:border-primary/40 relative overflow-hidden",
-        "bg-gradient-to-br from-card to-card/50 backdrop-blur-sm"
+        "border border-border/60 hover:border-primary/50 relative overflow-hidden",
+        "bg-card backdrop-blur-sm"
       )}
       onClick={onClick}
     >
-      {/* Decorative gradient overlay */}
-      <div className="absolute inset-0 bg-gradient-to-br from-accent/10 via-primary/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-      <div className="absolute inset-0 bg-gradient-to-t from-primary/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+      {/* Gradient top accent bar */}
+      <div className="h-1 bg-gradient-to-r from-primary via-secondary to-accent" />
+      
+      {/* Hover overlay */}
+      <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-accent/5 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
       
       <CardHeader className="relative pb-3">
         <div className="flex flex-col gap-3">
@@ -83,31 +85,31 @@ const getTypeIcon = (type: string) => {
               </Badge>
             )}
             {hasWonPrize && (
-              <Badge className="bg-gradient-to-r from-yellow-400 to-yellow-600 text-white font-semibold shadow-lg border-2 border-yellow-300">
+              <Badge className="bg-gradient-to-r from-secondary to-secondary/80 text-secondary-foreground font-semibold shadow-lg">
                 🏆 Premiado
               </Badge>
             )}
             {prizeReceived && (
-              <Badge className="bg-gradient-to-r from-green-500 to-green-700 text-white font-semibold shadow-lg border-2 border-green-300">
+              <Badge className="bg-primary text-primary-foreground font-semibold shadow-lg">
                 ✅ Prêmio Recebido
               </Badge>
             )}
             {hasPendingPayment && (
-              <Badge className="bg-gradient-to-r from-orange-500 to-orange-600 text-white font-semibold shadow-lg border-2 border-orange-300 animate-pulse">
+              <Badge className="bg-gradient-to-r from-secondary to-secondary/80 text-secondary-foreground font-semibold shadow-lg animate-pulse">
                 ⚠️ Pagamento Pendente
               </Badge>
             )}
             {hasAwaitingApproval && (
-              <Badge className="bg-gradient-to-r from-yellow-500 to-yellow-600 text-white font-semibold shadow-lg border-2 border-yellow-300">
+              <Badge className="bg-gradient-to-r from-secondary/80 to-secondary text-secondary-foreground font-semibold shadow-lg">
                 ⏳ Pendente Aprovação
               </Badge>
             )}
             {pool.entry_fee && pool.entry_fee > 0 ? (
-              <Badge variant="secondary" className="bg-gradient-to-r from-secondary/20 to-accent/20 text-primary font-semibold shadow-sm border border-secondary/30">
+              <Badge variant="secondary" className="bg-secondary/15 text-secondary font-semibold shadow-sm border border-secondary/30">
                 💰 R$ {pool.entry_fee.toFixed(2).replace('.', ',')}
               </Badge>
             ) : (
-              <Badge variant="outline" className="border-2 border-accent/50 text-accent font-semibold shadow-sm bg-accent/5">
+              <Badge variant="outline" className="border-2 border-primary/40 text-primary font-semibold shadow-sm bg-primary/5">
                 ✨ Gratuito
               </Badge>
             )}
@@ -116,11 +118,11 @@ const getTypeIcon = (type: string) => {
           {/* Ícone e título em uma linha */}
           <div className="flex items-center gap-3">
             <div className="relative flex-shrink-0">
-              <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-primary/10 to-accent/10 flex items-center justify-center group-hover:scale-105 transition-transform duration-500 shadow-md">
+              <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-primary/15 to-accent/15 flex items-center justify-center group-hover:scale-105 transition-transform duration-500 shadow-md border border-primary/10">
                 <span className="text-4xl">{getTypeIcon(pool.pool_type)}</span>
               </div>
               {pool.is_official && (
-                <div className="absolute -top-2 -right-2 w-7 h-7 rounded-full bg-gradient-to-br from-secondary via-yellow-400 to-accent flex items-center justify-center shadow-lg animate-pulse">
+                <div className="absolute -top-2 -right-2 w-7 h-7 rounded-full bg-gradient-to-br from-secondary to-secondary/80 flex items-center justify-center shadow-lg animate-pulse">
                   <span className="text-sm">⭐</span>
                 </div>
               )}
@@ -134,18 +136,18 @@ const getTypeIcon = (type: string) => {
       </CardHeader>
       <CardContent className="space-y-2 relative pt-0">
         {pool.status === "finished" && pool.finished_at ? (
-          <div className="flex items-center gap-2 text-sm font-medium text-foreground/80 bg-gradient-to-r from-muted/60 to-muted/30 p-3 rounded-xl border border-border/50">
-            <Clock className="w-5 h-5 text-gray-500" />
+          <div className="flex items-center gap-2 text-sm font-medium text-foreground/80 bg-muted/50 p-3 rounded-xl border border-border/50">
+            <Clock className="w-5 h-5 text-muted-foreground" />
             <span>Finalizado em: {format(new Date(pool.finished_at), "dd 'de' MMMM, HH:mm", { locale: ptBR })}</span>
           </div>
         ) : pool.status === "active" && (
-          <div className="flex items-center gap-2 text-sm font-medium text-foreground/80 bg-gradient-to-r from-muted/60 to-muted/30 p-3 rounded-xl border border-border/50">
+          <div className="flex items-center gap-2 text-sm font-medium text-foreground/80 bg-primary/5 p-3 rounded-xl border border-primary/15">
             <Calendar className="w-5 h-5 text-primary" />
             <span>Prazo: {format(new Date(pool.deadline), "dd 'de' MMMM, HH:mm", { locale: ptBR })}</span>
           </div>
         )}
         {pool.participant_count !== undefined && (
-          <div className="flex items-center gap-2 text-sm font-medium text-foreground/80 bg-gradient-to-r from-muted/60 to-muted/30 p-3 rounded-xl border border-border/50">
+          <div className="flex items-center gap-2 text-sm font-medium text-foreground/80 bg-accent/5 p-3 rounded-xl border border-accent/15">
             <Users className="w-5 h-5 text-accent" />
             <span>{pool.participant_count} participante(s)</span>
           </div>

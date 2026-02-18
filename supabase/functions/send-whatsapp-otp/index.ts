@@ -77,7 +77,7 @@ serve(async (req) => {
     const headers: Record<string, string> = { 'Content-Type': 'application/json' };
     if (ZAPI_CLIENT_TOKEN) headers['Client-Token'] = ZAPI_CLIENT_TOKEN;
 
-    const message = `🎯 *Delphos*\n\nSeu código de verificação é: *${code}*\n\nEste código expira em 10 minutos.\n\n⚠️ Não compartilhe este código com ninguém.`;
+    const message = `🎯 *Delfos*\n\nSeu código de verificação é: *${code}*\n\nEste código expira em 10 minutos.\n\n⚠️ Não compartilhe este código com ninguém.`;
 
     const zapiResponse = await fetch(zapiUrl, {
       method: 'POST',
