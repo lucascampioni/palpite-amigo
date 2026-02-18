@@ -82,12 +82,12 @@ serve(async (req) => {
       // Determine which reminder window we're in
       let reminderType: '3h' | '1h30' | null = null;
 
-      // 3h window: between 2h45 and 3h15 before match
-      if (diffMinutes >= 165 && diffMinutes <= 195) {
+      // 3h window: 15-minute range to match cron interval (2h53 to 3h08)
+      if (diffMinutes >= 173 && diffMinutes <= 188) {
         reminderType = '3h';
       }
-      // 1h30 window: between 1h15 and 1h45 before match
-      else if (diffMinutes >= 75 && diffMinutes <= 105) {
+      // 1h30 window: 15-minute range to match cron interval (1h23 to 1h38)
+      else if (diffMinutes >= 83 && diffMinutes <= 98) {
         reminderType = '1h30';
       }
 
