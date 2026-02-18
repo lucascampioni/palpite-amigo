@@ -55,6 +55,7 @@ const FootballRanking = ({ poolId, pool, approvedParticipantsCount }: FootballRa
   const [currentUserParticipantId, setCurrentUserParticipantId] = useState<string | null>(null);
   const [myPositionExpanded, setMyPositionExpanded] = useState(false);
   const [lastSyncAt, setLastSyncAt] = useState<string | null>(null);
+  const [lastFrontendRefresh, setLastFrontendRefresh] = useState<Date>(new Date());
 
   useEffect(() => {
     loadRanking();
@@ -172,6 +173,7 @@ const FootballRanking = ({ poolId, pool, approvedParticipantsCount }: FootballRa
   };
 
   const loadRanking = async () => {
+    setLastFrontendRefresh(new Date());
     setLoading(true);
 
     // Check match statuses
@@ -667,9 +669,9 @@ const FootballRanking = ({ poolId, pool, approvedParticipantsCount }: FootballRa
               </Badge>
             )}
           </CardTitle>
-          {!allMatchesFinished && lastSyncAt && (
+          {!allMatchesFinished && (
             <p className="text-xs text-muted-foreground mt-1">
-              Última atualização: {format(new Date(lastSyncAt), "dd/MM 'às' HH:mm", { locale: ptBR })}
+              Última atualização: {format(lastFrontendRefresh, "dd/MM 'às' HH:mm", { locale: ptBR })}
             </p>
           )}
         </div>
