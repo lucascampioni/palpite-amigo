@@ -153,10 +153,18 @@ export const AdminParticipantsManager = ({
   };
 
   const viewProof = async (paymentProof: string) => {
+    // Open window synchronously to avoid mobile popup blocker
+    const newWindow = window.open("", "_blank");
     try {
       const { data } = await supabase.storage.from("payment-proofs").createSignedUrl(paymentProof, 3600);
-      if (data?.signedUrl) window.open(data.signedUrl, "_blank");
+      if (data?.signedUrl && newWindow) {
+        newWindow.location.href = data.signedUrl;
+      } else {
+        newWindow?.close();
+        toast({ variant: "destructive", title: "Erro", description: "Não foi possível gerar o link do comprovante." });
+      }
     } catch (error: any) {
+      newWindow?.close();
       toast({ variant: "destructive", title: "Erro ao visualizar comprovante", description: error.message });
     }
   };
