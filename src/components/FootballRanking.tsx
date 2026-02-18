@@ -494,17 +494,9 @@ const FootballRanking = ({ poolId, pool, approvedParticipantsCount }: FootballRa
     if (!isFinished && !isLive) {
       return "Jogo ainda não começou";
     }
-    
-    if (isLive) {
-      return "Jogo em andamento — pontuação parcial";
-    }
 
     if (prediction.home_score === null || prediction.away_score === null) {
       return "Aguardando resultado";
-    }
-
-    if (prediction.points_earned === 0) {
-      return "Nenhum ponto";
     }
 
     const predictedHome = prediction.home_score_prediction;
@@ -512,15 +504,28 @@ const FootballRanking = ({ poolId, pool, approvedParticipantsCount }: FootballRa
     const actualHome = prediction.home_score;
     const actualAway = prediction.away_score;
 
+    const suffix = isLive ? " (parcial)" : "";
+    const partialNote = isLive ? " — pode mudar até o fim do jogo" : "";
+
+    // Calculate current points
+    const currentPoints = calculatePointsClientSide(predictedHome, predictedAway, actualHome, actualAway, system);
+
+    if (currentPoints === 0) {
+      if (isLive) {
+        return "Sem pontos no momento — pode mudar até o fim do jogo";
+      }
+      return "Nenhum ponto";
+    }
+
     // Exact score
     if (predictedHome === actualHome && predictedAway === actualAway) {
-      if (system === 'exact_only') return "1pt por acertar o placar";
-      if (system === 'simplified') return "3pts por acertar o placar";
-      return "5pts por acertar o placar exato";
+      if (system === 'exact_only') return `1pt por acertar o placar${suffix}${partialNote}`;
+      if (system === 'simplified') return `3pts por acertar o placar${suffix}${partialNote}`;
+      return `5pts por acertar o placar exato${suffix}${partialNote}`;
     }
 
     // For exact_only, only exact score gives points
-    if (system === 'exact_only') return "";
+    if (system === 'exact_only') return isLive ? "Sem pontos no momento — pode mudar até o fim do jogo" : "";
 
     // Determine results
     const predictedResult = predictedHome > predictedAway ? 'home' : predictedHome < predictedAway ? 'away' : 'draw';
@@ -529,9 +534,9 @@ const FootballRanking = ({ poolId, pool, approvedParticipantsCount }: FootballRa
     // For simplified system
     if (system === 'simplified') {
       if (predictedResult === actualResult) {
-        return "1pt por acertar o resultado";
+        return `1pt por acertar o resultado${suffix}${partialNote}`;
       }
-      return "";
+      return isLive ? "Sem pontos no momento — pode mudar até o fim do jogo" : "";
     }
 
     // Standard system - can have multiple reasons
@@ -547,7 +552,8 @@ const FootballRanking = ({ poolId, pool, approvedParticipantsCount }: FootballRa
       reasons.push("1pt por acertar a diferença");
     }
 
-    return reasons.join(" + ");
+    const joined = reasons.join(" + ");
+    return isLive ? `${joined} (parcial) — pode mudar até o fim do jogo` : joined;
   };
 
   const getMatchStatusLabel = (status: string): { label: string; className: string } | null => {
