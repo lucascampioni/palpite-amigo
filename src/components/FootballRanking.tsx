@@ -54,6 +54,7 @@ const FootballRanking = ({ poolId, pool, approvedParticipantsCount }: FootballRa
   const [scoringSystem, setScoringSystem] = useState<string>('standard');
   const [currentUserParticipantId, setCurrentUserParticipantId] = useState<string | null>(null);
   const [myPositionExpanded, setMyPositionExpanded] = useState(false);
+  const [lastSyncAt, setLastSyncAt] = useState<string | null>(null);
 
   useEffect(() => {
     loadRanking();
@@ -163,8 +164,19 @@ const FootballRanking = ({ poolId, pool, approvedParticipantsCount }: FootballRa
     // Check match statuses
     const { data: matches } = await supabase
       .from("football_matches")
-      .select("id, home_score, away_score, status")
+      .select("id, home_score, away_score, status, last_sync_at")
       .eq("pool_id", poolId);
+
+    // Get the most recent sync timestamp
+    if (matches && matches.length > 0) {
+      const syncTimes = matches
+        .map((m: any) => m.last_sync_at)
+        .filter(Boolean)
+        .sort((a: string, b: string) => new Date(b).getTime() - new Date(a).getTime());
+      if (syncTimes.length > 0) {
+        setLastSyncAt(syncTimes[0]);
+      }
+    }
 
     const allFinished = matches?.every(m => m.status === 'finished') ?? false;
     setAllMatchesFinished(allFinished);
@@ -632,15 +644,22 @@ const FootballRanking = ({ poolId, pool, approvedParticipantsCount }: FootballRa
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <Trophy className="w-5 h-5 text-primary" />
-          {allMatchesFinished ? 'Ranking Final' : 'Ranking Parcial'}
-          {hasLiveMatches && (
-            <Badge className="bg-red-500 text-white text-[0.6rem] px-1.5 py-0 animate-pulse">
-              AO VIVO
-            </Badge>
+        <div>
+          <CardTitle className="flex items-center gap-2">
+            <Trophy className="w-5 h-5 text-primary" />
+            {allMatchesFinished ? 'Ranking Final' : 'Ranking Parcial'}
+            {hasLiveMatches && (
+              <Badge className="bg-red-500 text-white text-[0.6rem] px-1.5 py-0 animate-pulse">
+                AO VIVO
+              </Badge>
+            )}
+          </CardTitle>
+          {!allMatchesFinished && lastSyncAt && (
+            <p className="text-xs text-muted-foreground mt-1">
+              Última atualização: {format(new Date(lastSyncAt), "dd/MM 'às' HH:mm", { locale: ptBR })}
+            </p>
           )}
-        </CardTitle>
+        </div>
       </CardHeader>
       <CardContent>
         {/* Podium for top 3 positions - only show when all matches are finished */}
