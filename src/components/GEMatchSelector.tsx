@@ -214,11 +214,20 @@ export const GEMatchSelector = ({ open, onOpenChange, onMatchesSelected }: GEMat
         ) : (
           <Tabs defaultValue={championships[0]?.id} className="w-full">
             <TabsList className="w-full flex flex-wrap gap-1 h-auto p-1">
-              {championships.map((champ) => (
-                <TabsTrigger key={champ.id} value={champ.id} className="flex-1 min-w-0 text-xs sm:text-sm px-2 py-1.5">
-                  {champ.name === 'Premier League' ? '🏴󠁧󠁢󠁥󠁮󠁧󠁿 Premier' : champ.name === 'Copa do Mundo 2026' ? '🏆 Copa' : '🇧🇷 Brasileirão'}
-                </TabsTrigger>
-              ))}
+              {championships.map((champ) => {
+                const champLabels: Record<string, string> = {
+                  'bsa': '🇧🇷 Brasileirão',
+                  'pl': '🏴󠁧󠁢󠁥󠁮󠁧󠁿 Premier',
+                  'cl': '🏆 Champions',
+                  'wc': '🌍 Copa',
+                };
+                const label = champLabels[champ.id] || champ.name;
+                return (
+                  <TabsTrigger key={champ.id} value={champ.id} className="flex-1 min-w-0 text-[10px] sm:text-sm px-1.5 sm:px-2 py-1.5">
+                    {label}
+                  </TabsTrigger>
+                );
+              })}
             </TabsList>
 
             {championships.map((champ) => (
