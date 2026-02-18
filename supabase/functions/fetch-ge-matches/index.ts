@@ -32,11 +32,11 @@ const API_FOOTBALL_KEY = Deno.env.get('API_FOOTBALL_KEY');
 const API_FOOTBALL_BASE = 'https://v3.football.api-sports.io';
 
 // API-Football league IDs
-const COMPETITIONS: Record<string, { leagueId: number; code: string; name: string; useDateFilter: boolean }> = {
-  brasileirao: { leagueId: 71, code: 'bsa', name: 'Campeonato Brasileiro Série A', useDateFilter: true },
-  premierLeague: { leagueId: 39, code: 'pl', name: 'Premier League', useDateFilter: true },
-  championsLeague: { leagueId: 2, code: 'cl', name: 'UEFA Champions League', useDateFilter: true },
-  worldCup: { leagueId: 1, code: 'wc', name: 'Copa do Mundo 2026', useDateFilter: false },
+const COMPETITIONS: Record<string, { leagueId: number; code: string; name: string; useDateFilter: boolean; season?: number }> = {
+  brasileirao: { leagueId: 71, code: 'bsa', name: 'Campeonato Brasileiro Série A', useDateFilter: true, season: 2026 },
+  premierLeague: { leagueId: 39, code: 'pl', name: 'Premier League', useDateFilter: true, season: 2025 },
+  championsLeague: { leagueId: 2, code: 'cl', name: 'UEFA Champions League', useDateFilter: true, season: 2025 },
+  worldCup: { leagueId: 1, code: 'wc', name: 'Copa do Mundo 2026', useDateFilter: false, season: 2026 },
 };
 
 async function fetchFixtures(leagueId: number, season: number, useDateFilter: boolean): Promise<any[]> {
@@ -164,12 +164,11 @@ serve(async (req) => {
 
     console.log('=== Starting fetch-ge-matches (API-Football) ===');
     const championships: Championship[] = [];
-    const currentYear = new Date().getFullYear();
-
     for (const [key, comp] of Object.entries(COMPETITIONS)) {
       try {
-        console.log(`📡 Fetching ${comp.name} (league ${comp.leagueId})...`);
-        const fixtures = await fetchFixtures(comp.leagueId, currentYear, comp.useDateFilter);
+        const season = comp.season || new Date().getFullYear();
+        console.log(`📡 Fetching ${comp.name} (league ${comp.leagueId}, season ${season})...`);
+        const fixtures = await fetchFixtures(comp.leagueId, season, comp.useDateFilter);
         console.log(`📊 Got ${fixtures.length} fixtures for ${comp.name}`);
 
         if (fixtures.length > 0) {
