@@ -821,7 +821,7 @@ const PoolDetail = () => {
             )}
 
             {/* Prize Information */}
-            {!isPendingPayment && (pool.first_place_prize || pool.second_place_prize || pool.third_place_prize) && (
+            {(pool.first_place_prize || pool.second_place_prize || pool.third_place_prize) && (
               <>
                 <Card className="border-2 border-primary/20 bg-gradient-to-br from-primary/5 to-primary/10">
                   <CardHeader>
