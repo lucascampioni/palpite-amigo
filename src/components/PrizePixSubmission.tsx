@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -35,6 +35,24 @@ export const PrizePixSubmission = ({
   const [pixKeyType, setPixKeyType] = useState<string>("");
   const [termsAccepted, setTermsAccepted] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Pre-fill from profile
+  useEffect(() => {
+    const loadProfilePix = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("pix_key, pix_key_type")
+        .eq("id", user.id)
+        .single();
+      if (profile?.pix_key && profile?.pix_key_type) {
+        setPixKey(profile.pix_key);
+        setPixKeyType(profile.pix_key_type);
+      }
+    };
+    loadProfilePix();
+  }, []);
 
   const validatePixKey = (key: string, type: string): boolean => {
     const pixSchemas = {
