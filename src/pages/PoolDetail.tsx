@@ -186,10 +186,11 @@ const PoolDetail = () => {
         }))
         .sort((a: any, b: any) => b.total_points - a.total_points);
 
+      const maxWinners = pool.max_winners || 3;
       const winnersToUpdate: string[] = [];
       let currentPosition = 0;
 
-      while (currentPosition < participantsWithPoints.length && currentPosition < 3) {
+      while (currentPosition < participantsWithPoints.length && currentPosition < maxWinners) {
         const currentScore = participantsWithPoints[currentPosition].total_points;
         
         // Skip if score is 0
@@ -204,8 +205,8 @@ const PoolDetail = () => {
           tieGroupEnd++;
         }
 
-        // If this group touches any prize position (top 3), they all get prize
-        if (currentPosition <= 2) {
+        // If this group touches any prize position, they all get prize
+        if (currentPosition < maxWinners) {
           for (let i = currentPosition; i < tieGroupEnd; i++) {
             if (participantsWithPoints[i].total_points > 0) {
               winnersToUpdate.push(participantsWithPoints[i].id);
