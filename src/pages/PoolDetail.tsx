@@ -207,17 +207,27 @@ const PoolDetail = () => {
       }
 
       // Update prize_status for winners who haven't submitted PIX yet
-      if (winnersToUpdate.length > 0) {
+      const winnersNeedingUpdate = winnersToUpdate.filter(wId => {
+        const p = participants.find(pp => pp.id === wId);
+        return p && !p.prize_status;
+      });
+
+      if (winnersNeedingUpdate.length > 0) {
         const { error: updateError } = await supabase
           .from('participants')
           .update({ prize_status: 'awaiting_pix' })
-          .in('id', winnersToUpdate)
+          .in('id', winnersNeedingUpdate)
           .is('prize_status', null);
 
         if (!updateError) {
-          console.log(`Updated ${winnersToUpdate.length} winners to awaiting_pix status`);
-          // Reload data to reflect changes
-          loadPoolData();
+          console.log(`Updated ${winnersNeedingUpdate.length} winners to awaiting_pix status`);
+          // Update local state instead of reloading to avoid infinite loop
+          setParticipants(prev => prev.map(p => 
+            winnersNeedingUpdate.includes(p.id) ? { ...p, prize_status: 'awaiting_pix' } : p
+          ));
+          setCurrentUserParticipant((prev: any) => 
+            prev && winnersNeedingUpdate.includes(prev.id) ? { ...prev, prize_status: 'awaiting_pix' } : prev
+          );
         } else {
           console.error('Error updating winners prize_status:', updateError);
         }
