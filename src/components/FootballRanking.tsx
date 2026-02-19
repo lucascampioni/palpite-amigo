@@ -336,7 +336,6 @@ const FootballRanking = ({ poolId, pool, approvedParticipantsCount, isOwner }: F
   };
 
   const getPrizeStatusBadge = (status: string | null | undefined, prizeAmount?: number) => {
-    if (!isOwner) return null;
     if (!prizeAmount || prizeAmount === 0) return null;
     
     if (!status || status === 'awaiting_pix') {
