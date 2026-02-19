@@ -114,10 +114,20 @@ const PoolDetail = () => {
 
       if (overlapCount <= 0) return; // no prize for this user
 
+      // Calculate actual prize values, handling percentage-based prizes
+      const approvedCount = participants.filter(p => p.status === 'approved').length;
+      const totalCollected = (pool.entry_fee ? parseFloat(pool.entry_fee) : 0) * approvedCount;
+      const isPercentage = pool.prize_type === 'percentage';
+      
+      const calcPrize = (val: any) => {
+        const num = val ? parseFloat(val) : 0;
+        return isPercentage ? (num / 100) * totalCollected : num;
+      };
+
       const prizes = [
-        pool.first_place_prize ? parseFloat(pool.first_place_prize) : 0,
-        pool.second_place_prize ? parseFloat(pool.second_place_prize) : 0,
-        pool.third_place_prize ? parseFloat(pool.third_place_prize) : 0
+        calcPrize(pool.first_place_prize),
+        calcPrize(pool.second_place_prize),
+        calcPrize(pool.third_place_prize),
       ];
 
       // Sum prizes for the overlapped positions only, then split equally among overlapped participants
