@@ -2,12 +2,13 @@ import { useEffect, useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Trophy, Users, Award, ArrowLeft, Mail, Calendar, Camera, Phone, Lock, Pencil, Loader2, MessageCircle, Bell, Shield } from "lucide-react";
+import { Trophy, Users, Award, ArrowLeft, Mail, Calendar, Camera, Phone, Lock, Pencil, Loader2, MessageCircle, Bell, Shield, Wallet } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "@/hooks/use-toast";
@@ -27,12 +28,16 @@ const Profile = () => {
   // Edit states
   const [editingPhone, setEditingPhone] = useState(false);
   const [editingPassword, setEditingPassword] = useState(false);
+  const [editingPix, setEditingPix] = useState(false);
   const [phone, setPhone] = useState("");
+  const [pixKey, setPixKey] = useState("");
+  const [pixKeyType, setPixKeyType] = useState("");
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [savingPhone, setSavingPhone] = useState(false);
   const [savingPassword, setSavingPassword] = useState(false);
+  const [savingPix, setSavingPix] = useState(false);
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
   const [notifyPoolUpdates, setNotifyPoolUpdates] = useState(true);
   const [notifyNewPools, setNotifyNewPools] = useState(true);
@@ -58,6 +63,8 @@ const Profile = () => {
 
     setProfile(profileData);
     setPhone(profileData?.phone || "");
+    setPixKey(profileData?.pix_key || "");
+    setPixKeyType(profileData?.pix_key_type || "");
     setNotifyPoolUpdates(profileData?.notify_pool_updates ?? true);
     setNotifyNewPools(profileData?.notify_new_pools ?? true);
 
@@ -395,6 +402,104 @@ const Profile = () => {
                 </div>
               )}
             </div>
+          </CardContent>
+        </Card>
+
+        {/* PIX Key */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Wallet className="w-5 h-5 text-primary" />
+              Chave PIX
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <p className="text-xs text-muted-foreground">
+              Salve sua chave PIX para receber prêmios automaticamente nos próximos bolões.
+            </p>
+            {editingPix ? (
+              <div className="space-y-3">
+                <div className="space-y-2">
+                  <Label>Tipo de Chave</Label>
+                  <Select value={pixKeyType} onValueChange={setPixKeyType}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Selecione o tipo" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="cpf">CPF</SelectItem>
+                      <SelectItem value="cnpj">CNPJ</SelectItem>
+                      <SelectItem value="email">E-mail</SelectItem>
+                      <SelectItem value="phone">Telefone</SelectItem>
+                      <SelectItem value="random">Chave Aleatória</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label>Chave PIX</Label>
+                  <Input
+                    value={pixKey}
+                    onChange={(e) => setPixKey(e.target.value)}
+                    placeholder="Digite sua chave PIX"
+                  />
+                </div>
+                <div className="flex gap-2">
+                  <Button
+                    onClick={async () => {
+                      if (!pixKey.trim() || !pixKeyType) {
+                        toast({ title: "Erro", description: "Preencha o tipo e a chave PIX.", variant: "destructive" });
+                        return;
+                      }
+                      setSavingPix(true);
+                      try {
+                        const { data: { user } } = await supabase.auth.getUser();
+                        if (!user) return;
+                        const { error } = await supabase
+                          .from('profiles')
+                          .update({ pix_key: pixKey.trim(), pix_key_type: pixKeyType })
+                          .eq('id', user.id);
+                        if (error) throw error;
+                        setProfile((prev: any) => ({ ...prev, pix_key: pixKey.trim(), pix_key_type: pixKeyType }));
+                        setEditingPix(false);
+                        toast({ title: "Sucesso", description: "Chave PIX salva com sucesso!" });
+                      } catch (error: any) {
+                        toast({ title: "Erro", description: error.message, variant: "destructive" });
+                      } finally {
+                        setSavingPix(false);
+                      }
+                    }}
+                    disabled={savingPix}
+                    size="sm"
+                  >
+                    {savingPix ? <Loader2 className="w-4 h-4 animate-spin" /> : "Salvar"}
+                  </Button>
+                  <Button variant="ghost" size="sm" onClick={() => {
+                    setEditingPix(false);
+                    setPixKey(profile?.pix_key || "");
+                    setPixKeyType(profile?.pix_key_type || "");
+                  }}>
+                    Cancelar
+                  </Button>
+                </div>
+              </div>
+            ) : (
+              <div className="flex items-center justify-between">
+                <div>
+                  {profile?.pix_key ? (
+                    <div className="space-y-1">
+                      <span className="text-xs text-muted-foreground uppercase">
+                        {profile.pix_key_type === 'cpf' ? 'CPF' : profile.pix_key_type === 'cnpj' ? 'CNPJ' : profile.pix_key_type === 'email' ? 'E-mail' : profile.pix_key_type === 'phone' ? 'Telefone' : 'Chave Aleatória'}
+                      </span>
+                      <p className="text-sm font-medium">{profile.pix_key}</p>
+                    </div>
+                  ) : (
+                    <span className="text-sm text-muted-foreground">Nenhuma chave cadastrada</span>
+                  )}
+                </div>
+                <Button variant="outline" size="sm" onClick={() => setEditingPix(true)}>
+                  <Pencil className="w-3 h-3 mr-1" /> {profile?.pix_key ? 'Alterar' : 'Adicionar'}
+                </Button>
+              </div>
+            )}
           </CardContent>
         </Card>
 

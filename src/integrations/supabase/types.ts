@@ -428,6 +428,8 @@ export type Database = {
           notify_pool_updates: boolean
           phone: string | null
           phone_verified: boolean
+          pix_key: string | null
+          pix_key_type: string | null
           updated_at: string
           vip_group_accepted: boolean | null
           vip_group_invited_at: string | null
@@ -443,6 +445,8 @@ export type Database = {
           notify_pool_updates?: boolean
           phone?: string | null
           phone_verified?: boolean
+          pix_key?: string | null
+          pix_key_type?: string | null
           updated_at?: string
           vip_group_accepted?: boolean | null
           vip_group_invited_at?: string | null
@@ -458,6 +462,8 @@ export type Database = {
           notify_pool_updates?: boolean
           phone?: string | null
           phone_verified?: boolean
+          pix_key?: string | null
+          pix_key_type?: string | null
           updated_at?: string
           vip_group_accepted?: boolean | null
           vip_group_invited_at?: string | null

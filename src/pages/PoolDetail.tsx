@@ -144,7 +144,7 @@ const PoolDetail = () => {
   useEffect(() => {
     const updateWinnersPrizeStatus = async () => {
       if (!pool || !hasFootballMatches) return;
-      if (pool.status !== 'active') return;
+      if (pool.status !== 'active' && pool.status !== 'finished') return;
       if (participants.length === 0) return;
 
       // Check if all matches are finished
