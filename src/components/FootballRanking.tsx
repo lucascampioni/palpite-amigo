@@ -19,6 +19,7 @@ interface FootballRankingProps {
     entry_fee?: number;
   };
   approvedParticipantsCount?: number;
+  isOwner?: boolean;
 }
 
 interface ParticipantScore {
@@ -44,7 +45,7 @@ interface MatchPrediction {
   status: string;
 }
 
-const FootballRanking = ({ poolId, pool, approvedParticipantsCount }: FootballRankingProps) => {
+const FootballRanking = ({ poolId, pool, approvedParticipantsCount, isOwner }: FootballRankingProps) => {
   const [ranking, setRanking] = useState<ParticipantScore[]>([]);
   const [loading, setLoading] = useState(true);
   const [expandedParticipants, setExpandedParticipants] = useState<Set<string>>(new Set());
@@ -213,10 +214,25 @@ const FootballRanking = ({ poolId, pool, approvedParticipantsCount }: FootballRa
       .rpc('get_football_pool_ranking', { p_pool_id: poolId });
 
     if (!rpcError && rpcData) {
+      // Fetch prize_status for all participants in this pool
+      const participantIds = rpcData.map((r: any) => r.participant_id);
+      let prizeStatusMap: Record<string, string | null> = {};
+      if (participantIds.length > 0) {
+        const { data: statusData } = await supabase
+          .from("participants")
+          .select("id, prize_status")
+          .eq("pool_id", poolId)
+          .in("id", participantIds);
+        if (statusData) {
+          statusData.forEach((s: any) => { prizeStatusMap[s.id] = s.prize_status; });
+        }
+      }
+
       let baseRanking: ParticipantScore[] = rpcData.map((r: any) => ({
         id: r.participant_id,
         participant_name: r.participant_name,
         total_points: r.total_points ?? 0,
+        prize_status: prizeStatusMap[r.participant_id] || null,
       }));
 
       // If there are live matches, calculate partial points and add to totals
@@ -320,6 +336,7 @@ const FootballRanking = ({ poolId, pool, approvedParticipantsCount }: FootballRa
   };
 
   const getPrizeStatusBadge = (status: string | null | undefined, prizeAmount?: number) => {
+    if (!isOwner) return null;
     if (!prizeAmount || prizeAmount === 0) return null;
     
     if (!status || status === 'awaiting_pix') {

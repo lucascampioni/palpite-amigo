@@ -1413,12 +1413,12 @@ const PoolDetail = () => {
             {((pool.status === "active" || pool.status === "finished") && (pool.pool_type === "football" || hasFootballMatches)) && (
               <>
                 <Separator />
-                <FootballRanking poolId={pool.id} pool={pool} approvedParticipantsCount={participants.filter(p => p.status === 'approved').length} />
+                <FootballRanking poolId={pool.id} pool={pool} approvedParticipantsCount={participants.filter(p => p.status === 'approved').length} isOwner={isOwner} />
               </>
             )}
 
             {/* Admin Prize Management Section */}
-            {(userRole?.isAdmin || isOwner) && pool.status === "finished" && (
+            {isOwner && pool.status === "finished" && (
               <>
                 <Separator />
                 <div className="space-y-4">
