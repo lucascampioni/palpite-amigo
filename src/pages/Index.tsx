@@ -291,7 +291,7 @@ const Index = () => {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
         <div className="flex flex-col items-center gap-3">
-          <img src={delfosLogo} alt="Delfos" className="h-20 w-auto animate-pulse" />
+          <img src={delfosLogo} alt="Delfos" className="h-16 sm:h-20 w-auto animate-pulse" />
           <p className="text-muted-foreground text-sm">Carregando...</p>
         </div>
       </div>
@@ -304,7 +304,7 @@ const Index = () => {
       <header className="sticky top-0 z-20 bg-card/95 backdrop-blur-lg border-b border-border/50 shadow-md">
         <div className="max-w-3xl mx-auto px-3 py-2 flex items-center justify-between">
           <div className="flex items-center">
-            <img src={delfosLogo} alt="Delfos" className="h-10 w-auto" />
+            <img src={delfosLogo} alt="Delfos" className="h-8 sm:h-10 w-auto" />
           </div>
           <div className="flex items-center gap-1">
             {userRole?.canCreatePools && (

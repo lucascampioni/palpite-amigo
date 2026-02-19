@@ -47,7 +47,7 @@ const EmailConfirmation = () => {
       <div className="w-full max-w-md">
         <div className="text-center mb-8 space-y-4">
           <div className="inline-flex items-center justify-center mb-2">
-            <img src={delfosLogo} alt="Delfos" className="h-32 w-auto" />
+            <img src={delfosLogo} alt="Delfos" className="h-20 sm:h-28 w-auto drop-shadow-lg" />
           </div>
         </div>
 
