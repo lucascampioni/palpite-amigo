@@ -902,8 +902,8 @@ const PoolDetail = () => {
               />
             )}
 
-            {/* Prize Information */}
-            {(pool.first_place_prize || pool.second_place_prize || pool.third_place_prize) && (
+            {/* Prize Information - hide when user has pending payment (shown in collapsible instead) */}
+            {(pool.first_place_prize || pool.second_place_prize || pool.third_place_prize) && !((!isOwner && currentUserParticipant?.status === 'pending')) && (
               <>
                 <Card className="border-2 border-primary/20 bg-gradient-to-br from-primary/5 to-primary/10">
                   <CardHeader>
