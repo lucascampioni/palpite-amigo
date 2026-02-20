@@ -1393,22 +1393,6 @@ const PoolDetail = () => {
                       </div>
                     </div>
                   </div>
-                  
-                  <div className="p-4 rounded-lg bg-muted/50 border">
-                    <p className="text-sm font-medium mb-2">📊 Sistema de Pontuação:</p>
-                    {pool.scoring_system === 'exact_only' ? (
-                      <ul className="list-disc list-inside space-y-1 text-xs text-muted-foreground">
-                        <li><strong>1 ponto</strong>: Placar exato</li>
-                        <li><strong>0 pontos</strong>: Qualquer outro resultado</li>
-                      </ul>
-                    ) : (
-                      <ul className="list-disc list-inside space-y-1 text-xs text-muted-foreground">
-                        <li><strong>5 pontos</strong>: Placar exato</li>
-                        <li><strong>3 pontos</strong>: Acertar o vencedor ou empate</li>
-                        <li><strong>+1 ponto</strong>: Acertar a diferença de gols (caso acerte o vencedor ou empate)</li>
-                      </ul>
-                    )}
-                  </div>
                 </div>
               </>
             )}
