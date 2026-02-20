@@ -675,6 +675,7 @@ const PoolDetail = () => {
               <div>
                 <p className="font-bold text-lg">Pendente Aprovação</p>
                 <p className="text-sm text-yellow-100">Seu comprovante foi enviado. Aguarde a aprovação do organizador.</p>
+                <p className="text-sm text-yellow-100 mt-1">🔒 Fique tranquilo! Caso o criador não aprove ou recuse até o horário do primeiro jogo, sua participação será aprovada automaticamente.</p>
               </div>
             </div>
           </div>
