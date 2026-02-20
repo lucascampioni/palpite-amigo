@@ -139,7 +139,7 @@ export const PaymentProofSubmission = ({
           Envie o comprovante de pagamento para participar do bolão
           {firstMatchDate && (
             <span className="block mt-1 text-orange-600 dark:text-orange-400 font-medium">
-              ⏰ Prazo: {format(new Date(firstMatchDate.getTime() - 2.5 * 60 * 60 * 1000), "dd/MM 'às' HH:mm", { locale: ptBR })} (2h30 antes do jogo)
+              ⏰ Prazo: {format(new Date(firstMatchDate.getTime() - 2.5 * 60 * 60 * 1000), "dd/MM 'às' HH:mm", { locale: ptBR })} (2h30 antes do primeiro jogo)
             </span>
           )}
         </CardDescription>
