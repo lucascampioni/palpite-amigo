@@ -278,6 +278,11 @@ export const AdminParticipantsManager = ({
                             Motivo: {p.rejection_reason}
                           </p>
                         )}
+                        {p.rejection_details && (
+                          <p className="text-[11px] text-muted-foreground truncate">
+                            {p.rejection_details}
+                          </p>
+                        )}
                       </div>
                     </div>
                     <Button
