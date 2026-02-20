@@ -820,69 +820,101 @@ const PoolDetail = () => {
               </>
             )}
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="flex items-center gap-3 p-3 rounded-lg bg-muted/50">
-                <Calendar className="w-5 h-5 text-primary" />
-                <div>
-                  <p className="text-sm text-muted-foreground">Prazo para palpites</p>
-                  <p className="font-medium">
+            {/* Prize highlight - shown above info grid */}
+            {(pool.first_place_prize || pool.second_place_prize || pool.third_place_prize) && !((!isOwner && currentUserParticipant?.status === 'pending')) && (() => {
+              const approvedCount = participants.filter(p => p.status === 'approved').length;
+              const totalCollected = (pool.entry_fee || 0) * approvedCount;
+              const isPercentage = pool.prize_type === 'percentage';
+              const calcPrize = (pct: number) => isPercentage ? (pct / 100) * totalCollected : pct;
+              const formatPrize = (val: number) => `R$ ${val.toFixed(2).replace('.', ',')}`;
+              return (
+                <div className="p-4 rounded-xl bg-gradient-to-r from-yellow-500/10 via-primary/10 to-orange-500/10 border-2 border-primary/20">
+                  <p className="text-sm font-semibold text-primary mb-3 flex items-center gap-2">
+                    <Trophy className="w-4 h-4" />
+                    Premiação
+                  </p>
+                  <div className="flex flex-wrap gap-3">
+                    {pool.first_place_prize && (
+                      <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-yellow-500/15 border border-yellow-500/30">
+                        <span className="text-base">🥇</span>
+                        <div>
+                          <p className="text-[11px] text-muted-foreground">1º Lugar</p>
+                          <p className="font-bold text-yellow-700 dark:text-yellow-400">
+                            {isPercentage ? formatPrize(calcPrize(parseFloat(pool.first_place_prize))) : formatPrize(parseFloat(pool.first_place_prize))}
+                          </p>
+                        </div>
+                      </div>
+                    )}
+                    {pool.second_place_prize && (
+                      <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-muted/50 border border-border">
+                        <span className="text-base">🥈</span>
+                        <div>
+                          <p className="text-[11px] text-muted-foreground">2º Lugar</p>
+                          <p className="font-bold text-foreground">
+                            {isPercentage ? formatPrize(calcPrize(parseFloat(pool.second_place_prize))) : formatPrize(parseFloat(pool.second_place_prize))}
+                          </p>
+                        </div>
+                      </div>
+                    )}
+                    {pool.third_place_prize && (
+                      <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-orange-500/10 border border-orange-500/20">
+                        <span className="text-base">🥉</span>
+                        <div>
+                          <p className="text-[11px] text-muted-foreground">3º Lugar</p>
+                          <p className="font-bold text-orange-700 dark:text-orange-400">
+                            {isPercentage ? formatPrize(calcPrize(parseFloat(pool.third_place_prize))) : formatPrize(parseFloat(pool.third_place_prize))}
+                          </p>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                  {isPercentage && (
+                    <p className="text-[10px] text-muted-foreground mt-2">Valores atualizados conforme novos participantes entram.</p>
+                  )}
+                </div>
+              );
+            })()}
+
+            {/* Info grid - 2 cols on mobile */}
+            <div className="grid grid-cols-2 gap-3">
+              <div className="flex items-center gap-2 p-3 rounded-lg bg-muted/50">
+                <Calendar className="w-4 h-4 text-primary flex-shrink-0" />
+                <div className="min-w-0">
+                  <p className="text-[11px] text-muted-foreground">Prazo para palpites</p>
+                  <p className="font-medium text-sm">
                     {firstMatchDate 
-                      ? format(new Date(firstMatchDate.getTime() - 3 * 60 * 60 * 1000), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })
-                      : format(new Date(pool.deadline), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })
+                      ? format(new Date(firstMatchDate.getTime() - 3 * 60 * 60 * 1000), "dd/MM 'às' HH:mm", { locale: ptBR })
+                      : format(new Date(pool.deadline), "dd/MM 'às' HH:mm", { locale: ptBR })
                     }
                   </p>
                   {firstMatchDate && (
-                    <p className="text-xs text-muted-foreground">3h antes do 1º jogo</p>
+                    <p className="text-[10px] text-muted-foreground">3h antes do 1º jogo</p>
                   )}
                 </div>
               </div>
               {!isOwner && (
-                <div className="flex items-center gap-3 p-3 rounded-lg bg-muted/50">
-                  <Users className="w-5 h-5 text-primary" />
+                <div className="flex items-center gap-2 p-3 rounded-lg bg-muted/50">
+                  <Users className="w-4 h-4 text-primary flex-shrink-0" />
                   <div>
-                    <p className="text-sm text-muted-foreground">Participantes</p>
-                    <p className="font-medium">
+                    <p className="text-[11px] text-muted-foreground">Participantes</p>
+                    <p className="font-medium text-sm">
                       {approvedParticipants.length} aprovado(s)
                       {pool.max_participants && approvedParticipants.length >= pool.max_participants && (
-                        <span className="ml-2 text-xs text-destructive">(Cheio)</span>
+                        <span className="ml-1 text-[10px] text-destructive">(Cheio)</span>
                       )}
                     </p>
                   </div>
                 </div>
               )}
               {pool.entry_fee && parseFloat(pool.entry_fee) > 0 && (
-                <div className="flex items-center gap-3 p-3 rounded-lg bg-muted/50">
-                  <span className="text-lg">💰</span>
+                <div className="flex items-center gap-2 p-3 rounded-lg bg-muted/50">
+                  <span className="text-sm">💰</span>
                   <div>
-                    <p className="text-sm text-muted-foreground">Valor de Entrada</p>
-                    <p className="font-medium">R$ {parseFloat(pool.entry_fee).toFixed(2).replace('.', ',')}</p>
+                    <p className="text-[11px] text-muted-foreground">Valor de Entrada</p>
+                    <p className="font-medium text-sm">R$ {parseFloat(pool.entry_fee).toFixed(2).replace('.', ',')}</p>
                   </div>
                 </div>
               )}
-              {/* Prize info as compact grid item */}
-              {(pool.first_place_prize || pool.second_place_prize || pool.third_place_prize) && !((!isOwner && currentUserParticipant?.status === 'pending')) && (() => {
-                const approvedCount = participants.filter(p => p.status === 'approved').length;
-                const totalCollected = (pool.entry_fee || 0) * approvedCount;
-                const isPercentage = pool.prize_type === 'percentage';
-                const calcPrize = (pct: number) => isPercentage ? (pct / 100) * totalCollected : pct;
-                const formatPrize = (val: number) => `R$ ${val.toFixed(2).replace('.', ',')}`;
-                const prizes: string[] = [];
-                if (pool.first_place_prize) prizes.push(`🥇 ${isPercentage ? formatPrize(calcPrize(parseFloat(pool.first_place_prize))) : formatPrize(parseFloat(pool.first_place_prize))}`);
-                if (pool.second_place_prize) prizes.push(`🥈 ${isPercentage ? formatPrize(calcPrize(parseFloat(pool.second_place_prize))) : formatPrize(parseFloat(pool.second_place_prize))}`);
-                if (pool.third_place_prize) prizes.push(`🥉 ${isPercentage ? formatPrize(calcPrize(parseFloat(pool.third_place_prize))) : formatPrize(parseFloat(pool.third_place_prize))}`);
-                return (
-                  <div className="flex items-center gap-3 p-3 rounded-lg bg-gradient-to-br from-primary/5 to-primary/10 border border-primary/20">
-                    <Trophy className="w-5 h-5 text-primary flex-shrink-0" />
-                    <div>
-                      <p className="text-sm text-muted-foreground">Premiação</p>
-                      <p className="font-medium text-sm">{prizes.join(' · ')}</p>
-                      {isPercentage && (
-                        <p className="text-[10px] text-muted-foreground">Atualiza conforme novos participantes</p>
-                      )}
-                    </div>
-                  </div>
-                );
-              })()}
             </div>
 
             {/* Auto-approve warning for creators */}
