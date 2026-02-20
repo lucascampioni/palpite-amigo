@@ -1479,7 +1479,7 @@ const PoolDetail = () => {
               </>
             )}
 
-            {((pool.status === "active" || pool.status === "finished") && (pool.pool_type === "football" || hasFootballMatches)) && (
+            {((pool.status === "active" || pool.status === "finished") && (pool.pool_type === "football" || hasFootballMatches) && (isOwner || currentUserParticipant?.status === 'approved')) && (
               <>
                 <Separator />
                 <FootballRanking poolId={pool.id} pool={pool} approvedParticipantsCount={participants.filter(p => p.status === 'approved').length} isOwner={isOwner} />
@@ -1521,14 +1521,14 @@ const PoolDetail = () => {
               </>
             )}
 
-            {approvedParticipants.length > 0 && (pool.pool_type === "football" || hasFootballMatches) && pool.status !== "finished" && new Date() > new Date(pool.deadline) && !hasAnyMatchResult && (
+            {approvedParticipants.length > 0 && (pool.pool_type === "football" || hasFootballMatches) && pool.status !== "finished" && new Date() > new Date(pool.deadline) && !hasAnyMatchResult && (isOwner || currentUserParticipant?.status === 'approved') && (
               <>
                 <Separator />
                 <FootballParticipantsPredictions poolId={pool.id} participants={approvedParticipants} />
               </>
             )}
 
-            {approvedParticipants.length > 0 && !(pool.pool_type === "football" || hasFootballMatches) && (
+            {approvedParticipants.length > 0 && !(pool.pool_type === "football" || hasFootballMatches) && (isOwner || currentUserParticipant?.status === 'approved') && (
               <>
                 <Separator />
                 <div className="space-y-4">
