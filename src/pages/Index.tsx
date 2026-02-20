@@ -24,6 +24,7 @@ const Index = () => {
   const [myAwaitingPaymentPools, setMyAwaitingPaymentPools] = useState<any[]>([]);
   const [myPendingPaymentPools, setMyPendingPaymentPools] = useState<any[]>([]);
   const [myAwaitingApprovalPools, setMyAwaitingApprovalPools] = useState<any[]>([]);
+  const [myFailedPools, setMyFailedPools] = useState<{pool: any, reason: string}[]>([]);
   const [myPoolsPendingApprovals, setMyPoolsPendingApprovals] = useState<{pool: any, pendingCount: number}[]>([]);
   const [participantPrizeStatus, setParticipantPrizeStatus] = useState<Record<string, string>>({});
   const [officialPools, setOfficialPools] = useState<any[]>([]);
@@ -31,6 +32,7 @@ const Index = () => {
   const [loading, setLoading] = useState(true);
   const [showFinishedCreated, setShowFinishedCreated] = useState(false);
   const [showFinishedParticipating, setShowFinishedParticipating] = useState(false);
+  const [showFailedPools, setShowFailedPools] = useState(false);
   const [activeTab, setActiveTab] = useState("explorar");
   const [searchQuery, setSearchQuery] = useState("");
 
@@ -81,6 +83,7 @@ const Index = () => {
     if (!session?.user) return;
 
     setLoading(true);
+    const now = new Date();
 
     const { data: ownedPools } = await supabase
       .from("pools")
@@ -90,13 +93,14 @@ const Index = () => {
 
     const { data: participantRecords } = await supabase
       .from("participants")
-      .select("pool_id, status, prize_status, payment_proof")
+      .select("pool_id, status, prize_status, payment_proof, rejection_reason, rejection_details")
       .eq("user_id", session.user.id)
-      .in("status", ["approved", "pending"]);
+      .in("status", ["approved", "pending", "rejected"]);
     
     const approvedRecords = participantRecords?.filter(p => p.status === 'approved') || [];
     const pendingRecords = participantRecords?.filter(p => p.status === 'pending' && !p.payment_proof) || [];
     const awaitingApprovalRecords = participantRecords?.filter(p => p.status === 'pending' && p.payment_proof) || [];
+    const rejectedRecords = participantRecords?.filter(p => p.status === 'rejected') || [];
     const participantPoolIds = approvedRecords.map(p => p.pool_id);
     const pendingPoolIds = pendingRecords.map(p => p.pool_id);
     const awaitingApprovalPoolIds = awaitingApprovalRecords.map(p => p.pool_id);
@@ -135,14 +139,24 @@ const Index = () => {
       awaitingPaymentPoolsData = data || [];
     }
 
+    // Separate pending payment pools into still active vs expired
     let pendingPaymentPoolsData: any[] = [];
+    const failedPools: {pool: any, reason: string}[] = [];
+    
     if (pendingPoolIds.length > 0) {
       const { data } = await supabase
         .from("pools")
         .select("*, participants(count)")
         .in("id", pendingPoolIds)
         .order("created_at", { ascending: false });
-      pendingPaymentPoolsData = data || [];
+      
+      (data || []).forEach(pool => {
+        if (new Date(pool.deadline) < now || pool.status === 'finished') {
+          failedPools.push({ pool, reason: "Pagamento não realizado dentro do prazo" });
+        } else {
+          pendingPaymentPoolsData.push(pool);
+        }
+      });
     }
 
     let awaitingApprovalPoolsData: any[] = [];
@@ -152,7 +166,30 @@ const Index = () => {
         .select("*, participants(count)")
         .in("id", awaitingApprovalPoolIds)
         .order("created_at", { ascending: false });
-      awaitingApprovalPoolsData = data || [];
+      
+      (data || []).forEach(pool => {
+        if (new Date(pool.deadline) < now || pool.status === 'finished') {
+          failedPools.push({ pool, reason: "Aprovação não concluída dentro do prazo" });
+        } else {
+          awaitingApprovalPoolsData.push(pool);
+        }
+      });
+    }
+
+    // Rejected pools
+    if (rejectedRecords.length > 0) {
+      const rejectedPoolIds = rejectedRecords.map(p => p.pool_id);
+      const { data } = await supabase
+        .from("pools")
+        .select("*, participants(count)")
+        .in("id", rejectedPoolIds)
+        .order("created_at", { ascending: false });
+      
+      (data || []).forEach(pool => {
+        const record = rejectedRecords.find(r => r.pool_id === pool.id);
+        const reason = record?.rejection_reason || record?.rejection_details || "Participação rejeitada pelo organizador";
+        failedPools.push({ pool, reason });
+      });
     }
 
     const specialPoolIds = [...awaitingPixPoolIds, ...pixSubmittedPoolIds];
@@ -196,7 +233,7 @@ const Index = () => {
       officialPoolsData = data || [];
     }
     
-    const now = new Date();
+    
     officialPoolsData = officialPoolsData.filter(pool => new Date(pool.deadline) > now);
 
     const excludeIds = [
@@ -259,6 +296,7 @@ const Index = () => {
     setMyPendingPaymentPools(pendingPaymentPoolsData);
     setMyAwaitingApprovalPools(awaitingApprovalPoolsData);
     setMyPoolsPendingApprovals(poolsPendingApprovals);
+    setMyFailedPools(failedPools);
     setOfficialPools(officialPoolsData || []);
     setAvailablePools(activePools);
     
@@ -361,7 +399,7 @@ const Index = () => {
             </TabsTrigger>
             <TabsTrigger value="concorrendo" className="rounded-lg text-[10px] sm:text-xs font-medium data-[state=active]:bg-card data-[state=active]:shadow-sm relative flex flex-col items-center gap-0.5 py-1.5 px-1">
               <Users className="w-4 h-4" />
-              <span>Concorrendo</span>
+              <span className="leading-tight">Meus Bolões</span>
               {participatingActiveCount > 0 && (
                 <Badge className="absolute -top-1 -right-0.5 h-4 min-w-4 px-1 text-[10px] bg-primary text-primary-foreground border-0">
                   {participatingActiveCount}
@@ -517,9 +555,9 @@ const Index = () => {
             )}
           </TabsContent>
 
-          {/* ========= TAB: CONCORRENDO ========= */}
+          {/* ========= TAB: MEUS BOLÕES ========= */}
           <TabsContent value="concorrendo" className="space-y-5 mt-0">
-            {myParticipatingPools.length > 0 ? (
+            {myParticipatingPools.length > 0 || myFailedPools.length > 0 ? (
               <section className="space-y-3">
                 {/* Active */}
                 <div className="space-y-3">
@@ -538,7 +576,7 @@ const Index = () => {
                       onClick={() => setShowFinishedParticipating(!showFinishedParticipating)}
                     >
                       <span className="text-xs font-medium">
-                        Finalizados ({participatingFinishedCount})
+                        ✅ Finalizados ({participatingFinishedCount})
                       </span>
                       {showFinishedParticipating ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
                     </Button>
@@ -546,6 +584,35 @@ const Index = () => {
                       <div className="space-y-3">
                         {filterPools(myParticipatingPools.filter(p => p.status === "finished")).map((pool) => (
                           <PoolCard key={pool.id} pool={pool} isUserParticipating prizeReceived={participantPrizeStatus[pool.id] === 'prize_sent'} onClick={() => navigate(`/pool/${pool.id}`)} />
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* Failed to participate - collapsible */}
+                {myFailedPools.length > 0 && (
+                  <div className="space-y-2">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="w-full justify-between h-9 text-muted-foreground hover:text-foreground"
+                      onClick={() => setShowFailedPools(!showFailedPools)}
+                    >
+                      <span className="text-xs font-medium">
+                        ❌ Não participou ({myFailedPools.length})
+                      </span>
+                      {showFailedPools ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+                    </Button>
+                    {showFailedPools && (
+                      <div className="space-y-3">
+                        {myFailedPools.map(({ pool, reason }) => (
+                          <div key={pool.id} className="space-y-1">
+                            <PoolCard pool={pool} onClick={() => navigate(`/pool/${pool.id}`)} />
+                            <p className="text-xs text-destructive font-medium pl-2">
+                              Motivo: {reason}
+                            </p>
+                          </div>
                         ))}
                       </div>
                     )}
