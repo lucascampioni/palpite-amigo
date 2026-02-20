@@ -859,19 +859,20 @@ const PoolDetail = () => {
                 const isPercentage = pool.prize_type === 'percentage';
                 const calcPrize = (pct: number) => isPercentage ? (pct / 100) * totalCollected : pct;
                 const formatPrize = (val: number) => `R$ ${val.toFixed(2).replace('.', ',')}`;
-                const items: { emoji: string; val: string; pct?: string }[] = [];
+                const items: { emoji: string; val: string }[] = [];
                 if (pool.first_place_prize) {
                   const pct = parseFloat(pool.first_place_prize);
-                  items.push({ emoji: '🥇', val: formatPrize(isPercentage ? calcPrize(pct) : pct), pct: isPercentage ? `${pct}%` : undefined });
+                  items.push({ emoji: '🥇', val: formatPrize(isPercentage ? calcPrize(pct) : pct) });
                 }
                 if (pool.second_place_prize) {
                   const pct = parseFloat(pool.second_place_prize);
-                  items.push({ emoji: '🥈', val: formatPrize(isPercentage ? calcPrize(pct) : pct), pct: isPercentage ? `${pct}%` : undefined });
+                  items.push({ emoji: '🥈', val: formatPrize(isPercentage ? calcPrize(pct) : pct) });
                 }
                 if (pool.third_place_prize) {
                   const pct = parseFloat(pool.third_place_prize);
-                  items.push({ emoji: '🥉', val: formatPrize(isPercentage ? calcPrize(pct) : pct), pct: isPercentage ? `${pct}%` : undefined });
+                  items.push({ emoji: '🥉', val: formatPrize(isPercentage ? calcPrize(pct) : pct) });
                 }
+                const isFinished = pool.status === 'finished';
                 return (
                   <div className="rounded-xl bg-gradient-to-r from-yellow-500/10 via-primary/5 to-orange-500/10 border border-primary/20 px-3 py-2.5">
                     <div className="flex items-center justify-center gap-3 flex-wrap">
@@ -879,13 +880,15 @@ const PoolDetail = () => {
                       <span className="font-semibold text-primary">Premiação</span>
                       {items.map((item, i) => (
                         <span key={i} className="font-bold whitespace-nowrap">
-                          {item.emoji} {item.val}{item.pct && <span className="text-xs font-normal text-muted-foreground ml-0.5">({item.pct})</span>}
+                          {item.emoji} {item.val}
                         </span>
                       ))}
                     </div>
                     {isPercentage && (
                       <p className="text-[0.65rem] text-muted-foreground text-center mt-1">
-                        * Valores estimados, atualizados conforme novas inscrições
+                        {isFinished
+                          ? `* Valores baseados em ${approvedCount} participante${approvedCount !== 1 ? 's' : ''} — % do valor arrecadado`
+                          : '* Valores estimados (% do valor arrecadado), atualizados conforme novas inscrições'}
                       </p>
                     )}
                   </div>
