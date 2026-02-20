@@ -622,42 +622,59 @@ const CreateFootballPool = () => {
 
                 {profilePixKey ? (
                   <div className="space-y-3">
-                    <div className="flex gap-2">
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setPixSource('profile');
-                          setPixKey(profilePixKey);
-                          setReplaceProfilePix(false);
-                        }}
-                        className={`flex-1 py-2 px-3 rounded-lg border-2 text-sm font-medium transition-colors text-left ${
-                          pixSource === 'profile'
-                            ? 'border-primary bg-primary/10 text-primary'
-                            : 'border-muted hover:border-primary/50'
-                        }`}
-                      >
-                        <div className="font-semibold text-sm">Usar chave do perfil</div>
-                        <div className="text-xs text-muted-foreground mt-0.5 break-all">
-                          {profilePixKeyType && <span className="capitalize">{profilePixKeyType}: </span>}{profilePixKey}
+                    {/* Profile key - highlighted */}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setPixSource('profile');
+                        setPixKey(profilePixKey);
+                        setReplaceProfilePix(false);
+                      }}
+                      className={`w-full py-3 px-4 rounded-lg border-2 text-left transition-colors ${
+                        pixSource === 'profile'
+                          ? 'border-primary bg-primary/10'
+                          : 'border-muted hover:border-primary/50'
+                      }`}
+                    >
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <div className="font-semibold text-sm">✅ Usar chave do perfil</div>
+                          <div className="text-xs text-muted-foreground mt-1">
+                            {profilePixKeyType && (
+                              <span className="inline-block bg-primary/15 text-primary rounded px-1.5 py-0.5 text-[11px] font-medium uppercase mr-1.5">
+                                {profilePixKeyType}
+                              </span>
+                            )}
+                            <span className="break-all">{profilePixKey}</span>
+                          </div>
                         </div>
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setPixSource('custom');
-                          setPixKey("");
-                          setReplaceProfilePix(false);
-                        }}
-                        className={`flex-1 py-2 px-3 rounded-lg border-2 text-sm font-medium transition-colors text-left ${
-                          pixSource === 'custom'
-                            ? 'border-primary bg-primary/10 text-primary'
-                            : 'border-muted hover:border-primary/50'
-                        }`}
-                      >
-                        <div className="font-semibold text-sm">Usar outra chave</div>
-                        <div className="text-xs text-muted-foreground mt-0.5">Informar uma chave diferente</div>
-                      </button>
-                    </div>
+                        <div className={`w-4 h-4 rounded-full border-2 flex-shrink-0 ${
+                          pixSource === 'profile' ? 'border-primary bg-primary' : 'border-muted-foreground/40'
+                        }`} />
+                      </div>
+                    </button>
+
+                    {/* Custom key - subtle */}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setPixSource('custom');
+                        setPixKey("");
+                        setReplaceProfilePix(false);
+                      }}
+                      className={`w-full py-2.5 px-4 rounded-lg border text-left transition-colors ${
+                        pixSource === 'custom'
+                          ? 'border-primary bg-primary/10'
+                          : 'border-dashed border-muted-foreground/30 hover:border-muted-foreground/50'
+                      }`}
+                    >
+                      <div className="flex items-center justify-between">
+                        <div className="text-sm text-muted-foreground">Usar outra chave</div>
+                        <div className={`w-4 h-4 rounded-full border-2 flex-shrink-0 ${
+                          pixSource === 'custom' ? 'border-primary bg-primary' : 'border-muted-foreground/40'
+                        }`} />
+                      </div>
+                    </button>
 
                     {pixSource === 'custom' && (
                       <div className="space-y-3">
