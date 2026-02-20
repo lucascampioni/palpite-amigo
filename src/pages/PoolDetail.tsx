@@ -1004,7 +1004,10 @@ const PoolDetail = () => {
                                     title: "Pronto!",
                                     description: "Faça seu palpite novamente do início.",
                                   });
-                                  loadPoolData();
+                                  // Reset local state so the prediction form appears immediately
+                                  setCurrentUserParticipant(null);
+                                  setHasJoined(false);
+                                  setParticipants(prev => prev.filter(p => p.id !== currentUserParticipant.id));
                                 } else {
                                   toast({
                                     variant: "destructive",
