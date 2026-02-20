@@ -513,6 +513,12 @@ const FootballRanking = ({ poolId, pool, approvedParticipantsCount, isOwner }: F
     // Otherwise position = index + 1
     return index + 1;
   };
+  // Shorten name: "Maria Luiza Machado Dias" → "Maria Dias"
+  const shortenName = (fullName: string) => {
+    const parts = fullName.trim().split(/\s+/);
+    if (parts.length <= 2) return fullName;
+    return `${parts[0]} ${parts[parts.length - 1]}`;
+  };
 
 
   const getRankIcon = (position: number, hasPrize: boolean) => {
@@ -683,7 +689,7 @@ const FootballRanking = ({ poolId, pool, approvedParticipantsCount, isOwner }: F
                         isManyWinners ? 'text-xs px-2 py-0.5' : 'text-sm px-3 py-1'
                       }`}
                     >
-                      🏆 {winner.participant_name}
+                      🏆 {shortenName(winner.participant_name)}
                     </span>
                   ))}
                 </div>
@@ -733,8 +739,8 @@ const FootballRanking = ({ poolId, pool, approvedParticipantsCount, isOwner }: F
                                 {getRankIcon(actualPosition, !!(currentUser.prize_amount && currentUser.prize_amount > 0))}
                               </div>
                             )}
-                            <span className="font-semibold text-sm sm:text-base truncate min-w-0">
-                              {currentUser.participant_name}
+                            <span className="font-semibold text-sm truncate min-w-0">
+                              {shortenName(currentUser.participant_name)}
                             </span>
                           </div>
                           <div className="flex items-center gap-1 sm:gap-2 flex-shrink-0">
@@ -902,7 +908,7 @@ const FootballRanking = ({ poolId, pool, approvedParticipantsCount, isOwner }: F
                              <span className={`font-medium text-sm sm:text-base break-words whitespace-normal sm:whitespace-nowrap sm:truncate min-w-0 ${
                                isCurrentUser ? 'font-semibold' : ''
                              }`}>
-                              {participant.participant_name}
+                              {shortenName(participant.participant_name)}
                             </span>
                           </div>
                           <div className="flex items-center gap-1 sm:gap-2 flex-shrink-0">
