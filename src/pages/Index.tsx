@@ -210,6 +210,7 @@ const Index = () => {
       ...ownedPools?.map(p => p.id) || [],
       ...participantPoolIds,
       ...pendingPoolIds,
+      ...awaitingApprovalPoolIds,
     ];
     
     let officialPoolsData: any[] = [];
@@ -241,6 +242,7 @@ const Index = () => {
       ...ownedPools?.map(p => p.id) || [],
       ...participantPoolIds,
       ...pendingPoolIds,
+      ...awaitingApprovalPoolIds,
       ...officialPoolsData?.map(p => p.id) || [],
     ];
     
