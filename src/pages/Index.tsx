@@ -26,6 +26,7 @@ const Index = () => {
   const [myAwaitingApprovalPools, setMyAwaitingApprovalPools] = useState<any[]>([]);
   const [myFailedPools, setMyFailedPools] = useState<{pool: any, reason: string}[]>([]);
   const [myPoolsPendingApprovals, setMyPoolsPendingApprovals] = useState<{pool: any, pendingCount: number}[]>([]);
+  const [myPoolsPendingPrizeSend, setMyPoolsPendingPrizeSend] = useState<{pool: any, winnersCount: number}[]>([]);
   const [participantPrizeStatus, setParticipantPrizeStatus] = useState<Record<string, string>>({});
   const [officialPools, setOfficialPools] = useState<any[]>([]);
   const [availablePools, setAvailablePools] = useState<any[]>([]);
@@ -268,6 +269,7 @@ const Index = () => {
 
     // Fetch pending approvals for pools the user created
     const poolsPendingApprovals: {pool: any, pendingCount: number}[] = [];
+    const poolsPendingPrizeSend: {pool: any, winnersCount: number}[] = [];
     if (ownedPools && ownedPools.length > 0) {
       const ownedPoolIds = ownedPools.map(p => p.id);
       const { data: pendingParticipants } = await supabase
@@ -287,6 +289,24 @@ const Index = () => {
           if (pool) poolsPendingApprovals.push({ pool, pendingCount: count });
         });
       }
+
+      // Fetch winners awaiting prize send (pix_submitted) in pools the user created
+      const { data: prizePendingParticipants } = await supabase
+        .from("participants")
+        .select("pool_id")
+        .in("pool_id", ownedPoolIds)
+        .eq("prize_status", "pix_submitted");
+      
+      if (prizePendingParticipants && prizePendingParticipants.length > 0) {
+        const countByPool: Record<string, number> = {};
+        prizePendingParticipants.forEach(p => {
+          countByPool[p.pool_id] = (countByPool[p.pool_id] || 0) + 1;
+        });
+        Object.entries(countByPool).forEach(([poolId, count]) => {
+          const pool = ownedPools.find(p => p.id === poolId);
+          if (pool) poolsPendingPrizeSend.push({ pool, winnersCount: count });
+        });
+      }
     }
 
     setMyCreatedPools(ownedPools || []);
@@ -296,6 +316,7 @@ const Index = () => {
     setMyPendingPaymentPools(pendingPaymentPoolsData);
     setMyAwaitingApprovalPools(awaitingApprovalPoolsData);
     setMyPoolsPendingApprovals(poolsPendingApprovals);
+    setMyPoolsPendingPrizeSend(poolsPendingPrizeSend);
     setMyFailedPools(failedPools);
     setOfficialPools(officialPoolsData || []);
     setAvailablePools(activePools);
@@ -312,7 +333,7 @@ const Index = () => {
   };
 
   // Counts for badges
-  const pendenciasCount = myPendingPaymentPools.length + myAwaitingApprovalPools.length + myAwaitingPixPools.length + myAwaitingPaymentPools.length + myPoolsPendingApprovals.length;
+  const pendenciasCount = myPendingPaymentPools.length + myAwaitingApprovalPools.length + myAwaitingPixPools.length + myAwaitingPaymentPools.length + myPoolsPendingApprovals.length + myPoolsPendingPrizeSend.length;
   const myPoolsActiveCount = myCreatedPools.filter(p => p.status === "active").length;
   const myPoolsFinishedCount = myCreatedPools.filter(p => p.status === "finished").length;
   const participatingActiveCount = myParticipatingPools.filter(p => p.status === "active").length;
@@ -538,6 +559,28 @@ const Index = () => {
                         <p className="font-medium text-sm">{pool.title}</p>
                         <p className="text-xs text-muted-foreground mt-0.5">
                           Você tem <span className="font-bold text-foreground">{pendingCount}</span> solicitação(ões) pendente(s) de aprovação
+                        </p>
+                      </button>
+                    ))}
+                  </AlertSection>
+                )}
+
+                {myPoolsPendingPrizeSend.length > 0 && (
+                  <AlertSection
+                    icon="🏆"
+                    title="Pendente Envio do Prêmio"
+                    subtitle="Ganhadores aguardando o envio do prêmio via PIX"
+                    bgClass="bg-amber-50 dark:bg-amber-950/50 border-amber-200 dark:border-amber-800"
+                  >
+                    {myPoolsPendingPrizeSend.map(({ pool, winnersCount }) => (
+                      <button
+                        key={pool.id}
+                        onClick={() => navigate(`/pool/${pool.id}`)}
+                        className="w-full text-left p-3 rounded-lg bg-card border hover:border-primary/50 hover:shadow-sm transition-all"
+                      >
+                        <p className="font-medium text-sm">{pool.title}</p>
+                        <p className="text-xs text-muted-foreground mt-0.5">
+                          <span className="font-bold text-foreground">{winnersCount}</span> ganhador(es) aguardando envio do prêmio
                         </p>
                       </button>
                     ))}
