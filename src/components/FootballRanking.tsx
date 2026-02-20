@@ -57,6 +57,7 @@ const FootballRanking = ({ poolId, pool, approvedParticipantsCount, isOwner }: F
   const [myPositionExpanded, setMyPositionExpanded] = useState(false);
   const [lastSyncAt, setLastSyncAt] = useState<string | null>(null);
   const [lastFrontendRefresh, setLastFrontendRefresh] = useState<Date>(new Date());
+  const [anyMatchStarted, setAnyMatchStarted] = useState(false);
 
   useEffect(() => {
     loadRanking();
@@ -200,6 +201,10 @@ const FootballRanking = ({ poolId, pool, approvedParticipantsCount, isOwner }: F
     const liveStatuses = ['1H', '2H', 'HT', 'ET', 'P'];
     const anyLive = matches?.some(m => liveStatuses.includes(m.status)) ?? false;
     setHasLiveMatches(anyLive);
+
+    const startedStatuses = ['1H', '2H', 'HT', 'ET', 'P', 'finished', 'suspended'];
+    const hasStarted = matches?.some(m => startedStatuses.includes(m.status)) ?? false;
+    setAnyMatchStarted(hasStarted);
 
     // Find live matches that have scores (for partial points calculation)
     const liveMatchesWithScores = (matches || []).filter(
@@ -492,37 +497,29 @@ const FootballRanking = ({ poolId, pool, approvedParticipantsCount, isOwner }: F
     return <p className="text-muted-foreground">Nenhum participante no ranking ainda.</p>;
   }
 
-  // Get actual position considering ties and zero points
+  // Get actual position considering ties
+  // Show position for everyone (even 0pts) as long as at least one match has started
   const getActualPosition = (index: number, participant: ParticipantScore) => {
-    // Participants with 0 points have no position
-    if (participant.total_points === 0) return null;
+    // If 0 points and no match has started yet, no position
+    if (participant.total_points === 0 && !anyMatchStarted) return null;
     
     if (index === 0) return 1;
     
-    let position = 1;
-    for (let i = 0; i < index; i++) {
-      // Skip participants with 0 points when counting positions
-      if (ranking[i].total_points > 0 && ranking[i].total_points !== ranking[i + 1]?.total_points) {
-        position = i + 2;
-      }
+    // If same score as previous, same position
+    if (ranking[index - 1].total_points === participant.total_points) {
+      return getActualPosition(index - 1, ranking[index - 1]);
     }
-    return position;
+    
+    // Otherwise position = index + 1
+    return index + 1;
   };
 
-  const getPodiumPosition = (position: number) => {
-    const podiumHeights = ['h-32', 'h-24', 'h-20'];
-    const podiumColors = [
-      'bg-gradient-to-t from-yellow-500/20 to-yellow-400/10 border-2 border-yellow-500',
-      'bg-gradient-to-t from-gray-400/20 to-gray-300/10 border-2 border-gray-400',
-      'bg-gradient-to-t from-orange-600/20 to-orange-500/10 border-2 border-orange-600'
-    ];
-    return { height: podiumHeights[position], color: podiumColors[position] };
-  };
 
-  const getRankIcon = (position: number) => {
-    if (position === 1) return <Trophy className="w-6 h-6 text-yellow-500" />;
-    if (position === 2) return <Medal className="w-6 h-6 text-gray-400" />;
-    if (position === 3) return <Medal className="w-6 h-6 text-orange-600" />;
+  const getRankIcon = (position: number, hasPrize: boolean) => {
+    if (!hasPrize) return null;
+    if (position === 1) return <Trophy className="w-5 h-5 text-yellow-500" />;
+    if (position === 2) return <Medal className="w-5 h-5 text-gray-400" />;
+    if (position === 3) return <Medal className="w-5 h-5 text-orange-600" />;
     return null;
   };
 
@@ -635,42 +632,6 @@ const FootballRanking = ({ poolId, pool, approvedParticipantsCount, isOwner }: F
     return "bg-red-50 dark:bg-red-950/20 border-l-4 border-red-500";
   };
 
-  // Group participants by points to handle ties (excluding 0 points)
-  const getTopGroups = () => {
-    const maxW = pool?.max_winners || 3;
-    const groups: { position: number; participants: ParticipantScore[]; podiumIndex: number }[] = [];
-    let currentPosition = 1;
-    let podiumIndex = 0;
-    let positionsCount = 0;
-    
-    for (let i = 0; i < ranking.length; i++) {
-      // Skip participants with 0 points
-      if (ranking[i].total_points === 0) continue;
-      
-      // Check if we're starting a new position
-      if (i > 0 && ranking[i].total_points !== ranking[i - 1].total_points && ranking[i - 1].total_points > 0) {
-        currentPosition = groups.reduce((acc, g) => acc + g.participants.length, 0) + 1;
-        podiumIndex++;
-        positionsCount++;
-      }
-      
-      // Stop if we've filled 3 different positions
-      if (positionsCount >= maxW) break;
-      
-      const existingGroup = groups.find(g => g.position === currentPosition);
-      if (existingGroup) {
-        existingGroup.participants.push(ranking[i]);
-      } else {
-        groups.push({
-          position: currentPosition,
-          participants: [ranking[i]],
-          podiumIndex
-        });
-      }
-    }
-    
-    return groups;
-  };
 
   return (
     <Card>
@@ -693,51 +654,29 @@ const FootballRanking = ({ poolId, pool, approvedParticipantsCount, isOwner }: F
         </div>
       </CardHeader>
       <CardContent>
-        {/* Podium for top 3 positions - only show when all matches are finished */}
-        {allMatchesFinished && ranking.length >= (pool?.max_winners || 3) && (
+        {/* Champion highlight - only show when all matches are finished */}
+        {allMatchesFinished && ranking.length > 0 && ranking[0].total_points > 0 && (
           <div className="mb-6 pb-4 border-b">
-            <h3 className="text-base sm:text-lg font-semibold mb-3 text-center">Pódio</h3>
-            <div className="flex items-end justify-center gap-2 sm:gap-4 px-2">
-              {(() => {
-                const maxW = pool?.max_winners || 3;
-                const visualOrder = maxW === 1 ? [0] : maxW === 2 ? [1, 0] : [1, 0, 2];
-                return visualOrder.map((visualIndex) => {
-                const topGroups = getTopGroups();
-                const group = topGroups.find(g => g.podiumIndex === visualIndex);
-                
-                if (!group) return null;
-                
-                const podium = getPodiumPosition(visualIndex);
-                
-                return (
-                  <div key={`podium-${visualIndex}`} className="flex flex-col items-center flex-1 max-w-[90px] sm:max-w-[120px]">
-                    <div className="mb-1 sm:mb-2 text-center w-full">
-                      <div className="mb-0.5 sm:mb-1 flex justify-center">
-                        {getRankIcon(group.position)}
-                      </div>
-                      <div className="space-y-0.5 sm:space-y-1 min-h-[2rem] sm:min-h-[2.5rem] flex flex-col justify-center">
-                        {group.participants.map((participant) => (
-                          <div key={participant.id}>
-                            <p className="font-bold text-[0.625rem] sm:text-xs truncate px-0.5">{participant.participant_name}</p>
-                          </div>
-                        ))}
-                      </div>
-                      <Badge variant={group.position === 1 ? "default" : "secondary"} className="mt-1 text-[0.625rem] sm:text-xs px-1 sm:px-2 py-0">
-                        {group.participants[0].total_points} pts
-                      </Badge>
-                      {group.participants[0].prize_amount !== undefined && group.participants[0].prize_amount > 0 && (
-                        <Badge variant="default" className="mt-0.5 sm:mt-1 bg-primary text-[0.625rem] sm:text-xs px-1 sm:px-2 py-0">
-                          R$ {group.participants[0].prize_amount.toFixed(2).replace('.', ',')}
-                        </Badge>
-                      )}
-                    </div>
-                    <div className={`w-full ${podium.height} ${podium.color} rounded-t-lg flex items-center justify-center font-bold text-lg sm:text-2xl transition-all`}>
-                      {group.position}º
-                    </div>
-                  </div>
-                );
-              });
-              })()}
+            <div className="rounded-xl bg-gradient-to-r from-yellow-500/15 via-yellow-400/10 to-yellow-500/15 border-2 border-yellow-500/40 p-4 text-center">
+              <Trophy className="w-8 h-8 text-yellow-500 mx-auto mb-2" />
+              <p className="text-xs text-muted-foreground uppercase tracking-wider mb-1">
+                {ranking.filter(r => r.total_points === ranking[0].total_points).length > 1 ? 'Campeões' : 'Campeão'}
+              </p>
+              <div className="space-y-1">
+                {ranking.filter(r => r.total_points === ranking[0].total_points).map((winner) => (
+                  <p key={winner.id} className="text-lg font-bold">
+                    🏆 {winner.participant_name}
+                  </p>
+                ))}
+              </div>
+              <Badge variant="default" className="mt-2 text-sm px-3 py-1">
+                {ranking[0].total_points} pts
+              </Badge>
+              {ranking[0].prize_amount !== undefined && ranking[0].prize_amount > 0 && (
+                <Badge variant="default" className="mt-2 ml-2 bg-primary text-sm px-3 py-1">
+                  R$ {ranking[0].prize_amount.toFixed(2).replace('.', ',')}
+                </Badge>
+              )}
             </div>
           </div>
         )}
@@ -780,7 +719,7 @@ const FootballRanking = ({ poolId, pool, approvedParticipantsCount, isOwner }: F
                             </div>
                             {allMatchesFinished && actualPosition && actualPosition <= 3 && (
                               <div className="flex-shrink-0">
-                                {getRankIcon(actualPosition)}
+                                {getRankIcon(actualPosition, !!(currentUser.prize_amount && currentUser.prize_amount > 0))}
                               </div>
                             )}
                             <span className="font-semibold text-sm sm:text-base truncate min-w-0">
@@ -946,7 +885,7 @@ const FootballRanking = ({ poolId, pool, approvedParticipantsCount, isOwner }: F
                              </div>
                              {allMatchesFinished && actualPosition && actualPosition <= 3 && (
                                <div className="flex-shrink-0">
-                                 {getRankIcon(actualPosition)}
+                                 {getRankIcon(actualPosition, !!(participant.prize_amount && participant.prize_amount > 0))}
                                </div>
                              )}
                              <span className={`font-medium text-sm sm:text-base break-words whitespace-normal sm:whitespace-nowrap sm:truncate min-w-0 ${
