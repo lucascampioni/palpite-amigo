@@ -786,7 +786,7 @@ const PoolDetail = () => {
           </CardHeader>
           <CardContent className="space-y-6">
             {/* Winner Display */}
-            {pool.status === "finished" && winners.length > 0 && (
+            {pool.status === "finished" && winners.length > 0 && pool.pool_type !== "football" && (
               <>
                 <WinnerDisplay 
                   winners={winners} 
