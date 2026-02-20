@@ -984,19 +984,22 @@ const PoolDetail = () => {
                             <Button
                               variant="outline"
                               onClick={async () => {
+                                // Delete football predictions first (if any)
+                                await supabase
+                                  .from("football_predictions")
+                                  .delete()
+                                  .eq("participant_id", currentUserParticipant.id);
+
+                                // Delete the participant record entirely so user starts fresh
                                 const { error } = await supabase
                                   .from("participants")
-                                  .update({ 
-                                    status: "pending" as any, 
-                                    payment_proof: null, 
-                                    rejection_reason: null, 
-                                    rejection_details: null 
-                                  })
+                                  .delete()
                                   .eq("id", currentUserParticipant.id);
+
                                 if (!error) {
                                   toast({
                                     title: "Pronto!",
-                                    description: "Você pode enviar um novo palpite.",
+                                    description: "Faça seu palpite novamente do início.",
                                   });
                                   loadPoolData();
                                 } else {
