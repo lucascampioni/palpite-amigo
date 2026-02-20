@@ -20,6 +20,7 @@ interface FootballPredictionFormProps {
   pool?: any;
   pixKey?: string;
   firstMatchDate?: Date | null;
+  ownerName?: string;
 }
 
 interface Match {
@@ -40,7 +41,7 @@ interface Prediction {
   awayScore: string;
 }
 
-const FootballPredictionForm = ({ poolId, userId, onSuccess, entryFee, pool, pixKey, firstMatchDate }: FootballPredictionFormProps) => {
+const FootballPredictionForm = ({ poolId, userId, onSuccess, entryFee, pool, pixKey, firstMatchDate, ownerName }: FootballPredictionFormProps) => {
   const { toast } = useToast();
   const [matches, setMatches] = useState<Match[]>([]);
   const [predictions, setPredictions] = useState<Prediction[]>([]);
@@ -385,7 +386,7 @@ const FootballPredictionForm = ({ poolId, userId, onSuccess, entryFee, pool, pix
                 ⚠️ ATENÇÃO: Leia com cuidado antes de continuar
               </p>
               <p className="text-sm text-foreground leading-relaxed">
-                A <strong>responsabilidade pelo pagamento da premiação é exclusivamente do criador do bolão</strong>. 
+                A <strong>responsabilidade pelo pagamento da premiação é exclusivamente do criador do bolão{ownerName ? ` (${ownerName})` : ''}</strong>. 
                 O <strong>Delfos</strong> é apenas uma plataforma que facilita a organização de bolões e <strong>não se responsabiliza</strong> pelo pagamento de prêmios, valores de entrada ou quaisquer transações financeiras entre os participantes e organizadores.
               </p>
             </div>
@@ -397,7 +398,7 @@ const FootballPredictionForm = ({ poolId, userId, onSuccess, entryFee, pool, pix
                 className="mt-0.5"
               />
               <label htmlFor="disclaimer-accept" className="text-sm font-medium cursor-pointer leading-snug">
-                Estou ciente de que a responsabilidade pelo pagamento da premiação é do criador do bolão e não do Delfos.
+                Estou ciente de que a responsabilidade pelo pagamento da premiação é do criador do bolão{ownerName ? ` (${ownerName})` : ''} e não do Delfos.
               </label>
             </div>
           </div>
