@@ -208,51 +208,73 @@ export const AdminPendingParticipants = ({
                 </div>
                 <Badge
                   variant="outline"
-                  className="text-orange-500 border-orange-500"
+                  className={participant.payment_proof
+                    ? "text-blue-600 border-blue-500 bg-blue-50 dark:bg-blue-950/30"
+                    : "text-orange-500 border-orange-500"
+                  }
                 >
-                  Pendente
+                  {participant.payment_proof ? "✅ Comprovante enviado" : "⏳ Aguardando comprovante"}
                 </Badge>
               </div>
 
-              {participant.payment_proof && (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => viewProof(participant.payment_proof!)}
-                  className="w-full"
-                >
-                  <Eye className="w-4 h-4 mr-2" />
-                  Ver Comprovante
-                </Button>
-              )}
+              {participant.payment_proof ? (
+                <>
+                  <button
+                    onClick={() => viewProof(participant.payment_proof!)}
+                    className="w-full flex items-center gap-3 p-3 rounded-lg border-2 border-blue-500/30 bg-blue-50 dark:bg-blue-950/20 hover:bg-blue-100 dark:hover:bg-blue-950/40 transition-colors text-left"
+                  >
+                    <div className="flex-shrink-0 w-8 h-8 rounded-full bg-blue-500/20 flex items-center justify-center">
+                      <Eye className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium text-blue-700 dark:text-blue-300">
+                        Ver comprovante de pagamento
+                      </p>
+                      <p className="text-xs text-blue-500 dark:text-blue-400">
+                        Toque para visualizar o arquivo enviado
+                      </p>
+                    </div>
+                  </button>
 
-              <div className="flex gap-2">
-                <Button
-                  variant="default"
-                  size="sm"
-                  onClick={() => handleApprove(participant.id)}
-                  disabled={processing === participant.id}
-                  className="flex-1"
-                >
-                  <Check className="w-4 h-4 mr-2" />
-                  Aprovar
-                </Button>
-                <Button
-                  variant="destructive"
-                  size="sm"
-                  onClick={() => openRejectDialog(participant)}
-                  disabled={processing === participant.id}
-                  className="flex-1"
-                >
-                  <X className="w-4 h-4 mr-2" />
-                  Rejeitar
-                </Button>
-              </div>
-
-              {!participant.payment_proof && (
-                <p className="text-xs text-muted-foreground text-center">
-                  ⚠️ Comprovante ainda não enviado
-                </p>
+                  <div className="flex gap-2">
+                    <Button
+                      variant="default"
+                      size="sm"
+                      onClick={() => handleApprove(participant.id)}
+                      disabled={processing === participant.id}
+                      className="flex-1"
+                    >
+                      <Check className="w-4 h-4 mr-2" />
+                      Aprovar
+                    </Button>
+                    <Button
+                      variant="destructive"
+                      size="sm"
+                      onClick={() => openRejectDialog(participant)}
+                      disabled={processing === participant.id}
+                      className="flex-1"
+                    >
+                      <X className="w-4 h-4 mr-2" />
+                      Rejeitar
+                    </Button>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <p className="text-xs text-muted-foreground text-center py-1">
+                    ⏳ Será rejeitado automaticamente se não enviar o comprovante no prazo
+                  </p>
+                  <Button
+                    variant="default"
+                    size="sm"
+                    onClick={() => handleApprove(participant.id)}
+                    disabled={processing === participant.id}
+                    className="w-full"
+                  >
+                    <Check className="w-4 h-4 mr-2" />
+                    Aprovar mesmo assim
+                  </Button>
+                </>
               )}
             </div>
           ))}
