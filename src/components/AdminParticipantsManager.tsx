@@ -42,6 +42,7 @@ interface Participant {
 interface AdminParticipantsManagerProps {
   poolId: string;
   participants: Participant[];
+  onParticipantUpdate: (id: string, changes: Partial<Participant>) => void;
   onSuccess?: () => void;
 }
 
@@ -56,12 +57,13 @@ const REJECTION_REASONS = [
 export const AdminParticipantsManager = ({
   poolId,
   participants,
+  onParticipantUpdate,
   onSuccess,
 }: AdminParticipantsManagerProps) => {
   const { toast } = useToast();
   const [processing, setProcessing] = useState<string | null>(null);
   const [approvedOpen, setApprovedOpen] = useState(false);
-  const [pendingOpen, setPendingOpen] = useState(false);
+  const [pendingOpen, setPendingOpen] = useState(true);
   const [rejectedOpen, setRejectedOpen] = useState(false);
   const [rejectDialogOpen, setRejectDialogOpen] = useState(false);
   const [rejectingParticipant, setRejectingParticipant] = useState<Participant | null>(null);
@@ -91,8 +93,8 @@ export const AdminParticipantsManager = ({
         .update({ status: "approved", rejection_reason: null, rejection_details: null })
         .eq("id", participantId);
       if (error) throw error;
-      toast({ title: "Participante aprovado!", description: "O participante agora pode fazer seus palpites." });
-      onSuccess?.();
+      toast({ title: "Participante aprovado!" });
+      onParticipantUpdate(participantId, { status: "approved", rejection_reason: null, rejection_details: null });
     } catch (error: any) {
       toast({ variant: "destructive", title: "Erro ao aprovar", description: error.message });
     } finally {
@@ -142,9 +144,9 @@ export const AdminParticipantsManager = ({
         title: isPaymentIssue ? "Pagamento recusado" : "Participante rejeitado",
         description: isPaymentIssue ? "O participante poderá enviar um novo comprovante." : "O participante foi informado do motivo.",
       });
+      onParticipantUpdate(rejectingParticipant.id, updateData);
       setRejectDialogOpen(false);
       setRejectingParticipant(null);
-      onSuccess?.();
     } catch (error: any) {
       toast({ variant: "destructive", title: "Erro ao rejeitar", description: error.message });
     } finally {
@@ -153,7 +155,6 @@ export const AdminParticipantsManager = ({
   };
 
   const viewProof = async (paymentProof: string) => {
-    // Open window synchronously to avoid mobile popup blocker
     const newWindow = window.open("", "_blank");
     try {
       const { data } = await supabase.storage.from("payment-proofs").createSignedUrl(paymentProof, 3600);
@@ -176,13 +177,74 @@ export const AdminParticipantsManager = ({
           {/* Summary header */}
           <div className="flex items-center gap-3">
             <Users className="w-5 h-5 text-primary" />
-          <div className="flex items-center gap-2 flex-wrap">
+            <div className="flex items-center gap-2 flex-wrap">
               <span className="text-sm font-semibold">Participantes</span>
               <span className="text-xs text-muted-foreground">
                 {approved.length} aprovado(s){pending.length > 0 && ` · ${pending.length} pendente(s)`}{rejected.length > 0 && ` · ${rejected.length} rejeitado(s)`}
               </span>
             </div>
           </div>
+
+          {/* Pending List */}
+          {pending.length > 0 && (
+            <Collapsible open={pendingOpen} onOpenChange={setPendingOpen}>
+              <CollapsibleTrigger className="w-full flex items-center justify-between p-3 rounded-lg bg-orange-50 dark:bg-orange-950/50 border border-orange-200 dark:border-orange-800 hover:bg-orange-100 dark:hover:bg-orange-950 transition-colors">
+                <span className="text-sm font-medium text-orange-700 dark:text-orange-400 flex items-center gap-2">
+                  ⏳ Pendentes ({pending.length})
+                </span>
+                {pendingOpen ? <ChevronUp className="w-4 h-4 text-orange-600" /> : <ChevronDown className="w-4 h-4 text-orange-600" />}
+              </CollapsibleTrigger>
+              <CollapsibleContent className="mt-2 space-y-1">
+                {pending.map((p) => (
+                  <div key={p.id} className="flex items-center justify-between py-2 px-3 rounded-lg bg-card border text-sm gap-2">
+                    <div className="min-w-0 flex-1">
+                      <span className="font-medium truncate block">{p.participant_name}</span>
+                      {p.payment_proof ? (
+                        <span className="text-[11px] text-blue-500 dark:text-blue-400">✅ Comprovante enviado</span>
+                      ) : (
+                        <span className="text-[11px] text-muted-foreground">⏳ Sem comprovante</span>
+                      )}
+                    </div>
+                    <div className="flex items-center gap-1 shrink-0">
+                      {p.payment_proof && (
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => viewProof(p.payment_proof!)}
+                          className="h-7 w-7"
+                          title="Ver comprovante"
+                        >
+                          <Eye className="w-4 h-4 text-blue-500" />
+                        </Button>
+                      )}
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => handleApproveClick(p)}
+                        disabled={processing === p.id}
+                        className="h-7 w-7 text-green-600 hover:text-green-700 hover:bg-green-50"
+                        title="Aprovar"
+                      >
+                        <Check className="w-4 h-4" />
+                      </Button>
+                      {p.payment_proof && (
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => openRejectDialog(p)}
+                          disabled={processing === p.id}
+                          className="h-7 w-7 text-destructive hover:text-destructive hover:bg-destructive/10"
+                          title="Rejeitar"
+                        >
+                          <X className="w-4 h-4" />
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </CollapsibleContent>
+            </Collapsible>
+          )}
 
           {/* Approved List */}
           {approved.length > 0 && (
@@ -206,58 +268,6 @@ export const AdminParticipantsManager = ({
             </Collapsible>
           )}
 
-          {/* Pending List */}
-          {pending.length > 0 && (
-            <Collapsible open={pendingOpen} onOpenChange={setPendingOpen}>
-              <CollapsibleTrigger className="w-full flex items-center justify-between p-3 rounded-lg bg-orange-50 dark:bg-orange-950/50 border border-orange-200 dark:border-orange-800 hover:bg-orange-100 dark:hover:bg-orange-950 transition-colors">
-                <span className="text-sm font-medium text-orange-700 dark:text-orange-400 flex items-center gap-2">
-                  ⏳ Pendentes ({pending.length})
-                </span>
-                {pendingOpen ? <ChevronUp className="w-4 h-4 text-orange-600" /> : <ChevronDown className="w-4 h-4 text-orange-600" />}
-              </CollapsibleTrigger>
-              <CollapsibleContent className="mt-2 space-y-1">
-                {pending.map((p) => (
-                  <div key={p.id} className="flex items-center justify-between py-2 px-3 rounded-lg bg-card border text-sm">
-                    <span className="font-medium truncate min-w-0 flex-1">{p.participant_name}</span>
-                    <div className="flex items-center gap-1 shrink-0 ml-2">
-                      {p.payment_proof && (
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => viewProof(p.payment_proof!)}
-                          className="h-7 w-7"
-                          title="Ver comprovante"
-                        >
-                          <Eye className="w-4 h-4 text-muted-foreground" />
-                        </Button>
-                      )}
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => handleApproveClick(p)}
-                        disabled={processing === p.id}
-                        className="h-7 w-7 text-green-600 hover:text-green-700 hover:bg-green-50"
-                        title="Aprovar"
-                      >
-                        <Check className="w-4 h-4" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => openRejectDialog(p)}
-                        disabled={processing === p.id}
-                        className="h-7 w-7 text-destructive hover:text-destructive hover:bg-destructive/10"
-                        title="Rejeitar"
-                      >
-                        <X className="w-4 h-4" />
-                      </Button>
-                    </div>
-                  </div>
-                ))}
-              </CollapsibleContent>
-            </Collapsible>
-          )}
-
           {/* Rejected List */}
           {rejected.length > 0 && (
             <Collapsible open={rejectedOpen} onOpenChange={setRejectedOpen}>
@@ -270,20 +280,18 @@ export const AdminParticipantsManager = ({
               <CollapsibleContent className="mt-2 space-y-2">
                 {rejected.map((p) => (
                   <div key={p.id} className="p-3 rounded-lg bg-card border space-y-2">
-                    <div className="flex items-center justify-between">
-                      <div className="min-w-0">
-                        <p className="font-medium text-sm truncate">{p.participant_name}</p>
-                        {p.rejection_reason && (
-                          <p className="text-[11px] text-muted-foreground truncate">
-                            Motivo: {p.rejection_reason}
-                          </p>
-                        )}
-                        {p.rejection_details && (
-                          <p className="text-[11px] text-muted-foreground truncate">
-                            {p.rejection_details}
-                          </p>
-                        )}
-                      </div>
+                    <div className="min-w-0">
+                      <p className="font-medium text-sm truncate">{p.participant_name}</p>
+                      {p.rejection_reason && (
+                        <p className="text-[11px] text-muted-foreground truncate">
+                          Motivo: {p.rejection_reason}
+                        </p>
+                      )}
+                      {p.rejection_details && (
+                        <p className="text-[11px] text-muted-foreground truncate">
+                          {p.rejection_details}
+                        </p>
+                      )}
                     </div>
                     <Button
                       variant="default"

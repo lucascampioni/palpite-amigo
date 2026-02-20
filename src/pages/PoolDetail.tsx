@@ -929,7 +929,10 @@ const PoolDetail = () => {
               <AdminParticipantsManager
                 poolId={pool.id}
                 participants={participants}
-                onSuccess={loadPoolData}
+                onParticipantUpdate={(id, changes) => {
+                  setParticipants(prev => prev.map(p => p.id === id ? { ...p, ...changes } : p));
+                  setCurrentUserParticipant((prev: any) => prev?.id === id ? { ...prev, ...changes } : prev);
+                }}
               />
             )}
 
