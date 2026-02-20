@@ -884,13 +884,20 @@ const PoolDetail = () => {
                         </span>
                       ))}
                     </div>
-                    {isPercentage && (
-                      <p className="text-[0.65rem] text-muted-foreground text-center mt-1">
-                        {isFinished
-                          ? `* Valores baseados em ${approvedCount} participante${approvedCount !== 1 ? 's' : ''} — % do valor arrecadado`
-                          : '* Valores estimados (% do valor arrecadado), atualizados conforme novas inscrições'}
-                      </p>
-                    )}
+                    {isPercentage && (() => {
+                      const pctParts: string[] = [];
+                      if (pool.first_place_prize) pctParts.push(`🥇 ${parseFloat(pool.first_place_prize)}%`);
+                      if (pool.second_place_prize) pctParts.push(`🥈 ${parseFloat(pool.second_place_prize)}%`);
+                      if (pool.third_place_prize) pctParts.push(`🥉 ${parseFloat(pool.third_place_prize)}%`);
+                      const pctStr = pctParts.join(' · ');
+                      return (
+                        <p className="text-[0.65rem] text-muted-foreground text-center mt-1">
+                          {isFinished
+                            ? `* ${pctStr} do valor arrecadado (${approvedCount} participante${approvedCount !== 1 ? 's' : ''})`
+                            : `* ${pctStr} do valor arrecadado — atualizado conforme novas inscrições`}
+                        </p>
+                      );
+                    })()}
                   </div>
                 );
               })()}
