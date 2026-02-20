@@ -259,7 +259,7 @@ export const AdminParticipantsManager = ({
                 {approved.map((p) => (
                   <div key={p.id} className="flex items-center justify-between py-2 px-3 rounded-lg bg-card border text-sm">
                     <span className="font-medium truncate">{p.participant_name}</span>
-                    {p.guess_value && (
+                    {p.guess_value && p.guess_value !== "Palpites de futebol" && (
                       <Badge variant="outline" className="text-xs ml-2 shrink-0">{p.guess_value}</Badge>
                     )}
                   </div>
