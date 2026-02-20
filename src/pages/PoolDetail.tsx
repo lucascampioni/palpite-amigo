@@ -1198,6 +1198,7 @@ const PoolDetail = () => {
                         pool={pool}
                         pixKey={pool.pix_key}
                         firstMatchDate={firstMatchDate}
+                        ownerName={ownerName || undefined}
                       />
                     ) : (
                       <div className="space-y-4">
