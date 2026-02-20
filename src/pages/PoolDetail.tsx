@@ -859,18 +859,6 @@ const PoolDetail = () => {
                   </div>
                 </div>
               )}
-              {pool.entry_fee && parseFloat(pool.entry_fee) > 0 && firstMatchDate && (
-                <div className="flex items-center gap-3 p-3 rounded-lg bg-orange-50 dark:bg-orange-950/30 border border-orange-200 dark:border-orange-800">
-                  <span className="text-lg">📄</span>
-                  <div>
-                    <p className="text-sm text-muted-foreground">Prazo para comprovante</p>
-                    <p className="font-medium">
-                      {format(new Date(firstMatchDate.getTime() - 2.5 * 60 * 60 * 1000), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
-                    </p>
-                    <p className="text-xs text-muted-foreground">2h30 antes do 1º jogo</p>
-                  </div>
-                </div>
-              )}
             </div>
 
             {/* Auto-approve warning for creators */}
