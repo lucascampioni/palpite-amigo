@@ -1350,7 +1350,9 @@ const PoolDetail = () => {
                           <div className="flex flex-col gap-3">
                             <div className="flex items-center justify-between">
                               <p className="font-medium">{participant.participant_name}</p>
-                              <Badge variant="secondary">{participant.guess_value}</Badge>
+                              {pool.pool_type !== "football" && (
+                                <Badge variant="secondary">{participant.guess_value}</Badge>
+                              )}
                             </div>
                           </div>
                         </CardContent>
