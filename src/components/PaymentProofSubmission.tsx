@@ -5,8 +5,10 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
-import { Upload, AlertCircle, DollarSign, Copy, Check } from "lucide-react";
+import { Upload, AlertCircle, DollarSign, Copy, Check, Clock } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { format } from "date-fns";
+import { ptBR } from "date-fns/locale";
 
 interface PaymentProofSubmissionProps {
   participantId: string;
@@ -14,6 +16,7 @@ interface PaymentProofSubmissionProps {
   poolTitle: string;
   entryFee: number;
   pixKey?: string;
+  firstMatchDate?: Date | null;
   onSuccess?: () => void;
 }
 
@@ -23,6 +26,7 @@ export const PaymentProofSubmission = ({
   poolTitle,
   entryFee,
   pixKey,
+  firstMatchDate,
   onSuccess
 }: PaymentProofSubmissionProps) => {
   const { toast } = useToast();
@@ -133,6 +137,11 @@ export const PaymentProofSubmission = ({
         </CardTitle>
         <CardDescription>
           Envie o comprovante de pagamento para participar do bolão
+          {firstMatchDate && (
+            <span className="block mt-1 text-orange-600 dark:text-orange-400 font-medium">
+              ⏰ Prazo: {format(new Date(firstMatchDate.getTime() - 2.5 * 60 * 60 * 1000), "dd/MM 'às' HH:mm", { locale: ptBR })} (2h30 antes do jogo)
+            </span>
+          )}
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">

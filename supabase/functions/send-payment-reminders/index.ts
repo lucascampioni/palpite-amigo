@@ -27,13 +27,7 @@ serve(async (req) => {
 
     const now = new Date();
 
-    // Find football matches happening in the next 3h15min (to catch the 3h window)
-    // and next 1h45min (to catch the 1h30 window)
-    const threeHoursFromNow = new Date(now.getTime() + 3 * 60 * 60 * 1000 + 15 * 60 * 1000);
-    const twoHoursFortyFiveFromNow = new Date(now.getTime() + 2 * 60 * 60 * 1000 + 45 * 60 * 1000);
-    const oneHourFortyFiveFromNow = new Date(now.getTime() + 1 * 60 * 60 * 1000 + 45 * 60 * 1000);
-    const oneHourFifteenFromNow = new Date(now.getTime() + 1 * 60 * 60 * 1000 + 15 * 60 * 1000);
-
+    // Windows for 6h and 4h30 reminders before first match
     // Get all pools with upcoming matches that have entry_fee
     const { data: pools, error: poolsError } = await supabase
       .from('pools')
@@ -80,17 +74,16 @@ serve(async (req) => {
       const diffMinutes = diffMs / (60 * 1000);
 
       // Determine which reminder window we're in
-      let reminderType: '3h' | '1h30' | null = null;
+      let reminderType: '6h' | '4h30' | null = null;
 
-      // 3h window: 15-minute range to match cron interval (2h53 to 3h08)
-      if (diffMinutes >= 173 && diffMinutes <= 188) {
-        reminderType = '3h';
+      // 6h window: 15-minute range (5h53 to 6h08 = 353-368 min)
+      if (diffMinutes >= 353 && diffMinutes <= 368) {
+        reminderType = '6h';
       }
-      // 1h30 window: 15-minute range to match cron interval (1h23 to 1h38)
-      else if (diffMinutes >= 83 && diffMinutes <= 98) {
-        reminderType = '1h30';
+      // 4h30 window: 15-minute range (4h23 to 4h38 = 263-278 min)
+      else if (diffMinutes >= 263 && diffMinutes <= 278) {
+        reminderType = '4h30';
       }
-
       if (!reminderType) continue;
 
       console.log(`Pool "${pool.title}" match in ${Math.round(diffMinutes)}min - sending ${reminderType} reminders`);
@@ -137,10 +130,11 @@ serve(async (req) => {
         const digits = phone.replace(/\D/g, '');
         const phoneWithCountry = digits.startsWith('55') ? digits : `55${digits}`;
 
-        const timeLeft = reminderType === '3h' ? '3 horas' : '1 hora e 30 minutos';
-        const urgency = reminderType === '1h30' ? '⚠️ ÚLTIMO AVISO! ' : '';
+        const timeLeft = reminderType === '6h' ? '6 horas' : '4 horas e 30 minutos';
+        const urgency = reminderType === '4h30' ? '⚠️ ÚLTIMO AVISO! ' : '';
+        const proofDeadline = '2 horas e 30 minutos antes do jogo';
 
-        const message = `${urgency}⏰ *Pagamento Pendente - ${pool.title}*\n\nOlá ${participant.participant_name}! Faltam apenas *${timeLeft}* para o início do jogo e você ainda não enviou o comprovante de pagamento.\n\n💰 Valor: R$ ${Number(pool.entry_fee).toFixed(2).replace('.', ',')}\n\nEnvie seu comprovante pelo app para garantir sua participação! Sem o comprovante, sua inscrição não será aprovada.\n\n🎯 *Delfos*`;
+        const message = `${urgency}⏰ *Pagamento Pendente - ${pool.title}*\n\nOlá ${participant.participant_name}! Faltam *${timeLeft}* para o início do jogo e você ainda não enviou o comprovante de pagamento.\n\n💰 Valor: R$ ${Number(pool.entry_fee).toFixed(2).replace('.', ',')}\n\n⚠️ *IMPORTANTE:* O prazo para envio do comprovante é até *${proofDeadline}*. Após esse prazo, sua inscrição será *rejeitada automaticamente*.\n\nEnvie seu comprovante pelo app agora!\n\n🎯 *Delfos*`;
 
         try {
           const url = `https://api.z-api.io/instances/${ZAPI_INSTANCE_ID}/token/${ZAPI_TOKEN}/send-text`;

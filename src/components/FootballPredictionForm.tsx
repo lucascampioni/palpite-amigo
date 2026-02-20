@@ -19,6 +19,7 @@ interface FootballPredictionFormProps {
   entryFee?: number | null;
   pool?: any;
   pixKey?: string;
+  firstMatchDate?: Date | null;
 }
 
 interface Match {
@@ -39,7 +40,7 @@ interface Prediction {
   awayScore: string;
 }
 
-const FootballPredictionForm = ({ poolId, userId, onSuccess, entryFee, pool, pixKey }: FootballPredictionFormProps) => {
+const FootballPredictionForm = ({ poolId, userId, onSuccess, entryFee, pool, pixKey, firstMatchDate }: FootballPredictionFormProps) => {
   const { toast } = useToast();
   const [matches, setMatches] = useState<Match[]>([]);
   const [predictions, setPredictions] = useState<Prediction[]>([]);
@@ -281,6 +282,19 @@ const FootballPredictionForm = ({ poolId, userId, onSuccess, entryFee, pool, pix
     <div className="space-y-4">
       <h3 className="font-semibold text-lg">Faça seus palpites</h3>
       
+      {firstMatchDate && (
+        <div className="p-3 rounded-lg bg-orange-50 dark:bg-orange-950/30 border border-orange-200 dark:border-orange-800 text-sm space-y-1">
+          <p className="font-medium text-orange-700 dark:text-orange-400">⏰ Prazos importantes:</p>
+          <p className="text-orange-600 dark:text-orange-300 text-xs">
+            • Palpites até: <strong>{format(new Date(firstMatchDate.getTime() - 3 * 60 * 60 * 1000), "dd/MM 'às' HH:mm", { locale: ptBR })}</strong> (3h antes do jogo)
+          </p>
+          {pool?.entry_fee && parseFloat(pool.entry_fee) > 0 && (
+            <p className="text-orange-600 dark:text-orange-300 text-xs">
+              • Comprovante até: <strong>{format(new Date(firstMatchDate.getTime() - 2.5 * 60 * 60 * 1000), "dd/MM 'às' HH:mm", { locale: ptBR })}</strong> (2h30 antes do jogo)
+            </p>
+          )}
+        </div>
+      )}
       {matches.map((match, index) => {
         const prediction = predictions.find(p => p.matchId === match.id);
         return (
