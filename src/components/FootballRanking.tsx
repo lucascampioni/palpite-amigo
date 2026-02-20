@@ -665,16 +665,14 @@ const FootballRanking = ({ poolId, pool, approvedParticipantsCount, isOwner }: F
               <div className="rounded-xl bg-gradient-to-r from-yellow-500/15 via-yellow-400/10 to-yellow-500/15 border border-yellow-500/30 p-3 sm:p-4">
                 <div className="flex items-center justify-center gap-2 mb-2">
                   <Trophy className="w-5 h-5 text-yellow-500 flex-shrink-0" />
-                  <p className="text-xs text-muted-foreground uppercase tracking-wider font-semibold">
+                  <span className="text-xs text-muted-foreground uppercase tracking-wider font-semibold">
                     {isMultiple ? `Campeões (${winners.length})` : 'Campeão'}
-                  </p>
-                  <Badge variant="default" className="text-xs px-2 py-0">
-                    {ranking[0].total_points} pts
-                  </Badge>
+                  </span>
+                  <span className="text-xs font-bold text-foreground">{ranking[0].total_points} pts</span>
                   {ranking[0].prize_amount !== undefined && ranking[0].prize_amount > 0 && (
-                    <Badge variant="default" className="text-xs px-2 py-0 bg-primary">
+                    <span className="text-xs font-bold text-primary">
                       R$ {ranking[0].prize_amount.toFixed(2).replace('.', ',')}
-                    </Badge>
+                    </span>
                   )}
                 </div>
                 <div className={`flex flex-wrap items-center justify-center gap-1.5 ${isManyWinners ? 'gap-y-1' : 'gap-2'}`}>
