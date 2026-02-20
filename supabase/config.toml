@@ -44,3 +44,6 @@ verify_jwt = true
 
 [functions.check-phone-exists]
 verify_jwt = false
+
+[functions.auto-manage-participants]
+verify_jwt = false

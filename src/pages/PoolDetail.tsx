@@ -33,6 +33,7 @@ const PoolDetail = () => {
   const { toast } = useToast();
   const { data: userRole } = useUserRole();
   const [pool, setPool] = useState<any>(null);
+  const [firstMatchDate, setFirstMatchDate] = useState<Date | null>(null);
   const [participants, setParticipants] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [isOwner, setIsOwner] = useState(false);
@@ -341,9 +342,15 @@ const PoolDetail = () => {
     // Detect if this pool has football matches (even if pool_type is not set)
     const { data: matchesData } = await supabase
       .from("football_matches")
-      .select("id, home_score, away_score")
-      .eq("pool_id", id);
+      .select("id, home_score, away_score, match_date")
+      .eq("pool_id", id)
+      .order("match_date", { ascending: true });
     setHasFootballMatches((matchesData?.length || 0) > 0);
+    
+    // Set earliest match date
+    if (matchesData && matchesData.length > 0) {
+      setFirstMatchDate(new Date(matchesData[0].match_date));
+    }
     
     // Check if any match has results
     const hasResults = matchesData?.some(m => m.home_score !== null && m.away_score !== null) ?? false;
@@ -448,12 +455,15 @@ const PoolDetail = () => {
       return;
     }
 
-    // Check if deadline has passed
-    if (new Date() > new Date(pool.deadline)) {
+    // Check if prediction cutoff has passed (3h before first match)
+    const cutoff = firstMatchDate 
+      ? new Date(firstMatchDate.getTime() - 3 * 60 * 60 * 1000)
+      : new Date(pool.deadline);
+    if (new Date() > cutoff) {
       toast({
         variant: "destructive",
         title: "Prazo expirado",
-        description: "O prazo para palpites já passou.",
+        description: "O prazo para palpites já passou (3h antes do primeiro jogo).",
       });
       return;
     }
@@ -604,7 +614,15 @@ const PoolDetail = () => {
   };
 
   const approvedParticipants = participants.filter(p => p.status === 'approved');
-  const isPastDeadline = new Date() > new Date(pool.deadline);
+  // Prediction cutoff: 3h before first match, or pool deadline as fallback
+  const predictionCutoff = firstMatchDate 
+    ? new Date(firstMatchDate.getTime() - 3 * 60 * 60 * 1000) 
+    : new Date(pool.deadline);
+  const proofCutoff = firstMatchDate 
+    ? new Date(firstMatchDate.getTime() - 2.5 * 60 * 60 * 1000)
+    : new Date(pool.deadline);
+  const isPastDeadline = new Date() > predictionCutoff;
+  const isPastProofDeadline = new Date() > proofCutoff;
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-muted to-background p-4">
@@ -806,10 +824,16 @@ const PoolDetail = () => {
               <div className="flex items-center gap-3 p-3 rounded-lg bg-muted/50">
                 <Calendar className="w-5 h-5 text-primary" />
                 <div>
-                  <p className="text-sm text-muted-foreground">Prazo</p>
+                  <p className="text-sm text-muted-foreground">Prazo para palpites</p>
                   <p className="font-medium">
-                    {format(new Date(pool.deadline), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
+                    {firstMatchDate 
+                      ? format(new Date(firstMatchDate.getTime() - 3 * 60 * 60 * 1000), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })
+                      : format(new Date(pool.deadline), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })
+                    }
                   </p>
+                  {firstMatchDate && (
+                    <p className="text-xs text-muted-foreground">3h antes do 1º jogo</p>
+                  )}
                 </div>
               </div>
               {!isOwner && (
@@ -835,7 +859,39 @@ const PoolDetail = () => {
                   </div>
                 </div>
               )}
+              {pool.entry_fee && parseFloat(pool.entry_fee) > 0 && firstMatchDate && (
+                <div className="flex items-center gap-3 p-3 rounded-lg bg-orange-50 dark:bg-orange-950/30 border border-orange-200 dark:border-orange-800">
+                  <span className="text-lg">📄</span>
+                  <div>
+                    <p className="text-sm text-muted-foreground">Prazo para comprovante</p>
+                    <p className="font-medium">
+                      {format(new Date(firstMatchDate.getTime() - 2.5 * 60 * 60 * 1000), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
+                    </p>
+                    <p className="text-xs text-muted-foreground">2h30 antes do 1º jogo</p>
+                  </div>
+                </div>
+              )}
             </div>
+
+            {/* Auto-approve warning for creators */}
+            {isOwner && pool.entry_fee && parseFloat(pool.entry_fee) > 0 && firstMatchDate && pool.status === 'active' && (
+              <div className="p-4 rounded-xl bg-yellow-50 dark:bg-yellow-950/30 border-2 border-yellow-300 dark:border-yellow-700">
+                <p className="font-bold text-yellow-700 dark:text-yellow-400 flex items-center gap-2 mb-2">
+                  ⚠️ Atenção - Prazos de aprovação
+                </p>
+                <div className="space-y-2 text-sm text-yellow-800 dark:text-yellow-300">
+                  <p>
+                    • Participantes que <strong>não enviarem comprovante</strong> até <strong>{format(new Date(firstMatchDate.getTime() - 2.5 * 60 * 60 * 1000), "dd/MM 'às' HH:mm", { locale: ptBR })}</strong> (2h30 antes do jogo) serão <strong>rejeitados automaticamente</strong>.
+                  </p>
+                  <p>
+                    • Você tem até <strong>{format(firstMatchDate, "dd/MM 'às' HH:mm", { locale: ptBR })}</strong> (horário do 1º jogo) para aprovar/reprovar os participantes que enviaram comprovante.
+                  </p>
+                  <p className="font-semibold text-yellow-900 dark:text-yellow-200">
+                    ⏰ Após esse horário, todos os participantes com comprovante pendente de análise serão <strong>APROVADOS AUTOMATICAMENTE</strong>.
+                  </p>
+                </div>
+              </div>
+            )}
 
             {/* Admin: Participants Manager (collapsible approved/pending/rejected) */}
             {(userRole?.isAdmin || isOwner) && (
@@ -1095,6 +1151,7 @@ const PoolDetail = () => {
                             poolTitle={pool.title}
                             entryFee={pool.entry_fee ? parseFloat(pool.entry_fee) : 0}
                             pixKey={pool.pix_key}
+                            firstMatchDate={firstMatchDate}
                             onSuccess={loadPoolData}
                           />
                         )}
@@ -1238,6 +1295,7 @@ const PoolDetail = () => {
                         onSuccess={loadPoolData}
                         pool={pool}
                         pixKey={pool.pix_key}
+                        firstMatchDate={firstMatchDate}
                       />
                     ) : (
                       <div className="space-y-4">
@@ -1364,8 +1422,18 @@ const PoolDetail = () => {
                         • O vencedor do bolão será definido de acordo com o resultado dos jogos.
                       </p>
                       <p className="text-xs text-muted-foreground">
-                        • Prazo para apostas: {format(new Date(pool.deadline), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })} (30min antes do primeiro jogo).
+                        • Prazo para apostas: <strong>{firstMatchDate ? format(new Date(firstMatchDate.getTime() - 3 * 60 * 60 * 1000), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR }) : format(new Date(pool.deadline), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}</strong> (3h antes do primeiro jogo).
                       </p>
+                      {pool.entry_fee && parseFloat(pool.entry_fee) > 0 && (
+                        <>
+                          <p className="text-xs text-muted-foreground">
+                            • Prazo para comprovante de pagamento: <strong>{firstMatchDate ? format(new Date(firstMatchDate.getTime() - 2.5 * 60 * 60 * 1000), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR }) : '—'}</strong> (2h30 antes do primeiro jogo).
+                          </p>
+                          <p className="text-xs text-destructive font-medium">
+                            • Quem não enviar o comprovante até o prazo será <strong>rejeitado automaticamente</strong>.
+                          </p>
+                        </>
+                      )}
                     </div>
                   </div>
                   
