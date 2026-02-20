@@ -77,7 +77,8 @@ const Auth = () => {
   const [cpf, setCpf] = useState("");
   const [cpfError, setCpfError] = useState<string | null>(null);
   const [phone, setPhone] = useState("");
-  const [whatsappConsent, setWhatsappConsent] = useState(false);
+  const [termsAccepted, setTermsAccepted] = useState(false);
+  const [showTerms, setShowTerms] = useState(false);
   const [forgotPasswordOpen, setForgotPasswordOpen] = useState(false);
   const [resetEmail, setResetEmail] = useState("");
   const [resetLoading, setResetLoading] = useState(false);
@@ -120,12 +121,12 @@ const Auth = () => {
     const notifyPoolUpdates = (e.currentTarget.querySelector('#notify-pool-updates') as HTMLInputElement)?.checked ?? true;
     const notifyNewPools = (e.currentTarget.querySelector('#notify-new-pools') as HTMLInputElement)?.checked ?? true;
 
-    // Verificar consentimento obrigatório
-    if (!whatsappConsent) {
+    // Verificar aceite dos termos
+    if (!termsAccepted) {
       toast({
         variant: "destructive",
-        title: "Consentimento obrigatório",
-        description: "Você precisa concordar em receber comunicações via WhatsApp para se cadastrar.",
+        title: "Termos de uso obrigatórios",
+        description: "Você precisa aceitar os termos de uso para se cadastrar.",
       });
       setLoading(false);
       return;
@@ -580,16 +581,70 @@ const Auth = () => {
                    <div className="flex items-start space-x-2 p-4 border-2 rounded-lg bg-muted/30 border-primary/20">
                      <input
                        type="checkbox"
-                       id="whatsapp-consent"
-                       checked={whatsappConsent}
-                       onChange={(e) => setWhatsappConsent(e.target.checked)}
+                       id="terms-accept"
+                       checked={termsAccepted}
+                       onChange={(e) => setTermsAccepted(e.target.checked)}
                        className="h-4 w-4 rounded border-gray-300 mt-0.5"
                        required
                      />
-                     <Label htmlFor="whatsapp-consent" className="text-sm font-normal cursor-pointer leading-relaxed">
-                       Ao participar, você concorda em receber comunicações operacionais sobre seus bolões via WhatsApp (confirmações, resultados e avisos importantes). <span className="text-destructive">*</span>
+                     <Label htmlFor="terms-accept" className="text-sm font-normal cursor-pointer leading-relaxed">
+                       Li e aceito os{" "}
+                       <button type="button" onClick={() => setShowTerms(true)} className="text-primary underline font-medium hover:text-primary/80">
+                         Termos de Uso
+                       </button>{" "}
+                       da plataforma. <span className="text-destructive">*</span>
                      </Label>
                    </div>
+
+                   <Dialog open={showTerms} onOpenChange={setShowTerms}>
+                     <DialogContent className="max-w-lg max-h-[80vh] overflow-y-auto">
+                       <DialogHeader>
+                         <DialogTitle>Termos de Uso - Delfos</DialogTitle>
+                       </DialogHeader>
+                       <div className="space-y-4 text-sm text-muted-foreground leading-relaxed">
+                         <p className="font-medium text-foreground">Ao criar sua conta e utilizar a plataforma Delfos, você declara estar ciente e de acordo com os seguintes termos:</p>
+                         
+                         <div>
+                           <h4 className="font-semibold text-foreground mb-1">1. Responsabilidade sobre pagamentos</h4>
+                           <p>A plataforma Delfos é apenas um meio de organização de bolões. <strong className="text-foreground">O pagamento de premiações em bolões não oficiais é de total responsabilidade do organizador do bolão.</strong> A Delfos não se responsabiliza por pagamentos não realizados, atrasos ou divergências entre organizadores e participantes.</p>
+                         </div>
+
+                         <div>
+                           <h4 className="font-semibold text-foreground mb-1">2. Bolões oficiais vs. não oficiais</h4>
+                           <p>Bolões marcados como "oficiais" são organizados e gerenciados pela própria equipe Delfos, com garantia de pagamento. Bolões criados por terceiros são de responsabilidade exclusiva de seus organizadores.</p>
+                         </div>
+
+                         <div>
+                           <h4 className="font-semibold text-foreground mb-1">3. Veracidade dos dados</h4>
+                           <p>O usuário se compromete a fornecer informações verdadeiras no cadastro (nome, CPF, telefone e e-mail). Dados falsos podem resultar no bloqueio da conta.</p>
+                         </div>
+
+                         <div>
+                           <h4 className="font-semibold text-foreground mb-1">4. Comunicações via WhatsApp</h4>
+                           <p>Ao se cadastrar, você concorda em receber comunicações operacionais sobre seus bolões via WhatsApp (confirmações, resultados e avisos importantes). Você pode gerenciar suas preferências de notificação no seu perfil a qualquer momento.</p>
+                         </div>
+
+                         <div>
+                           <h4 className="font-semibold text-foreground mb-1">5. Idade mínima</h4>
+                           <p>É necessário ter 18 anos ou mais para utilizar a plataforma.</p>
+                         </div>
+
+                         <div>
+                           <h4 className="font-semibold text-foreground mb-1">6. Uso adequado</h4>
+                           <p>É proibido utilizar a plataforma para fins ilegais, fraudulentos ou que violem direitos de terceiros. A Delfos reserva-se o direito de suspender ou excluir contas que violem estes termos.</p>
+                         </div>
+
+                         <div>
+                           <h4 className="font-semibold text-foreground mb-1">7. Privacidade</h4>
+                           <p>Seus dados pessoais são tratados conforme nossa Política de Privacidade. Não compartilhamos suas informações com terceiros sem consentimento.</p>
+                         </div>
+
+                         <Button onClick={() => setShowTerms(false)} className="w-full mt-4">
+                           Fechar
+                         </Button>
+                       </div>
+                     </DialogContent>
+                   </Dialog>
                    <div className="space-y-3 p-4 border rounded-lg bg-muted/20">
                      <p className="text-sm font-medium">Notificações WhatsApp (opcional)</p>
                      <div className="flex items-start space-x-2">
@@ -615,7 +670,7 @@ const Auth = () => {
                        </Label>
                      </div>
                    </div>
-                  <Button type="submit" className="w-full" disabled={loading || !!cpfError || !whatsappConsent}>
+                  <Button type="submit" className="w-full" disabled={loading || !!cpfError || !termsAccepted}>
                     {loading ? "Criando conta..." : "Criar conta"}
                   </Button>
                 </form>
