@@ -853,7 +853,7 @@ const PoolDetail = () => {
               </div>
 
               {/* Prize highlight */}
-              {(pool.first_place_prize || pool.second_place_prize || pool.third_place_prize) && !((!isOwner && currentUserParticipant?.status === 'pending')) && (() => {
+              {(pool.first_place_prize || pool.second_place_prize || pool.third_place_prize) && (() => {
                 const approvedCount = participants.filter(p => p.status === 'approved').length;
                 const totalCollected = (pool.entry_fee || 0) * approvedCount;
                 const isPercentage = pool.prize_type === 'percentage';
