@@ -655,31 +655,44 @@ const FootballRanking = ({ poolId, pool, approvedParticipantsCount, isOwner }: F
       </CardHeader>
       <CardContent>
         {/* Champion highlight - only show when all matches are finished */}
-        {allMatchesFinished && ranking.length > 0 && ranking[0].total_points > 0 && (
-          <div className="mb-6 pb-4 border-b">
-            <div className="rounded-xl bg-gradient-to-r from-yellow-500/15 via-yellow-400/10 to-yellow-500/15 border-2 border-yellow-500/40 p-4 text-center">
-              <Trophy className="w-8 h-8 text-yellow-500 mx-auto mb-2" />
-              <p className="text-xs text-muted-foreground uppercase tracking-wider mb-1">
-                {ranking.filter(r => r.total_points === ranking[0].total_points).length > 1 ? 'Campeões' : 'Campeão'}
-              </p>
-              <div className="space-y-1">
-                {ranking.filter(r => r.total_points === ranking[0].total_points).map((winner) => (
-                  <p key={winner.id} className="text-lg font-bold">
-                    🏆 {winner.participant_name}
+        {allMatchesFinished && ranking.length > 0 && ranking[0].total_points > 0 && (() => {
+          const winners = ranking.filter(r => r.total_points === ranking[0].total_points);
+          const isMultiple = winners.length > 1;
+          const isManyWinners = winners.length > 3;
+          
+          return (
+            <div className="mb-6 pb-4 border-b">
+              <div className="rounded-xl bg-gradient-to-r from-yellow-500/15 via-yellow-400/10 to-yellow-500/15 border border-yellow-500/30 p-3 sm:p-4">
+                <div className="flex items-center justify-center gap-2 mb-2">
+                  <Trophy className="w-5 h-5 text-yellow-500 flex-shrink-0" />
+                  <p className="text-xs text-muted-foreground uppercase tracking-wider font-semibold">
+                    {isMultiple ? `Campeões (${winners.length})` : 'Campeão'}
                   </p>
-                ))}
+                  <Badge variant="default" className="text-xs px-2 py-0">
+                    {ranking[0].total_points} pts
+                  </Badge>
+                  {ranking[0].prize_amount !== undefined && ranking[0].prize_amount > 0 && (
+                    <Badge variant="default" className="text-xs px-2 py-0 bg-primary">
+                      R$ {ranking[0].prize_amount.toFixed(2).replace('.', ',')}
+                    </Badge>
+                  )}
+                </div>
+                <div className={`flex flex-wrap items-center justify-center gap-1.5 ${isManyWinners ? 'gap-y-1' : 'gap-2'}`}>
+                  {winners.map((winner) => (
+                    <span 
+                      key={winner.id} 
+                      className={`inline-flex items-center gap-1 rounded-full bg-yellow-500/15 border border-yellow-500/30 font-semibold ${
+                        isManyWinners ? 'text-xs px-2 py-0.5' : 'text-sm px-3 py-1'
+                      }`}
+                    >
+                      🏆 {winner.participant_name}
+                    </span>
+                  ))}
+                </div>
               </div>
-              <Badge variant="default" className="mt-2 text-sm px-3 py-1">
-                {ranking[0].total_points} pts
-              </Badge>
-              {ranking[0].prize_amount !== undefined && ranking[0].prize_amount > 0 && (
-                <Badge variant="default" className="mt-2 ml-2 bg-primary text-sm px-3 py-1">
-                  R$ {ranking[0].prize_amount.toFixed(2).replace('.', ',')}
-                </Badge>
-              )}
             </div>
-          </div>
-        )}
+          );
+        })()}
 
         {/* Current user position preview */}
         {currentUserParticipantId && ranking.find(p => p.id === currentUserParticipantId) && (
