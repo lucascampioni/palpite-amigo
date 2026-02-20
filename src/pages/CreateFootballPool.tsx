@@ -8,7 +8,8 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
-import { ArrowLeft, Trash2, Plus } from "lucide-react";
+import { ArrowLeft, Trash2, Plus, Info } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Switch } from "@/components/ui/switch";
 import { GEMatchSelector } from "@/components/GEMatchSelector";
 import { PixKeyInput } from "@/components/PixKeyInput";
@@ -53,6 +54,10 @@ const CreateFootballPool = () => {
   const [loading, setLoading] = useState(false);
   const [isPrivate, setIsPrivate] = useState(false);
   const [pixKey, setPixKey] = useState("");
+  const [profilePixKey, setProfilePixKey] = useState<string | null>(null);
+  const [profilePixKeyType, setProfilePixKeyType] = useState<string | null>(null);
+  const [pixSource, setPixSource] = useState<'profile' | 'custom' | null>(null);
+  const [replaceProfilePix, setReplaceProfilePix] = useState(false);
   const [isOfficial, setIsOfficial] = useState(false);
   const [scoringSystem, setScoringSystem] = useState<'standard' | 'exact_only'>('exact_only');
   const [maxWinners, setMaxWinners] = useState<number>(3);
@@ -76,6 +81,24 @@ const CreateFootballPool = () => {
       navigate("/");
     }
   }, [isLoadingRole, userRole, navigate, toast]);
+
+  // Load profile PIX key
+  useEffect(() => {
+    const loadProfilePix = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("pix_key, pix_key_type")
+        .eq("id", user.id)
+        .single();
+      if (profile?.pix_key) {
+        setProfilePixKey(profile.pix_key);
+        setProfilePixKeyType(profile.pix_key_type);
+      }
+    };
+    loadProfilePix();
+  }, []);
 
   // Non-admin pool creators default to percentage prize type
   useEffect(() => {
@@ -278,7 +301,14 @@ const CreateFootballPool = () => {
 
       if (paymentError) {
         console.error("Error saving PIX key:", paymentError);
-        // Don't block pool creation if PIX key save fails
+      }
+
+      // Update profile PIX key if user chose to replace
+      if (replaceProfilePix && pixSource === 'custom') {
+        await supabase
+          .from("profiles")
+          .update({ pix_key: pixKeyValue })
+          .eq("id", user.id);
       }
     }
 
@@ -576,13 +606,108 @@ const CreateFootballPool = () => {
                 </div>
               </div>
 
-              <PixKeyInput
-                value={pixKey}
-                onChange={setPixKey}
-                required={!userRole?.isAdmin}
-                label={`Chave PIX ${userRole?.isAdmin ? '(opcional)' : ''}`}
-                adminNote={userRole?.isAdmin}
-              />
+              <div className="space-y-3">
+                <div className="flex items-start gap-2">
+                  <Label className="text-base">🔑 Chave PIX para receber pagamentos {userRole?.isAdmin ? '(opcional)' : '*'}</Label>
+                </div>
+                <div className="rounded-lg border border-blue-200 dark:border-blue-800 bg-blue-50/50 dark:bg-blue-950/20 p-3">
+                  <div className="flex items-start gap-2">
+                    <Info className="w-4 h-4 text-blue-500 mt-0.5 flex-shrink-0" />
+                    <p className="text-xs text-muted-foreground">
+                      Esta chave PIX será usada pelos participantes para realizar o pagamento da inscrição no bolão. Ela ficará visível apenas no momento do pagamento.
+                    </p>
+                  </div>
+                </div>
+
+                {profilePixKey ? (
+                  <div className="space-y-3">
+                    <div className="flex gap-2">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setPixSource('profile');
+                          setPixKey(profilePixKey);
+                          setReplaceProfilePix(false);
+                        }}
+                        className={`flex-1 py-2 px-3 rounded-lg border-2 text-sm font-medium transition-colors text-left ${
+                          pixSource === 'profile'
+                            ? 'border-primary bg-primary/10 text-primary'
+                            : 'border-muted hover:border-primary/50'
+                        }`}
+                      >
+                        <div className="font-semibold text-sm">Usar chave do perfil</div>
+                        <div className="text-xs text-muted-foreground mt-0.5 break-all">
+                          {profilePixKeyType && <span className="capitalize">{profilePixKeyType}: </span>}{profilePixKey}
+                        </div>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setPixSource('custom');
+                          setPixKey("");
+                          setReplaceProfilePix(false);
+                        }}
+                        className={`flex-1 py-2 px-3 rounded-lg border-2 text-sm font-medium transition-colors text-left ${
+                          pixSource === 'custom'
+                            ? 'border-primary bg-primary/10 text-primary'
+                            : 'border-muted hover:border-primary/50'
+                        }`}
+                      >
+                        <div className="font-semibold text-sm">Usar outra chave</div>
+                        <div className="text-xs text-muted-foreground mt-0.5">Informar uma chave diferente</div>
+                      </button>
+                    </div>
+
+                    {pixSource === 'custom' && (
+                      <div className="space-y-3">
+                        <PixKeyInput
+                          value={pixKey}
+                          onChange={setPixKey}
+                          required={!userRole?.isAdmin}
+                          label=""
+                        />
+                        {pixKey.trim() && (
+                          <div className="flex items-center gap-2">
+                            <Checkbox
+                              id="replace-profile-pix"
+                              checked={replaceProfilePix}
+                              onCheckedChange={(checked) => setReplaceProfilePix(checked === true)}
+                            />
+                            <label htmlFor="replace-profile-pix" className="text-sm text-muted-foreground cursor-pointer">
+                              Substituir minha chave PIX do perfil por esta nova
+                            </label>
+                          </div>
+                        )}
+                      </div>
+                    )}
+
+                    {pixSource === null && !userRole?.isAdmin && (
+                      <p className="text-xs text-destructive">Selecione uma opção de chave PIX</p>
+                    )}
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    <PixKeyInput
+                      value={pixKey}
+                      onChange={setPixKey}
+                      required={!userRole?.isAdmin}
+                      label=""
+                    />
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      className="w-full"
+                      onClick={() => navigate("/profile")}
+                    >
+                      Cadastrar chave PIX no perfil
+                    </Button>
+                    <p className="text-xs text-muted-foreground text-center">
+                      Cadastrando no perfil, sua chave será sugerida automaticamente nos próximos bolões.
+                    </p>
+                  </div>
+                )}
+              </div>
 
               <div className="flex items-center justify-between rounded-lg border p-4 bg-muted/30">
                 <div className="space-y-0.5">
