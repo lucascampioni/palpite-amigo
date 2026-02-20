@@ -58,6 +58,7 @@ const CreateFootballPool = () => {
   const [profilePixKeyType, setProfilePixKeyType] = useState<string | null>(null);
   const [pixSource, setPixSource] = useState<'profile' | 'custom' | null>(null);
   const [replaceProfilePix, setReplaceProfilePix] = useState(false);
+  const [savePixToProfile, setSavePixToProfile] = useState(false);
   const [isOfficial, setIsOfficial] = useState(false);
   const [scoringSystem, setScoringSystem] = useState<'standard' | 'exact_only'>('exact_only');
   const [maxWinners, setMaxWinners] = useState<number>(3);
@@ -303,8 +304,8 @@ const CreateFootballPool = () => {
         console.error("Error saving PIX key:", paymentError);
       }
 
-      // Update profile PIX key if user chose to replace
-      if (replaceProfilePix && pixSource === 'custom') {
+      // Update profile PIX key if user chose to replace or save
+      if ((replaceProfilePix && pixSource === 'custom') || (savePixToProfile && !profilePixKey)) {
         await supabase
           .from("profiles")
           .update({ pix_key: pixKeyValue })
@@ -693,18 +694,18 @@ const CreateFootballPool = () => {
                       required={!userRole?.isAdmin}
                       label=""
                     />
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      className="w-full"
-                      onClick={() => navigate("/profile")}
-                    >
-                      Cadastrar chave PIX no perfil
-                    </Button>
-                    <p className="text-xs text-muted-foreground text-center">
-                      Cadastrando no perfil, sua chave será sugerida automaticamente nos próximos bolões.
-                    </p>
+                    {pixKey.trim() && (
+                      <div className="flex items-center gap-2">
+                        <Checkbox
+                          id="save-pix-to-profile"
+                          checked={savePixToProfile}
+                          onCheckedChange={(checked) => setSavePixToProfile(checked === true)}
+                        />
+                        <label htmlFor="save-pix-to-profile" className="text-sm text-muted-foreground cursor-pointer">
+                          Salvar esta chave PIX no meu perfil para próximos bolões
+                        </label>
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
