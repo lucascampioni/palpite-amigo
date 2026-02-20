@@ -821,32 +821,34 @@ const PoolDetail = () => {
             )}
 
             {/* Compact info strip */}
-            <div className="flex flex-col gap-2 text-sm">
-              <div className="flex flex-wrap items-center gap-x-1 gap-y-0.5 text-muted-foreground">
-                <Calendar className="w-3.5 h-3.5 flex-shrink-0" />
-                <span>Palpites até</span>
-                <strong className="text-foreground">
-                  {firstMatchDate 
-                    ? format(new Date(firstMatchDate.getTime() - 3 * 60 * 60 * 1000), "dd/MM 'às' HH:mm", { locale: ptBR })
-                    : format(new Date(pool.deadline), "dd/MM 'às' HH:mm", { locale: ptBR })
-                  }
-                </strong>
-                <span className="text-muted-foreground/50 mx-1 hidden sm:inline">·</span>
+            <div className="flex flex-col gap-2 text-sm text-center">
+              <div className="flex flex-wrap items-center justify-center gap-x-3 gap-y-1 text-muted-foreground">
+                <span className="flex items-center gap-1 whitespace-nowrap">
+                  <Calendar className="w-3.5 h-3.5" />
+                  Palpites até <strong className="text-foreground ml-0.5">
+                    {firstMatchDate 
+                      ? format(new Date(firstMatchDate.getTime() - 3 * 60 * 60 * 1000), "dd/MM 'às' HH:mm", { locale: ptBR })
+                      : format(new Date(pool.deadline), "dd/MM 'às' HH:mm", { locale: ptBR })
+                    }
+                  </strong>
+                </span>
+                <span className="text-muted-foreground/30">·</span>
                 {!isOwner && (
                   <>
-                    <Users className="w-3.5 h-3.5 flex-shrink-0" />
-                    <span>{approvedParticipants.length} participante{approvedParticipants.length !== 1 ? 's' : ''}</span>
-                    {pool.max_participants && approvedParticipants.length >= pool.max_participants && (
-                      <span className="text-destructive text-xs">(Cheio)</span>
-                    )}
-                    <span className="text-muted-foreground/50 mx-1 hidden sm:inline">·</span>
+                    <span className="flex items-center gap-1 whitespace-nowrap">
+                      <Users className="w-3.5 h-3.5" />
+                      {approvedParticipants.length} participante{approvedParticipants.length !== 1 ? 's' : ''}
+                      {pool.max_participants && approvedParticipants.length >= pool.max_participants && (
+                        <span className="text-destructive text-xs">(Cheio)</span>
+                      )}
+                    </span>
+                    <span className="text-muted-foreground/30">·</span>
                   </>
                 )}
                 {pool.entry_fee && parseFloat(pool.entry_fee) > 0 && (
-                  <>
-                    <span>Entrada:</span>
-                    <strong className="text-foreground">R$ {parseFloat(pool.entry_fee).toFixed(2).replace('.', ',')}</strong>
-                  </>
+                  <span className="whitespace-nowrap">
+                    Entrada: <strong className="text-foreground">R$ {parseFloat(pool.entry_fee).toFixed(2).replace('.', ',')}</strong>
+                  </span>
                 )}
               </div>
 
@@ -862,16 +864,14 @@ const PoolDetail = () => {
                 if (pool.second_place_prize) items.push({ emoji: '🥈', val: isPercentage ? formatPrize(calcPrize(parseFloat(pool.second_place_prize))) : formatPrize(parseFloat(pool.second_place_prize)) });
                 if (pool.third_place_prize) items.push({ emoji: '🥉', val: isPercentage ? formatPrize(calcPrize(parseFloat(pool.third_place_prize))) : formatPrize(parseFloat(pool.third_place_prize)) });
                 return (
-                  <div className="flex items-center gap-3 px-3 py-2.5 rounded-xl bg-gradient-to-r from-yellow-500/10 via-primary/5 to-orange-500/10 border border-primary/20">
+                  <div className="flex items-center justify-center gap-3 px-3 py-2.5 rounded-xl bg-gradient-to-r from-yellow-500/10 via-primary/5 to-orange-500/10 border border-primary/20">
                     <Trophy className="w-4 h-4 text-primary flex-shrink-0" />
-                    <span className="font-semibold text-primary text-sm">Premiação</span>
-                    <div className="flex items-center gap-2 ml-auto">
-                      {items.map((item, i) => (
-                        <span key={i} className="font-bold text-sm whitespace-nowrap">
-                          {item.emoji} {item.val}
-                        </span>
-                      ))}
-                    </div>
+                    <span className="font-semibold text-primary">Premiação</span>
+                    {items.map((item, i) => (
+                      <span key={i} className="font-bold whitespace-nowrap">
+                        {item.emoji} {item.val}
+                      </span>
+                    ))}
                   </div>
                 );
               })()}
