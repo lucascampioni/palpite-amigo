@@ -58,6 +58,8 @@ const FootballRanking = ({ poolId, pool, approvedParticipantsCount, isOwner }: F
   const [lastSyncAt, setLastSyncAt] = useState<string | null>(null);
   const [lastFrontendRefresh, setLastFrontendRefresh] = useState<Date>(new Date());
   const [anyMatchStarted, setAnyMatchStarted] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const ITEMS_PER_PAGE = 10;
 
   useEffect(() => {
     loadRanking();
@@ -868,7 +870,8 @@ const FootballRanking = ({ poolId, pool, approvedParticipantsCount, isOwner }: F
             {allMatchesFinished ? 'Ranking Completo' : 'Ranking Parcial'}
           </h3>
           <div className="space-y-2">
-            {ranking.map((participant, index) => {
+            {ranking.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE).map((participant) => {
+              const index = ranking.indexOf(participant);
               const actualPosition = getActualPosition(index, participant);
               const isExpanded = expandedParticipants.has(participant.id);
               const predictions = participantPredictions[participant.id] || [];
@@ -1029,6 +1032,31 @@ const FootballRanking = ({ poolId, pool, approvedParticipantsCount, isOwner }: F
               );
             })}
           </div>
+          {/* Pagination */}
+          {ranking.length > ITEMS_PER_PAGE && (() => {
+            const totalPages = Math.ceil(ranking.length / ITEMS_PER_PAGE);
+            return (
+              <div className="flex items-center justify-center gap-2 mt-4 pt-3 border-t">
+                <button
+                  onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                  disabled={currentPage === 1}
+                  className="px-3 py-1.5 text-sm rounded-md border bg-background hover:bg-muted disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  Anterior
+                </button>
+                <span className="text-sm text-muted-foreground">
+                  {currentPage} de {totalPages}
+                </span>
+                <button
+                  onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                  disabled={currentPage === totalPages}
+                  className="px-3 py-1.5 text-sm rounded-md border bg-background hover:bg-muted disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  Próximo
+                </button>
+              </div>
+            );
+          })()}
         </div>
       </CardContent>
     </Card>
