@@ -333,7 +333,7 @@ const Index = () => {
   };
 
   // Counts for badges
-  const pendenciasCount = myPendingPaymentPools.length + myAwaitingApprovalPools.length + myAwaitingPixPools.length + myAwaitingPaymentPools.length + myPoolsPendingApprovals.length + myPoolsPendingPrizeSend.length;
+  const pendenciasCount = myPendingPaymentPools.length + myAwaitingPixPools.length + myAwaitingPaymentPools.length + myPoolsPendingApprovals.length + myPoolsPendingPrizeSend.length;
   const myPoolsActiveCount = myCreatedPools.filter(p => p.status === "active").length;
   const myPoolsFinishedCount = myCreatedPools.filter(p => p.status === "finished").length;
   const participatingActiveCount = myParticipatingPools.filter(p => p.status === "active").length;
@@ -505,18 +505,6 @@ const Index = () => {
                   </AlertSection>
                 )}
 
-                {myAwaitingApprovalPools.length > 0 && (
-                  <AlertSection
-                    icon="⏳"
-                    title="Pendente Aprovação"
-                    subtitle="Comprovante enviado. Aguarde o organizador."
-                    bgClass="bg-yellow-50 dark:bg-yellow-950/50 border-yellow-200 dark:border-yellow-800"
-                  >
-                    {filterPools(myAwaitingApprovalPools).map((pool) => (
-                      <PoolCard key={pool.id} pool={pool} isUserParticipating hasAwaitingApproval onClick={() => navigate(`/pool/${pool.id}`)} />
-                    ))}
-                  </AlertSection>
-                )}
 
                 {myAwaitingPixPools.length > 0 && (
                   <AlertSection
@@ -600,8 +588,16 @@ const Index = () => {
 
           {/* ========= TAB: MEUS BOLÕES ========= */}
           <TabsContent value="concorrendo" className="space-y-5 mt-0">
-            {myParticipatingPools.length > 0 || myFailedPools.length > 0 ? (
+            {myParticipatingPools.length > 0 || myAwaitingApprovalPools.length > 0 || myFailedPools.length > 0 ? (
               <section className="space-y-3">
+                {/* Awaiting approval */}
+                {myAwaitingApprovalPools.length > 0 && (
+                  <div className="space-y-3">
+                    {filterPools(myAwaitingApprovalPools).map((pool) => (
+                      <PoolCard key={pool.id} pool={pool} isUserParticipating hasAwaitingApproval onClick={() => navigate(`/pool/${pool.id}`)} />
+                    ))}
+                  </div>
+                )}
                 {/* Active */}
                 <div className="space-y-3">
                   {filterPools(myParticipatingPools.filter(p => p.status === "active")).map((pool) => (
