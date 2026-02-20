@@ -501,18 +501,29 @@ const FootballRanking = ({ poolId, pool, approvedParticipantsCount, isOwner }: F
 
   // Get actual position considering ties
   // Show position for everyone (even 0pts) as long as at least one match has started
+  const maxWinners = pool?.max_winners ?? 3;
+  const isTop1Only = maxWinners === 1;
+
   const getActualPosition = (index: number, participant: ParticipantScore) => {
     // If 0 points and no match has started yet, no position
     if (participant.total_points === 0 && !anyMatchStarted) return null;
-    
+
     if (index === 0) return 1;
-    
-    // If same score as previous, same position
+
+    // For TOP 1 pools: positions are always sequential (no skipping)
+    if (isTop1Only) {
+      if (ranking[index - 1].total_points === participant.total_points) {
+        return getActualPosition(index - 1, ranking[index - 1]);
+      }
+      return index + 1;
+    }
+
+    // For TOP 2/3: skip positions when there are ties (standard dense ranking)
     if (ranking[index - 1].total_points === participant.total_points) {
       return getActualPosition(index - 1, ranking[index - 1]);
     }
-    
-    // Otherwise position = index + 1
+
+    // Position = index + 1 (skips positions taken by the tied group)
     return index + 1;
   };
   // Shorten name: "Maria Luiza Machado Dias" → "Maria Dias"
