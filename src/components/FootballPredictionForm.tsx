@@ -422,6 +422,15 @@ const FootballPredictionForm = ({ poolId, userId, onSuccess, entryFee, pool, pix
         Adicionar mais um palpite
       </Button>
 
+      <div className="p-3 rounded-lg bg-amber-50 dark:bg-amber-950/50 border border-amber-200 dark:border-amber-800 text-sm">
+        <p className="font-medium text-amber-700 dark:text-amber-400">
+          ⚠️ Atenção: você só pode fazer seus palpites agora!
+        </p>
+        <p className="text-xs text-muted-foreground mt-1">
+          Após enviar, não será possível editar, excluir ou adicionar novos palpites.
+        </p>
+      </div>
+
       {hasEntryFee && predictionSets.length > 1 && (
         <div className="p-3 rounded-lg bg-orange-50 dark:bg-orange-950/50 border border-orange-200 dark:border-orange-800 text-sm">
           <p className="font-medium text-orange-700 dark:text-orange-400">
@@ -429,6 +438,14 @@ const FootballPredictionForm = ({ poolId, userId, onSuccess, entryFee, pool, pix
           </p>
           <p className="text-xs text-muted-foreground mt-1">
             {predictionSets.length} palpite{predictionSets.length > 1 ? 's' : ''} × R$ {feePerSet.toFixed(2).replace('.', ',')} cada
+          </p>
+        </div>
+      )}
+
+      {hasEntryFee && (
+        <div className="p-3 rounded-lg bg-blue-50 dark:bg-blue-950/50 border border-blue-200 dark:border-blue-800 text-sm">
+          <p className="text-xs text-muted-foreground">
+            💡 Cada palpite adicional custa mais uma entrada de <strong>R$ {feePerSet.toFixed(2).replace('.', ',')}</strong>. Certifique-se de que o valor total do comprovante corresponde ao número de palpites.
           </p>
         </div>
       )}

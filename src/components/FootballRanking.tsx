@@ -418,7 +418,9 @@ const FootballRanking = ({ poolId, pool, approvedParticipantsCount, isOwner }: F
 
     const maxW = poolData.max_winners || 3;
     const isPercentage = poolData.prize_type === 'percentage';
-    const totalCollected = isPercentage ? (poolData.entry_fee || 0) * (approvedParticipantsCount || ranking.length) : 0;
+    // For percentage prizes, totalCollected is based on total prediction sets (each set = 1 entry fee)
+    const totalPredictionSets = ranking.length;
+    const totalCollected = isPercentage ? (poolData.entry_fee || 0) * totalPredictionSets : 0;
 
     const rawPrizes = [
       poolData.first_place_prize || 0,
@@ -456,9 +458,9 @@ const FootballRanking = ({ poolId, pool, approvedParticipantsCount, isOwner }: F
       // Distribute prize equally among tied participants
       const prizePerParticipant = tiedCount > 0 ? prizeSum / tiedCount : 0;
 
-      // Assign prize to all tied participants
+      // Assign prize to all tied prediction sets
       tiedInTop.forEach(participant => {
-        const index = result.findIndex(p => p.id === participant.id);
+        const index = result.findIndex(p => p.ranking_key === participant.ranking_key);
         if (index !== -1) {
           result[index].prize_amount = prizePerParticipant;
         }
