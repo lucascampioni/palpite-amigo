@@ -803,8 +803,8 @@ const PoolDetail = () => {
             <CardDescription className="text-base mt-4">{pool.description}</CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
-            {/* Winner Display */}
-            {pool.status === "finished" && winners.length > 0 && pool.pool_type !== "football" && (
+            {/* Winner Display - hidden from rejected participants */}
+            {pool.status === "finished" && winners.length > 0 && pool.pool_type !== "football" && !isRejected && (
               <>
                 <WinnerDisplay 
                   winners={winners} 
@@ -815,8 +815,8 @@ const PoolDetail = () => {
               </>
             )}
 
-            {/* No winner message */}
-            {pool.status === "finished" && winners.length === 0 && pool.result_value && (
+            {/* No winner message - hidden from rejected participants */}
+            {pool.status === "finished" && winners.length === 0 && pool.result_value && !isRejected && (
               <>
                 <Card className="border-2 border-muted">
                   <CardContent className="p-6 text-center">
