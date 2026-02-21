@@ -116,8 +116,9 @@ const PoolDetail = () => {
       if (overlapCount <= 0) return; // no prize for this user
 
       // Calculate actual prize values, handling percentage-based prizes
-      const approvedCount = participants.filter(p => p.status === 'approved').length;
-      const totalCollected = (pool.entry_fee ? parseFloat(pool.entry_fee) : 0) * approvedCount;
+      // For percentage prizes, use total prediction sets (from ranking data) not just participant count
+      const totalPredictionSets = rankingData.length > 0 ? rankingData.length : participants.filter(p => p.status === 'approved').length;
+      const totalCollected = (pool.entry_fee ? parseFloat(pool.entry_fee) : 0) * totalPredictionSets;
       const isPercentage = pool.prize_type === 'percentage';
       
       const calcPrize = (val: any) => {
@@ -149,7 +150,7 @@ const PoolDetail = () => {
     };
 
     calculateUserPrize();
-  }, [currentUserParticipant, participants, participantsPoints, pool, hasFootballMatches]);
+  }, [currentUserParticipant, participants, participantsPoints, pool, hasFootballMatches, rankingData]);
 
   // Update winners' prize_status when all matches are finished
   useEffect(() => {
@@ -871,8 +872,8 @@ const PoolDetail = () => {
 
               {/* Prize highlight */}
               {(pool.first_place_prize || pool.second_place_prize || pool.third_place_prize) && (() => {
-                const approvedCount = participants.filter(p => p.status === 'approved').length;
-                const totalCollected = (pool.entry_fee || 0) * approvedCount;
+                const totalPredictionSets = rankingData.length > 0 ? rankingData.length : participants.filter(p => p.status === 'approved').length;
+                const totalCollected = (pool.entry_fee || 0) * totalPredictionSets;
                 const isPercentage = pool.prize_type === 'percentage';
                 const calcPrize = (pct: number) => isPercentage ? (pct / 100) * totalCollected : pct;
                 const formatPrize = (val: number) => `R$ ${val.toFixed(2).replace('.', ',')}`;
@@ -910,7 +911,7 @@ const PoolDetail = () => {
                       return (
                         <p className="text-[0.65rem] text-muted-foreground text-center mt-1">
                           {isFinished
-                            ? `* ${pctStr} do valor arrecadado (${approvedCount} participante${approvedCount !== 1 ? 's' : ''})`
+                            ? `* ${pctStr} do valor arrecadado (${totalPredictionSets} palpite${totalPredictionSets !== 1 ? 's' : ''})`
                             : `* ${pctStr} do valor arrecadado — atualizado conforme novas inscrições`}
                         </p>
                       );
