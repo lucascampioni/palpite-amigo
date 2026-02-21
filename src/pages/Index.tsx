@@ -206,11 +206,13 @@ const Index = () => {
       participatingPoolsData = data || [];
     }
 
+    const rejectedPoolIds = rejectedRecords.map(p => p.pool_id);
     const excludeFromOfficialIds = [
       ...ownedPools?.map(p => p.id) || [],
       ...participantPoolIds,
       ...pendingPoolIds,
       ...awaitingApprovalPoolIds,
+      ...rejectedPoolIds,
     ];
     
     let officialPoolsData: any[] = [];
@@ -243,6 +245,7 @@ const Index = () => {
       ...participantPoolIds,
       ...pendingPoolIds,
       ...awaitingApprovalPoolIds,
+      ...rejectedPoolIds,
       ...officialPoolsData?.map(p => p.id) || [],
     ];
     
