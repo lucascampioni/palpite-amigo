@@ -338,7 +338,7 @@ const Index = () => {
   };
 
   // Counts for badges
-  const pendenciasCount = myPendingPaymentPools.length + myAwaitingPixPools.length + myAwaitingPaymentPools.length + myPoolsPendingApprovals.length + myPoolsPendingPrizeSend.length;
+  const pendenciasCount = myPendingPaymentPools.length + myAwaitingPixPools.length + myPoolsPendingApprovals.length + myPoolsPendingPrizeSend.length;
   const myPoolsActiveCount = myCreatedPools.filter(p => p.status === "active").length;
   const myPoolsFinishedCount = myCreatedPools.filter(p => p.status === "finished").length;
   const participatingActiveCount = myParticipatingPools.filter(p => p.status === "active").length;
@@ -524,18 +524,6 @@ const Index = () => {
                   </AlertSection>
                 )}
 
-                {myAwaitingPaymentPools.length > 0 && (
-                  <AlertSection
-                    icon="⏳"
-                    title="Aguardando Pagamento"
-                    subtitle="Sua chave PIX foi enviada. Aguarde o prêmio."
-                    bgClass="bg-blue-50 dark:bg-blue-950/50 border-blue-200 dark:border-blue-800"
-                  >
-                    {filterPools(myAwaitingPaymentPools).map((pool) => (
-                      <PoolCard key={pool.id} pool={pool} isUserParticipating onClick={() => navigate(`/pool/${pool.id}`)} />
-                    ))}
-                  </AlertSection>
-                )}
                 {myPoolsPendingApprovals.length > 0 && (
                   <AlertSection
                     icon="📋"
@@ -593,8 +581,24 @@ const Index = () => {
 
           {/* ========= TAB: MEUS BOLÕES ========= */}
           <TabsContent value="concorrendo" className="space-y-5 mt-0">
-            {myParticipatingPools.length > 0 || myAwaitingApprovalPools.length > 0 || myFailedPools.length > 0 ? (
+            {myParticipatingPools.length > 0 || myAwaitingApprovalPools.length > 0 || myAwaitingPaymentPools.length > 0 || myFailedPools.length > 0 ? (
               <section className="space-y-3">
+                {/* Awaiting payment (PIX submitted, waiting for organizer to send prize) */}
+                {myAwaitingPaymentPools.length > 0 && (
+                  <div className="space-y-3 p-3 rounded-xl border bg-blue-50 dark:bg-blue-950/50 border-blue-200 dark:border-blue-800">
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className="text-lg">⏳</span>
+                      <div>
+                        <h4 className="text-sm font-bold">Aguardando Pagamento do Prêmio</h4>
+                        <p className="text-xs text-muted-foreground">Sua chave PIX foi enviada. Aguarde o prêmio.</p>
+                      </div>
+                    </div>
+                    {filterPools(myAwaitingPaymentPools).map((pool) => (
+                      <PoolCard key={pool.id} pool={pool} isUserParticipating onClick={() => navigate(`/pool/${pool.id}`)} />
+                    ))}
+                  </div>
+                )}
+
                 {/* Awaiting approval */}
                 {myAwaitingApprovalPools.length > 0 && (
                   <div className="space-y-3">
