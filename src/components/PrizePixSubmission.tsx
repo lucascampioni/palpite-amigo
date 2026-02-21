@@ -1,14 +1,12 @@
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Trophy, Medal } from "lucide-react";
-import { z } from "zod";
+import { PixKeyInput } from "@/components/PixKeyInput";
 
 interface PrizePixSubmissionProps {
   participantId: string;
@@ -32,11 +30,15 @@ export const PrizePixSubmission = ({
   onSuccess 
 }: PrizePixSubmissionProps) => {
   const [pixKey, setPixKey] = useState("");
-  const [pixKeyType, setPixKeyType] = useState<string>("");
   const [termsAccepted, setTermsAccepted] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [profilePixKey, setProfilePixKey] = useState<string | null>(null);
+  const [profilePixKeyType, setProfilePixKeyType] = useState<string | null>(null);
+  const [pixSource, setPixSource] = useState<'profile' | 'custom' | null>(null);
+  const [savePixToProfile, setSavePixToProfile] = useState(false);
+  const [replaceProfilePix, setReplaceProfilePix] = useState(false);
 
-  // Pre-fill from profile
+  // Load profile PIX key
   useEffect(() => {
     const loadProfilePix = async () => {
       const { data: { user } } = await supabase.auth.getUser();
@@ -47,36 +49,21 @@ export const PrizePixSubmission = ({
         .eq("id", user.id)
         .single();
       if (profile?.pix_key && profile?.pix_key_type) {
+        setProfilePixKey(profile.pix_key);
+        setProfilePixKeyType(profile.pix_key_type);
+        // Auto-select profile key
+        setPixSource('profile');
         setPixKey(profile.pix_key);
-        setPixKeyType(profile.pix_key_type);
       }
     };
     loadProfilePix();
   }, []);
 
-  const validatePixKey = (key: string, type: string): boolean => {
-    const pixSchemas = {
-      cpf: z.string().regex(/^\d{11}$/, "CPF deve conter 11 dígitos"),
-      email: z.string().email("Email inválido").max(255, "Email muito longo"),
-      phone: z.string().regex(/^\d{10,11}$/, "Telefone deve conter 10 ou 11 dígitos"),
-      random: z.string().uuid("Chave aleatória inválida (deve ser UUID)"),
-    };
-
-    try {
-      const schema = pixSchemas[type as keyof typeof pixSchemas];
-      if (!schema) return false;
-      schema.parse(key.trim());
-      return true;
-    } catch {
-      return false;
-    }
-  };
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!pixKey || !pixKeyType) {
-      toast.error("Por favor, preencha todos os campos");
+    if (!pixKey.trim()) {
+      toast.error("Por favor, preencha a chave PIX");
       return;
     }
 
@@ -85,19 +72,6 @@ export const PrizePixSubmission = ({
       return;
     }
 
-    // Validate PIX key format
-    if (!validatePixKey(pixKey, pixKeyType)) {
-      const errorMessages = {
-        cpf: "CPF deve conter exatamente 11 dígitos numéricos",
-        email: "Digite um email válido",
-        phone: "Telefone deve conter 10 ou 11 dígitos",
-        random: "Chave aleatória deve ser um UUID válido",
-      };
-      toast.error(errorMessages[pixKeyType as keyof typeof errorMessages] || "Chave PIX inválida");
-      return;
-    }
-
-    // Sanitize and limit length
     const sanitizedPixKey = pixKey.trim().slice(0, 255);
 
     setIsSubmitting(true);
@@ -107,13 +81,38 @@ export const PrizePixSubmission = ({
         .from("participants")
         .update({
           prize_pix_key: sanitizedPixKey,
-          prize_pix_key_type: pixKeyType,
+          prize_pix_key_type: pixSource === 'profile' ? profilePixKeyType : null,
           prize_status: "pix_submitted",
           prize_submitted_at: new Date().toISOString(),
         })
         .eq("id", participantId);
 
       if (error) throw error;
+
+      // Save to profile if requested
+      if ((pixSource === 'custom' && !profilePixKey && savePixToProfile) ||
+          (pixSource === 'custom' && profilePixKey && replaceProfilePix)) {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user) {
+          // Detect key type from the PixKeyInput format
+          const detectType = (val: string) => {
+            if (val.includes("@")) return "email";
+            const clean = val.replace(/\D/g, "");
+            if (clean.length === 11 && val.includes("(")) return "phone";
+            if (clean.length === 11 && (val.includes(".") || val.includes("-"))) return "cpf";
+            if (clean.length === 14 && val.includes("/")) return "cnpj";
+            if (/^[a-f0-9-]{32,36}$/i.test(val)) return "random";
+            return null;
+          };
+          const detectedType = detectType(sanitizedPixKey);
+          if (detectedType) {
+            await supabase
+              .from("profiles")
+              .update({ pix_key: sanitizedPixKey, pix_key_type: detectedType })
+              .eq("id", user.id);
+          }
+        }
+      }
 
       toast.success("Chave PIX enviada com sucesso!");
       onSuccess?.();
@@ -138,10 +137,9 @@ export const PrizePixSubmission = ({
   const getDetailedExplanation = () => {
     if (!isTied || !totalPrizes) return null;
 
-    const totalTied = tiedWithCount + 1; // +1 to include the current user
+    const totalTied = tiedWithCount + 1;
     const placementName = placement === 1 ? "1º" : placement === 2 ? "2º" : "3º";
     
-    // Calculate which prizes were summed
     const prizes = [totalPrizes.first, totalPrizes.second, totalPrizes.third];
     let involvedPositions: string[] = [];
     let summedPrizes = 0;
@@ -196,31 +194,115 @@ export const PrizePixSubmission = ({
           </p>
           {getDetailedExplanation()}
         </div>
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="pixKeyType">Tipo de Chave PIX</Label>
-            <Select value={pixKeyType} onValueChange={setPixKeyType}>
-              <SelectTrigger id="pixKeyType">
-                <SelectValue placeholder="Selecione o tipo" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="cpf">CPF</SelectItem>
-                <SelectItem value="email">E-mail</SelectItem>
-                <SelectItem value="phone">Telefone</SelectItem>
-                <SelectItem value="random">Chave Aleatória</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="pixKey">Chave PIX</Label>
-            <Input
-              id="pixKey"
-              value={pixKey}
-              onChange={(e) => setPixKey(e.target.value)}
-              placeholder="Digite sua chave PIX"
-              required
-            />
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div className="space-y-3">
+            <Label className="text-base">🔑 Chave PIX para receber o prêmio</Label>
+
+            {profilePixKey ? (
+              <div className="space-y-3">
+                {/* Profile key - highlighted */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    setPixSource('profile');
+                    setPixKey(profilePixKey);
+                    setReplaceProfilePix(false);
+                  }}
+                  className={`w-full py-3 px-4 rounded-lg border-2 text-left transition-colors ${
+                    pixSource === 'profile'
+                      ? 'border-primary bg-primary/10'
+                      : 'border-muted hover:border-primary/50'
+                  }`}
+                >
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <div className="font-semibold text-sm">✅ Usar chave do perfil</div>
+                      <div className="text-xs text-muted-foreground mt-1">
+                        {profilePixKeyType && (
+                          <span className="inline-block bg-primary/15 text-primary rounded px-1.5 py-0.5 text-[11px] font-medium uppercase mr-1.5">
+                            {profilePixKeyType}
+                          </span>
+                        )}
+                        <span className="break-all">{profilePixKey}</span>
+                      </div>
+                    </div>
+                    <div className={`w-4 h-4 rounded-full border-2 flex-shrink-0 ${
+                      pixSource === 'profile' ? 'border-primary bg-primary' : 'border-muted-foreground/40'
+                    }`} />
+                  </div>
+                </button>
+
+                {/* Custom key - subtle */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    setPixSource('custom');
+                    setPixKey("");
+                    setReplaceProfilePix(false);
+                  }}
+                  className={`w-full py-2.5 px-4 rounded-lg border text-left transition-colors ${
+                    pixSource === 'custom'
+                      ? 'border-primary bg-primary/10'
+                      : 'border-dashed border-muted-foreground/30 hover:border-muted-foreground/50'
+                  }`}
+                >
+                  <div className="flex items-center justify-between">
+                    <div className="text-sm text-muted-foreground">Usar outra chave</div>
+                    <div className={`w-4 h-4 rounded-full border-2 flex-shrink-0 ${
+                      pixSource === 'custom' ? 'border-primary bg-primary' : 'border-muted-foreground/40'
+                    }`} />
+                  </div>
+                </button>
+
+                {pixSource === 'custom' && (
+                  <div className="space-y-3">
+                    <PixKeyInput
+                      value={pixKey}
+                      onChange={setPixKey}
+                      required
+                      label=""
+                    />
+                    {pixKey.trim() && (
+                      <div className="flex items-center gap-2">
+                        <Checkbox
+                          id="replace-profile-pix-prize"
+                          checked={replaceProfilePix}
+                          onCheckedChange={(checked) => setReplaceProfilePix(checked === true)}
+                        />
+                        <label htmlFor="replace-profile-pix-prize" className="text-sm text-muted-foreground cursor-pointer">
+                          Substituir minha chave PIX do perfil por esta nova
+                        </label>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div className="space-y-3">
+                <PixKeyInput
+                  value={pixKey}
+                  onChange={(val) => {
+                    setPixKey(val);
+                    setPixSource('custom');
+                  }}
+                  required
+                  label=""
+                />
+                {pixKey.trim() && (
+                  <div className="flex items-center gap-2">
+                    <Checkbox
+                      id="save-pix-to-profile-prize"
+                      checked={savePixToProfile}
+                      onCheckedChange={(checked) => setSavePixToProfile(checked === true)}
+                    />
+                    <label htmlFor="save-pix-to-profile-prize" className="text-sm text-muted-foreground cursor-pointer">
+                      Salvar esta chave PIX no meu perfil
+                    </label>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
 
           <div className="space-y-3 p-4 bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-700">
@@ -241,7 +323,7 @@ export const PrizePixSubmission = ({
             </div>
           </div>
 
-          <Button type="submit" disabled={isSubmitting || !termsAccepted} className="w-full">
+          <Button type="submit" disabled={isSubmitting || !termsAccepted || !pixKey.trim()} className="w-full">
             {isSubmitting ? "Enviando..." : "Enviar Chave PIX"}
           </Button>
         </form>
