@@ -174,15 +174,15 @@ const FootballPredictionForm = ({ poolId, userId, onSuccess, entryFee, pool, pix
 
     const initialStatus = hasEntryFee ? "pending" : "approved";
 
-    // Check if user already has a participant record in this pool
+    // Check if user already has a non-rejected participant record in this pool
     const { data: existingParticipant } = await supabase
       .from("participants")
-      .select("id")
+      .select("id, status")
       .eq("pool_id", poolId)
       .eq("user_id", userId)
       .maybeSingle();
 
-    if (existingParticipant) {
+    if (existingParticipant && existingParticipant.status !== 'rejected') {
       toast({
         variant: "destructive",
         title: "Erro",
@@ -190,6 +190,18 @@ const FootballPredictionForm = ({ poolId, userId, onSuccess, entryFee, pool, pix
       });
       setSubmitting(false);
       return;
+    }
+
+    // If there's a rejected record, delete it and its predictions first
+    if (existingParticipant && existingParticipant.status === 'rejected') {
+      await supabase
+        .from("football_predictions")
+        .delete()
+        .eq("participant_id", existingParticipant.id);
+      await supabase
+        .from("participants")
+        .delete()
+        .eq("id", existingParticipant.id);
     }
 
     const { data: profile } = await supabase
