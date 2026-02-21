@@ -595,6 +595,15 @@ const PoolDetail = () => {
   const isAwaitingApproval = !isOwner && currentUserParticipant?.status === 'pending' && !!currentUserParticipant?.payment_proof;
   const isRejected = !isOwner && currentUserParticipant?.status === 'rejected';
 
+  // Calculate total entry fee considering multiple prediction sets
+  const predictionSetsCount = (() => {
+    const gv = currentUserParticipant?.guess_value || '';
+    const match = gv.match(/^(\d+)\s+palpite/);
+    return match ? parseInt(match[1]) : 1;
+  })();
+  const singleEntryFee = pool.entry_fee ? parseFloat(pool.entry_fee) : 0;
+  const totalEntryFee = singleEntryFee * predictionSetsCount;
+
   const getStatusColor = (status: string) => {
     if (status === "finished") return "bg-gray-500 text-white";
     if (isRejected) return "bg-destructive text-destructive-foreground";
@@ -660,7 +669,14 @@ const PoolDetail = () => {
                     <p className="text-sm text-orange-100 mt-1">Envie um novo comprovante abaixo.</p>
                   </>
                 ) : (
-                  <p className="text-sm text-orange-100">Envie o comprovante de pagamento abaixo para confirmar sua participação.</p>
+                  <>
+                    <p className="text-sm text-orange-100">Envie o comprovante de pagamento abaixo para confirmar sua participação.</p>
+                    {predictionSetsCount > 1 && singleEntryFee > 0 && (
+                      <p className="text-sm text-orange-100 mt-1 font-semibold">
+                        💰 Valor total: R$ {totalEntryFee.toFixed(2).replace('.', ',')} ({predictionSetsCount} palpites × R$ {singleEntryFee.toFixed(2).replace('.', ',')})
+                      </p>
+                    )}
+                  </>
                 )}
               </div>
             </div>
@@ -1062,7 +1078,7 @@ const PoolDetail = () => {
                             participantId={currentUserParticipant.id}
                             poolId={pool.id}
                             poolTitle={pool.title}
-                            entryFee={pool.entry_fee ? parseFloat(pool.entry_fee) : 0}
+                            entryFee={totalEntryFee}
                             pixKey={pool.pix_key}
                             firstMatchDate={firstMatchDate}
                             onSuccess={loadPoolData}
