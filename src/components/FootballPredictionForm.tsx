@@ -7,10 +7,12 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { Copy, Upload, AlertTriangle } from "lucide-react";
+import { Copy, Upload, AlertTriangle, Plus, Trash2 } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { PaymentProofSubmission } from "@/components/PaymentProofSubmission";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Badge } from "@/components/ui/badge";
+import { Separator } from "@/components/ui/separator";
 
 interface FootballPredictionFormProps {
   poolId: string;
@@ -41,10 +43,12 @@ interface Prediction {
   awayScore: string;
 }
 
+type PredictionSet = Prediction[];
+
 const FootballPredictionForm = ({ poolId, userId, onSuccess, entryFee, pool, pixKey, firstMatchDate, ownerName }: FootballPredictionFormProps) => {
   const { toast } = useToast();
   const [matches, setMatches] = useState<Match[]>([]);
-  const [predictions, setPredictions] = useState<Prediction[]>([]);
+  const [predictionSets, setPredictionSets] = useState<PredictionSet[]>([]);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
@@ -52,6 +56,11 @@ const FootballPredictionForm = ({ poolId, userId, onSuccess, entryFee, pool, pix
   const [showDisclaimerDialog, setShowDisclaimerDialog] = useState(false);
   const [disclaimerAccepted, setDisclaimerAccepted] = useState(false);
   const [createdParticipantId, setCreatedParticipantId] = useState<string | null>(null);
+  const [activeSetIndex, setActiveSetIndex] = useState(0);
+
+  const hasEntryFee = pool?.entry_fee && parseFloat(pool.entry_fee) > 0;
+  const feePerSet = hasEntryFee ? parseFloat(pool.entry_fee) : 0;
+  const totalFee = feePerSet * predictionSets.length;
 
   useEffect(() => {
     loadMatches();
@@ -72,7 +81,8 @@ const FootballPredictionForm = ({ poolId, userId, onSuccess, entryFee, pool, pix
       });
     } else if (data) {
       setMatches(data);
-      setPredictions(data.map(m => ({ matchId: m.id, homeScore: '', awayScore: '' })));
+      // Initialize with one prediction set
+      setPredictionSets([data.map(m => ({ matchId: m.id, homeScore: '', awayScore: '' }))]);
 
       // Tentar obter e salvar escudos quando faltarem
       const needsCrests = data.filter((m: any) => (!m.home_team_crest || !m.away_team_crest) && m.external_source === 'apifb' && (m.external_id || '').startsWith('fd_'));
@@ -85,7 +95,6 @@ const FootballPredictionForm = ({ poolId, userId, onSuccess, entryFee, pool, pix
             });
             if (error || !crestData) return null;
 
-            // Persistir no banco para próximas visualizações
             await supabase
               .from('football_matches')
               .update({
@@ -111,41 +120,60 @@ const FootballPredictionForm = ({ poolId, userId, onSuccess, entryFee, pool, pix
     setLoading(false);
   };
 
-  const handlePredictionChange = (matchId: string, field: 'homeScore' | 'awayScore', value: string) => {
-    // Allow empty string or valid number between 0-99
+  const handlePredictionChange = (setIndex: number, matchId: string, field: 'homeScore' | 'awayScore', value: string) => {
     if (value === '' || (/^\d+$/.test(value) && parseInt(value) <= 99)) {
-      setPredictions(prev =>
-        prev.map(p => p.matchId === matchId ? { ...p, [field]: value } : p)
+      setPredictionSets(prev =>
+        prev.map((set, i) =>
+          i === setIndex
+            ? set.map(p => p.matchId === matchId ? { ...p, [field]: value } : p)
+            : set
+        )
       );
     }
   };
 
-  const handleSubmitClick = () => {
-    // Validate all predictions are filled
-    const hasEmptyPredictions = predictions.some(p => p.homeScore === '' || p.awayScore === '');
-    if (hasEmptyPredictions) {
-      toast({
-        variant: "destructive",
-        title: "Erro",
-        description: "Por favor, preencha todos os placares.",
-      });
-      return;
+  const addPredictionSet = () => {
+    setPredictionSets(prev => [
+      ...prev,
+      matches.map(m => ({ matchId: m.id, homeScore: '', awayScore: '' }))
+    ]);
+    setActiveSetIndex(predictionSets.length);
+  };
+
+  const removePredictionSet = (setIndex: number) => {
+    if (predictionSets.length <= 1) return;
+    setPredictionSets(prev => prev.filter((_, i) => i !== setIndex));
+    if (activeSetIndex >= predictionSets.length - 1) {
+      setActiveSetIndex(Math.max(0, predictionSets.length - 2));
+    } else if (activeSetIndex > setIndex) {
+      setActiveSetIndex(activeSetIndex - 1);
     }
-    // Show disclaimer dialog
+  };
+
+  const handleSubmitClick = () => {
+    // Validate all predictions in all sets are filled
+    for (let i = 0; i < predictionSets.length; i++) {
+      const hasEmpty = predictionSets[i].some(p => p.homeScore === '' || p.awayScore === '');
+      if (hasEmpty) {
+        setActiveSetIndex(i);
+        toast({
+          variant: "destructive",
+          title: "Erro",
+          description: `Preencha todos os placares do Palpite ${i + 1}.`,
+        });
+        return;
+      }
+    }
     setDisclaimerAccepted(false);
     setShowDisclaimerDialog(true);
   };
 
   const handleConfirmSubmit = async () => {
     setShowDisclaimerDialog(false);
-
     setSubmitting(true);
 
-    // Determine status based on entry fee
-    const hasEntryFee = pool?.entry_fee && parseFloat(pool.entry_fee) > 0;
     const initialStatus = hasEntryFee ? "pending" : "approved";
 
-    // First, create participant
     const { data: profile } = await supabase
       .from("profiles")
       .select("full_name")
@@ -158,7 +186,7 @@ const FootballPredictionForm = ({ poolId, userId, onSuccess, entryFee, pool, pix
         pool_id: poolId,
         user_id: userId,
         participant_name: profile?.full_name || "Usuário",
-        guess_value: "Palpites de futebol",
+        guess_value: `${predictionSets.length} palpite${predictionSets.length > 1 ? 's' : ''}`,
         status: initialStatus,
       })
       .select()
@@ -174,17 +202,20 @@ const FootballPredictionForm = ({ poolId, userId, onSuccess, entryFee, pool, pix
       return;
     }
 
-    // Then, create predictions
-    const predictionsData = predictions.map(p => ({
-      participant_id: participant.id,
-      match_id: p.matchId,
-      home_score_prediction: parseInt(p.homeScore),
-      away_score_prediction: parseInt(p.awayScore),
-    }));
+    // Create predictions for all sets
+    const allPredictions = predictionSets.flatMap((set, setIndex) =>
+      set.map(p => ({
+        participant_id: participant.id,
+        match_id: p.matchId,
+        home_score_prediction: parseInt(p.homeScore),
+        away_score_prediction: parseInt(p.awayScore),
+        prediction_set: setIndex + 1,
+      }))
+    );
 
     const { error: predictionsError } = await supabase
       .from("football_predictions")
-      .insert(predictionsData);
+      .insert(allPredictions);
 
     if (predictionsError) {
       toast({
@@ -192,7 +223,6 @@ const FootballPredictionForm = ({ poolId, userId, onSuccess, entryFee, pool, pix
         title: "Erro",
         description: predictionsError.message,
       });
-      // Remove participant if predictions failed
       await supabase.from("participants").delete().eq("id", participant.id);
     } else {
       if (hasEntryFee) {
@@ -201,7 +231,7 @@ const FootballPredictionForm = ({ poolId, userId, onSuccess, entryFee, pool, pix
       } else {
         toast({
           title: "🎉 Você está inscrito no bolão!",
-          description: "Boa sorte! Seus palpites foram salvos. Agora é só esperar a conclusão dos jogos. 🍀",
+          description: `${predictionSets.length} palpite${predictionSets.length > 1 ? 's' : ''} salvo${predictionSets.length > 1 ? 's' : ''}. Boa sorte! 🍀`,
           duration: 5000,
         });
       }
@@ -217,7 +247,6 @@ const FootballPredictionForm = ({ poolId, userId, onSuccess, entryFee, pool, pix
   };
 
   if (submitted) {
-    const hasEntryFee = pool?.entry_fee && parseFloat(pool.entry_fee) > 0;
     return (
       <div className="space-y-4">
         {hasEntryFee ? (
@@ -227,7 +256,9 @@ const FootballPredictionForm = ({ poolId, userId, onSuccess, entryFee, pool, pix
                 ⚠️ Palpites registrados!
               </p>
               <p className="text-sm text-muted-foreground">
-                Para confirmar sua participação, envie o comprovante de pagamento abaixo.
+                {predictionSets.length > 1
+                  ? `Você fez ${predictionSets.length} palpites. Valor total: R$ ${totalFee.toFixed(2).replace('.', ',')}. Envie o comprovante abaixo.`
+                  : 'Para confirmar sua participação, envie o comprovante de pagamento abaixo.'}
               </p>
             </div>
 
@@ -238,7 +269,9 @@ const FootballPredictionForm = ({ poolId, userId, onSuccess, entryFee, pool, pix
                     💳 Pagamento necessário
                   </DialogTitle>
                   <DialogDescription>
-                    Seus palpites foram salvos! Agora envie o comprovante para ser aprovado no bolão.
+                    {predictionSets.length > 1
+                      ? `Seus ${predictionSets.length} palpites foram salvos! Valor total: R$ ${totalFee.toFixed(2).replace('.', ',')}. Envie o comprovante.`
+                      : 'Seus palpites foram salvos! Agora envie o comprovante para ser aprovado no bolão.'}
                   </DialogDescription>
                 </DialogHeader>
                 {createdParticipantId && (
@@ -246,7 +279,7 @@ const FootballPredictionForm = ({ poolId, userId, onSuccess, entryFee, pool, pix
                     participantId={createdParticipantId}
                     poolId={poolId}
                     poolTitle={pool?.title || ''}
-                    entryFee={pool?.entry_fee ? parseFloat(pool.entry_fee) : 0}
+                    entryFee={totalFee}
                     pixKey={pixKey}
                     onSuccess={() => {
                       setShowPaymentDialog(false);
@@ -263,7 +296,7 @@ const FootballPredictionForm = ({ poolId, userId, onSuccess, entryFee, pool, pix
               🎉 Você está inscrito no bolão!
             </p>
             <p className="text-sm text-muted-foreground">
-              Boa sorte! Seus palpites foram salvos. Agora é só esperar a conclusão dos jogos. 🍀
+              Boa sorte! {predictionSets.length > 1 ? `Seus ${predictionSets.length} palpites foram salvos.` : 'Seus palpites foram salvos.'} Agora é só esperar a conclusão dos jogos. 🍀
             </p>
           </div>
         )}
@@ -279,12 +312,44 @@ const FootballPredictionForm = ({ poolId, userId, onSuccess, entryFee, pool, pix
     return <p className="text-muted-foreground">Nenhum jogo encontrado.</p>;
   }
 
+  const currentPredictions = predictionSets[activeSetIndex] || [];
+
   return (
     <div className="space-y-4">
       <h3 className="font-semibold text-lg">Faça seus palpites</h3>
-      
-      {matches.map((match, index) => {
-        const prediction = predictions.find(p => p.matchId === match.id);
+
+      {/* Prediction set tabs */}
+      {predictionSets.length > 1 && (
+        <div className="flex items-center gap-2 flex-wrap">
+          {predictionSets.map((_, i) => (
+            <Button
+              key={i}
+              variant={activeSetIndex === i ? "default" : "outline"}
+              size="sm"
+              onClick={() => setActiveSetIndex(i)}
+              className="relative"
+            >
+              Palpite {i + 1}
+              {predictionSets.length > 1 && (
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    removePredictionSet(i);
+                  }}
+                  className="ml-1.5 -mr-1 text-xs opacity-60 hover:opacity-100"
+                  title="Remover palpite"
+                >
+                  <Trash2 className="w-3 h-3" />
+                </button>
+              )}
+            </Button>
+          ))}
+        </div>
+      )}
+
+      {/* Current set matches */}
+      {matches.map((match) => {
+        const prediction = currentPredictions.find(p => p.matchId === match.id);
         return (
           <Card key={match.id}>
             <CardHeader className="pb-3">
@@ -304,9 +369,7 @@ const FootballPredictionForm = ({ poolId, userId, onSuccess, entryFee, pool, pix
                         src={match.home_team_crest} 
                         alt={match.home_team}
                         className="w-6 h-6 object-contain"
-                        onError={(e) => {
-                          e.currentTarget.style.display = 'none';
-                        }}
+                        onError={(e) => { e.currentTarget.style.display = 'none'; }}
                       />
                     )}
                     <Label>{match.home_team}</Label>
@@ -317,7 +380,7 @@ const FootballPredictionForm = ({ poolId, userId, onSuccess, entryFee, pool, pix
                     max="99"
                     placeholder=""
                     value={prediction?.homeScore || ''}
-                    onChange={(e) => handlePredictionChange(match.id, 'homeScore', e.target.value)}
+                    onChange={(e) => handlePredictionChange(activeSetIndex, match.id, 'homeScore', e.target.value)}
                     required
                   />
                 </div>
@@ -328,9 +391,7 @@ const FootballPredictionForm = ({ poolId, userId, onSuccess, entryFee, pool, pix
                         src={match.away_team_crest} 
                         alt={match.away_team}
                         className="w-6 h-6 object-contain"
-                        onError={(e) => {
-                          e.currentTarget.style.display = 'none';
-                        }}
+                        onError={(e) => { e.currentTarget.style.display = 'none'; }}
                       />
                     )}
                     <Label>{match.away_team}</Label>
@@ -341,7 +402,7 @@ const FootballPredictionForm = ({ poolId, userId, onSuccess, entryFee, pool, pix
                     max="99"
                     placeholder=""
                     value={prediction?.awayScore || ''}
-                    onChange={(e) => handlePredictionChange(match.id, 'awayScore', e.target.value)}
+                    onChange={(e) => handlePredictionChange(activeSetIndex, match.id, 'awayScore', e.target.value)}
                     required
                   />
                 </div>
@@ -350,6 +411,27 @@ const FootballPredictionForm = ({ poolId, userId, onSuccess, entryFee, pool, pix
           </Card>
         );
       })}
+
+      {/* Add prediction set button */}
+      <Button
+        variant="outline"
+        onClick={addPredictionSet}
+        className="w-full border-dashed"
+      >
+        <Plus className="w-4 h-4 mr-2" />
+        Adicionar mais um palpite
+      </Button>
+
+      {hasEntryFee && predictionSets.length > 1 && (
+        <div className="p-3 rounded-lg bg-orange-50 dark:bg-orange-950/50 border border-orange-200 dark:border-orange-800 text-sm">
+          <p className="font-medium text-orange-700 dark:text-orange-400">
+            💰 Valor total: R$ {totalFee.toFixed(2).replace('.', ',')}
+          </p>
+          <p className="text-xs text-muted-foreground mt-1">
+            {predictionSets.length} palpite{predictionSets.length > 1 ? 's' : ''} × R$ {feePerSet.toFixed(2).replace('.', ',')} cada
+          </p>
+        </div>
+      )}
 
       <div className="p-3 rounded-lg bg-muted/50 text-sm space-y-2">
         <p className="font-medium">📊 Sistema de Pontuação:</p>
@@ -368,7 +450,9 @@ const FootballPredictionForm = ({ poolId, userId, onSuccess, entryFee, pool, pix
       </div>
 
       <Button onClick={handleSubmitClick} disabled={submitting} className="w-full" size="lg">
-        {submitting ? "Enviando..." : "Enviar Palpites e Participar"}
+        {submitting ? "Enviando..." : predictionSets.length > 1
+          ? `Enviar ${predictionSets.length} Palpites e Participar`
+          : "Enviar Palpites e Participar"}
       </Button>
 
       {/* Disclaimer Dialog */}
@@ -381,6 +465,16 @@ const FootballPredictionForm = ({ poolId, userId, onSuccess, entryFee, pool, pix
             </DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
+            {hasEntryFee && predictionSets.length > 1 && (
+              <div className="p-3 rounded-lg bg-orange-50 dark:bg-orange-950/50 border border-orange-200 dark:border-orange-800 text-sm">
+                <p className="font-medium text-orange-700 dark:text-orange-400">
+                  💰 Você está enviando {predictionSets.length} palpites
+                </p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Valor total a pagar: <strong>R$ {totalFee.toFixed(2).replace('.', ',')}</strong> ({predictionSets.length} × R$ {feePerSet.toFixed(2).replace('.', ',')})
+                </p>
+              </div>
+            )}
             <div className="p-4 rounded-lg bg-destructive/10 border-2 border-destructive/30">
               <p className="text-sm font-bold text-destructive mb-2">
                 ⚠️ ATENÇÃO: Leia com cuidado antes de continuar

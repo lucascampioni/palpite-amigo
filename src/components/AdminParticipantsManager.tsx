@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -44,6 +44,7 @@ interface AdminParticipantsManagerProps {
   participants: Participant[];
   onParticipantUpdate: (id: string, changes: Partial<Participant>) => void;
   onSuccess?: () => void;
+  entryFee?: number | null;
 }
 
 const REJECTION_REASONS = [
@@ -59,6 +60,7 @@ export const AdminParticipantsManager = ({
   participants,
   onParticipantUpdate,
   onSuccess,
+  entryFee,
 }: AdminParticipantsManagerProps) => {
   const { toast } = useToast();
   const [processing, setProcessing] = useState<string | null>(null);
@@ -71,10 +73,33 @@ export const AdminParticipantsManager = ({
   const [rejectionDetails, setRejectionDetails] = useState("");
   const [approveWarningOpen, setApproveWarningOpen] = useState(false);
   const [approvingParticipantId, setApprovingParticipantId] = useState<string | null>(null);
+  const [predictionCounts, setPredictionCounts] = useState<Record<string, number>>({});
 
   const approved = participants.filter(p => p.status === "approved");
   const pending = participants.filter(p => p.status === "pending");
   const rejected = participants.filter(p => p.status === "rejected");
+  const fee = entryFee ? parseFloat(String(entryFee)) : 0;
+
+  // Load prediction set counts for all participants
+  useEffect(() => {
+    const loadPredictionCounts = async () => {
+      const ids = participants.map(p => p.id);
+      if (ids.length === 0) return;
+      const { data } = await supabase
+        .from("football_predictions")
+        .select("participant_id, prediction_set")
+        .in("participant_id", ids);
+      if (data) {
+        const counts: Record<string, number> = {};
+        data.forEach((row: any) => {
+          const ps = row.prediction_set || 1;
+          counts[row.participant_id] = Math.max(counts[row.participant_id] || 0, ps);
+        });
+        setPredictionCounts(counts);
+      }
+    };
+    loadPredictionCounts();
+  }, [participants]);
 
   const handleApproveClick = (participant: Participant) => {
     if (!participant.payment_proof) {
@@ -199,6 +224,16 @@ export const AdminParticipantsManager = ({
                   <div key={p.id} className="flex items-center justify-between py-2 px-3 rounded-lg bg-card border text-sm gap-2">
                     <div className="min-w-0 flex-1">
                       <span className="font-medium truncate block">{p.participant_name}</span>
+                      {predictionCounts[p.id] && predictionCounts[p.id] > 1 && (
+                        <span className="text-[11px] font-semibold text-primary">
+                          {predictionCounts[p.id]} palpites{fee > 0 ? ` · R$ ${(fee * predictionCounts[p.id]).toFixed(2).replace('.', ',')}` : ''}
+                        </span>
+                      )}
+                      {predictionCounts[p.id] && predictionCounts[p.id] === 1 && fee > 0 && (
+                        <span className="text-[11px] text-muted-foreground">
+                          1 palpite · R$ {fee.toFixed(2).replace('.', ',')}
+                        </span>
+                      )}
                       {p.payment_proof ? (
                         <span className="text-[11px] text-blue-500 dark:text-blue-400">✅ Comprovante enviado</span>
                       ) : (

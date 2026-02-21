@@ -121,6 +121,7 @@ export type Database = {
           match_id: string
           participant_id: string
           points_earned: number | null
+          prediction_set: number
           updated_at: string
         }
         Insert: {
@@ -131,6 +132,7 @@ export type Database = {
           match_id: string
           participant_id: string
           points_earned?: number | null
+          prediction_set?: number
           updated_at?: string
         }
         Update: {
@@ -141,6 +143,7 @@ export type Database = {
           match_id?: string
           participant_id?: string
           points_earned?: number | null
+          prediction_set?: number
           updated_at?: string
         }
         Relationships: [
@@ -585,6 +588,7 @@ export type Database = {
         Returns: {
           participant_id: string
           participant_name: string
+          prediction_set: number
           total_points: number
         }[]
       }
