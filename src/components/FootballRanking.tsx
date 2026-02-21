@@ -24,10 +24,12 @@ interface FootballRankingProps {
 
 interface ParticipantScore {
   id: string;
+  ranking_key: string; // composite key: id_predictionSet
   participant_name: string;
   total_points: number;
   prize_amount?: number;
   prize_status?: string | null;
+  prediction_set: number;
 }
 
 interface MatchPrediction {
@@ -50,6 +52,7 @@ const FootballRanking = ({ poolId, pool, approvedParticipantsCount, isOwner }: F
   const [loading, setLoading] = useState(true);
   const [expandedParticipants, setExpandedParticipants] = useState<Set<string>>(new Set());
   const [participantPredictions, setParticipantPredictions] = useState<Record<string, MatchPrediction[]>>({});
+  const [participantSetCounts, setParticipantSetCounts] = useState<Record<string, number>>({});
   const [allMatchesFinished, setAllMatchesFinished] = useState(false);
   const [hasLiveMatches, setHasLiveMatches] = useState(false);
   const [scoringSystem, setScoringSystem] = useState<string>('standard');
@@ -123,7 +126,7 @@ const FootballRanking = ({ poolId, pool, approvedParticipantsCount, isOwner }: F
       .eq("pool_id", poolId)
       .eq("user_id", user.id)
       .eq("status", "approved")
-      .single();
+      .maybeSingle();
 
     if (participant) {
       setCurrentUserParticipantId(participant.id);
@@ -235,12 +238,24 @@ const FootballRanking = ({ poolId, pool, approvedParticipantsCount, isOwner }: F
         }
       }
 
-      let baseRanking: ParticipantScore[] = rpcData.map((r: any) => ({
-        id: r.participant_id,
-        participant_name: r.participant_name,
-        total_points: r.total_points ?? 0,
-        prize_status: prizeStatusMap[r.participant_id] || null,
-      }));
+      // Track how many sets each participant has
+      const setCounts: Record<string, number> = {};
+      rpcData.forEach((r: any) => {
+        setCounts[r.participant_id] = Math.max(setCounts[r.participant_id] || 0, r.prediction_set || 1);
+      });
+      setParticipantSetCounts(setCounts);
+
+      let baseRanking: ParticipantScore[] = rpcData.map((r: any) => {
+        const predSet = r.prediction_set || 1;
+        return {
+          id: r.participant_id,
+          ranking_key: `${r.participant_id}_${predSet}`,
+          participant_name: r.participant_name,
+          total_points: r.total_points ?? 0,
+          prize_status: prizeStatusMap[r.participant_id] || null,
+          prediction_set: predSet,
+        };
+      });
 
       // If there are live matches, calculate partial points and add to totals
       if (liveMatchesWithScores.length > 0) {
@@ -249,7 +264,7 @@ const FootballRanking = ({ poolId, pool, approvedParticipantsCount, isOwner }: F
 
         const { data: livePredictions } = await supabase
           .from("football_predictions")
-          .select("participant_id, match_id, home_score_prediction, away_score_prediction")
+          .select("participant_id, match_id, home_score_prediction, away_score_prediction, prediction_set")
           .in("participant_id", participantIds)
           .in("match_id", liveMatchIds);
 
@@ -263,12 +278,15 @@ const FootballRanking = ({ poolId, pool, approvedParticipantsCount, isOwner }: F
               match.home_score!, match.away_score!,
               currentScoringSystem
             );
-            partialPointsMap[pred.participant_id] = (partialPointsMap[pred.participant_id] || 0) + pts;
+            // Need to attribute to the correct ranking_key using prediction_set
+            const predSet = (pred as any).prediction_set || 1;
+            const key = `${pred.participant_id}_${predSet}`;
+            partialPointsMap[key] = (partialPointsMap[key] || 0) + pts;
           }
 
           baseRanking = baseRanking.map(p => ({
             ...p,
-            total_points: p.total_points + (partialPointsMap[p.id] || 0),
+            total_points: p.total_points + (partialPointsMap[p.ranking_key] || 0),
           }));
         }
 
@@ -297,22 +315,40 @@ const FootballRanking = ({ poolId, pool, approvedParticipantsCount, isOwner }: F
       return;
     }
 
-    const rankingData = await Promise.all(
-      participants.map(async (participant) => {
-        const { data: predictions } = await supabase
-          .from("football_predictions")
-          .select("points_earned, match_id, home_score_prediction, away_score_prediction")
-          .eq("participant_id", participant.id);
+    // Group predictions by prediction_set for each participant
+    const fallbackRanking: ParticipantScore[] = [];
+    for (const participant of participants) {
+      const { data: predictions } = await supabase
+        .from("football_predictions")
+        .select("points_earned, match_id, home_score_prediction, away_score_prediction, prediction_set")
+        .eq("participant_id", participant.id);
 
-        let total_points = predictions?.reduce((sum, p) => sum + (p.points_earned || 0), 0) || 0;
+      // Group by prediction_set
+      const setGroups: Record<number, typeof predictions> = {};
+      (predictions || []).forEach((pred: any) => {
+        const ps = pred.prediction_set || 1;
+        if (!setGroups[ps]) setGroups[ps] = [];
+        setGroups[ps].push(pred);
+      });
 
-        // Add partial points for live matches
-        if (predictions && liveMatchesWithScores.length > 0) {
-          for (const pred of predictions) {
-            const liveMatch = liveMatchesWithScores.find(m => m.id === pred.match_id);
+      const sets = Object.keys(setGroups).map(Number);
+      if (sets.length === 0) sets.push(1);
+
+      // Track set counts
+      const counts: Record<string, number> = { ...participantSetCounts };
+      counts[participant.id] = Math.max(...sets);
+      setParticipantSetCounts(counts);
+
+      for (const setNum of sets) {
+        const setPredictions = setGroups[setNum] || [];
+        let total_points = setPredictions.reduce((sum: number, p: any) => sum + (p.points_earned || 0), 0);
+
+        if (liveMatchesWithScores.length > 0) {
+          for (const pred of setPredictions) {
+            const liveMatch = liveMatchesWithScores.find(m => m.id === (pred as any).match_id);
             if (liveMatch) {
               total_points += calculatePointsClientSide(
-                pred.home_score_prediction, pred.away_score_prediction,
+                (pred as any).home_score_prediction, (pred as any).away_score_prediction,
                 liveMatch.home_score!, liveMatch.away_score!,
                 currentScoringSystem
               );
@@ -320,23 +356,25 @@ const FootballRanking = ({ poolId, pool, approvedParticipantsCount, isOwner }: F
           }
         }
 
-        return {
+        fallbackRanking.push({
           id: participant.id,
+          ranking_key: `${participant.id}_${setNum}`,
           participant_name: participant.participant_name,
           total_points,
           prize_status: participant.prize_status,
-        } as ParticipantScore;
-      })
-    );
+          prediction_set: setNum,
+        });
+      }
+    }
 
-    rankingData.sort((a, b) => {
+    fallbackRanking.sort((a, b) => {
       if (b.total_points !== a.total_points) {
         return b.total_points - a.total_points;
       }
       return a.participant_name.localeCompare(b.participant_name);
     });
 
-    const rankingWithPrizes = calculatePrizeDistribution(rankingData, pool);
+    const rankingWithPrizes = calculatePrizeDistribution(fallbackRanking, pool);
 
     setRanking(rankingWithPrizes);
     setLoading(false);
@@ -433,8 +471,11 @@ const FootballRanking = ({ poolId, pool, approvedParticipantsCount, isOwner }: F
     return result;
   };
 
-  const loadParticipantPredictions = async (participantId: string) => {
-    if (participantPredictions[participantId]) return; // Already loaded
+  const loadParticipantPredictions = async (rankingKey: string) => {
+    if (participantPredictions[rankingKey]) return; // Already loaded
+
+    const [participantId, predSetStr] = rankingKey.split('_');
+    const predSet = parseInt(predSetStr) || 1;
 
     const { data: predictions } = await supabase
       .from("football_predictions")
@@ -443,6 +484,7 @@ const FootballRanking = ({ poolId, pool, approvedParticipantsCount, isOwner }: F
         home_score_prediction,
         away_score_prediction,
         points_earned,
+        prediction_set,
         football_matches (
           home_team,
           away_team,
@@ -455,6 +497,7 @@ const FootballRanking = ({ poolId, pool, approvedParticipantsCount, isOwner }: F
         )
       `)
       .eq("participant_id", participantId)
+      .eq("prediction_set", predSet)
       .order("football_matches(match_date)", { ascending: true });
 
     if (predictions) {
@@ -475,20 +518,30 @@ const FootballRanking = ({ poolId, pool, approvedParticipantsCount, isOwner }: F
 
       setParticipantPredictions(prev => ({
         ...prev,
-        [participantId]: formattedPredictions
+        [rankingKey]: formattedPredictions
       }));
     }
   };
 
-  const toggleParticipant = async (participantId: string) => {
+  const toggleParticipant = async (rankingKey: string) => {
     const newExpanded = new Set(expandedParticipants);
-    if (newExpanded.has(participantId)) {
-      newExpanded.delete(participantId);
+    if (newExpanded.has(rankingKey)) {
+      newExpanded.delete(rankingKey);
     } else {
-      newExpanded.add(participantId);
-      await loadParticipantPredictions(participantId);
+      newExpanded.add(rankingKey);
+      await loadParticipantPredictions(rankingKey);
     }
     setExpandedParticipants(newExpanded);
+  };
+
+  // Get display name with prediction set label
+  const getDisplayName = (participant: ParticipantScore) => {
+    const setCount = participantSetCounts[participant.id] || 1;
+    const name = shortenName(participant.participant_name);
+    if (setCount > 1) {
+      return `${name} (Palpite ${participant.prediction_set})`;
+    }
+    return name;
   };
 
   if (loading) {
@@ -697,12 +750,12 @@ const FootballRanking = ({ poolId, pool, approvedParticipantsCount, isOwner }: F
                 <div className={`flex flex-wrap items-center justify-center gap-1.5 ${isManyWinners ? 'gap-y-1' : 'gap-2'}`}>
                   {winners.map((winner) => (
                     <span 
-                      key={winner.id} 
+                      key={winner.ranking_key} 
                       className={`inline-flex items-center gap-1 rounded-full bg-yellow-500/15 border border-yellow-500/30 font-semibold ${
                         isManyWinners ? 'text-xs px-2 py-0.5' : 'text-sm px-3 py-1'
                       }`}
                     >
-                      🏆 {shortenName(winner.participant_name)}
+                      🏆 {getDisplayName(winner)}
                     </span>
                   ))}
                 </div>
@@ -712,168 +765,175 @@ const FootballRanking = ({ poolId, pool, approvedParticipantsCount, isOwner }: F
         })()}
 
         {/* Current user position preview */}
-        {currentUserParticipantId && ranking.find(p => p.id === currentUserParticipantId) && (
-          <div className="mb-6 pb-4 border-b">
-            <h3 className="text-base sm:text-lg font-semibold mb-3">
-              {allMatchesFinished ? 'Minha Colocação' : 'Minha Colocação Parcial'}
-            </h3>
-            {(() => {
-              const currentUser = ranking.find(p => p.id === currentUserParticipantId);
-              if (!currentUser) return null;
-              
-              const userIndex = ranking.findIndex(p => p.id === currentUserParticipantId);
-              const actualPosition = getActualPosition(userIndex, currentUser);
-              const userPredictions = participantPredictions[currentUserParticipantId] || [];
-              
-              return (
-                <Collapsible
-                  open={myPositionExpanded}
-                  onOpenChange={async (open) => {
-                    setMyPositionExpanded(open);
-                    if (open && userPredictions.length === 0) {
-                      await loadParticipantPredictions(currentUserParticipantId);
-                    }
-                  }}
-                >
-                  <div className="rounded-lg bg-primary/10 border-2 border-primary">
-                    <CollapsibleTrigger className="w-full">
-                      <div className="p-3">
-                        <div className="flex items-center justify-between gap-2">
-                          <div className="flex items-center gap-1.5 sm:gap-2 min-w-0 flex-1">
-                            <div className="flex items-center justify-center w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-primary text-primary-foreground font-bold text-sm sm:text-lg border-2 border-primary flex-shrink-0">
-                              {actualPosition !== null ? (
-                                <span>{actualPosition}º</span>
-                              ) : (
-                                <span>—</span>
-                              )}
-                            </div>
-                            {allMatchesFinished && actualPosition && actualPosition <= 3 && (
-                              <div className="flex-shrink-0">
-                                {getRankIcon(actualPosition, !!(currentUser.prize_amount && currentUser.prize_amount > 0))}
+        {currentUserParticipantId && ranking.some(p => p.id === currentUserParticipantId) && (() => {
+          const userEntries = ranking.filter(p => p.id === currentUserParticipantId);
+          if (userEntries.length === 0) return null;
+
+          return (
+            <div className="mb-6 pb-4 border-b space-y-3">
+              <h3 className="text-base sm:text-lg font-semibold">
+                {allMatchesFinished ? 'Minha Colocação' : 'Minha Colocação Parcial'}
+              </h3>
+              {userEntries.map((currentUser) => {
+                const userIndex = ranking.indexOf(currentUser);
+                const actualPosition = getActualPosition(userIndex, currentUser);
+                const userPredictions = participantPredictions[currentUser.ranking_key] || [];
+                
+                return (
+                  <Collapsible
+                    key={currentUser.ranking_key}
+                    open={expandedParticipants.has(currentUser.ranking_key)}
+                    onOpenChange={async (open) => {
+                      const newExpanded = new Set(expandedParticipants);
+                      if (open) {
+                        newExpanded.add(currentUser.ranking_key);
+                        await loadParticipantPredictions(currentUser.ranking_key);
+                      } else {
+                        newExpanded.delete(currentUser.ranking_key);
+                      }
+                      setExpandedParticipants(newExpanded);
+                    }}
+                  >
+                    <div className="rounded-lg bg-primary/10 border-2 border-primary">
+                      <CollapsibleTrigger className="w-full">
+                        <div className="p-3">
+                          <div className="flex items-center justify-between gap-2">
+                            <div className="flex items-center gap-1.5 sm:gap-2 min-w-0 flex-1">
+                              <div className="flex items-center justify-center w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-primary text-primary-foreground font-bold text-sm sm:text-lg border-2 border-primary flex-shrink-0">
+                                {actualPosition !== null ? (
+                                  <span>{actualPosition}º</span>
+                                ) : (
+                                  <span>—</span>
+                                )}
                               </div>
-                            )}
-                            <span className="font-semibold text-sm truncate min-w-0">
-                              {shortenName(currentUser.participant_name)}
-                            </span>
-                          </div>
-                          <div className="flex items-center gap-1 sm:gap-2 flex-shrink-0">
-                            <div className="hidden sm:flex items-center gap-2">
-                              <Badge 
-                                variant={actualPosition === 1 ? "default" : currentUser.total_points === 0 ? "outline" : "secondary"} 
-                                className="text-xs sm:text-sm px-2 sm:px-3 py-0.5 sm:py-1 whitespace-nowrap font-semibold"
-                              >
-                                {currentUser.total_points} pts
-                              </Badge>
-                              {allMatchesFinished && currentUser.prize_amount !== undefined && currentUser.prize_amount > 0 && (
-                                <Badge variant="default" className="text-xs sm:text-sm px-2 sm:px-3 py-0.5 sm:py-1 bg-primary whitespace-nowrap font-semibold">
-                                  R$ {currentUser.prize_amount.toFixed(2).replace('.', ',')}
-                                </Badge>
-                              )}
-                              {allMatchesFinished && getPrizeStatusBadge(currentUser.prize_status, currentUser.prize_amount)}
-                            </div>
-                            {myPositionExpanded ? (
-                              <ChevronUp className="h-4 w-4 sm:h-5 sm:w-5 text-primary flex-shrink-0" />
-                            ) : (
-                              <ChevronDown className="h-4 w-4 sm:h-5 sm:w-5 text-primary flex-shrink-0" />
-                            )}
-                          </div>
-                        </div>
-                        {/* Mobile badges below name */}
-                        <div className="mt-1 flex items-center gap-2 flex-wrap sm:hidden pl-10">
-                          <Badge 
-                            variant={actualPosition === 1 ? "default" : currentUser.total_points === 0 ? "outline" : "secondary"} 
-                            className="text-xs px-2 py-0.5 whitespace-nowrap"
-                          >
-                            {currentUser.total_points} pts
-                          </Badge>
-                          {allMatchesFinished && currentUser.prize_amount !== undefined && currentUser.prize_amount > 0 && (
-                            <Badge variant="default" className="text-xs px-2 py-0.5 bg-primary whitespace-nowrap">
-                              R$ {currentUser.prize_amount.toFixed(2).replace('.', ',')}
-                            </Badge>
-                          )}
-                          {allMatchesFinished && getPrizeStatusBadge(currentUser.prize_status, currentUser.prize_amount)}
-                        </div>
-                      </div>
-                    </CollapsibleTrigger>
-                    
-                    <CollapsibleContent>
-                      <div className="px-3 pb-3 pt-0">
-                        <div className="border-t border-primary/20 pt-3 space-y-2">
-                          <p className="text-sm font-semibold text-muted-foreground mb-2">Meus Palpites:</p>
-                          {userPredictions.length === 0 ? (
-                            <p className="text-sm text-muted-foreground">Carregando palpites...</p>
-                          ) : (
-                            userPredictions.map((pred) => {
-                              const explanation = getPointsExplanation(pred, scoringSystem);
-                              const bgColor = getPredictionBgColor(pred);
-                              
-                              return (
-                                <div key={pred.match_id} className={`flex items-start justify-between text-sm rounded p-3 gap-3 ${bgColor}`}>
-                                  <div className="flex-1 space-y-2">
-                                    <div className="flex items-center gap-1.5 flex-wrap">
-                                      {pred.home_team_crest && (
-                                        <img src={pred.home_team_crest} alt={pred.home_team} className="w-4 h-4 flex-shrink-0 object-contain" />
-                                      )}
-                                      <p className="font-medium text-xs leading-tight">{pred.home_team} vs {pred.away_team}</p>
-                                      {pred.away_team_crest && (
-                                        <img src={pred.away_team_crest} alt={pred.away_team} className="w-4 h-4 flex-shrink-0 object-contain" />
-                                      )}
-                                      {(() => {
-                                        const statusInfo = getMatchStatusLabel(pred.status);
-                                        return statusInfo ? (
-                                          <Badge className={`text-[0.6rem] px-1.5 py-0 ${statusInfo.className}`}>
-                                            {statusInfo.label}
-                                          </Badge>
-                                        ) : null;
-                                      })()}
-                                    </div>
-                                    <p className="text-xs text-muted-foreground">
-                                      {format(new Date(pred.match_date), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
-                                    </p>
-                                    <div className="flex items-center gap-2 flex-wrap">
-                                      <span className="text-xs text-muted-foreground">
-                                        Palpite: {pred.home_score_prediction} - {pred.away_score_prediction}
-                                      </span>
-                                      {pred.home_score !== null && pred.away_score !== null && (
-                                        <span className="text-xs font-semibold">
-                                          | Placar: {pred.home_score} - {pred.away_score}
-                                        </span>
-                                      )}
-                                    </div>
-                                    {explanation && (
-                                      <p className="text-xs font-medium text-foreground/80 italic">
-                                        {explanation}
-                                      </p>
-                                    )}
-                                  </div>
-                                  {(() => {
-                                    const liveStatuses = ['1H', '2H', 'HT', 'ET', 'P'];
-                                    const isLive = liveStatuses.includes(pred.status);
-                                    const displayPoints = isLive && pred.home_score !== null && pred.away_score !== null
-                                      ? calculatePointsClientSide(pred.home_score_prediction, pred.away_score_prediction, pred.home_score, pred.away_score, scoringSystem)
-                                      : pred.points_earned;
-                                    return (
-                                      <Badge 
-                                        variant={displayPoints > 0 ? "default" : "secondary"}
-                                        className="text-xs flex-shrink-0"
-                                      >
-                                        {displayPoints} pt{displayPoints !== 1 ? 's' : ''}
-                                      </Badge>
-                                    );
-                                  })()}
+                              {allMatchesFinished && actualPosition && actualPosition <= 3 && (
+                                <div className="flex-shrink-0">
+                                  {getRankIcon(actualPosition, !!(currentUser.prize_amount && currentUser.prize_amount > 0))}
                                 </div>
-                              );
-                            })
-                          )}
+                              )}
+                              <span className="font-semibold text-sm truncate min-w-0">
+                                {getDisplayName(currentUser)}
+                              </span>
+                            </div>
+                            <div className="flex items-center gap-1 sm:gap-2 flex-shrink-0">
+                              <div className="hidden sm:flex items-center gap-2">
+                                <Badge 
+                                  variant={actualPosition === 1 ? "default" : currentUser.total_points === 0 ? "outline" : "secondary"} 
+                                  className="text-xs sm:text-sm px-2 sm:px-3 py-0.5 sm:py-1 whitespace-nowrap font-semibold"
+                                >
+                                  {currentUser.total_points} pts
+                                </Badge>
+                                {allMatchesFinished && currentUser.prize_amount !== undefined && currentUser.prize_amount > 0 && (
+                                  <Badge variant="default" className="text-xs sm:text-sm px-2 sm:px-3 py-0.5 sm:py-1 bg-primary whitespace-nowrap font-semibold">
+                                    R$ {currentUser.prize_amount.toFixed(2).replace('.', ',')}
+                                  </Badge>
+                                )}
+                                {allMatchesFinished && getPrizeStatusBadge(currentUser.prize_status, currentUser.prize_amount)}
+                              </div>
+                              {expandedParticipants.has(currentUser.ranking_key) ? (
+                                <ChevronUp className="h-4 w-4 sm:h-5 sm:w-5 text-primary flex-shrink-0" />
+                              ) : (
+                                <ChevronDown className="h-4 w-4 sm:h-5 sm:w-5 text-primary flex-shrink-0" />
+                              )}
+                            </div>
+                          </div>
+                          {/* Mobile badges */}
+                          <div className="mt-1 flex items-center gap-2 flex-wrap sm:hidden pl-10">
+                            <Badge 
+                              variant={actualPosition === 1 ? "default" : currentUser.total_points === 0 ? "outline" : "secondary"} 
+                              className="text-xs px-2 py-0.5 whitespace-nowrap"
+                            >
+                              {currentUser.total_points} pts
+                            </Badge>
+                            {allMatchesFinished && currentUser.prize_amount !== undefined && currentUser.prize_amount > 0 && (
+                              <Badge variant="default" className="text-xs px-2 py-0.5 bg-primary whitespace-nowrap">
+                                R$ {currentUser.prize_amount.toFixed(2).replace('.', ',')}
+                              </Badge>
+                            )}
+                            {allMatchesFinished && getPrizeStatusBadge(currentUser.prize_status, currentUser.prize_amount)}
+                          </div>
                         </div>
-                      </div>
-                    </CollapsibleContent>
-                  </div>
-                </Collapsible>
-              );
-            })()}
-          </div>
-        )}
+                      </CollapsibleTrigger>
+                      
+                      <CollapsibleContent>
+                        <div className="px-3 pb-3 pt-0">
+                          <div className="border-t border-primary/20 pt-3 space-y-2">
+                            <p className="text-sm font-semibold text-muted-foreground mb-2">Meus Palpites:</p>
+                            {userPredictions.length === 0 ? (
+                              <p className="text-sm text-muted-foreground">Carregando palpites...</p>
+                            ) : (
+                              userPredictions.map((pred) => {
+                                const explanation = getPointsExplanation(pred, scoringSystem);
+                                const bgColor = getPredictionBgColor(pred);
+                                
+                                return (
+                                  <div key={pred.match_id} className={`flex items-start justify-between text-sm rounded p-3 gap-3 ${bgColor}`}>
+                                    <div className="flex-1 space-y-2">
+                                      <div className="flex items-center gap-1.5 flex-wrap">
+                                        {pred.home_team_crest && (
+                                          <img src={pred.home_team_crest} alt={pred.home_team} className="w-4 h-4 flex-shrink-0 object-contain" />
+                                        )}
+                                        <p className="font-medium text-xs leading-tight">{pred.home_team} vs {pred.away_team}</p>
+                                        {pred.away_team_crest && (
+                                          <img src={pred.away_team_crest} alt={pred.away_team} className="w-4 h-4 flex-shrink-0 object-contain" />
+                                        )}
+                                        {(() => {
+                                          const statusInfo = getMatchStatusLabel(pred.status);
+                                          return statusInfo ? (
+                                            <Badge className={`text-[0.6rem] px-1.5 py-0 ${statusInfo.className}`}>
+                                              {statusInfo.label}
+                                            </Badge>
+                                          ) : null;
+                                        })()}
+                                      </div>
+                                      <p className="text-xs text-muted-foreground">
+                                        {format(new Date(pred.match_date), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
+                                      </p>
+                                      <div className="flex items-center gap-2 flex-wrap">
+                                        <span className="text-xs text-muted-foreground">
+                                          Palpite: {pred.home_score_prediction} - {pred.away_score_prediction}
+                                        </span>
+                                        {pred.home_score !== null && pred.away_score !== null && (
+                                          <span className="text-xs font-semibold">
+                                            | Placar: {pred.home_score} - {pred.away_score}
+                                          </span>
+                                        )}
+                                      </div>
+                                      {explanation && (
+                                        <p className="text-xs font-medium text-foreground/80 italic">
+                                          {explanation}
+                                        </p>
+                                      )}
+                                    </div>
+                                    {(() => {
+                                      const liveStatuses = ['1H', '2H', 'HT', 'ET', 'P'];
+                                      const isLive = liveStatuses.includes(pred.status);
+                                      const displayPoints = isLive && pred.home_score !== null && pred.away_score !== null
+                                        ? calculatePointsClientSide(pred.home_score_prediction, pred.away_score_prediction, pred.home_score, pred.away_score, scoringSystem)
+                                        : pred.points_earned;
+                                      return (
+                                        <Badge 
+                                          variant={displayPoints > 0 ? "default" : "secondary"}
+                                          className="text-xs flex-shrink-0"
+                                        >
+                                          {displayPoints} pt{displayPoints !== 1 ? 's' : ''}
+                                        </Badge>
+                                      );
+                                    })()}
+                                  </div>
+                                );
+                              })
+                            )}
+                          </div>
+                        </div>
+                      </CollapsibleContent>
+                    </div>
+                  </Collapsible>
+                );
+              })}
+            </div>
+          );
+        })()}
         
         {/* Complete ranking list */}
         <div>
@@ -884,15 +944,15 @@ const FootballRanking = ({ poolId, pool, approvedParticipantsCount, isOwner }: F
             {ranking.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE).map((participant) => {
               const index = ranking.indexOf(participant);
               const actualPosition = getActualPosition(index, participant);
-              const isExpanded = expandedParticipants.has(participant.id);
-              const predictions = participantPredictions[participant.id] || [];
+              const isExpanded = expandedParticipants.has(participant.ranking_key);
+              const predictions = participantPredictions[participant.ranking_key] || [];
               const isCurrentUser = participant.id === currentUserParticipantId;
               
               return (
                 <Collapsible
-                  key={participant.id}
+                  key={participant.ranking_key}
                   open={isExpanded}
-                  onOpenChange={() => toggleParticipant(participant.id)}
+                  onOpenChange={() => toggleParticipant(participant.ranking_key)}
                 >
                   <div className={`rounded-lg transition-colors ${
                     isCurrentUser 
@@ -922,7 +982,7 @@ const FootballRanking = ({ poolId, pool, approvedParticipantsCount, isOwner }: F
                              <span className={`font-medium text-sm sm:text-base break-words whitespace-normal sm:whitespace-nowrap sm:truncate min-w-0 ${
                                isCurrentUser ? 'font-semibold' : ''
                              }`}>
-                              {shortenName(participant.participant_name)}
+                              {getDisplayName(participant)}
                             </span>
                           </div>
                           <div className="flex items-center gap-1 sm:gap-2 flex-shrink-0">
