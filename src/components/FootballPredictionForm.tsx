@@ -174,6 +174,24 @@ const FootballPredictionForm = ({ poolId, userId, onSuccess, entryFee, pool, pix
 
     const initialStatus = hasEntryFee ? "pending" : "approved";
 
+    // Check if user already has a participant record in this pool
+    const { data: existingParticipant } = await supabase
+      .from("participants")
+      .select("id")
+      .eq("pool_id", poolId)
+      .eq("user_id", userId)
+      .maybeSingle();
+
+    if (existingParticipant) {
+      toast({
+        variant: "destructive",
+        title: "Erro",
+        description: "Você já está participando deste bolão. Não é possível enviar novos palpites.",
+      });
+      setSubmitting(false);
+      return;
+    }
+
     const { data: profile } = await supabase
       .from("profiles")
       .select("full_name")
