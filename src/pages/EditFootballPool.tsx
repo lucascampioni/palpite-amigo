@@ -185,16 +185,32 @@ const EditFootballPool = () => {
   };
 
   const handleGEMatchesSelected = (geMatches: Match[]) => {
-    const matchesWithSource = geMatches.map(m => ({
-      ...m,
-      externalSource: 'apifb' as const
-    }));
+    // Filter out matches that already exist in the pool (by externalId)
+    const existingExternalIds = new Set(
+      matches.filter(m => m.externalId).map(m => m.externalId)
+    );
     
-    setMatches([...matches, ...matchesWithSource]);
+    const newUniqueMatches = geMatches
+      .filter(m => !existingExternalIds.has(m.externalId))
+      .map(m => ({
+        ...m,
+        externalSource: 'apifb' as const
+      }));
     
+    if (newUniqueMatches.length === 0 && geMatches.length > 0) {
+      toast({
+        title: "Jogos já adicionados",
+        description: "Todos os jogos selecionados já estão no bolão.",
+      });
+      return;
+    }
+    
+    setMatches([...matches, ...newUniqueMatches]);
+    
+    const skipped = geMatches.length - newUniqueMatches.length;
     toast({
       title: "Jogos adicionados!",
-      description: `${geMatches.length} jogos foram adicionados ao bolão.`,
+      description: `${newUniqueMatches.length} jogo(s) adicionado(s)${skipped > 0 ? ` (${skipped} duplicado(s) ignorado(s))` : ''}.`,
     });
   };
 
