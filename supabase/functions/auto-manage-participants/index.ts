@@ -99,9 +99,44 @@ serve(async (req) => {
         }
       }
 
-      // AUTO-APPROVE: At match time (0 min) - approve participants with proof that creator didn't review
+      // AUTO-APPROVE & FINAL REJECT: At match time (0 min) - approve participants with proof, reject all remaining without proof
       // Window: -8 to 8 min (around match start, 15-min cron window)
       if (diffMinutes >= -8 && diffMinutes <= 8) {
+        // Reject any remaining pending without proof (definitive rejection)
+        const { data: pendingNoProofFinal, error: pErr3 } = await supabase
+          .from('participants')
+          .select('id, participant_name')
+          .eq('pool_id', pool.id)
+          .eq('status', 'pending')
+          .is('payment_proof', null);
+
+        if (!pErr3 && pendingNoProofFinal && pendingNoProofFinal.length > 0) {
+          const ids = pendingNoProofFinal.map(p => p.id);
+          const { error: updateErr } = await supabase
+            .from('participants')
+            .update({
+              status: 'rejected',
+              rejection_reason: 'Prazo expirado',
+              rejection_details: 'Não enviou comprovante de pagamento antes do início dos jogos.',
+            })
+            .in('id', ids);
+
+          pendingNoProofFinal.forEach(p => {
+            results.push({
+              action: 'auto_reject_final',
+              pool: pool.title,
+              participant: p.participant_name,
+              success: !updateErr,
+              error: updateErr?.message,
+            });
+          });
+
+          if (!updateErr) {
+            console.log(`Final auto-rejected ${ids.length} participants without proof in pool "${pool.title}"`);
+          }
+        }
+
+        // Auto-approve pending with proof
         const { data: pendingWithProof, error: pErr2 } = await supabase
           .from('participants')
           .select('id, participant_name')
