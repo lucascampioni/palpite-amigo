@@ -502,7 +502,7 @@ const FootballPredictionForm = ({ poolId, userId, onSuccess, entryFee, pool, pix
           </ul>
         )}
         <p className="text-xs text-muted-foreground mt-1">
-          ⏱️ <strong>Critério de desempate:</strong> Se ninguém fizer pontos, o desempate será pela ordem de inscrição — quem entrou primeiro no bolão leva a premiação.
+          ⏱️ <strong>Critério de desempate:</strong> Se ninguém fizer pontos, o desempate será pela ordem de envio dos palpites — quem enviou primeiro leva a premiação.
         </p>
       </div>
 

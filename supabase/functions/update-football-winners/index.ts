@@ -60,7 +60,7 @@ serve(async (req) => {
 
     if (poolError) throw poolError;
 
-    // Get all approved participants with their points and join time
+    // Get all approved participants
     const { data: participants, error: participantsError } = await supabaseClient
       .from('participants')
       .select('id, participant_name, status, created_at')
@@ -80,32 +80,40 @@ serve(async (req) => {
     const participantIds = participants.map(p => p.id);
     const { data: predictions, error: predictionsError } = await supabaseClient
       .from('football_predictions')
-      .select('participant_id, points_earned')
+      .select('participant_id, points_earned, created_at')
       .in('participant_id', participantIds);
 
     if (predictionsError) throw predictionsError;
 
-    // Aggregate points
+    // Aggregate points and find earliest prediction time per participant
     const pointsMap: Record<string, number> = {};
+    const earliestPredictionMap: Record<string, string> = {};
     predictions?.forEach(pred => {
       pointsMap[pred.participant_id] = (pointsMap[pred.participant_id] || 0) + (pred.points_earned || 0);
+      
+      // Track earliest prediction submission time
+      if (!earliestPredictionMap[pred.participant_id] || 
+          new Date(pred.created_at).getTime() < new Date(earliestPredictionMap[pred.participant_id]).getTime()) {
+        earliestPredictionMap[pred.participant_id] = pred.created_at;
+      }
     });
 
-    // Sort participants by points, then by created_at (earliest first) as tiebreaker
+    // Sort participants by points, then by earliest prediction submission time as tiebreaker
     const participantsWithPoints = participants
       .map(p => ({
         ...p,
-        total_points: pointsMap[p.id] || 0
+        total_points: pointsMap[p.id] || 0,
+        earliest_prediction: earliestPredictionMap[p.id] || p.created_at
       }))
       .sort((a, b) => {
         if (b.total_points !== a.total_points) return b.total_points - a.total_points;
-        // Tiebreaker: earliest join time wins
-        return new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
+        // Tiebreaker: earliest prediction submission time wins
+        return new Date(a.earliest_prediction).getTime() - new Date(b.earliest_prediction).getTime();
       });
 
     console.log('Participants with points:', participantsWithPoints);
 
-    // Check if everyone has 0 points (tiebreaker by join time applies)
+    // Check if everyone has 0 points (tiebreaker by prediction time applies)
     const allZeroPoints = participantsWithPoints.every(p => p.total_points === 0);
 
     // Identify top positions considering ties and max_winners
@@ -119,12 +127,12 @@ serve(async (req) => {
     const winnersToUpdate: string[] = [];
 
     if (allZeroPoints) {
-      // When nobody scored, winners are determined by earliest join time
+      // When nobody scored, winners are determined by earliest prediction submission time
       const topN = Math.min(maxWinners, participantsWithPoints.length);
       for (let i = 0; i < topN; i++) {
         winnersToUpdate.push(participantsWithPoints[i].id);
       }
-      console.log('All participants have 0 points - tiebreaker by join time applied');
+      console.log('All participants have 0 points - tiebreaker by prediction submission time applied');
     } else {
       let currentPosition = 0;
       while (currentPosition < participantsWithPoints.length && currentPosition < maxWinners) {
