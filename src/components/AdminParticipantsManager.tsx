@@ -45,6 +45,7 @@ interface AdminParticipantsManagerProps {
   onParticipantUpdate: (id: string, changes: Partial<Participant>) => void;
   onSuccess?: () => void;
   entryFee?: number | null;
+  firstMatchDate?: Date | null;
 }
 
 const REJECTION_REASONS = [
@@ -61,6 +62,7 @@ export const AdminParticipantsManager = ({
   onParticipantUpdate,
   onSuccess,
   entryFee,
+  firstMatchDate,
 }: AdminParticipantsManagerProps) => {
   const { toast } = useToast();
   const [processing, setProcessing] = useState<string | null>(null);
@@ -79,6 +81,15 @@ export const AdminParticipantsManager = ({
   const pending = participants.filter(p => p.status === "pending");
   const rejected = participants.filter(p => p.status === "rejected");
   const fee = entryFee ? parseFloat(String(entryFee)) : 0;
+
+  // After the first match starts, pending without proof are definitively blocked
+  const firstMatchStarted = firstMatchDate ? new Date() >= firstMatchDate : false;
+  const definitelyRejected = firstMatchStarted 
+    ? pending.filter(p => !p.payment_proof) 
+    : [];
+  const actualPending = firstMatchStarted 
+    ? pending.filter(p => !!p.payment_proof) 
+    : pending;
 
   // Load prediction set counts for all participants
   useEffect(() => {
@@ -101,6 +112,33 @@ export const AdminParticipantsManager = ({
     loadPredictionCounts();
   }, [participants]);
 
+  // Auto-reject participants without proof once first match starts
+  useEffect(() => {
+    const autoReject = async () => {
+      if (!firstMatchStarted || definitelyRejected.length === 0) return;
+      const idsToReject = definitelyRejected.map(p => p.id);
+      const { error } = await supabase
+        .from("participants")
+        .update({
+          status: "rejected" as any,
+          rejection_reason: "Prazo expirado",
+          rejection_details: "Não enviou comprovante de pagamento antes do início dos jogos.",
+        })
+        .in("id", idsToReject)
+        .eq("status", "pending" as any);
+      if (!error) {
+        idsToReject.forEach(id => {
+          onParticipantUpdate(id, {
+            status: "rejected",
+            rejection_reason: "Prazo expirado",
+            rejection_details: "Não enviou comprovante de pagamento antes do início dos jogos.",
+          });
+        });
+      }
+    };
+    autoReject();
+  }, [firstMatchStarted]);
+
   const handleApproveClick = (participant: Participant) => {
     if (!participant.payment_proof) {
       setApprovingParticipantId(participant.id);
@@ -111,6 +149,17 @@ export const AdminParticipantsManager = ({
   };
 
   const handleApprove = async (participantId: string) => {
+    // Block approval if first match started and participant has no proof
+    const participant = participants.find(p => p.id === participantId);
+    if (firstMatchStarted && participant && !participant.payment_proof) {
+      toast({
+        variant: "destructive",
+        title: "Aprovação bloqueada",
+        description: "O primeiro jogo já começou. Participantes sem comprovante não podem mais ser aprovados.",
+      });
+      return;
+    }
+
     setProcessing(participantId);
     try {
       const { error } = await supabase
@@ -205,22 +254,22 @@ export const AdminParticipantsManager = ({
             <div className="flex items-center gap-2 flex-wrap">
               <span className="text-sm font-semibold">Participantes</span>
               <span className="text-xs text-muted-foreground">
-                {approved.length} aprovado(s){pending.length > 0 && ` · ${pending.length} pendente(s)`}{rejected.length > 0 && ` · ${rejected.length} rejeitado(s)`}
+                {approved.length} aprovado(s){actualPending.length > 0 && ` · ${actualPending.length} pendente(s)`}{(rejected.length + definitelyRejected.length) > 0 && ` · ${rejected.length + definitelyRejected.length} rejeitado(s)`}
               </span>
             </div>
           </div>
 
           {/* Pending List */}
-          {pending.length > 0 && (
+          {actualPending.length > 0 && (
             <Collapsible open={pendingOpen} onOpenChange={setPendingOpen}>
               <CollapsibleTrigger className="w-full flex items-center justify-between p-3 rounded-lg bg-orange-50 dark:bg-orange-950/50 border border-orange-200 dark:border-orange-800 hover:bg-orange-100 dark:hover:bg-orange-950 transition-colors">
                 <span className="text-sm font-medium text-orange-700 dark:text-orange-400 flex items-center gap-2">
-                  ⏳ Pendentes ({pending.length})
+                  ⏳ Pendentes ({actualPending.length})
                 </span>
                 {pendingOpen ? <ChevronUp className="w-4 h-4 text-orange-600" /> : <ChevronDown className="w-4 h-4 text-orange-600" />}
               </CollapsibleTrigger>
               <CollapsibleContent className="mt-2 space-y-1">
-                {pending.map((p) => (
+                {actualPending.map((p) => (
                   <div key={p.id} className="flex items-center justify-between py-2 px-3 rounded-lg bg-card border text-sm gap-2">
                     <div className="min-w-0 flex-1">
                       <span className="font-medium truncate block">{p.participant_name}</span>
@@ -303,16 +352,28 @@ export const AdminParticipantsManager = ({
             </Collapsible>
           )}
 
-          {/* Rejected List */}
-          {rejected.length > 0 && (
+          {/* Rejected List (includes definitively rejected) */}
+          {(rejected.length + definitelyRejected.length) > 0 && (
             <Collapsible open={rejectedOpen} onOpenChange={setRejectedOpen}>
               <CollapsibleTrigger className="w-full flex items-center justify-between p-3 rounded-lg bg-red-50 dark:bg-red-950/50 border border-red-200 dark:border-red-800 hover:bg-red-100 dark:hover:bg-red-950 transition-colors">
                 <span className="text-sm font-medium text-red-700 dark:text-red-400 flex items-center gap-2">
-                  ❌ Rejeitados ({rejected.length})
+                  ❌ Rejeitados ({rejected.length + definitelyRejected.length})
                 </span>
                 {rejectedOpen ? <ChevronUp className="w-4 h-4 text-red-600" /> : <ChevronDown className="w-4 h-4 text-red-600" />}
               </CollapsibleTrigger>
               <CollapsibleContent className="mt-2 space-y-2">
+                {/* Definitively rejected (no proof + match started) */}
+                {definitelyRejected.map((p) => (
+                  <div key={p.id} className="p-3 rounded-lg bg-card border space-y-1">
+                    <div className="min-w-0">
+                      <p className="font-medium text-sm truncate">{p.participant_name}</p>
+                      <p className="text-[11px] text-destructive">
+                        🚫 Reprovado — não enviou comprovante antes do início dos jogos
+                      </p>
+                    </div>
+                  </div>
+                ))}
+                {/* Manually rejected */}
                 {rejected.map((p) => (
                   <div key={p.id} className="p-3 rounded-lg bg-card border space-y-2">
                     <div className="min-w-0">
@@ -344,7 +405,7 @@ export const AdminParticipantsManager = ({
             </Collapsible>
           )}
 
-          {approved.length === 0 && pending.length === 0 && rejected.length === 0 && (
+          {approved.length === 0 && actualPending.length === 0 && rejected.length === 0 && definitelyRejected.length === 0 && (
             <p className="text-sm text-muted-foreground text-center py-2">
               Nenhum participante ainda.
             </p>
