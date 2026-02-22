@@ -186,37 +186,46 @@ const PoolDetail = () => {
           ...p,
           total_points: participantsPoints[p.id] || 0
         }))
-        .sort((a: any, b: any) => b.total_points - a.total_points);
+        .sort((a: any, b: any) => {
+          if (b.total_points !== a.total_points) return b.total_points - a.total_points;
+          return new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
+        });
 
       const maxWinners = pool.max_winners || 3;
       const winnersToUpdate: string[] = [];
-      let currentPosition = 0;
+      
+      const allZeroPoints = participantsWithPoints.every((p: any) => p.total_points === 0);
 
-      while (currentPosition < participantsWithPoints.length && currentPosition < maxWinners) {
-        const currentScore = participantsWithPoints[currentPosition].total_points;
-        
-        // Skip if score is 0
-        if (currentScore === 0) break;
-
-        // Find all participants with the same score (tie group)
-        let tieGroupEnd = currentPosition;
-        while (
-          tieGroupEnd < participantsWithPoints.length &&
-          participantsWithPoints[tieGroupEnd].total_points === currentScore
-        ) {
-          tieGroupEnd++;
+      if (allZeroPoints) {
+        // When nobody scored, winners are determined by earliest join time
+        const topN = Math.min(maxWinners, participantsWithPoints.length);
+        for (let i = 0; i < topN; i++) {
+          winnersToUpdate.push(participantsWithPoints[i].id);
         }
+      } else {
+        let currentPosition = 0;
+        while (currentPosition < participantsWithPoints.length && currentPosition < maxWinners) {
+          const currentScore = participantsWithPoints[currentPosition].total_points;
+          if (currentScore === 0) break;
 
-        // If this group touches any prize position, they all get prize
-        if (currentPosition < maxWinners) {
-          for (let i = currentPosition; i < tieGroupEnd; i++) {
-            if (participantsWithPoints[i].total_points > 0) {
-              winnersToUpdate.push(participantsWithPoints[i].id);
+          let tieGroupEnd = currentPosition;
+          while (
+            tieGroupEnd < participantsWithPoints.length &&
+            participantsWithPoints[tieGroupEnd].total_points === currentScore
+          ) {
+            tieGroupEnd++;
+          }
+
+          if (currentPosition < maxWinners) {
+            for (let i = currentPosition; i < tieGroupEnd; i++) {
+              if (participantsWithPoints[i].total_points > 0) {
+                winnersToUpdate.push(participantsWithPoints[i].id);
+              }
             }
           }
-        }
 
-        currentPosition = tieGroupEnd;
+          currentPosition = tieGroupEnd;
+        }
       }
 
       // Update prize_status for winners who haven't submitted PIX yet
@@ -405,12 +414,24 @@ const PoolDetail = () => {
             ...p,
             total_points: pointsMap[p.id] || 0
           }))
-          .sort((a, b) => b.total_points - a.total_points) || [];
+          .sort((a, b) => {
+            if (b.total_points !== a.total_points) return b.total_points - a.total_points;
+            // Tiebreaker: earliest join time
+            return new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
+          }) || [];
         
         if (participantsWithPoints.length > 0) {
-          const highestScore = participantsWithPoints[0].total_points;
-          const topWinners = participantsWithPoints.filter(p => p.total_points === highestScore && p.total_points > 0);
-          setWinners(topWinners);
+          const allZero = participantsWithPoints.every(p => p.total_points === 0);
+          if (allZero) {
+            // When all have 0 points, winner is whoever joined first
+            const maxW = poolData.max_winners || 3;
+            const topN = participantsWithPoints.slice(0, maxW);
+            setWinners(topN.map(w => ({ ...w, tiebreaker_by_join_time: true })));
+          } else {
+            const highestScore = participantsWithPoints[0].total_points;
+            const topWinners = participantsWithPoints.filter(p => p.total_points === highestScore && p.total_points > 0);
+            setWinners(topWinners);
+          }
         }
       } else if (poolData.winner_id) {
         // For non-football pools, use the single winner_id
