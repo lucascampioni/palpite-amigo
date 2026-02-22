@@ -44,6 +44,7 @@ const PoolDetail = () => {
   const [showResultDialog, setShowResultDialog] = useState(false);
   const [winners, setWinners] = useState<any[]>([]);
   const [hasFootballMatches, setHasFootballMatches] = useState(false);
+  const [footballMatches, setFootballMatches] = useState<any[]>([]);
   const [currentUserParticipant, setCurrentUserParticipant] = useState<any>(null);
   const [signedProofUrl, setSignedProofUrl] = useState<string | null>(null);
   const [userPrizeInfo, setUserPrizeInfo] = useState<{ amount: number; placement: number; isTied: boolean; tiedWithCount: number } | null>(null);
@@ -352,10 +353,11 @@ const PoolDetail = () => {
     // Detect if this pool has football matches (even if pool_type is not set)
     const { data: matchesData } = await supabase
       .from("football_matches")
-      .select("id, home_score, away_score, match_date")
+      .select("id, home_team, away_team, home_team_crest, away_team_crest, home_score, away_score, match_date, championship, status")
       .eq("pool_id", id)
       .order("match_date", { ascending: true });
     setHasFootballMatches((matchesData?.length || 0) > 0);
+    setFootballMatches(matchesData || []);
     
     // Set earliest match date
     if (matchesData && matchesData.length > 0) {
@@ -856,6 +858,39 @@ const PoolDetail = () => {
             {(pool.pool_type === "football" || hasFootballMatches) && (
               <>
                 <Separator />
+                {/* Show matches list for owner when no participants yet */}
+                {isOwner && approvedParticipants.length === 0 && footballMatches.length > 0 && (
+                  <div className="space-y-3">
+                    <h3 className="font-semibold text-lg flex items-center gap-2">
+                      ⚽ Jogos do Bolão ({footballMatches.length})
+                    </h3>
+                    <div className="space-y-2">
+                      {footballMatches.map((match) => (
+                        <div
+                          key={match.id}
+                          className="flex items-center gap-3 p-3 rounded-lg border bg-card"
+                        >
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2 flex-wrap">
+                              {match.home_team_crest && (
+                                <img src={match.home_team_crest} alt="" className="w-5 h-5 object-contain" onError={(e) => { e.currentTarget.style.display = 'none'; }} />
+                              )}
+                              <span className="font-medium text-sm">{match.home_team}</span>
+                              <span className="text-muted-foreground text-xs">x</span>
+                              <span className="font-medium text-sm">{match.away_team}</span>
+                              {match.away_team_crest && (
+                                <img src={match.away_team_crest} alt="" className="w-5 h-5 object-contain" onError={(e) => { e.currentTarget.style.display = 'none'; }} />
+                              )}
+                            </div>
+                            <p className="text-xs text-muted-foreground mt-1">
+                              📅 {format(new Date(match.match_date), "dd/MM 'às' HH:mm", { locale: ptBR })} · {match.championship}
+                            </p>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </>
             )}
 
