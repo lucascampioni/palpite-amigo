@@ -65,6 +65,153 @@ async function fetchFixtures(leagueId: number, season: number, useDateFilter: bo
   return data.response || [];
 }
 
+// Team name translations (English -> pt-BR) for national teams
+const TEAM_NAMES_PT: Record<string, string> = {
+  'Argentina': 'Argentina',
+  'Australia': 'Austrália',
+  'Austria': 'Áustria',
+  'Belgium': 'Bélgica',
+  'Bolivia': 'Bolívia',
+  'Bosnia And Herzegovina': 'Bósnia e Herzegovina',
+  'Bosnia and Herzegovina': 'Bósnia e Herzegovina',
+  'Brazil': 'Brasil',
+  'Cameroon': 'Camarões',
+  'Canada': 'Canadá',
+  'Chile': 'Chile',
+  'China': 'China',
+  'Colombia': 'Colômbia',
+  'Costa Rica': 'Costa Rica',
+  'Croatia': 'Croácia',
+  'Czech Republic': 'República Tcheca',
+  'Denmark': 'Dinamarca',
+  'Ecuador': 'Equador',
+  'Egypt': 'Egito',
+  'England': 'Inglaterra',
+  'Finland': 'Finlândia',
+  'France': 'França',
+  'Germany': 'Alemanha',
+  'Ghana': 'Gana',
+  'Greece': 'Grécia',
+  'Honduras': 'Honduras',
+  'Hungary': 'Hungria',
+  'Iceland': 'Islândia',
+  'Indonesia': 'Indonésia',
+  'Iran': 'Irã',
+  'Iraq': 'Iraque',
+  'Ireland': 'Irlanda',
+  'Israel': 'Israel',
+  'Italy': 'Itália',
+  'Ivory Coast': 'Costa do Marfim',
+  'Jamaica': 'Jamaica',
+  'Japan': 'Japão',
+  'Jordan': 'Jordânia',
+  'Korea Republic': 'Coreia do Sul',
+  'South Korea': 'Coreia do Sul',
+  'Mali': 'Mali',
+  'Mexico': 'México',
+  'Morocco': 'Marrocos',
+  'Netherlands': 'Holanda',
+  'New Zealand': 'Nova Zelândia',
+  'Nigeria': 'Nigéria',
+  'North Macedonia': 'Macedônia do Norte',
+  'Norway': 'Noruega',
+  'Oman': 'Omã',
+  'Palestine': 'Palestina',
+  'Panama': 'Panamá',
+  'Paraguay': 'Paraguai',
+  'Peru': 'Peru',
+  'Poland': 'Polônia',
+  'Portugal': 'Portugal',
+  'Qatar': 'Catar',
+  'Romania': 'Romênia',
+  'Russia': 'Rússia',
+  'Saudi Arabia': 'Arábia Saudita',
+  'Scotland': 'Escócia',
+  'Senegal': 'Senegal',
+  'Serbia': 'Sérvia',
+  'Slovakia': 'Eslováquia',
+  'Slovenia': 'Eslovênia',
+  'South Africa': 'África do Sul',
+  'Spain': 'Espanha',
+  'Sweden': 'Suécia',
+  'Switzerland': 'Suíça',
+  'Trinidad And Tobago': 'Trinidad e Tobago',
+  'Trinidad and Tobago': 'Trinidad e Tobago',
+  'Tunisia': 'Tunísia',
+  'Turkey': 'Turquia',
+  'USA': 'Estados Unidos',
+  'United States': 'Estados Unidos',
+  'Ukraine': 'Ucrânia',
+  'Uruguay': 'Uruguai',
+  'Uzbekistan': 'Uzbequistão',
+  'Venezuela': 'Venezuela',
+  'Wales': 'País de Gales',
+  'Algeria': 'Argélia',
+  'Angola': 'Angola',
+  'Bahrain': 'Bahrein',
+  'Burkina Faso': 'Burkina Faso',
+  'Cape Verde': 'Cabo Verde',
+  'Congo DR': 'RD Congo',
+  'Cuba': 'Cuba',
+  'Curacao': 'Curaçao',
+  'El Salvador': 'El Salvador',
+  'Georgia': 'Geórgia',
+  'Guatemala': 'Guatemala',
+  'Guinea': 'Guiné',
+  'Haiti': 'Haiti',
+  'Kenya': 'Quênia',
+  'Kuwait': 'Kuwait',
+  'Mozambique': 'Moçambique',
+  'North Korea': 'Coreia do Norte',
+  'Philippines': 'Filipinas',
+  'Thailand': 'Tailândia',
+  'United Arab Emirates': 'Emirados Árabes',
+  'Vietnam': 'Vietnã',
+  'Zambia': 'Zâmbia',
+  'Zimbabwe': 'Zimbábue',
+  'Benin': 'Benim',
+  'Botswana': 'Botsuana',
+  'Comoros': 'Comores',
+  'Congo': 'Congo',
+  'Equatorial Guinea': 'Guiné Equatorial',
+  'Gabon': 'Gabão',
+  'Gambia': 'Gâmbia',
+  'Lesotho': 'Lesoto',
+  'Liberia': 'Libéria',
+  'Libya': 'Líbia',
+  'Madagascar': 'Madagascar',
+  'Malawi': 'Malaui',
+  'Mauritania': 'Mauritânia',
+  'Namibia': 'Namíbia',
+  'Niger': 'Níger',
+  'Rwanda': 'Ruanda',
+  'Sierra Leone': 'Serra Leoa',
+  'Sudan': 'Sudão',
+  'Tanzania': 'Tanzânia',
+  'Togo': 'Togo',
+  'Uganda': 'Uganda',
+  'China PR': 'China',
+  'Chinese Taipei': 'Taipé Chinesa',
+  'Hong Kong': 'Hong Kong',
+  'India': 'Índia',
+  'Kyrgyzstan': 'Quirguistão',
+  'Lebanon': 'Líbano',
+  'Malaysia': 'Malásia',
+  'Myanmar': 'Mianmar',
+  'Nepal': 'Nepal',
+  'Pakistan': 'Paquistão',
+  'Singapore': 'Singapura',
+  'Syria': 'Síria',
+  'Tajikistan': 'Tajiquistão',
+  'Turkmenistan': 'Turcomenistão',
+  'Yemen': 'Iêmen',
+};
+
+function translateTeamName(name: string, isWorldCup: boolean): string {
+  if (!isWorldCup) return name;
+  return TEAM_NAMES_PT[name] || name;
+}
+
 const STAGE_NAMES: Record<string, string> = {
   'Group Stage': 'Fase de Grupos',
   'League Stage': 'Fase de Liga',
@@ -81,19 +228,16 @@ const STAGE_NAMES: Record<string, string> = {
 };
 
 function translateRound(round: string): string {
-  // Check exact match first
   if (STAGE_NAMES[round]) return STAGE_NAMES[round];
-  // Check prefix match
   for (const [key, value] of Object.entries(STAGE_NAMES)) {
     if (round.startsWith(key)) return value;
   }
-  // Check if it's "Regular Season - X"
   const regularMatch = round.match(/Regular Season - (\d+)/);
   if (regularMatch) return `Rodada ${regularMatch[1]}`;
   return round;
 }
 
-function organizeFixtures(fixtures: any[], competitionName: string, competitionCode: string): Championship {
+function organizeFixtures(fixtures: any[], competitionName: string, competitionCode: string, isWorldCup = false): Championship {
   const roundsMap = new Map<string, Match[]>();
 
   for (const fixture of fixtures) {
@@ -102,8 +246,8 @@ function organizeFixtures(fixtures: any[], competitionName: string, competitionC
     const kickoff = fixture.fixture?.date || new Date().toISOString();
 
     const matchObj: Match = {
-      homeTeam: fixture.teams?.home?.name || 'Time Casa',
-      awayTeam: fixture.teams?.away?.name || 'Time Visitante',
+      homeTeam: translateTeamName(fixture.teams?.home?.name || 'Time Casa', isWorldCup),
+      awayTeam: translateTeamName(fixture.teams?.away?.name || 'Time Visitante', isWorldCup),
       matchDate: kickoff,
       championship: competitionName,
       externalId: `apifb_${fixtureId}`,
@@ -172,7 +316,7 @@ serve(async (req) => {
         console.log(`📊 Got ${fixtures.length} fixtures for ${comp.name}`);
 
         if (fixtures.length > 0) {
-          const champ = organizeFixtures(fixtures, comp.name, comp.code);
+          const champ = organizeFixtures(fixtures, comp.name, comp.code, key === 'worldCup');
           championships.push(champ);
         }
       } catch (error) {
