@@ -501,6 +501,9 @@ const FootballPredictionForm = ({ poolId, userId, onSuccess, entryFee, pool, pix
             <li><strong>+1 ponto</strong>: Acertar a diferença de gols (caso acerte o vencedor ou empate)</li>
           </ul>
         )}
+        <p className="text-xs text-muted-foreground mt-1">
+          ⏱️ <strong>Critério de desempate:</strong> Se ninguém fizer pontos, o desempate será pela ordem de inscrição — quem entrou primeiro no bolão leva a premiação.
+        </p>
       </div>
 
       <Button onClick={handleSubmitClick} disabled={submitting} className="w-full" size="lg">

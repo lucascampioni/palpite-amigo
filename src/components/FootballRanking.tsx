@@ -729,7 +729,45 @@ const FootballRanking = ({ poolId, pool, approvedParticipantsCount, isOwner }: F
       </CardHeader>
       <CardContent>
         {/* Champion highlight - only show when all matches are finished */}
-        {allMatchesFinished && ranking.length > 0 && ranking[0].total_points > 0 && (() => {
+        {allMatchesFinished && ranking.length > 0 && (() => {
+          const allZeroPoints = ranking.every(r => r.total_points === 0);
+          
+          if (!allZeroPoints && ranking[0].total_points <= 0) return null;
+          
+          if (allZeroPoints) {
+            // Tiebreaker by join time - first in ranking is the winner
+            const maxW = pool?.max_winners || 3;
+            const topN = ranking.slice(0, Math.min(maxW, ranking.length));
+            const isMultiple = topN.length > 1;
+            
+            return (
+              <div className="mb-6 pb-4 border-b space-y-3">
+                <div className="rounded-xl bg-gradient-to-r from-yellow-500/15 via-yellow-400/10 to-yellow-500/15 border border-yellow-500/30 p-3 sm:p-4">
+                  <div className="flex items-center justify-center gap-2 mb-2">
+                    <Trophy className="w-5 h-5 text-yellow-500 flex-shrink-0" />
+                    <span className="text-xs text-muted-foreground uppercase tracking-wider font-semibold">
+                      {isMultiple ? `Campeões (${topN.length})` : 'Campeão'}
+                    </span>
+                    <span className="text-xs font-bold text-foreground">0 pts</span>
+                  </div>
+                  <div className="flex flex-wrap items-center justify-center gap-1.5">
+                    {topN.map((winner) => (
+                      <span 
+                        key={winner.ranking_key} 
+                        className="inline-flex items-center gap-1 rounded-full bg-yellow-500/15 border border-yellow-500/30 font-semibold text-sm px-3 py-1"
+                      >
+                        🏆 {getDisplayName(winner)}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+                <div className="rounded-lg bg-amber-500/10 border border-amber-500/30 p-3 text-sm text-center">
+                  <strong>⏱️ Regra de desempate aplicada:</strong> Como ninguém fez pontos, {isMultiple ? 'os campeões foram definidos' : 'o campeão foi definido'} pela ordem de inscrição no bolão (quem entrou primeiro).
+                </div>
+              </div>
+            );
+          }
+
           const winners = ranking.filter(r => r.total_points === ranking[0].total_points);
           const isMultiple = winners.length > 1;
           const isManyWinners = winners.length > 3;

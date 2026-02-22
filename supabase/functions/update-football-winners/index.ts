@@ -60,10 +60,10 @@ serve(async (req) => {
 
     if (poolError) throw poolError;
 
-    // Get all approved participants with their points
+    // Get all approved participants with their points and join time
     const { data: participants, error: participantsError } = await supabaseClient
       .from('participants')
-      .select('id, participant_name, status')
+      .select('id, participant_name, status, created_at')
       .eq('pool_id', pool_id)
       .eq('status', 'approved');
 
@@ -91,15 +91,22 @@ serve(async (req) => {
       pointsMap[pred.participant_id] = (pointsMap[pred.participant_id] || 0) + (pred.points_earned || 0);
     });
 
-    // Sort participants by points
+    // Sort participants by points, then by created_at (earliest first) as tiebreaker
     const participantsWithPoints = participants
       .map(p => ({
         ...p,
         total_points: pointsMap[p.id] || 0
       }))
-      .sort((a, b) => b.total_points - a.total_points);
+      .sort((a, b) => {
+        if (b.total_points !== a.total_points) return b.total_points - a.total_points;
+        // Tiebreaker: earliest join time wins
+        return new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
+      });
 
     console.log('Participants with points:', participantsWithPoints);
+
+    // Check if everyone has 0 points (tiebreaker by join time applies)
+    const allZeroPoints = participantsWithPoints.every(p => p.total_points === 0);
 
     // Identify top positions considering ties and max_winners
     const maxWinners = pool.max_winners || 3;
@@ -110,33 +117,42 @@ serve(async (req) => {
     ].slice(0, maxWinners);
 
     const winnersToUpdate: string[] = [];
-    let currentPosition = 0;
 
-    while (currentPosition < participantsWithPoints.length && currentPosition < maxWinners) {
-      const currentScore = participantsWithPoints[currentPosition].total_points;
-      
-      // Skip if score is 0
-      if (currentScore === 0) break;
-
-      // Find all participants with the same score (tie group)
-      let tieGroupEnd = currentPosition;
-      while (
-        tieGroupEnd < participantsWithPoints.length &&
-        participantsWithPoints[tieGroupEnd].total_points === currentScore
-      ) {
-        tieGroupEnd++;
+    if (allZeroPoints) {
+      // When nobody scored, winners are determined by earliest join time
+      const topN = Math.min(maxWinners, participantsWithPoints.length);
+      for (let i = 0; i < topN; i++) {
+        winnersToUpdate.push(participantsWithPoints[i].id);
       }
+      console.log('All participants have 0 points - tiebreaker by join time applied');
+    } else {
+      let currentPosition = 0;
+      while (currentPosition < participantsWithPoints.length && currentPosition < maxWinners) {
+        const currentScore = participantsWithPoints[currentPosition].total_points;
+        
+        // Skip if score is 0
+        if (currentScore === 0) break;
 
-      // If this group touches any prize position, they all get a share
-      if (currentPosition < maxWinners) {
-        for (let i = currentPosition; i < tieGroupEnd; i++) {
-          if (participantsWithPoints[i].total_points > 0) {
-            winnersToUpdate.push(participantsWithPoints[i].id);
+        // Find all participants with the same score (tie group)
+        let tieGroupEnd = currentPosition;
+        while (
+          tieGroupEnd < participantsWithPoints.length &&
+          participantsWithPoints[tieGroupEnd].total_points === currentScore
+        ) {
+          tieGroupEnd++;
+        }
+
+        // If this group touches any prize position, they all get a share
+        if (currentPosition < maxWinners) {
+          for (let i = currentPosition; i < tieGroupEnd; i++) {
+            if (participantsWithPoints[i].total_points > 0) {
+              winnersToUpdate.push(participantsWithPoints[i].id);
+            }
           }
         }
-      }
 
-      currentPosition = tieGroupEnd;
+        currentPosition = tieGroupEnd;
+      }
     }
 
     console.log('Winners to update:', winnersToUpdate);
@@ -161,7 +177,8 @@ serve(async (req) => {
       JSON.stringify({ 
         success: true,
         winnersUpdated: winnersToUpdate.length,
-        winners: winnersToUpdate
+        winners: winnersToUpdate,
+        tiebreakerApplied: allZeroPoints
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );

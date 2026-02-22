@@ -1,6 +1,7 @@
-import { Trophy, Award } from "lucide-react";
+import { Trophy, Award, Clock } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 interface WinnerDisplayProps {
   winners: any[];
@@ -10,6 +11,7 @@ interface WinnerDisplayProps {
 
 const WinnerDisplay = ({ winners, resultValue, measurementUnit }: WinnerDisplayProps) => {
   const isMultipleWinners = winners.length > 1;
+  const tiebreakerApplied = winners.some(w => w.tiebreaker_by_join_time);
 
   return (
     <Card className="border-2 border-secondary bg-gradient-to-br from-secondary/10 to-secondary/5">
@@ -40,6 +42,15 @@ const WinnerDisplay = ({ winners, resultValue, measurementUnit }: WinnerDisplayP
             </div>
           ))}
         </div>
+
+        {tiebreakerApplied && (
+          <Alert className="mt-4 border-amber-500/30 bg-amber-500/10">
+            <Clock className="h-4 w-4 text-amber-600" />
+            <AlertDescription className="text-sm">
+              <strong>Regra de desempate aplicada:</strong> Como ninguém fez pontos, {isMultipleWinners ? 'os vencedores foram definidos' : 'o vencedor foi definido'} pela ordem de inscrição no bolão (quem entrou primeiro).
+            </AlertDescription>
+          </Alert>
+        )}
       </CardContent>
     </Card>
   );
