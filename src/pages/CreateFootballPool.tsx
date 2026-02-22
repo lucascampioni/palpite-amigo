@@ -371,6 +371,28 @@ const CreateFootballPool = () => {
             <CardDescription>
               Configure seu bolão de jogos de futebol
             </CardDescription>
+            <Collapsible>
+              <CollapsibleTrigger asChild>
+                <button className="flex items-center justify-between w-full bg-muted/50 p-3 rounded-lg text-sm font-semibold hover:bg-muted/70 transition-colors mt-2">
+                  <span>⚡ Como funciona</span>
+                  <ChevronDown className="w-4 h-4 text-muted-foreground transition-transform duration-200 [[data-state=open]>&]:rotate-180" />
+                </button>
+              </CollapsibleTrigger>
+              <CollapsibleContent>
+                <div className="bg-muted/50 px-4 pb-3 pt-2 rounded-b-lg text-sm -mt-1">
+                  <ul className="list-disc list-inside space-y-1 text-muted-foreground">
+                    <li>Prazo para palpites: <strong>3 horas</strong> antes do primeiro jogo</li>
+                    <li>Prazo para comprovante de pagamento: <strong>2h30</strong> antes do primeiro jogo</li>
+                    <li>Participantes sem comprovante até o prazo serão <strong>rejeitados automaticamente</strong></li>
+                    <li>Comprovantes pendentes de aprovação serão <strong>aprovados automaticamente</strong> no início do jogo</li>
+                    <li>Jogos são atualizados em tempo real</li>
+                    <li>Resultados sincronizados direto da fonte oficial</li>
+                    <li>Pontuação calculada conforme os resultados dos jogos</li>
+                    <li>Vencedor definido ao final de todos os jogos</li>
+                  </ul>
+                </div>
+              </CollapsibleContent>
+            </Collapsible>
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-6">
@@ -847,28 +869,6 @@ const CreateFootballPool = () => {
                 )}
               </div>
 
-              <Collapsible>
-                <CollapsibleTrigger asChild>
-                  <button className="flex items-center justify-between w-full bg-muted/50 p-3 rounded-lg text-sm font-semibold hover:bg-muted/70 transition-colors">
-                    <span>⚡ Como funciona</span>
-                    <ChevronDown className="w-4 h-4 text-muted-foreground transition-transform duration-200 [[data-state=open]>&]:rotate-180" />
-                  </button>
-                </CollapsibleTrigger>
-                <CollapsibleContent>
-                  <div className="bg-muted/50 px-4 pb-3 pt-2 rounded-b-lg text-sm -mt-1">
-                    <ul className="list-disc list-inside space-y-1 text-muted-foreground">
-                      <li>Prazo para palpites: <strong>3 horas</strong> antes do primeiro jogo</li>
-                      <li>Prazo para comprovante de pagamento: <strong>2h30</strong> antes do primeiro jogo</li>
-                      <li>Participantes sem comprovante até o prazo serão <strong>rejeitados automaticamente</strong></li>
-                      <li>Comprovantes pendentes de aprovação serão <strong>aprovados automaticamente</strong> no início do jogo</li>
-                      <li>Jogos são atualizados em tempo real</li>
-                      <li>Resultados sincronizados direto da fonte oficial</li>
-                      <li>Pontuação calculada conforme os resultados dos jogos</li>
-                      <li>Vencedor definido ao final de todos os jogos</li>
-                    </ul>
-                  </div>
-                </CollapsibleContent>
-              </Collapsible>
 
               <div className="flex gap-3 pt-4">
                 <Button
