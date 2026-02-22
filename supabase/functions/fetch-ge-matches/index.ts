@@ -218,22 +218,41 @@ const STAGE_NAMES: Record<string, string> = {
   'League Stage - ': 'Fase de Liga',
   'Round of 16': 'Oitavas de Final',
   'Quarter-finals': 'Quartas de Final',
+  'Quarter Finals': 'Quartas de Final',
   'Semi-finals': 'Semifinais',
+  'Semi Finals': 'Semifinais',
   'Final': 'Final',
   'Playoffs': 'Playoff',
   'Play-offs': 'Playoff',
   '3rd Place Final': 'Disputa 3º Lugar',
   'Knockout Round Play-offs': 'Playoff',
-  'Regular Season': 'Temporada Regular',
+  'Qualifying Round': 'Fase Qualificatória',
+  'Preliminary Round': 'Fase Preliminar',
+  '1st Round': '1ª Fase',
+  '2nd Round': '2ª Fase',
+  '3rd Round': '3ª Fase',
 };
 
 function translateRound(round: string): string {
+  // First check for "Regular Season - N" pattern → "Rodada N"
+  const regularMatch = round.match(/Regular Season - (\d+)/);
+  if (regularMatch) return `Rodada ${regularMatch[1]}`;
+  
+  // Check for "Group X - N" pattern (e.g., "Group A - 1")
+  const groupMatch = round.match(/Group ([A-Z]) - (\d+)/);
+  if (groupMatch) return `Grupo ${groupMatch[1]} - Rodada ${groupMatch[2]}`;
+  
+  // Exact match
   if (STAGE_NAMES[round]) return STAGE_NAMES[round];
+  
+  // startsWith match for compound names
   for (const [key, value] of Object.entries(STAGE_NAMES)) {
     if (round.startsWith(key)) return value;
   }
-  const regularMatch = round.match(/Regular Season - (\d+)/);
-  if (regularMatch) return `Rodada ${regularMatch[1]}`;
+  
+  // If just "Regular Season" without number, return as is
+  if (round === 'Regular Season') return 'Temporada Regular';
+  
   return round;
 }
 
