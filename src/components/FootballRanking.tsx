@@ -318,6 +318,17 @@ const FootballRanking = ({ poolId, pool, approvedParticipantsCount, isOwner }: F
         });
       }
 
+      // Always sort by prediction time when all have 0 points
+      const allZero = baseRanking.every(r => r.total_points === 0);
+      if (allZero) {
+        baseRanking.sort((a, b) => {
+          const aTime = a.earliest_prediction_at ? new Date(a.earliest_prediction_at).getTime() : Infinity;
+          const bTime = b.earliest_prediction_at ? new Date(b.earliest_prediction_at).getTime() : Infinity;
+          if (aTime !== bTime) return aTime - bTime;
+          return a.participant_name.localeCompare(b.participant_name);
+        });
+      }
+
       const rankingWithPrizes = allFinished ? calculatePrizeDistribution(baseRanking, pool) : baseRanking;
       setRanking(rankingWithPrizes);
       setLoading(false);
