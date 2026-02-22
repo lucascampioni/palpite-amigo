@@ -343,9 +343,22 @@ export const AdminParticipantsManager = ({
                 {approved.map((p) => (
                   <div key={p.id} className="flex items-center justify-between py-2 px-3 rounded-lg bg-card border text-sm">
                     <span className="font-medium truncate">{p.participant_name}</span>
-                    {p.guess_value && p.guess_value !== "Palpites de futebol" && (
-                      <Badge variant="outline" className="text-xs ml-2 shrink-0">{p.guess_value}</Badge>
-                    )}
+                    <div className="flex items-center gap-1 shrink-0">
+                      {p.payment_proof && (
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => viewProof(p.payment_proof!)}
+                          className="h-7 w-7"
+                          title="Ver comprovante"
+                        >
+                          <Eye className="w-4 h-4 text-blue-500" />
+                        </Button>
+                      )}
+                      {p.guess_value && p.guess_value !== "Palpites de futebol" && (
+                        <Badge variant="outline" className="text-xs ml-2 shrink-0">{p.guess_value}</Badge>
+                      )}
+                    </div>
                   </div>
                 ))}
               </CollapsibleContent>
@@ -376,17 +389,30 @@ export const AdminParticipantsManager = ({
                 {/* Manually rejected */}
                 {rejected.map((p) => (
                   <div key={p.id} className="p-3 rounded-lg bg-card border space-y-2">
-                    <div className="min-w-0">
-                      <p className="font-medium text-sm truncate">{p.participant_name}</p>
-                      {p.rejection_reason && (
-                        <p className="text-[11px] text-muted-foreground truncate">
-                          Motivo: {p.rejection_reason}
-                        </p>
-                      )}
-                      {p.rejection_details && (
-                        <p className="text-[11px] text-muted-foreground truncate">
-                          {p.rejection_details}
-                        </p>
+                    <div className="flex items-center justify-between">
+                      <div className="min-w-0 flex-1">
+                        <p className="font-medium text-sm truncate">{p.participant_name}</p>
+                        {p.rejection_reason && (
+                          <p className="text-[11px] text-muted-foreground truncate">
+                            Motivo: {p.rejection_reason}
+                          </p>
+                        )}
+                        {p.rejection_details && (
+                          <p className="text-[11px] text-muted-foreground truncate">
+                            {p.rejection_details}
+                          </p>
+                        )}
+                      </div>
+                      {p.payment_proof && (
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => viewProof(p.payment_proof!)}
+                          className="h-7 w-7 shrink-0"
+                          title="Ver comprovante"
+                        >
+                          <Eye className="w-4 h-4 text-blue-500" />
+                        </Button>
                       )}
                     </div>
                     <Button
