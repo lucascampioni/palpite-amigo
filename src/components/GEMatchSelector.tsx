@@ -149,11 +149,11 @@ export const GEMatchSelector = ({ open, onOpenChange, onMatchesSelected }: GEMat
     const now = new Date();
     const minutesUntilMatch = (matchTime.getTime() - now.getTime()) / (1000 * 60);
     
-    if (minutesUntilMatch < 30) {
+    if (minutesUntilMatch < 300) {
       toast({
         variant: "destructive",
         title: "Jogo não disponível",
-        description: "Não é possível adicionar jogos que começam em menos de 30 minutos ou já iniciaram.",
+        description: "Não é possível adicionar jogos que começam em menos de 5 horas ou já iniciaram.",
       });
       return;
     }
@@ -249,7 +249,7 @@ export const GEMatchSelector = ({ open, onOpenChange, onMatchesSelected }: GEMat
                             const matchTime = new Date(match.matchDate);
                             const now = new Date();
                             const minutesUntilMatch = (matchTime.getTime() - now.getTime()) / (1000 * 60);
-                            const isUnavailable = minutesUntilMatch < 30;
+                            const isUnavailable = minutesUntilMatch < 300;
                             
                             return (
                               <Card 
