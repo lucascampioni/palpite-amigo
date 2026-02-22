@@ -30,6 +30,7 @@ interface ParticipantScore {
   prize_amount?: number;
   prize_status?: string | null;
   prediction_set: number;
+  earliest_prediction_at?: string | null;
 }
 
 interface MatchPrediction {
@@ -245,15 +246,31 @@ const FootballRanking = ({ poolId, pool, approvedParticipantsCount, isOwner }: F
       });
       setParticipantSetCounts(setCounts);
 
+      // Fetch earliest prediction created_at per participant for tiebreaker
+      const { data: allPredictions } = await supabase
+        .from("football_predictions")
+        .select("participant_id, created_at, prediction_set")
+        .in("participant_id", participantIds);
+
+      const earliestPredMap: Record<string, string> = {};
+      allPredictions?.forEach((p: any) => {
+        const key = `${p.participant_id}_${p.prediction_set || 1}`;
+        if (!earliestPredMap[key] || new Date(p.created_at).getTime() < new Date(earliestPredMap[key]).getTime()) {
+          earliestPredMap[key] = p.created_at;
+        }
+      });
+
       let baseRanking: ParticipantScore[] = rpcData.map((r: any) => {
         const predSet = r.prediction_set || 1;
+        const rankingKey = `${r.participant_id}_${predSet}`;
         return {
           id: r.participant_id,
-          ranking_key: `${r.participant_id}_${predSet}`,
+          ranking_key: rankingKey,
           participant_name: r.participant_name,
           total_points: r.total_points ?? 0,
           prize_status: prizeStatusMap[r.participant_id] || null,
           prediction_set: predSet,
+          earliest_prediction_at: earliestPredMap[rankingKey] || null,
         };
       });
 
@@ -293,6 +310,10 @@ const FootballRanking = ({ poolId, pool, approvedParticipantsCount, isOwner }: F
         // Re-sort after adding partial points
         baseRanking.sort((a, b) => {
           if (b.total_points !== a.total_points) return b.total_points - a.total_points;
+          // Tiebreaker by earliest prediction submission
+          const aTime = a.earliest_prediction_at ? new Date(a.earliest_prediction_at).getTime() : Infinity;
+          const bTime = b.earliest_prediction_at ? new Date(b.earliest_prediction_at).getTime() : Infinity;
+          if (aTime !== bTime) return aTime - bTime;
           return a.participant_name.localeCompare(b.participant_name);
         });
       }
@@ -558,12 +579,18 @@ const FootballRanking = ({ poolId, pool, approvedParticipantsCount, isOwner }: F
   // Show position for everyone (even 0pts) as long as at least one match has started
   const maxWinners = pool?.max_winners ?? 3;
   const isTop1Only = maxWinners === 1;
+  const allZeroPoints = ranking.every(r => r.total_points === 0);
 
   const getActualPosition = (index: number, participant: ParticipantScore) => {
     // If 0 points and no match has started yet, no position
     if (participant.total_points === 0 && !anyMatchStarted) return null;
 
     if (index === 0) return 1;
+
+    // When allZeroPoints and matches finished, positions are always sequential (sorted by prediction time)
+    if (allZeroPoints && allMatchesFinished) {
+      return index + 1;
+    }
 
     // For TOP 1 pools: positions are always sequential (no skipping)
     if (isTop1Only) {
@@ -762,7 +789,7 @@ const FootballRanking = ({ poolId, pool, approvedParticipantsCount, isOwner }: F
                   </div>
                 </div>
                 <div className="rounded-lg bg-amber-500/10 border border-amber-500/30 p-3 text-sm text-center">
-                  <strong>⏱️ Regra de desempate aplicada:</strong> Como ninguém fez pontos, {isMultiple ? 'os campeões foram definidos' : 'o campeão foi definido'} pela ordem de inscrição no bolão (quem entrou primeiro).
+                  <strong>⏱️ Regra de desempate aplicada:</strong> Como ninguém fez pontos, {isMultiple ? 'os campeões foram definidos' : 'o campeão foi definido'} pela ordem de envio dos palpites (quem enviou primeiro).
                 </div>
               </div>
             );
@@ -898,6 +925,11 @@ const FootballRanking = ({ poolId, pool, approvedParticipantsCount, isOwner }: F
                       <CollapsibleContent>
                         <div className="px-3 pb-3 pt-0">
                           <div className="border-t border-primary/20 pt-3 space-y-2">
+                            {allZeroPoints && allMatchesFinished && currentUser.earliest_prediction_at && (
+                              <div className="rounded-md bg-amber-500/10 border border-amber-500/30 p-2 text-xs">
+                                ⏱️ Palpites enviados em: <strong>{format(new Date(currentUser.earliest_prediction_at), "dd/MM/yyyy 'às' HH:mm:ss", { locale: ptBR })}</strong>
+                              </div>
+                            )}
                             <p className="text-sm font-semibold text-muted-foreground mb-2">Meus Palpites:</p>
                             {userPredictions.length === 0 ? (
                               <p className="text-sm text-muted-foreground">Carregando palpites...</p>
@@ -1069,6 +1101,11 @@ const FootballRanking = ({ poolId, pool, approvedParticipantsCount, isOwner }: F
                     <CollapsibleContent>
                       <div className="px-3 pb-3 pt-0">
                         <div className="border-t border-muted pt-3 space-y-2">
+                          {allZeroPoints && allMatchesFinished && participant.earliest_prediction_at && (
+                            <div className="rounded-md bg-amber-500/10 border border-amber-500/30 p-2 text-xs">
+                              ⏱️ Palpites enviados em: <strong>{format(new Date(participant.earliest_prediction_at), "dd/MM/yyyy 'às' HH:mm:ss", { locale: ptBR })}</strong>
+                            </div>
+                          )}
                           <p className="text-sm font-semibold text-muted-foreground mb-2">Palpites:</p>
                           {predictions.length === 0 ? (
                             <p className="text-sm text-muted-foreground">Carregando palpites...</p>

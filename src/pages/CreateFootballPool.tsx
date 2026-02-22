@@ -389,7 +389,7 @@ const CreateFootballPool = () => {
                     <li>Resultados sincronizados direto da fonte oficial</li>
                     <li>Pontuação calculada conforme os resultados dos jogos</li>
                     <li>Vencedor definido ao final de todos os jogos</li>
-                    <li>Em caso de <strong>0 pontos para todos</strong>, o desempate será pela <strong>ordem de inscrição</strong> (quem entrou primeiro no bolão)</li>
+                    <li>Em caso de <strong>0 pontos para todos</strong>, o desempate será pela <strong>ordem de envio dos palpites</strong> (quem enviou primeiro)</li>
                   </ul>
                 </div>
               </CollapsibleContent>
