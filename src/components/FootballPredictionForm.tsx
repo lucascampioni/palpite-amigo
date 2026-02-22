@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -47,6 +47,8 @@ type PredictionSet = Prediction[];
 
 const FootballPredictionForm = ({ poolId, userId, onSuccess, entryFee, pool, pixKey, firstMatchDate, ownerName }: FootballPredictionFormProps) => {
   const { toast } = useToast();
+  const formTopRef = useRef<HTMLDivElement>(null);
+  const tabsRef = useRef<HTMLDivElement>(null);
   const [matches, setMatches] = useState<Match[]>([]);
   const [predictionSets, setPredictionSets] = useState<PredictionSet[]>([]);
   const [loading, setLoading] = useState(true);
@@ -138,6 +140,10 @@ const FootballPredictionForm = ({ poolId, userId, onSuccess, entryFee, pool, pix
       matches.map(m => ({ matchId: m.id, homeScore: '', awayScore: '' }))
     ]);
     setActiveSetIndex(predictionSets.length);
+    // Scroll to top and tabs after adding
+    setTimeout(() => {
+      formTopRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 100);
   };
 
   const removePredictionSet = (setIndex: number) => {
@@ -345,37 +351,38 @@ const FootballPredictionForm = ({ poolId, userId, onSuccess, entryFee, pool, pix
   const currentPredictions = predictionSets[activeSetIndex] || [];
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4" ref={formTopRef}>
       <h3 className="font-semibold text-lg">Faça seus palpites</h3>
 
       {/* Prediction set tabs */}
-      {predictionSets.length > 1 && (
-        <div className="flex items-center gap-2 flex-wrap">
-          {predictionSets.map((_, i) => (
-            <Button
-              key={i}
-              variant={activeSetIndex === i ? "default" : "outline"}
-              size="sm"
-              onClick={() => setActiveSetIndex(i)}
-              className="relative"
-            >
-              Palpite {i + 1}
-              {predictionSets.length > 1 && (
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    removePredictionSet(i);
-                  }}
-                  className="ml-1.5 -mr-1 text-xs opacity-60 hover:opacity-100"
-                  title="Remover palpite"
-                >
-                  <Trash2 className="w-3 h-3" />
-                </button>
-              )}
-            </Button>
-          ))}
-        </div>
-      )}
+      <div ref={tabsRef} className="flex items-center gap-2 flex-wrap p-3 rounded-lg bg-muted/60 border border-border">
+        {predictionSets.map((_, i) => (
+          <Button
+            key={i}
+            variant={activeSetIndex === i ? "default" : "outline"}
+            size="sm"
+            onClick={() => setActiveSetIndex(i)}
+            className={`relative ${activeSetIndex === i ? 'ring-2 ring-primary/50 shadow-md' : ''}`}
+          >
+            🎯 Palpite {i + 1}
+            {predictionSets.length > 1 && (
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  removePredictionSet(i);
+                }}
+                className="ml-1.5 -mr-1 text-xs opacity-60 hover:opacity-100"
+                title="Remover palpite"
+              >
+                <Trash2 className="w-3 h-3" />
+              </button>
+            )}
+          </Button>
+        ))}
+        <span className="text-xs text-muted-foreground ml-1">
+          {predictionSets.length} palpite{predictionSets.length > 1 ? 's' : ''}
+        </span>
+      </div>
 
       {/* Current set matches */}
       {matches.map((match) => {
