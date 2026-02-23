@@ -213,7 +213,7 @@ const WhatsAppMessagePanel = ({ poolTitle, poolId, participants, poolDeadline, r
   const { toast } = useToast();
 
   const messageTemplates = createMessageTemplates();
-  const poolLink = `https://app-delfos.lovable.app/pool/${poolId}`;
+  const poolLink = `https://delfos.app.br/pool/${poolId}`;
   const approvedParticipants = participants.filter(p => p.status === "approved");
 
   const getParticipantRankInfo = (participantId: string) => {
