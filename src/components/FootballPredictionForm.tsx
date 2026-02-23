@@ -449,15 +449,22 @@ const FootballPredictionForm = ({ poolId, userId, onSuccess, entryFee, pool, pix
         );
       })}
 
-      {/* Add prediction set button */}
-      <Button
-        variant="outline"
-        onClick={addPredictionSet}
-        className="w-full border-dashed"
-      >
-        <Plus className="w-4 h-4 mr-2" />
-        Adicionar mais um palpite
-      </Button>
+      {/* Add prediction set button + fee warning */}
+      <div className="space-y-2">
+        <Button
+          variant="outline"
+          onClick={addPredictionSet}
+          className="w-full border-dashed"
+        >
+          <Plus className="w-4 h-4 mr-2" />
+          Adicionar mais um palpite
+        </Button>
+        {hasEntryFee && (
+          <p className="text-xs text-center text-orange-600 dark:text-orange-400 font-medium">
+            ⚠️ Ao adicionar, o valor total sobe para <strong>R$ {((predictionSets.length + 1) * feePerSet).toFixed(2).replace('.', ',')}</strong> ({predictionSets.length + 1} × R$ {feePerSet.toFixed(2).replace('.', ',')})
+          </p>
+        )}
+      </div>
 
       <div className="p-3 rounded-lg bg-amber-50 dark:bg-amber-950/50 border border-amber-200 dark:border-amber-800 text-sm">
         <p className="font-medium text-amber-700 dark:text-amber-400">
@@ -467,25 +474,6 @@ const FootballPredictionForm = ({ poolId, userId, onSuccess, entryFee, pool, pix
           Após enviar, não será possível editar, excluir ou adicionar novos palpites.
         </p>
       </div>
-
-      {hasEntryFee && predictionSets.length > 1 && (
-        <div className="p-3 rounded-lg bg-orange-50 dark:bg-orange-950/50 border border-orange-200 dark:border-orange-800 text-sm">
-          <p className="font-medium text-orange-700 dark:text-orange-400">
-            💰 Valor total: R$ {totalFee.toFixed(2).replace('.', ',')}
-          </p>
-          <p className="text-xs text-muted-foreground mt-1">
-            {predictionSets.length} palpite{predictionSets.length > 1 ? 's' : ''} × R$ {feePerSet.toFixed(2).replace('.', ',')} cada
-          </p>
-        </div>
-      )}
-
-      {hasEntryFee && (
-        <div className="p-3 rounded-lg bg-blue-50 dark:bg-blue-950/50 border border-blue-200 dark:border-blue-800 text-sm">
-          <p className="text-xs text-muted-foreground">
-            💡 Cada palpite adicional custa mais uma entrada de <strong>R$ {feePerSet.toFixed(2).replace('.', ',')}</strong>. Certifique-se de que o valor total do comprovante corresponde ao número de palpites.
-          </p>
-        </div>
-      )}
 
       <div className="p-3 rounded-lg bg-muted/50 text-sm space-y-2">
         <p className="font-medium">📊 Sistema de Pontuação:</p>
@@ -506,11 +494,29 @@ const FootballPredictionForm = ({ poolId, userId, onSuccess, entryFee, pool, pix
         </p>
       </div>
 
-      <Button onClick={handleSubmitClick} disabled={submitting} className="w-full" size="lg">
-        {submitting ? "Enviando..." : predictionSets.length > 1
-          ? `Enviar ${predictionSets.length} Palpites e Participar`
-          : "Enviar Palpites e Participar"}
-      </Button>
+      {/* Submit area with summary */}
+      <div className="space-y-2">
+        {(predictionSets.length > 1 || hasEntryFee) && (
+          <div className="p-3 rounded-lg bg-primary/10 border border-primary/20 text-sm text-center space-y-1">
+            <p className="font-semibold">
+              🎯 {predictionSets.length} palpite{predictionSets.length > 1 ? 's' : ''}
+              {hasEntryFee && (
+                <> · 💰 R$ {totalFee.toFixed(2).replace('.', ',')}</>
+              )}
+            </p>
+            {hasEntryFee && predictionSets.length > 1 && (
+              <p className="text-xs text-muted-foreground">
+                {predictionSets.length} × R$ {feePerSet.toFixed(2).replace('.', ',')} cada
+              </p>
+            )}
+          </div>
+        )}
+        <Button onClick={handleSubmitClick} disabled={submitting} className="w-full" size="lg">
+          {submitting ? "Enviando..." : predictionSets.length > 1
+            ? `Enviar ${predictionSets.length} Palpites e Participar`
+            : "Enviar Palpites e Participar"}
+        </Button>
+      </div>
 
       {/* Disclaimer Dialog */}
       <Dialog open={showDisclaimerDialog} onOpenChange={setShowDisclaimerDialog}>
