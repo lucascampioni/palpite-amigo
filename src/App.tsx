@@ -26,16 +26,25 @@ const App = () => (
       <BrowserRouter>
         <Routes>
           <Route path="/" element={<Index />} />
+          <Route path="/entrar" element={<Auth />} />
+          <Route path="/confirmar-email" element={<EmailConfirmation />} />
+          <Route path="/redefinir-senha" element={<ResetPassword />} />
+          <Route path="/criar-bolao" element={<CreateFootballPool />} />
+          <Route path="/editar-bolao/:id" element={<EditFootballPool />} />
+          <Route path="/bolao/:slug" element={<PoolDetail />} />
+          <Route path="/perfil" element={<Profile />} />
+          <Route path="/privacidade" element={<Privacy />} />
+          <Route path="/solicitacoes-whatsapp" element={<WhatsAppRequests />} />
+          <Route path="/verificacao-whatsapp" element={<WhatsAppVerification />} />
+          {/* Backward compatibility redirects for old URLs */}
           <Route path="/auth" element={<Auth />} />
-          <Route path="/email-confirmation" element={<EmailConfirmation />} />
-          <Route path="/reset-password" element={<ResetPassword />} />
-          <Route path="/create-football" element={<CreateFootballPool />} />
+          <Route path="/pool/:slug" element={<PoolDetail />} />
           <Route path="/edit-pool/:id" element={<EditFootballPool />} />
-          <Route path="/pool/:id" element={<PoolDetail />} />
           <Route path="/profile" element={<Profile />} />
           <Route path="/privacy" element={<Privacy />} />
-          <Route path="/whatsapp-requests" element={<WhatsAppRequests />} />
-          <Route path="/whatsapp-verification" element={<WhatsAppVerification />} />
+          <Route path="/create-football" element={<CreateFootballPool />} />
+          <Route path="/email-confirmation" element={<EmailConfirmation />} />
+          <Route path="/reset-password" element={<ResetPassword />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>

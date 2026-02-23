@@ -40,6 +40,7 @@ interface MessageTemplate {
 interface WhatsAppMessagePanelProps {
   poolTitle: string;
   poolId: string;
+  poolSlug?: string;
   participants: Participant[];
   poolDeadline: string;
   ranking?: { participant_id: string; participant_name: string; total_points: number }[];
@@ -204,7 +205,7 @@ const categoryLabels: Record<TemplateCategory, string> = {
 
 type SendStatus = "idle" | "sending" | "success" | "error";
 
-const WhatsAppMessagePanel = ({ poolTitle, poolId, participants, poolDeadline, ranking, phones, allUsersWithPhone, isAdmin = false, poolPrizes, entryFee, prizeType, approvedPredictionSets, poolStatus }: WhatsAppMessagePanelProps) => {
+const WhatsAppMessagePanel = ({ poolTitle, poolId, poolSlug, participants, poolDeadline, ranking, phones, allUsersWithPhone, isAdmin = false, poolPrizes, entryFee, prizeType, approvedPredictionSets, poolStatus }: WhatsAppMessagePanelProps) => {
   const [isOpen, setIsOpen] = useState(false);
   const [selectedTemplate, setSelectedTemplate] = useState<string | null>(null);
   const [sendingAll, setSendingAll] = useState(false);
@@ -213,7 +214,7 @@ const WhatsAppMessagePanel = ({ poolTitle, poolId, participants, poolDeadline, r
   const { toast } = useToast();
 
   const messageTemplates = createMessageTemplates();
-  const poolLink = `https://delfos.app.br/pool/${poolId}`;
+  const poolLink = `https://delfos.app.br/bolao/${poolSlug || poolId}`;
   const approvedParticipants = participants.filter(p => p.status === "approved");
 
   const getParticipantRankInfo = (participantId: string) => {

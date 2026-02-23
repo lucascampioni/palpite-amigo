@@ -35,7 +35,7 @@ const ResetPassword = () => {
           title: "Link inválido ou expirado",
           description: "Por favor, solicite um novo link de recuperação.",
         });
-        navigate("/auth");
+        navigate("/entrar");
       }
     };
     checkRecoveryToken();

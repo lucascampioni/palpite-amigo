@@ -167,7 +167,7 @@ const Profile = () => {
       setProfile((prev: any) => ({ ...prev, phone: cleanPhone, phone_verified: false }));
       setEditingPhone(false);
       toast({ title: "Telefone atualizado", description: "Você precisa verificar o novo número via WhatsApp." });
-      navigate("/whatsapp-verification");
+      navigate("/verificacao-whatsapp");
     } catch (error: any) {
       toast({ title: "Erro", description: error.message, variant: "destructive" });
     } finally {
@@ -574,7 +574,7 @@ const Profile = () => {
                   <Button
                     variant="outline"
                     className="w-full justify-start gap-2 h-12 rounded-xl"
-                    onClick={() => navigate("/whatsapp-requests")}
+                    onClick={() => navigate("/solicitacoes-whatsapp")}
                   >
                     <MessageCircle className="w-5 h-5 text-accent" />
                     Solicitações WhatsApp

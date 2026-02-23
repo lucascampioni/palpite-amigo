@@ -345,7 +345,7 @@ const CreateFootballPool = () => {
         title: "Bolão de futebol criado!",
         description: "Seu bolão foi criado com sucesso.",
       });
-      navigate(`/pool/${pool.id}`);
+      navigate(`/bolao/${pool.slug || pool.id}`);
     }
 
     setLoading(false);

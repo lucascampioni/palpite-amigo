@@ -345,6 +345,7 @@ export type Database = {
           result_value: string | null
           scoring_system: string
           second_place_prize: number | null
+          slug: string | null
           status: Database["public"]["Enums"]["pool_status"]
           third_place_prize: number | null
           title: string
@@ -371,6 +372,7 @@ export type Database = {
           result_value?: string | null
           scoring_system?: string
           second_place_prize?: number | null
+          slug?: string | null
           status?: Database["public"]["Enums"]["pool_status"]
           third_place_prize?: number | null
           title: string
@@ -397,6 +399,7 @@ export type Database = {
           result_value?: string | null
           scoring_system?: string
           second_place_prize?: number | null
+          slug?: string | null
           status?: Database["public"]["Enums"]["pool_status"]
           third_place_prize?: number | null
           title?: string
@@ -583,6 +586,7 @@ export type Database = {
       }
       can_create_pools: { Args: never; Returns: boolean }
       cleanup_expired_otp: { Args: never; Returns: undefined }
+      generate_slug: { Args: { title: string }; Returns: string }
       get_football_pool_ranking: {
         Args: { p_pool_id: string }
         Returns: {
