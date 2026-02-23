@@ -52,6 +52,7 @@ const FootballRanking = ({ poolId, pool, approvedParticipantsCount, isOwner }: F
   const [ranking, setRanking] = useState<ParticipantScore[]>([]);
   const [loading, setLoading] = useState(true);
   const [expandedParticipants, setExpandedParticipants] = useState<Set<string>>(new Set());
+  const [expandedMyPosition, setExpandedMyPosition] = useState<Set<string>>(new Set());
   const [participantPredictions, setParticipantPredictions] = useState<Record<string, MatchPrediction[]>>({});
   const [participantSetCounts, setParticipantSetCounts] = useState<Record<string, number>>({});
   const [allMatchesFinished, setAllMatchesFinished] = useState(false);
@@ -814,16 +815,16 @@ const FootballRanking = ({ poolId, pool, approvedParticipantsCount, isOwner }: F
                 return (
                   <Collapsible
                     key={currentUser.ranking_key}
-                    open={expandedParticipants.has(currentUser.ranking_key)}
+                    open={expandedMyPosition.has(currentUser.ranking_key)}
                     onOpenChange={async (open) => {
-                      const newExpanded = new Set(expandedParticipants);
+                      const newExpanded = new Set(expandedMyPosition);
                       if (open) {
                         newExpanded.add(currentUser.ranking_key);
                         await loadParticipantPredictions(currentUser.ranking_key);
                       } else {
                         newExpanded.delete(currentUser.ranking_key);
                       }
-                      setExpandedParticipants(newExpanded);
+                      setExpandedMyPosition(newExpanded);
                     }}
                   >
                     <div className="rounded-lg bg-primary/10 border-2 border-primary">
@@ -862,7 +863,7 @@ const FootballRanking = ({ poolId, pool, approvedParticipantsCount, isOwner }: F
                                 )}
                                 {allMatchesFinished && getPrizeStatusBadge(currentUser.prize_status, currentUser.prize_amount)}
                               </div>
-                              {expandedParticipants.has(currentUser.ranking_key) ? (
+                              {expandedMyPosition.has(currentUser.ranking_key) ? (
                                 <ChevronUp className="h-4 w-4 sm:h-5 sm:w-5 text-primary flex-shrink-0" />
                               ) : (
                                 <ChevronDown className="h-4 w-4 sm:h-5 sm:w-5 text-primary flex-shrink-0" />
