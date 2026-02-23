@@ -957,7 +957,7 @@ const PoolDetail = () => {
                 return (
                   <div className="rounded-xl bg-gradient-to-r from-yellow-500/10 via-primary/5 to-orange-500/10 border border-primary/20 px-3 py-2.5">
                     {showPercentageOnly ? (
-                      <div className="space-y-2">
+                      <div className="space-y-1.5">
                         <div className="flex items-center justify-center gap-2">
                           <Trophy className="w-4 h-4 text-primary flex-shrink-0" />
                           <span className="font-semibold text-primary">Premiação</span>
@@ -977,6 +977,15 @@ const PoolDetail = () => {
                                   </span>
                                 ))}
                               </div>
+                              {totalCollected > 0 && (
+                                <div className="flex items-center justify-center gap-2 flex-wrap">
+                                  {items.map((item, i) => (
+                                    <span key={i} className="text-xs text-muted-foreground whitespace-nowrap">
+                                      {item.emoji} Atual: {item.val}
+                                    </span>
+                                  ))}
+                                </div>
+                              )}
                               <p className="text-xs text-center text-muted-foreground">
                                 Quanto mais palpites, maior o prêmio! 🚀
                                 {entryFee > 0 && <> · Inscrição: <strong>R$ {entryFee.toFixed(2).replace('.', ',')}</strong> por palpite</>}
