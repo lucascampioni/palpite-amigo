@@ -11,6 +11,7 @@ import { ptBR } from "date-fns/locale";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Switch } from "@/components/ui/switch";
 import DeclareResultDialog from "@/components/DeclareResultDialog";
 import WinnerDisplay from "@/components/WinnerDisplay";
@@ -860,36 +861,41 @@ const PoolDetail = () => {
                 <Separator />
                 {/* Show matches list for owner when no participants yet */}
                 {isOwner && approvedParticipants.length === 0 && footballMatches.length > 0 && (
-                  <div className="space-y-3">
-                    <h3 className="font-semibold text-lg flex items-center gap-2">
-                      ⚽ Jogos do Bolão ({footballMatches.length})
-                    </h3>
-                    <div className="space-y-2">
-                      {footballMatches.map((match) => (
-                        <div
-                          key={match.id}
-                          className="flex items-center gap-3 p-3 rounded-lg border bg-card"
-                        >
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center gap-2 flex-wrap">
-                              {match.home_team_crest && (
-                                <img src={match.home_team_crest} alt="" className="w-5 h-5 object-contain" onError={(e) => { e.currentTarget.style.display = 'none'; }} />
-                              )}
-                              <span className="font-medium text-sm">{match.home_team}</span>
-                              <span className="text-muted-foreground text-xs">x</span>
-                              <span className="font-medium text-sm">{match.away_team}</span>
-                              {match.away_team_crest && (
-                                <img src={match.away_team_crest} alt="" className="w-5 h-5 object-contain" onError={(e) => { e.currentTarget.style.display = 'none'; }} />
-                              )}
+                  <Collapsible>
+                    <CollapsibleTrigger className="flex items-center justify-between w-full py-2 group">
+                      <h3 className="font-semibold text-lg flex items-center gap-2">
+                        ⚽ Jogos do Bolão ({footballMatches.length})
+                      </h3>
+                      <ChevronDown className="w-5 h-5 text-muted-foreground transition-transform group-data-[state=open]:rotate-180" />
+                    </CollapsibleTrigger>
+                    <CollapsibleContent>
+                      <div className="space-y-2 mt-2">
+                        {footballMatches.map((match) => (
+                          <div
+                            key={match.id}
+                            className="flex items-center gap-3 p-3 rounded-lg border bg-card"
+                          >
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-2 flex-wrap">
+                                {match.home_team_crest && (
+                                  <img src={match.home_team_crest} alt="" className="w-5 h-5 object-contain" onError={(e) => { e.currentTarget.style.display = 'none'; }} />
+                                )}
+                                <span className="font-medium text-sm">{match.home_team}</span>
+                                <span className="text-muted-foreground text-xs">x</span>
+                                <span className="font-medium text-sm">{match.away_team}</span>
+                                {match.away_team_crest && (
+                                  <img src={match.away_team_crest} alt="" className="w-5 h-5 object-contain" onError={(e) => { e.currentTarget.style.display = 'none'; }} />
+                                )}
+                              </div>
+                              <p className="text-xs text-muted-foreground mt-1">
+                                📅 {format(new Date(match.match_date), "dd/MM 'às' HH:mm", { locale: ptBR })} · {match.championship}
+                              </p>
                             </div>
-                            <p className="text-xs text-muted-foreground mt-1">
-                              📅 {format(new Date(match.match_date), "dd/MM 'às' HH:mm", { locale: ptBR })} · {match.championship}
-                            </p>
                           </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
+                        ))}
+                      </div>
+                    </CollapsibleContent>
+                  </Collapsible>
                 )}
               </>
             )}
