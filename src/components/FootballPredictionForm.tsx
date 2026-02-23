@@ -350,9 +350,79 @@ const FootballPredictionForm = ({ poolId, userId, onSuccess, entryFee, pool, pix
 
   const currentPredictions = predictionSets[activeSetIndex] || [];
 
+  const predictionCutoffDate = firstMatchDate 
+    ? new Date(firstMatchDate.getTime() - 3 * 60 * 60 * 1000) 
+    : pool?.deadline ? new Date(pool.deadline) : null;
+  const proofCutoffDate = firstMatchDate 
+    ? new Date(firstMatchDate.getTime() - 2.5 * 60 * 60 * 1000) 
+    : null;
+
   return (
     <div className="space-y-4" ref={formTopRef}>
       <h3 className="font-semibold text-lg">Faça seus palpites</h3>
+
+      {/* Informações importantes - before predictions */}
+      <div className="p-4 rounded-lg bg-secondary/10 border border-secondary/20">
+        <p className="text-sm font-medium mb-2">
+          💡 Informações importantes
+        </p>
+        <div className="space-y-1">
+          <p className="text-xs text-muted-foreground">
+            • O vencedor do bolão será definido de acordo com o resultado dos jogos.
+          </p>
+          {predictionCutoffDate && (
+            <p className="text-xs text-muted-foreground">
+              • Prazo para apostas: <strong>{format(predictionCutoffDate, "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}</strong> (3h antes do primeiro jogo).
+            </p>
+          )}
+          {hasEntryFee && proofCutoffDate && (
+            <>
+              <p className="text-xs text-muted-foreground">
+                • Prazo para comprovante de pagamento: <strong>{format(proofCutoffDate, "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}</strong> (2h30 antes do primeiro jogo).
+              </p>
+              <p className="text-xs text-destructive font-medium">
+                • Quem não enviar o comprovante até o prazo será <strong>rejeitado automaticamente</strong>.
+              </p>
+            </>
+          )}
+
+          {/* Scoring system */}
+          <div className="mt-2 pt-2 border-t border-secondary/20">
+            <p className="text-xs text-muted-foreground font-medium">📊 Sistema de Pontuação:</p>
+            {pool?.scoring_system === 'exact_only' ? (
+              <ul className="list-disc list-inside space-y-0.5 text-muted-foreground text-xs mt-1">
+                <li><strong>1 ponto</strong>: Placar exato</li>
+                <li><strong>0 pontos</strong>: Qualquer outro resultado</li>
+              </ul>
+            ) : (
+              <ul className="list-disc list-inside space-y-0.5 text-muted-foreground text-xs mt-1">
+                <li><strong>5 pontos</strong>: Placar exato</li>
+                <li><strong>3 pontos</strong>: Acertar o vencedor ou empate</li>
+                <li><strong>+1 ponto</strong>: Acertar a diferença de gols (caso acerte o vencedor ou empate)</li>
+              </ul>
+            )}
+          </div>
+
+          {/* Tie breaker */}
+          <div className="mt-2 pt-2 border-t border-secondary/20">
+            <p className="text-xs text-muted-foreground flex items-center gap-1">
+              ✅ <strong>Critério de empate:</strong>
+            </p>
+            {pool?.max_winners === 1 ? (
+              <p className="text-xs text-muted-foreground mt-1">
+                Se houver empate na maior pontuação, o prêmio do 1º lugar será dividido igualmente entre todos os empatados.
+              </p>
+            ) : (
+              <p className="text-xs text-muted-foreground mt-1">
+                Se houver empate, os valores das posições empatadas serão somados e divididos igualmente entre os vencedores.
+              </p>
+            )}
+            <p className="text-xs text-muted-foreground mt-1">
+              ⏱️ Se ninguém fizer pontos, o desempate será pela ordem de envio dos palpites — quem enviou primeiro leva a premiação.
+            </p>
+          </div>
+        </div>
+      </div>
 
       {/* Prediction set tabs */}
       <div ref={tabsRef} className="flex items-center gap-2 flex-wrap p-3 rounded-lg bg-muted/60 border border-border">
@@ -472,24 +542,6 @@ const FootballPredictionForm = ({ poolId, userId, onSuccess, entryFee, pool, pix
         </p>
       </div>
 
-      <div className="p-3 rounded-lg bg-muted/50 text-sm space-y-2">
-        <p className="font-medium">📊 Sistema de Pontuação:</p>
-        {pool?.scoring_system === 'exact_only' ? (
-          <ul className="list-disc list-inside space-y-1 text-muted-foreground text-xs">
-            <li><strong>1 ponto</strong>: Placar exato</li>
-            <li><strong>0 pontos</strong>: Qualquer outro resultado</li>
-          </ul>
-        ) : (
-          <ul className="list-disc list-inside space-y-1 text-muted-foreground text-xs">
-            <li><strong>5 pontos</strong>: Placar exato</li>
-            <li><strong>3 pontos</strong>: Acertar o vencedor ou empate</li>
-            <li><strong>+1 ponto</strong>: Acertar a diferença de gols (caso acerte o vencedor ou empate)</li>
-          </ul>
-        )}
-        <p className="text-xs text-muted-foreground mt-1">
-          ⏱️ <strong>Critério de desempate:</strong> Se ninguém fizer pontos, o desempate será pela ordem de envio dos palpites — quem enviou primeiro leva a premiação.
-        </p>
-      </div>
 
       {/* Submit area with summary */}
       <div className="space-y-2">

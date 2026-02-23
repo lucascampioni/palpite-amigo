@@ -1336,52 +1336,6 @@ const PoolDetail = () => {
               </>
             )}
 
-            {(pool.pool_type === "football" || hasFootballMatches) && pool.status === "active" && (
-              <>
-                <Separator />
-                <div className="space-y-4">
-                  <div className="p-4 rounded-lg bg-secondary/10 border border-secondary/20">
-                    <p className="text-sm font-medium mb-2">
-                      💡 Informações importantes
-                    </p>
-                    <div className="space-y-1">
-                      <p className="text-xs text-muted-foreground">
-                        • O vencedor do bolão será definido de acordo com o resultado dos jogos.
-                      </p>
-                      <p className="text-xs text-muted-foreground">
-                        • Prazo para apostas: <strong>{firstMatchDate ? format(new Date(firstMatchDate.getTime() - 3 * 60 * 60 * 1000), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR }) : format(new Date(pool.deadline), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}</strong> (3h antes do primeiro jogo).
-                      </p>
-                      {pool.entry_fee && parseFloat(pool.entry_fee) > 0 && (
-                        <>
-                          <p className="text-xs text-muted-foreground">
-                            • Prazo para comprovante de pagamento: <strong>{firstMatchDate ? format(new Date(firstMatchDate.getTime() - 2.5 * 60 * 60 * 1000), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR }) : '—'}</strong> (2h30 antes do primeiro jogo).
-                          </p>
-                          <p className="text-xs text-destructive font-medium">
-                            • Quem não enviar o comprovante até o prazo será <strong>rejeitado automaticamente</strong>.
-                          </p>
-                        </>
-                      )}
-                      {/* Tie Breaker inside important info */}
-                      <div className="mt-2 pt-2 border-t border-secondary/20">
-                        <p className="text-xs text-muted-foreground flex items-center gap-1">
-                          <CheckCircle className="w-3 h-3 text-blue-600 dark:text-blue-400 flex-shrink-0" />
-                          <strong>Critério de empate:</strong>
-                        </p>
-                        {pool.max_winners === 1 ? (
-                          <p className="text-xs text-muted-foreground mt-1">
-                            Se houver empate na maior pontuação, o prêmio do 1º lugar será dividido igualmente entre todos os empatados.
-                          </p>
-                        ) : (
-                          <p className="text-xs text-muted-foreground mt-1">
-                            Se houver empate, os valores das posições empatadas serão somados e divididos igualmente entre os vencedores.
-                          </p>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </>
-            )}
 
 
             {/* WhatsApp Message Panel for admin/owner */}
