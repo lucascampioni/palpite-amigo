@@ -1365,6 +1365,7 @@ const PoolDetail = () => {
                   entryFee={pool.entry_fee ? parseFloat(pool.entry_fee) : undefined}
                   prizeType={pool.prize_type}
                   approvedPredictionSets={approvedParticipants.length}
+                  poolStatus={pool.status}
                 />
               </>
             )}
