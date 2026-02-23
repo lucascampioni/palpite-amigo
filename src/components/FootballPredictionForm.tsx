@@ -461,7 +461,7 @@ const FootballPredictionForm = ({ poolId, userId, onSuccess, entryFee, pool, pix
         </Button>
         {hasEntryFee && (
           <p className="text-xs text-center text-orange-600 dark:text-orange-400 font-medium">
-            ⚠️ Ao adicionar, o valor total sobe para <strong>R$ {((predictionSets.length + 1) * feePerSet).toFixed(2).replace('.', ',')}</strong> ({predictionSets.length + 1} × R$ {feePerSet.toFixed(2).replace('.', ',')})
+            ⚠️ Cada palpite adicional acrescenta <strong>R$ {feePerSet.toFixed(2).replace('.', ',')}</strong> ao valor da inscrição
           </p>
         )}
       </div>
