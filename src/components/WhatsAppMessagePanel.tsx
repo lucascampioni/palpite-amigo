@@ -50,26 +50,31 @@ interface WhatsAppMessagePanelProps {
   entryFee?: number | null;
   prizeType?: string;
   approvedPredictionSets?: number;
+  poolStatus?: string;
 }
 
-const formatPrizeText = (prizes: any, prizeType?: string, entryFee?: number, approvedPredictionSets?: number) => {
+const formatPrizeText = (prizes: any, prizeType?: string, entryFee?: number, approvedPredictionSets?: number, poolStatus?: string) => {
   if (!prizes?.first) return "";
   
   const isPercentage = prizeType === "percentage";
   
   if (isPercentage) {
     const total = (entryFee || 0) * (approvedPredictionSets || 0);
-    const hasParticipants = total > 0;
+    const isFinished = poolStatus === "finished";
     
     const formatPrize = (pct: number) => {
-      if (hasParticipants) {
+      if (isFinished && total > 0) {
+        // Pool finished: show final calculated value
         const value = (total * pct / 100).toFixed(2).replace('.', ',');
-        return `R$ ${value} (${pct}%)`;
+        return `R$ ${value}`;
       }
+      // Pool still open: show only percentage
       return `${pct}% do arrecadado`;
     };
     
-    return `\n\n💰 *Premiação:*\n🥇 1º lugar: ${formatPrize(prizes.first)}${prizes.second ? `\n🥈 2º lugar: ${formatPrize(prizes.second)}` : ""}${prizes.third ? `\n🥉 3º lugar: ${formatPrize(prizes.third)}` : ""}`;
+    const suffix = !isFinished ? "\n\n📌 _O valor será definido de acordo com o número de inscrições._" : "";
+    
+    return `\n\n💰 *Premiação:*\n🥇 1º lugar: ${formatPrize(prizes.first)}${prizes.second ? `\n🥈 2º lugar: ${formatPrize(prizes.second)}` : ""}${prizes.third ? `\n🥉 3º lugar: ${formatPrize(prizes.third)}` : ""}${suffix}`;
   }
   
   return `\n\n💰 *Premiação:*\n🥇 1º lugar: R$ ${Number(prizes.first).toFixed(2).replace('.', ',')}${prizes.second ? `\n🥈 2º lugar: R$ ${Number(prizes.second).toFixed(2).replace('.', ',')}` : ""}${prizes.third ? `\n🥉 3º lugar: R$ ${Number(prizes.third).toFixed(2).replace('.', ',')}` : ""}`;
@@ -81,7 +86,7 @@ const createMessageTemplates = (): MessageTemplate[] => [
     label: "Divulgar bolão (todos)",
     icon: <Megaphone className="w-4 h-4" />,
     getMessage: (name, pool, poolLink, extra) => {
-      const prizeText = formatPrizeText(extra?.prizes, extra?.prizeType, extra?.entryFee, extra?.approvedPredictionSets);
+      const prizeText = formatPrizeText(extra?.prizes, extra?.prizeType, extra?.entryFee, extra?.approvedPredictionSets, extra?.poolStatus);
       return `🎯 *Delfos*\n\nOlá ${name}! ⚽🔥\n\nO bolão *"${pool}"* está aberto e aceitando palpites!${prizeText}\n\nFaça seus palpites e concorra aos prêmios! 🏆\n\n👉 Participe aqui: ${poolLink}`;
     },
     category: "divulgacao",
@@ -97,7 +102,7 @@ const createMessageTemplates = (): MessageTemplate[] => [
       const entryText = entryFee && entryFee > 0
         ? `\n\n💳 *Inscrição:* R$ ${Number(entryFee).toFixed(2).replace('.', ',')}`
         : "";
-      const prizeText = formatPrizeText(extra?.prizes, extra?.prizeType, extra?.entryFee, extra?.approvedPredictionSets);
+      const prizeText = formatPrizeText(extra?.prizes, extra?.prizeType, extra?.entryFee, extra?.approvedPredictionSets, extra?.poolStatus);
       return `🎯 *Delfos*\n\nE aí, tudo bem? ⚽🔥\n\nCriei um bolão novo: *"${pool}"*!${entryText}${prizeText}\n\nBora participar? É só clicar no link abaixo e fazer seus palpites! 🏆\n\n👉 ${poolLink}`;
     },
     category: "divulgacao",
@@ -112,7 +117,7 @@ const createMessageTemplates = (): MessageTemplate[] => [
       const entryText = entryFee && entryFee > 0
         ? `\n\n💳 *Inscrição:* R$ ${Number(entryFee).toFixed(2).replace('.', ',')}`
         : "";
-      const prizeText = formatPrizeText(extra?.prizes, extra?.prizeType, extra?.entryFee, extra?.approvedPredictionSets);
+      const prizeText = formatPrizeText(extra?.prizes, extra?.prizeType, extra?.entryFee, extra?.approvedPredictionSets, extra?.poolStatus);
       return `🎯 *Delfos*\n\nSalve, galera! ⚽🔥\n\nTô lançando um bolão novo: *"${pool}"*!${entryText}${prizeText}\n\nQuem tá dentro? Clica no link e faz seus palpites! 🏆💪\n\n👉 ${poolLink}`;
     },
     category: "divulgacao",
@@ -200,7 +205,7 @@ const categoryLabels: Record<TemplateCategory, string> = {
 
 type SendStatus = "idle" | "sending" | "success" | "error";
 
-const WhatsAppMessagePanel = ({ poolTitle, poolId, participants, poolDeadline, ranking, phones, allUsersWithPhone, isAdmin = false, poolPrizes, entryFee, prizeType, approvedPredictionSets }: WhatsAppMessagePanelProps) => {
+const WhatsAppMessagePanel = ({ poolTitle, poolId, participants, poolDeadline, ranking, phones, allUsersWithPhone, isAdmin = false, poolPrizes, entryFee, prizeType, approvedPredictionSets, poolStatus }: WhatsAppMessagePanelProps) => {
   const [isOpen, setIsOpen] = useState(false);
   const [selectedTemplate, setSelectedTemplate] = useState<string | null>(null);
   const [sendingAll, setSendingAll] = useState(false);
@@ -237,6 +242,9 @@ const WhatsAppMessagePanel = ({ poolTitle, poolId, participants, poolDeadline, r
     }
     if (approvedPredictionSets !== undefined) {
       extra.approvedPredictionSets = approvedPredictionSets;
+    }
+    if (poolStatus) {
+      extra.poolStatus = poolStatus;
     }
     return template.getMessage(name, poolTitle, poolLink, extra);
   };
