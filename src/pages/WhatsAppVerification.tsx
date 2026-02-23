@@ -21,7 +21,7 @@ const WhatsAppVerification = () => {
   const checkVerification = useCallback(async () => {
     const { data: { session } } = await supabase.auth.getSession();
     if (!session) {
-      navigate("/auth");
+      navigate("/entrar");
       return;
     }
 
@@ -219,7 +219,7 @@ const WhatsAppVerification = () => {
               className="w-full"
               onClick={async () => {
                 await supabase.auth.signOut();
-                navigate("/auth");
+                navigate("/entrar");
               }}
             >
               Sair e voltar para login

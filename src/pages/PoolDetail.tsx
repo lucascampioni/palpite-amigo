@@ -29,7 +29,8 @@ import WhatsAppMessagePanel from "@/components/WhatsAppMessagePanel";
 import VipGroupInviteModal from "@/components/VipGroupInviteModal";
 
 const PoolDetail = () => {
-  const { id } = useParams();
+  const { slug } = useParams();
+  const [poolId, setPoolId] = useState<string | null>(null);
   const navigate = useNavigate();
   const { toast } = useToast();
   const { data: userRole } = useUserRole();
@@ -165,7 +166,7 @@ const PoolDetail = () => {
       const { data: matches } = await supabase
         .from('football_matches')
         .select('id, home_score, away_score, status')
-        .eq('pool_id', id);
+        .eq('pool_id', poolId);
 
       if (!matches || matches.length === 0) return;
 
@@ -259,24 +260,50 @@ const PoolDetail = () => {
     };
 
     updateWinnersPrizeStatus();
-  }, [pool, participants, participantsPoints, hasFootballMatches, id]);
+  }, [pool, participants, participantsPoints, hasFootballMatches, poolId]);
 
   useEffect(() => {
     const checkAuthAndLoadData = async () => {
       const { data: { user } } = await supabase.auth.getUser();
       
       if (!user) {
-        // Save the current URL to redirect back after login
-        const redirectUrl = `/pool/${id}`;
-        navigate(`/auth?redirect=${encodeURIComponent(redirectUrl)}`);
+        const redirectUrl = `/bolao/${slug}`;
+        navigate(`/entrar?redirect=${encodeURIComponent(redirectUrl)}`);
         return;
       }
       
-      loadPoolData();
+      // Resolve slug to pool ID
+      const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(slug || '');
+      
+      let resolvedId: string | null = null;
+      if (isUUID) {
+        // Direct UUID access (backward compatibility)
+        resolvedId = slug!;
+      } else {
+        // Slug-based lookup
+        const { data: poolBySlug } = await supabase
+          .from("pools")
+          .select("id")
+          .eq("slug", slug)
+          .single();
+        resolvedId = poolBySlug?.id || null;
+      }
+      
+      if (!resolvedId) {
+        toast({ variant: "destructive", title: "Erro", description: "Bolão não encontrado." });
+        navigate("/");
+        return;
+      }
+      
+      setPoolId(resolvedId);
     };
     
     checkAuthAndLoadData();
-  }, [id, navigate]);
+  }, [slug, navigate]);
+
+  useEffect(() => {
+    if (poolId) loadPoolData();
+  }, [poolId]);
 
   const loadPoolData = async () => {
     try {
@@ -288,7 +315,7 @@ const PoolDetail = () => {
     const { data: poolData, error: poolError } = await supabase
       .from("pools")
       .select("*")
-      .eq("id", id)
+      .eq("id", poolId)
       .single();
 
     if (poolError || !poolData) {
@@ -327,7 +354,7 @@ const PoolDetail = () => {
     const { data: participantsData } = await supabase
       .from("participants")
       .select("*")
-      .eq("pool_id", id);
+      .eq("pool_id", poolId);
 
     setParticipants(participantsData || []);
 
@@ -355,7 +382,7 @@ const PoolDetail = () => {
     const { data: matchesData } = await supabase
       .from("football_matches")
       .select("id, home_team, away_team, home_team_crest, away_team_crest, home_score, away_score, match_date, championship, status")
-      .eq("pool_id", id)
+      .eq("pool_id", poolId)
       .order("match_date", { ascending: true });
     setHasFootballMatches((matchesData?.length || 0) > 0);
     setFootballMatches(matchesData || []);
@@ -385,7 +412,7 @@ const PoolDetail = () => {
 
     // Load ranking data for WhatsApp messages
     if ((matchesData?.length || 0) > 0) {
-      const { data: rankData } = await supabase.rpc("get_football_pool_ranking", { p_pool_id: id });
+      const { data: rankData } = await supabase.rpc("get_football_pool_ranking", { p_pool_id: poolId });
       setRankingData(rankData || []);
     }
 
@@ -402,7 +429,7 @@ const PoolDetail = () => {
     const { data: paymentInfo } = await supabase
       .from('pool_payment_info')
       .select('pix_key')
-      .eq('pool_id', id)
+      .eq('pool_id', poolId)
       .maybeSingle();
     
     setPool({ ...poolData, pix_key: paymentInfo?.pix_key || null });
@@ -476,7 +503,7 @@ const PoolDetail = () => {
         title: "Telefone obrigatório",
         description: "Cadastre seu telefone no perfil antes de participar de um bolão.",
       });
-      navigate("/profile");
+      navigate("/perfil");
       return;
     }
 
@@ -508,7 +535,7 @@ const PoolDetail = () => {
     const { error } = await supabase
       .from("participants")
       .insert({
-        pool_id: id!,
+        pool_id: poolId!,
         user_id: userId,
         participant_name: profile?.full_name || "Usuário",
         guess_value: guessValue,
@@ -552,7 +579,7 @@ const PoolDetail = () => {
   };
 
   const handleShare = () => {
-    const url = window.location.href;
+    const url = `https://delfos.app.br/bolao/${pool?.slug || poolId}`;
     navigator.clipboard.writeText(url);
     toast({
       title: "Link copiado!",
@@ -564,7 +591,7 @@ const PoolDetail = () => {
     const { error: updateError } = await supabase
       .from("participants")
       .update({ prize_status: 'awaiting_pix' })
-      .eq("pool_id", id!)
+      .eq("pool_id", poolId!)
       .eq("user_id", participantUserId);
 
     if (updateError) {
@@ -587,7 +614,7 @@ const PoolDetail = () => {
     const { error } = await supabase
       .from("pools")
       .update({ is_private: !pool.is_private })
-      .eq("id", id!);
+      .eq("id", poolId!);
 
     if (error) {
       toast({
@@ -797,9 +824,9 @@ const PoolDetail = () => {
                     size="sm"
                     onClick={async () => {
                       if (!confirm("Tem certeza que deseja excluir este bolão? Esta ação não pode ser desfeita.")) return;
-                      await supabase.from("pool_payment_info").delete().eq("pool_id", id!);
-                      await supabase.from("football_matches").delete().eq("pool_id", id!);
-                      const { error } = await supabase.from("pools").delete().eq("id", id!);
+                      await supabase.from("pool_payment_info").delete().eq("pool_id", poolId!);
+                      await supabase.from("football_matches").delete().eq("pool_id", poolId!);
+                      const { error } = await supabase.from("pools").delete().eq("id", poolId!);
                       if (error) {
                         toast({ variant: "destructive", title: "Erro", description: "Não foi possível excluir o bolão." });
                       } else {
@@ -816,7 +843,7 @@ const PoolDetail = () => {
                   <Button
                     variant="outline"
                     size="sm"
-                    onClick={() => navigate(`/edit-pool/${id}`)}
+                    onClick={() => navigate(`/editar-bolao/${poolId}`)}
                   >
                     <Edit className="w-4 h-4 mr-2" />
                     Editar
@@ -1222,7 +1249,7 @@ const PoolDetail = () => {
                       <p className="text-sm text-muted-foreground">
                         Para participar de um bolão, você precisa cadastrar seu telefone no perfil.
                       </p>
-                      <Button onClick={() => navigate("/profile")} variant="default">
+                      <Button onClick={() => navigate("/perfil")} variant="default">
                         Ir para o Perfil
                       </Button>
                     </div>
@@ -1361,6 +1388,7 @@ const PoolDetail = () => {
                 <WhatsAppMessagePanel
                   poolTitle={pool.title}
                   poolId={pool.id}
+                  poolSlug={pool.slug}
                   participants={participants}
                   poolDeadline={pool.deadline}
                   ranking={rankingData}

@@ -42,7 +42,7 @@ const Index = () => {
       (event, session) => {
         setSession(session);
         if (!session) {
-          navigate("/auth");
+          navigate("/entrar");
         }
       }
     );
@@ -50,7 +50,7 @@ const Index = () => {
     supabase.auth.getSession().then(async ({ data: { session } }) => {
       setSession(session);
       if (!session) {
-        navigate("/auth");
+        navigate("/entrar");
       } else {
         // Check if phone is verified
         const { data: profile } = await supabase
@@ -62,7 +62,7 @@ const Index = () => {
         // Only redirect to verification if user HAS a phone number but it's not verified yet
         // Users without a phone can access normally and add it later in their profile
         if (profile && profile.phone !== null && profile.phone !== '' && !profile.phone_verified) {
-          navigate("/whatsapp-verification");
+          navigate("/verificacao-whatsapp");
           return;
         }
 
@@ -375,14 +375,14 @@ const Index = () => {
               <Button
                 size="sm"
                 className="rounded-full bg-gradient-to-r from-primary to-primary/80 text-primary-foreground shadow-lg h-9 px-4 text-xs font-semibold hover:shadow-xl transition-all"
-                onClick={() => navigate("/create-football")}
+                onClick={() => navigate("/criar-bolao")}
               >
                 <Plus className="w-4 h-4 mr-1" />
                 <span className="hidden sm:inline">Criar Bolão</span>
                 <span className="sm:hidden">Novo</span>
               </Button>
             )}
-            <Button variant="ghost" size="icon" className="h-9 w-9 rounded-full hover:bg-primary/10" onClick={() => navigate("/profile")}>
+            <Button variant="ghost" size="icon" className="h-9 w-9 rounded-full hover:bg-primary/10" onClick={() => navigate("/perfil")}>
               <User className="w-4 h-4" />
             </Button>
             <Button variant="ghost" size="icon" className="h-9 w-9 rounded-full hover:bg-destructive/10 hover:text-destructive" onClick={handleSignOut}>
@@ -463,7 +463,7 @@ const Index = () => {
                 </h3>
                 <div className="space-y-3">
                   {filterPools(officialPools).map((pool) => (
-                    <PoolCard key={pool.id} pool={pool} onClick={() => navigate(`/pool/${pool.id}`)} />
+                    <PoolCard key={pool.id} pool={pool} onClick={() => navigate(`/bolao/${pool.slug}`)} />
                   ))}
                 </div>
               </section>
@@ -476,7 +476,7 @@ const Index = () => {
                 </h3>
                 <div className="space-y-3">
                   {filterPools(availablePools).map((pool) => (
-                    <PoolCard key={pool.id} pool={pool} onClick={() => navigate(`/pool/${pool.id}`)} />
+                    <PoolCard key={pool.id} pool={pool} onClick={() => navigate(`/bolao/${pool.slug}`)} />
                   ))}
                 </div>
               </section>
@@ -505,7 +505,7 @@ const Index = () => {
                     bgClass="bg-orange-50 dark:bg-orange-950/50 border-orange-200 dark:border-orange-800"
                   >
                     {filterPools(myPendingPaymentPools).map((pool) => (
-                      <PoolCard key={pool.id} pool={pool} isUserParticipating hasPendingPayment onClick={() => navigate(`/pool/${pool.id}`)} />
+                      <PoolCard key={pool.id} pool={pool} isUserParticipating hasPendingPayment onClick={() => navigate(`/bolao/${pool.slug}`)} />
                     ))}
                   </AlertSection>
                 )}
@@ -519,7 +519,7 @@ const Index = () => {
                     bgClass="bg-yellow-50 dark:bg-yellow-950/50 border-yellow-200 dark:border-yellow-800"
                   >
                     {filterPools(myAwaitingPixPools).map((pool) => (
-                      <PoolCard key={pool.id} pool={pool} isUserParticipating hasWonPrize onClick={() => navigate(`/pool/${pool.id}`)} />
+                      <PoolCard key={pool.id} pool={pool} isUserParticipating hasWonPrize onClick={() => navigate(`/bolao/${pool.slug}`)} />
                     ))}
                   </AlertSection>
                 )}
@@ -534,7 +534,7 @@ const Index = () => {
                     {myPoolsPendingApprovals.map(({ pool, pendingCount }) => (
                       <button
                         key={pool.id}
-                        onClick={() => navigate(`/pool/${pool.id}`)}
+                        onClick={() => navigate(`/bolao/${pool.slug}`)}
                         className="w-full text-left p-3 rounded-lg bg-card border hover:border-primary/50 hover:shadow-sm transition-all"
                       >
                         <p className="font-medium text-sm">{pool.title}</p>
@@ -556,7 +556,7 @@ const Index = () => {
                     {myPoolsPendingPrizeSend.map(({ pool, winnersCount }) => (
                       <button
                         key={pool.id}
-                        onClick={() => navigate(`/pool/${pool.id}`)}
+                        onClick={() => navigate(`/bolao/${pool.slug}`)}
                         className="w-full text-left p-3 rounded-lg bg-card border hover:border-primary/50 hover:shadow-sm transition-all"
                       >
                         <p className="font-medium text-sm">{pool.title}</p>
@@ -594,7 +594,7 @@ const Index = () => {
                       </div>
                     </div>
                     {filterPools(myAwaitingPaymentPools).map((pool) => (
-                      <PoolCard key={pool.id} pool={pool} isUserParticipating onClick={() => navigate(`/pool/${pool.id}`)} />
+                      <PoolCard key={pool.id} pool={pool} isUserParticipating onClick={() => navigate(`/bolao/${pool.slug}`)} />
                     ))}
                   </div>
                 )}
@@ -603,14 +603,14 @@ const Index = () => {
                 {myAwaitingApprovalPools.length > 0 && (
                   <div className="space-y-3">
                     {filterPools(myAwaitingApprovalPools).map((pool) => (
-                      <PoolCard key={pool.id} pool={pool} isUserParticipating hasAwaitingApproval onClick={() => navigate(`/pool/${pool.id}`)} />
+                      <PoolCard key={pool.id} pool={pool} isUserParticipating hasAwaitingApproval onClick={() => navigate(`/bolao/${pool.slug}`)} />
                     ))}
                   </div>
                 )}
                 {/* Active */}
                 <div className="space-y-3">
                   {filterPools(myParticipatingPools.filter(p => p.status === "active")).map((pool) => (
-                    <PoolCard key={pool.id} pool={pool} isUserParticipating onClick={() => navigate(`/pool/${pool.id}`)} />
+                    <PoolCard key={pool.id} pool={pool} isUserParticipating onClick={() => navigate(`/bolao/${pool.slug}`)} />
                   ))}
                 </div>
 
@@ -631,7 +631,7 @@ const Index = () => {
                     {showFinishedParticipating && (
                       <div className="space-y-3">
                         {filterPools(myParticipatingPools.filter(p => p.status === "finished")).map((pool) => (
-                          <PoolCard key={pool.id} pool={pool} isUserParticipating prizeReceived={participantPrizeStatus[pool.id] === 'prize_sent'} onClick={() => navigate(`/pool/${pool.id}`)} />
+                          <PoolCard key={pool.id} pool={pool} isUserParticipating prizeReceived={participantPrizeStatus[pool.id] === 'prize_sent'} onClick={() => navigate(`/bolao/${pool.slug}`)} />
                         ))}
                       </div>
                     )}
@@ -656,7 +656,7 @@ const Index = () => {
                       <div className="space-y-3">
                         {myFailedPools.map(({ pool, reason }) => (
                           <div key={pool.id} className="space-y-1">
-                            <PoolCard pool={pool} onClick={() => navigate(`/pool/${pool.id}`)} />
+                            <PoolCard pool={pool} onClick={() => navigate(`/bolao/${pool.slug}`)} />
                             <p className="text-xs text-destructive font-medium pl-2">
                               Motivo: {reason}
                             </p>
@@ -685,7 +685,7 @@ const Index = () => {
                 {/* Active */}
                 <div className="space-y-3">
                   {filterPools(myCreatedPools.filter(p => p.status === "active")).map((pool) => (
-                    <PoolCard key={pool.id} pool={pool} onClick={() => navigate(`/pool/${pool.id}`)} />
+                    <PoolCard key={pool.id} pool={pool} onClick={() => navigate(`/bolao/${pool.slug}`)} />
                   ))}
                 </div>
 
@@ -706,7 +706,7 @@ const Index = () => {
                     {showFinishedCreated && (
                       <div className="space-y-3">
                         {filterPools(myCreatedPools.filter(p => p.status === "finished")).map((pool) => (
-                          <PoolCard key={pool.id} pool={pool} onClick={() => navigate(`/pool/${pool.id}`)} />
+                          <PoolCard key={pool.id} pool={pool} onClick={() => navigate(`/bolao/${pool.slug}`)} />
                         ))}
                       </div>
                     )}

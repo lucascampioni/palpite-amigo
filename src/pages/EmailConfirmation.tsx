@@ -115,7 +115,7 @@ const EmailConfirmation = () => {
             <Button
               variant="ghost"
               className="w-full"
-              onClick={() => navigate("/auth")}
+              onClick={() => navigate("/entrar")}
             >
               Voltar para login
             </Button>

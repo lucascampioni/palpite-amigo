@@ -14,6 +14,7 @@ import { Search, Trash2, ExternalLink, Loader2, ChevronLeft, ChevronRight } from
 interface PoolItem {
   id: string;
   title: string;
+  slug: string | null;
   status: string;
   pool_type: string;
   entry_fee: number | null;
@@ -169,7 +170,7 @@ const AdminPoolManagement = () => {
                     size="sm"
                     variant="outline"
                     className="text-xs"
-                    onClick={() => navigate(`/pool/${pool.id}`)}
+                    onClick={() => navigate(`/bolao/${pool.slug || pool.id}`)}
                   >
                     <ExternalLink className="w-3 h-3 mr-1" />
                     Ver

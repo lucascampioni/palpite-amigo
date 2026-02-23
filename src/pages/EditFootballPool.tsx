@@ -299,7 +299,7 @@ const EditFootballPool = () => {
         description: "As alterações foram salvas com sucesso.",
       });
 
-      navigate(`/pool/${id}`);
+      navigate(`/bolao/${id}`);
     } catch (error: any) {
       toast({
         variant: "destructive",
@@ -325,7 +325,7 @@ const EditFootballPool = () => {
         <Button
           variant="ghost"
           className="mb-6"
-          onClick={() => navigate(`/pool/${id}`)}
+          onClick={() => navigate(`/bolao/${id}`)}
         >
           <ArrowLeft className="w-4 h-4 mr-2" />
           Voltar
