@@ -947,31 +947,58 @@ const PoolDetail = () => {
                   items.push({ emoji: '🥉', val: formatPrize(isPercentage ? calcPrize(pct) : pct) });
                 }
                 const isFinished = pool.status === 'finished';
+                const allZero = isPercentage && totalCollected === 0 && !isFinished;
                 return (
                   <div className="rounded-xl bg-gradient-to-r from-yellow-500/10 via-primary/5 to-orange-500/10 border border-primary/20 px-3 py-2.5">
-                    <div className="flex items-center justify-center gap-3 flex-wrap">
-                      <Trophy className="w-4 h-4 text-primary flex-shrink-0" />
-                      <span className="font-semibold text-primary">Premiação</span>
-                      {items.map((item, i) => (
-                        <span key={i} className="font-bold whitespace-nowrap">
-                          {item.emoji} {item.val}
-                        </span>
-                      ))}
-                    </div>
-                    {isPercentage && (() => {
-                      const pctParts: string[] = [];
-                      if (pool.first_place_prize) pctParts.push(`🥇 ${parseFloat(pool.first_place_prize)}%`);
-                      if (pool.second_place_prize) pctParts.push(`🥈 ${parseFloat(pool.second_place_prize)}%`);
-                      if (pool.third_place_prize) pctParts.push(`🥉 ${parseFloat(pool.third_place_prize)}%`);
-                      const pctStr = pctParts.join(' · ');
-                      return (
-                        <p className="text-[0.65rem] text-muted-foreground text-center mt-1">
-                          {isFinished
-                            ? `* ${pctStr} do valor arrecadado (${totalPredictionSets} palpite${totalPredictionSets !== 1 ? 's' : ''})`
-                            : `* ${pctStr} do valor arrecadado — atualizado conforme novas inscrições`}
+                    {allZero ? (
+                      <div className="text-center space-y-1">
+                        <div className="flex items-center justify-center gap-2">
+                          <Trophy className="w-4 h-4 text-primary flex-shrink-0" />
+                          <span className="font-semibold text-primary">Premiação</span>
+                        </div>
+                        <p className="text-sm font-bold text-foreground">
+                          🚀 O prêmio cresce a cada novo participante!
                         </p>
-                      );
-                    })()}
+                        {(() => {
+                          const pctParts: string[] = [];
+                          if (pool.first_place_prize) pctParts.push(`🥇 ${parseFloat(pool.first_place_prize)}%`);
+                          if (pool.second_place_prize) pctParts.push(`🥈 ${parseFloat(pool.second_place_prize)}%`);
+                          if (pool.third_place_prize) pctParts.push(`🥉 ${parseFloat(pool.third_place_prize)}%`);
+                          const entryFee = parseFloat(pool.entry_fee || '0');
+                          return (
+                            <p className="text-xs text-muted-foreground">
+                              {pctParts.join(' · ')} do valor arrecadado (R$ {entryFee.toFixed(2).replace('.', ',')} por palpite)
+                            </p>
+                          );
+                        })()}
+                      </div>
+                    ) : (
+                      <>
+                        <div className="flex items-center justify-center gap-3 flex-wrap">
+                          <Trophy className="w-4 h-4 text-primary flex-shrink-0" />
+                          <span className="font-semibold text-primary">Premiação</span>
+                          {items.map((item, i) => (
+                            <span key={i} className="font-bold whitespace-nowrap">
+                              {item.emoji} {item.val}
+                            </span>
+                          ))}
+                        </div>
+                        {isPercentage && (() => {
+                          const pctParts: string[] = [];
+                          if (pool.first_place_prize) pctParts.push(`🥇 ${parseFloat(pool.first_place_prize)}%`);
+                          if (pool.second_place_prize) pctParts.push(`🥈 ${parseFloat(pool.second_place_prize)}%`);
+                          if (pool.third_place_prize) pctParts.push(`🥉 ${parseFloat(pool.third_place_prize)}%`);
+                          const pctStr = pctParts.join(' · ');
+                          return (
+                            <p className="text-[0.65rem] text-muted-foreground text-center mt-1">
+                              {isFinished
+                                ? `* ${pctStr} do valor arrecadado (${totalPredictionSets} palpite${totalPredictionSets !== 1 ? 's' : ''})`
+                                : `* ${pctStr} do valor arrecadado — atualizado conforme novas inscrições`}
+                            </p>
+                          );
+                        })()}
+                      </>
+                    )}
                   </div>
                 );
               })()}
