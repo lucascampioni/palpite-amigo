@@ -951,24 +951,30 @@ const PoolDetail = () => {
                 return (
                   <div className="rounded-xl bg-gradient-to-r from-yellow-500/10 via-primary/5 to-orange-500/10 border border-primary/20 px-3 py-2.5">
                     {allZero ? (
-                      <div className="text-center space-y-1">
+                      <div className="space-y-2">
                         <div className="flex items-center justify-center gap-2">
                           <Trophy className="w-4 h-4 text-primary flex-shrink-0" />
                           <span className="font-semibold text-primary">Premiação</span>
                         </div>
-                        <p className="text-sm font-bold text-foreground">
-                          🚀 O prêmio cresce a cada novo participante!
-                        </p>
                         {(() => {
-                          const pctParts: string[] = [];
-                          if (pool.first_place_prize) pctParts.push(`🥇 ${parseFloat(pool.first_place_prize)}%`);
-                          if (pool.second_place_prize) pctParts.push(`🥈 ${parseFloat(pool.second_place_prize)}%`);
-                          if (pool.third_place_prize) pctParts.push(`🥉 ${parseFloat(pool.third_place_prize)}%`);
                           const entryFee = parseFloat(pool.entry_fee || '0');
+                          const pctItems: { emoji: string; pct: number }[] = [];
+                          if (pool.first_place_prize) pctItems.push({ emoji: '🥇', pct: parseFloat(pool.first_place_prize) });
+                          if (pool.second_place_prize) pctItems.push({ emoji: '🥈', pct: parseFloat(pool.second_place_prize) });
+                          if (pool.third_place_prize) pctItems.push({ emoji: '🥉', pct: parseFloat(pool.third_place_prize) });
                           return (
-                            <p className="text-xs text-muted-foreground">
-                              {pctParts.join(' · ')} do valor arrecadado (R$ {entryFee.toFixed(2).replace('.', ',')} por palpite)
-                            </p>
+                            <>
+                              <div className="flex items-center justify-center gap-3 flex-wrap">
+                                {pctItems.map((item, i) => (
+                                  <span key={i} className="font-bold whitespace-nowrap text-sm">
+                                    {item.emoji} {item.pct}% do arrecadado
+                                  </span>
+                                ))}
+                              </div>
+                              <p className="text-xs text-center text-muted-foreground">
+                                Inscrição: <strong>R$ {entryFee.toFixed(2).replace('.', ',')}</strong> por palpite · Os valores da premiação são calculados automaticamente com base no total arrecadado pelas inscrições
+                              </p>
+                            </>
                           );
                         })()}
                       </div>
