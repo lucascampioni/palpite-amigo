@@ -1356,6 +1356,7 @@ const PoolDetail = () => {
                     second: pool.second_place_prize ? parseFloat(pool.second_place_prize) : undefined,
                     third: pool.third_place_prize ? parseFloat(pool.third_place_prize) : undefined,
                   }}
+                  entryFee={pool.entry_fee ? parseFloat(pool.entry_fee) : undefined}
                 />
               </>
             )}
