@@ -379,9 +379,6 @@ const FootballPredictionForm = ({ poolId, userId, onSuccess, entryFee, pool, pix
             )}
           </Button>
         ))}
-        <span className="text-xs text-muted-foreground ml-1">
-          {predictionSets.length} palpite{predictionSets.length > 1 ? 's' : ''}
-        </span>
       </div>
 
       {/* Current set matches */}
