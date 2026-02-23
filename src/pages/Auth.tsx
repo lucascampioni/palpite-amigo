@@ -3,6 +3,7 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { PasswordInput } from "@/components/PasswordInput";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -389,10 +390,9 @@ const Auth = () => {
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="login-password">Senha</Label>
-                    <Input
+                    <PasswordInput
                       id="login-password"
                       name="login-password"
-                      type="password"
                       placeholder="••••••••"
                       required
                     />
@@ -555,10 +555,9 @@ const Auth = () => {
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="signup-password">Senha</Label>
-                    <Input
+                    <PasswordInput
                       id="signup-password"
                       name="signup-password"
-                      type="password"
                       placeholder="••••••••"
                       required
                       minLength={8}
@@ -569,10 +568,9 @@ const Auth = () => {
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="confirm-password">Confirmar Senha</Label>
-                    <Input
+                    <PasswordInput
                       id="confirm-password"
                       name="confirm-password"
-                      type="password"
                       placeholder="••••••••"
                       required
                       minLength={8}
