@@ -62,19 +62,18 @@ const formatPrizeText = (prizes: any, prizeType?: string, entryFee?: number, app
     const total = (entryFee || 0) * (approvedPredictionSets || 0);
     const isFinished = poolStatus === "finished";
     
-    const formatPrize = (pct: number) => {
-      if (isFinished && total > 0) {
-        // Pool finished: show final calculated value
+    if (isFinished && total > 0) {
+      // Pool finished: show final monetary values
+      const formatPrize = (pct: number) => {
         const value = (total * pct / 100).toFixed(2).replace('.', ',');
         return `R$ ${value}`;
-      }
-      // Pool still open: show only percentage
-      return `${pct}% do arrecadado`;
-    };
+      };
+      return `\n\n💰 *Premiação:*\n🥇 1º lugar: ${formatPrize(prizes.first)}${prizes.second ? `\n🥈 2º lugar: ${formatPrize(prizes.second)}` : ""}${prizes.third ? `\n🥉 3º lugar: ${formatPrize(prizes.third)}` : ""}`;
+    }
     
-    const suffix = !isFinished ? "\n\n📌 _O valor será definido de acordo com o número de inscrições._" : "";
-    
-    return `\n\n💰 *Premiação:*\n🥇 1º lugar: ${formatPrize(prizes.first)}${prizes.second ? `\n🥈 2º lugar: ${formatPrize(prizes.second)}` : ""}${prizes.third ? `\n🥉 3º lugar: ${formatPrize(prizes.third)}` : ""}${suffix}`;
+    // Pool still open: subtle mention, encourage participation
+    const entryText = entryFee && entryFee > 0 ? ` (entrada: R$ ${Number(entryFee).toFixed(2).replace('.', ',')})` : "";
+    return `\n\n🏆 *Premiação proporcional ao número de palpites!*${entryText}\nQuanto mais inscrições, maior o prêmio! 🚀`;
   }
   
   return `\n\n💰 *Premiação:*\n🥇 1º lugar: R$ ${Number(prizes.first).toFixed(2).replace('.', ',')}${prizes.second ? `\n🥈 2º lugar: R$ ${Number(prizes.second).toFixed(2).replace('.', ',')}` : ""}${prizes.third ? `\n🥉 3º lugar: R$ ${Number(prizes.third).toFixed(2).replace('.', ',')}` : ""}`;
