@@ -69,52 +69,6 @@ const FootballRanking = ({ poolId, pool, approvedParticipantsCount, isOwner }: F
     loadRanking();
     loadPoolScoringSystem();
     loadCurrentUserParticipant();
-
-    // Poll every 60 seconds for live updates
-    const interval = setInterval(() => {
-      loadRanking();
-      // Also refresh expanded participant predictions
-      expandedParticipants.forEach(pid => {
-        setParticipantPredictions(prev => {
-          const copy = { ...prev };
-          delete copy[pid];
-          return copy;
-        });
-        loadParticipantPredictions(pid);
-      });
-    }, 60000);
-
-    // Subscribe to real-time updates on football_predictions and football_matches
-    const channel = supabase
-      .channel('football_ranking_changes')
-      .on(
-        'postgres_changes',
-        {
-          event: 'UPDATE',
-          schema: 'public',
-          table: 'football_predictions'
-        },
-        () => {
-          loadRanking();
-        }
-      )
-      .on(
-        'postgres_changes',
-        {
-          event: 'UPDATE',
-          schema: 'public',
-          table: 'football_matches'
-        },
-        () => {
-          loadRanking();
-        }
-      )
-      .subscribe();
-
-    return () => {
-      clearInterval(interval);
-      supabase.removeChannel(channel);
-    };
   }, [poolId]);
 
   const loadCurrentUserParticipant = async () => {
