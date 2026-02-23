@@ -47,6 +47,7 @@ interface WhatsAppMessagePanelProps {
   allUsersWithPhone?: AllUser[];
   isAdmin?: boolean;
   poolPrizes?: { first?: number; second?: number; third?: number };
+  entryFee?: number | null;
 }
 
 const createMessageTemplates = (): MessageTemplate[] => [
@@ -64,6 +65,42 @@ const createMessageTemplates = (): MessageTemplate[] => [
     category: "divulgacao",
     targetAllUsers: true,
     mode: "api", // Only admin sends via API (filtered by notify_new_pools)
+  },
+  {
+    id: "promote_pool_private",
+    label: "Convidar no privado",
+    icon: <User className="w-4 h-4" />,
+    getMessage: (name, pool, poolLink, extra) => {
+      const prizes = extra?.prizes;
+      const entryFee = extra?.entryFee;
+      const entryText = entryFee && entryFee > 0
+        ? `\n\n💳 *Inscrição:* R$ ${Number(entryFee).toFixed(2).replace('.', ',')}`
+        : "";
+      const prizeText = prizes?.first
+        ? `\n\n💰 *Premiação:*\n🥇 1º lugar: R$ ${prizes.first}${prizes.second ? `\n🥈 2º lugar: R$ ${prizes.second}` : ""}${prizes.third ? `\n🥉 3º lugar: R$ ${prizes.third}` : ""}`
+        : "";
+      return `🎯 *Delfos*\n\nE aí, tudo bem? ⚽🔥\n\nCriei um bolão novo: *"${pool}"*!${entryText}${prizeText}\n\nBora participar? É só clicar no link abaixo e fazer seus palpites! 🏆\n\n👉 ${poolLink}`;
+    },
+    category: "divulgacao",
+    mode: "copy",
+  },
+  {
+    id: "promote_pool_group",
+    label: "Divulgar no grupo",
+    icon: <Megaphone className="w-4 h-4" />,
+    getMessage: (name, pool, poolLink, extra) => {
+      const prizes = extra?.prizes;
+      const entryFee = extra?.entryFee;
+      const entryText = entryFee && entryFee > 0
+        ? `\n\n💳 *Inscrição:* R$ ${Number(entryFee).toFixed(2).replace('.', ',')}`
+        : "";
+      const prizeText = prizes?.first
+        ? `\n\n💰 *Premiação:*\n🥇 1º lugar: R$ ${prizes.first}${prizes.second ? `\n🥈 2º lugar: R$ ${prizes.second}` : ""}${prizes.third ? `\n🥉 3º lugar: R$ ${prizes.third}` : ""}`
+        : "";
+      return `🎯 *Delfos*\n\nSalve, galera! ⚽🔥\n\nTô lançando um bolão novo: *"${pool}"*!${entryText}${prizeText}\n\nQuem tá dentro? Clica no link e faz seus palpites! 🏆💪\n\n👉 ${poolLink}`;
+    },
+    category: "divulgacao",
+    mode: "copy",
   },
   {
     id: "deadline_30min",
@@ -147,7 +184,7 @@ const categoryLabels: Record<TemplateCategory, string> = {
 
 type SendStatus = "idle" | "sending" | "success" | "error";
 
-const WhatsAppMessagePanel = ({ poolTitle, poolId, participants, poolDeadline, ranking, phones, allUsersWithPhone, isAdmin = false, poolPrizes }: WhatsAppMessagePanelProps) => {
+const WhatsAppMessagePanel = ({ poolTitle, poolId, participants, poolDeadline, ranking, phones, allUsersWithPhone, isAdmin = false, poolPrizes, entryFee }: WhatsAppMessagePanelProps) => {
   const [isOpen, setIsOpen] = useState(false);
   const [selectedTemplate, setSelectedTemplate] = useState<string | null>(null);
   const [sendingAll, setSendingAll] = useState(false);
@@ -175,6 +212,9 @@ const WhatsAppMessagePanel = ({ poolTitle, poolId, participants, poolDeadline, r
     }
     if (poolPrizes) {
       extra.prizes = poolPrizes;
+    }
+    if (entryFee) {
+      extra.entryFee = entryFee;
     }
     return template.getMessage(name, poolTitle, poolLink, extra);
   };
