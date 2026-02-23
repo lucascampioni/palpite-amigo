@@ -74,15 +74,15 @@ serve(async (req) => {
       const diffMinutes = diffMs / (60 * 1000);
 
       // Determine which reminder window we're in
-      let reminderType: '6h' | '4h30' | null = null;
+      let reminderType: '4h30' | '3h' | null = null;
 
-      // 6h window: 15-minute range (5h53 to 6h08 = 353-368 min)
-      if (diffMinutes >= 353 && diffMinutes <= 368) {
-        reminderType = '6h';
-      }
       // 4h30 window: 15-minute range (4h23 to 4h38 = 263-278 min)
-      else if (diffMinutes >= 263 && diffMinutes <= 278) {
+      if (diffMinutes >= 263 && diffMinutes <= 278) {
         reminderType = '4h30';
+      }
+      // 3h window: 15-minute range (2h53 to 3h08 = 173-188 min)
+      else if (diffMinutes >= 173 && diffMinutes <= 188) {
+        reminderType = '3h';
       }
       if (!reminderType) continue;
 
@@ -130,11 +130,10 @@ serve(async (req) => {
         const digits = phone.replace(/\D/g, '');
         const phoneWithCountry = digits.startsWith('55') ? digits : `55${digits}`;
 
-        const timeLeft = reminderType === '6h' ? '6 horas' : '4 horas e 30 minutos';
-        const urgency = reminderType === '4h30' ? '⚠️ ÚLTIMO AVISO! ' : '';
-        const proofDeadline = '2 horas e 30 minutos antes do jogo';
+        const timeLeft = reminderType === '4h30' ? '2 horas' : '30 minutos';
+        const urgency = reminderType === '3h' ? '🚨 ÚLTIMO AVISO! ' : '⚠️ ';
 
-        const message = `${urgency}⏰ *Pagamento Pendente - ${pool.title}*\n\nOlá ${participant.participant_name}! Faltam *${timeLeft}* para o início do jogo e você ainda não enviou o comprovante de pagamento.\n\n💰 Valor: R$ ${Number(pool.entry_fee).toFixed(2).replace('.', ',')}\n\n⚠️ *IMPORTANTE:* O prazo para envio do comprovante é até *${proofDeadline}*. Após esse prazo, sua inscrição será *rejeitada automaticamente*.\n\nEnvie seu comprovante pelo app agora!\n\n🎯 *Delfos*`;
+        const message = `${urgency}⏰ *Pagamento Pendente - ${pool.title}*\n\nOlá ${participant.participant_name}! Você tem apenas *${timeLeft}* para enviar o comprovante de pagamento.\n\n💰 Valor: R$ ${Number(pool.entry_fee).toFixed(2).replace('.', ',')}\n\n⚠️ *IMPORTANTE:* O prazo para envio do comprovante é até *2h30 antes do jogo*. Após esse prazo, sua inscrição será *rejeitada automaticamente*.\n\nEnvie seu comprovante pelo app agora!\n\n🎯 *Delfos*`;
 
         try {
           const url = `https://api.z-api.io/instances/${ZAPI_INSTANCE_ID}/token/${ZAPI_TOKEN}/send-text`;
