@@ -134,7 +134,38 @@ serve(async (req) => {
           });
         }
 
-        // Delete from auth (cascades to profiles via trigger/FK)
+        // Clean up all related data before deleting auth user
+        // 1. Get all participations
+        const { data: userParticipants } = await adminClient
+          .from("participants")
+          .select("id")
+          .eq("user_id", user_id);
+        const participantIds = (userParticipants || []).map((p: any) => p.id);
+
+        // 2. Delete football predictions
+        if (participantIds.length > 0) {
+          await adminClient.from("football_predictions").delete().in("participant_id", participantIds);
+        }
+
+        // 3. Delete participants
+        await adminClient.from("participants").delete().eq("user_id", user_id);
+
+        // 4. Delete pix access logs
+        await adminClient.from("pix_key_access_logs").delete().eq("accessed_by", user_id);
+
+        // 5. Delete user roles
+        await adminClient.from("user_roles").delete().eq("user_id", user_id);
+
+        // 6. Delete user stats
+        await adminClient.from("user_stats").delete().eq("user_id", user_id);
+
+        // 7. Delete whatsapp OTPs
+        await adminClient.from("whatsapp_otp").delete().eq("user_id", user_id);
+
+        // 8. Delete profile
+        await adminClient.from("profiles").delete().eq("id", user_id);
+
+        // 9. Finally delete auth user
         const { error } = await adminClient.auth.admin.deleteUser(user_id);
         if (error) throw error;
 
