@@ -34,7 +34,7 @@ serve(async (req) => {
     // Find active pools that haven't sent first_match notification yet
     const { data: activePoolsNotNotified, error: poolsErr } = await supabase
       .from('pools')
-      .select('id, title, slug, entry_fee, prize_type, first_place_prize, second_place_prize, third_place_prize')
+      .select('id, title, slug')
       .eq('pool_type', 'football')
       .eq('status', 'active')
       .eq('first_match_notified', false);
@@ -52,9 +52,6 @@ serve(async (req) => {
       if (!liveMatches || liveMatches.length === 0) continue;
 
       console.log(`⚽ First match started for pool "${pool.title}" - sending notifications`);
-
-      // Calculate prize text
-      const prizeText = await buildPrizeText(supabase, pool);
       const poolLink = `https://delfos.app.br/bolao/${pool.slug || pool.id}`;
 
       // Get approved participants
@@ -89,7 +86,7 @@ serve(async (req) => {
         const phone = phoneMap[participant.user_id];
         if (!phone) continue;
 
-        const message = `🎯 *Delfos*\n\n⚽🔥 Olá ${participant.participant_name}!\n\nOs jogos do bolão *"${pool.title}"* começaram e a premiação final foi definida!${prizeText}\n\n📊 Acompanhe os *placares ao vivo* e o *ranking em tempo real* pelo app!\n\n👉 ${poolLink}`;
+        const message = `🎯 *Delfos*\n\nOlá ${participant.participant_name}! ⚽🔥\n\nOs palpites do bolão *"${pool.title}"* foram encerrados e os jogos já começaram!\n\nAcesse o app para ver a premiação final, acompanhar os *placares ao vivo* e o *ranking em tempo real*! 📊🏆\n\n👉 ${poolLink}`;
 
         const sendResult = await sendWhatsApp(ZAPI_INSTANCE_ID, ZAPI_TOKEN, ZAPI_CLIENT_TOKEN, phone, message);
         results.push({ type: 'first_match_started', pool: pool.title, phone, ...sendResult });
@@ -121,9 +118,6 @@ serve(async (req) => {
 
       const poolLink = `https://delfos.app.br/bolao/${pool.slug || pool.id}`;
 
-      // Get ranking
-      const { data: ranking } = await supabase.rpc('get_football_pool_ranking', { p_pool_id: pool.id });
-
       // Get approved participants
       const { data: participants } = await supabase
         .from('participants')
@@ -150,47 +144,12 @@ serve(async (req) => {
         }
       });
 
-      // Build participant ranking map
-      const rankMap: Record<string, { position: number; points: number }> = {};
-      ranking?.forEach((r: any, idx: number) => {
-        // Ranking may have multiple prediction sets; take best position for each participant
-        if (!rankMap[r.participant_id] || r.total_points > rankMap[r.participant_id].points) {
-          rankMap[r.participant_id] = { position: idx + 1, points: r.total_points };
-        }
-      });
-
-      // Determine top 3 for winner check
-      const topParticipantIds = new Set<string>();
-      const sortedRanking = [...(ranking || [])];
-      // Deduplicate by participant (take highest points per participant)
-      const bestByParticipant: Record<string, number> = {};
-      sortedRanking.forEach((r: any) => {
-        if (!bestByParticipant[r.participant_id] || r.total_points > bestByParticipant[r.participant_id]) {
-          bestByParticipant[r.participant_id] = r.total_points;
-        }
-      });
-      const sortedParticipants = Object.entries(bestByParticipant)
-        .sort(([, a], [, b]) => b - a)
-        .slice(0, 3);
-      sortedParticipants.forEach(([pid]) => topParticipantIds.add(pid));
-
       // Send messages
       for (const participant of participants) {
         const phone = phoneMap[participant.user_id];
         if (!phone) continue;
 
-        const rank = rankMap[participant.id];
-        const isWinner = topParticipantIds.has(participant.id);
-        const positionText = rank ? `\n\n📊 Você ficou na *${rank.position}ª posição* com *${rank.points} pontos*.` : '';
-
-        let winnerText = '';
-        if (isWinner && rank?.position === 1) {
-          winnerText = '\n\n🥇 *PARABÉNS! Você foi o CAMPEÃO!* 🎉🏆';
-        } else if (isWinner) {
-          winnerText = `\n\n🏅 *Parabéns! Você ficou no TOP ${rank?.position}!* 🎉`;
-        }
-
-        const message = `🎯 *Delfos*\n\nOlá ${participant.participant_name}! 🏁\n\nO bolão *"${pool.title}"* foi *finalizado* e o ranking final está definido!${positionText}${winnerText}\n\nAcesse o app para ver a classificação completa! 🏆\n\n👉 ${poolLink}`;
+        const message = `🎯 *Delfos*\n\nOlá ${participant.participant_name}! 🏁\n\nO bolão *"${pool.title}"* foi *finalizado* e o ranking final está definido!\n\nAcesse o app para ver a classificação completa e descobrir se você foi o vencedor! 🏆🎉\n\n👉 ${poolLink}`;
 
         const sendResult = await sendWhatsApp(ZAPI_INSTANCE_ID, ZAPI_TOKEN, ZAPI_CLIENT_TOKEN, phone, message);
         results.push({ type: 'pool_finished', pool: pool.title, phone, ...sendResult });
@@ -221,30 +180,6 @@ serve(async (req) => {
   }
 });
 
-async function buildPrizeText(supabase: any, pool: any): Promise<string> {
-  if (!pool.first_place_prize) return '';
-
-  if (pool.prize_type === 'percentage') {
-    // Calculate actual values from approved participants
-    const { count } = await supabase
-      .from('participants')
-      .select('id', { count: 'exact', head: true })
-      .eq('pool_id', pool.id)
-      .eq('status', 'approved');
-
-    const total = (pool.entry_fee || 0) * (count || 0);
-    if (total <= 0) return '';
-
-    const formatPrize = (pct: number) => {
-      const value = (total * pct / 100).toFixed(2).replace('.', ',');
-      return `R$ ${value}`;
-    };
-
-    return `\n\n💰 *Premiação final:*\n🥇 1º lugar: ${formatPrize(pool.first_place_prize)}${pool.second_place_prize ? `\n🥈 2º lugar: ${formatPrize(pool.second_place_prize)}` : ''}${pool.third_place_prize ? `\n🥉 3º lugar: ${formatPrize(pool.third_place_prize)}` : ''}`;
-  }
-
-  return `\n\n💰 *Premiação:*\n🥇 1º lugar: R$ ${Number(pool.first_place_prize).toFixed(2).replace('.', ',')}${pool.second_place_prize ? `\n🥈 2º lugar: R$ ${Number(pool.second_place_prize).toFixed(2).replace('.', ',')}` : ''}${pool.third_place_prize ? `\n🥉 3º lugar: R$ ${Number(pool.third_place_prize).toFixed(2).replace('.', ',')}` : ''}`;
-}
 
 async function sendWhatsApp(
   instanceId: string,
