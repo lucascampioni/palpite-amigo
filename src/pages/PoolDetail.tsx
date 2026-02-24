@@ -1013,10 +1013,9 @@ const PoolDetail = () => {
                                   ))}
                                 </div>
                               )}
-                              <p className="text-xs text-center text-muted-foreground">
-                                Quanto mais palpites, maior o prêmio! 🚀
-                                {entryFee > 0 && <> · Inscrição: <strong>R$ {entryFee.toFixed(2).replace('.', ',')}</strong> por palpite</>}
-                              </p>
+                               <p className="text-xs text-center text-muted-foreground">
+                                 Quanto mais palpites, maior o prêmio! 🚀
+                               </p>
                             </>
                           );
                         })()}
