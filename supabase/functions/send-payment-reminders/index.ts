@@ -133,7 +133,7 @@ serve(async (req) => {
         const timeLeft = reminderType === '4h30' ? '2 horas' : '30 minutos';
         const urgency = reminderType === '3h' ? '🚨 ÚLTIMO AVISO! ' : '⚠️ ';
 
-        const message = `${urgency}⏰ *Pagamento Pendente - ${pool.title}*\n\nOlá ${participant.participant_name}! Você tem apenas *${timeLeft}* para enviar o comprovante de pagamento.\n\n💰 Valor: R$ ${Number(pool.entry_fee).toFixed(2).replace('.', ',')}\n\n⚠️ *IMPORTANTE:* O prazo para envio do comprovante é até *2h30 antes do jogo*. Após esse prazo, sua inscrição será *rejeitada automaticamente*.\n\nEnvie seu comprovante pelo app agora!\n\n🎯 *Delfos*`;
+        const message = `${urgency}⏰ *Pagamento Pendente - ${pool.title}*\n\nOlá ${participant.participant_name}! Você tem apenas *${timeLeft}* para enviar o comprovante de pagamento.\n\n💰 Valor: R$ ${Number(pool.entry_fee).toFixed(2).replace('.', ',')}\n\n⚠️ *IMPORTANTE:* O prazo para envio do comprovante é até *2h30 antes do jogo*. Após esse prazo, sua inscrição será *rejeitada automaticamente*.\n\nEnvie seu comprovante pelo app agora!\n\n🎯 *Delfos*\n\n🔕 _Ajuste suas notificações no site quando quiser._`;
 
         try {
           const url = `https://api.z-api.io/instances/${ZAPI_INSTANCE_ID}/token/${ZAPI_TOKEN}/send-text`;
