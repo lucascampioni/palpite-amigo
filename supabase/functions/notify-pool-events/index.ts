@@ -86,7 +86,7 @@ serve(async (req) => {
         const phone = phoneMap[participant.user_id];
         if (!phone) continue;
 
-        const message = `🎯 *Delfos*\n\nOlá ${participant.participant_name}! ⚽🔥\n\nOs palpites do bolão *"${pool.title}"* foram encerrados e os jogos já começaram!\n\nAcesse o app para ver a premiação final, acompanhar os *placares ao vivo* e o *ranking em tempo real*! 📊🏆\n\n👉 ${poolLink}`;
+        const message = `🎯 *Delfos*\n\nOlá ${participant.participant_name}! ⚽🔥\n\nOs palpites do bolão *"${pool.title}"* foram encerrados e os jogos já começaram!\n\nAcesse o app para ver a premiação final, acompanhar os *placares ao vivo* e o *ranking em tempo real*! 📊🏆\n\n👉 ${poolLink}\n\n🔕 _Ajuste suas notificações no site quando quiser._`;
 
         const sendResult = await sendWhatsApp(ZAPI_INSTANCE_ID, ZAPI_TOKEN, ZAPI_CLIENT_TOKEN, phone, message);
         results.push({ type: 'first_match_started', pool: pool.title, phone, ...sendResult });
@@ -149,7 +149,7 @@ serve(async (req) => {
         const phone = phoneMap[participant.user_id];
         if (!phone) continue;
 
-        const message = `🎯 *Delfos*\n\nOlá ${participant.participant_name}! 🏁\n\nO bolão *"${pool.title}"* foi *finalizado* e o ranking final está definido!\n\nAcesse o app para ver a classificação completa e descobrir se você foi o vencedor! 🏆🎉\n\n👉 ${poolLink}`;
+        const message = `🎯 *Delfos*\n\nOlá ${participant.participant_name}! 🏁\n\nO bolão *"${pool.title}"* foi *finalizado* e o ranking final está definido!\n\nAcesse o app para ver a classificação completa e descobrir se você foi o vencedor! 🏆🎉\n\n👉 ${poolLink}\n\n🔕 _Ajuste suas notificações no site quando quiser._`;
 
         const sendResult = await sendWhatsApp(ZAPI_INSTANCE_ID, ZAPI_TOKEN, ZAPI_CLIENT_TOKEN, phone, message);
         results.push({ type: 'pool_finished', pool: pool.title, phone, ...sendResult });
