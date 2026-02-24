@@ -35,6 +35,7 @@ export const PrizePixSubmission = ({
   const [profilePixKey, setProfilePixKey] = useState<string | null>(null);
   const [profilePixKeyType, setProfilePixKeyType] = useState<string | null>(null);
   const [pixSource, setPixSource] = useState<'profile' | 'custom' | null>(null);
+  const [customPixType, setCustomPixType] = useState<string>("");
   const [savePixToProfile, setSavePixToProfile] = useState(false);
   const [replaceProfilePix, setReplaceProfilePix] = useState(false);
 
@@ -81,7 +82,7 @@ export const PrizePixSubmission = ({
         .from("participants")
         .update({
           prize_pix_key: sanitizedPixKey,
-          prize_pix_key_type: pixSource === 'profile' ? profilePixKeyType : null,
+          prize_pix_key_type: pixSource === 'profile' ? profilePixKeyType : (customPixType || null),
           prize_status: "pix_submitted",
           prize_submitted_at: new Date().toISOString(),
         })
@@ -93,24 +94,11 @@ export const PrizePixSubmission = ({
       if ((pixSource === 'custom' && !profilePixKey && savePixToProfile) ||
           (pixSource === 'custom' && profilePixKey && replaceProfilePix)) {
         const { data: { user } } = await supabase.auth.getUser();
-        if (user) {
-          // Detect key type from the PixKeyInput format
-          const detectType = (val: string) => {
-            if (val.includes("@")) return "email";
-            const clean = val.replace(/\D/g, "");
-            if (clean.length === 11 && val.includes("(")) return "phone";
-            if (clean.length === 11 && (val.includes(".") || val.includes("-"))) return "cpf";
-            if (clean.length === 14 && val.includes("/")) return "cnpj";
-            if (/^[a-f0-9-]{32,36}$/i.test(val)) return "random";
-            return null;
-          };
-          const detectedType = detectType(sanitizedPixKey);
-          if (detectedType) {
-            await supabase
-              .from("profiles")
-              .update({ pix_key: sanitizedPixKey, pix_key_type: detectedType })
-              .eq("id", user.id);
-          }
+        if (user && customPixType) {
+          await supabase
+            .from("profiles")
+            .update({ pix_key: sanitizedPixKey, pix_key_type: customPixType })
+            .eq("id", user.id);
         }
       }
 
@@ -260,6 +248,7 @@ export const PrizePixSubmission = ({
                     <PixKeyInput
                       value={pixKey}
                       onChange={setPixKey}
+                      onTypeChange={(t) => setCustomPixType(t || "")}
                       required
                       label=""
                     />
@@ -286,6 +275,7 @@ export const PrizePixSubmission = ({
                     setPixKey(val);
                     setPixSource('custom');
                   }}
+                  onTypeChange={(t) => setCustomPixType(t || "")}
                   required
                   label=""
                 />
