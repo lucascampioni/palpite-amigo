@@ -8,6 +8,7 @@ type PixKeyType = "cpf" | "cnpj" | "phone" | "email" | "random";
 interface PixKeyInputProps {
   value: string;
   onChange: (value: string) => void;
+  onTypeChange?: (type: PixKeyType | "") => void;
   required?: boolean;
   label?: string;
   adminNote?: boolean;
@@ -48,17 +49,20 @@ const detectKeyType = (value: string): PixKeyType | "" => {
   return "";
 };
 
-export const PixKeyInput = ({ value, onChange, required, label, adminNote }: PixKeyInputProps) => {
+export const PixKeyInput = ({ value, onChange, onTypeChange, required, label, adminNote }: PixKeyInputProps) => {
   const [keyType, setKeyType] = useState<PixKeyType | "">(() => detectKeyType(value));
 
   useEffect(() => {
     if (value && !keyType) {
-      setKeyType(detectKeyType(value));
+      const detected = detectKeyType(value);
+      setKeyType(detected);
+      onTypeChange?.(detected);
     }
   }, [value]);
 
   const handleTypeChange = (type: PixKeyType) => {
     setKeyType(type);
+    onTypeChange?.(type);
     onChange("");
   };
 

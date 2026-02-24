@@ -487,7 +487,7 @@ const Profile = () => {
                   {profile?.pix_key ? (
                     <div className="space-y-1">
                       <span className="text-xs text-muted-foreground uppercase">
-                        {profile.pix_key_type === 'cpf' ? 'CPF' : profile.pix_key_type === 'cnpj' ? 'CNPJ' : profile.pix_key_type === 'email' ? 'E-mail' : profile.pix_key_type === 'phone' ? 'Telefone' : 'Chave Aleatória'}
+                        {profile.pix_key_type === 'cpf' ? 'CPF' : profile.pix_key_type === 'cnpj' ? 'CNPJ' : profile.pix_key_type === 'email' ? 'E-mail' : profile.pix_key_type === 'phone' ? 'Telefone' : profile.pix_key_type === 'random' ? 'Chave Aleatória' : 'Tipo não definido'}
                       </span>
                       <p className="text-sm font-medium">{profile.pix_key}</p>
                     </div>
