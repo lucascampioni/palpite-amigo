@@ -331,6 +331,8 @@ export type Database = {
           description: string
           entry_fee: number | null
           finished_at: string | null
+          finished_notified: boolean
+          first_match_notified: boolean
           first_place_prize: number | null
           guess_label: string
           id: string
@@ -358,6 +360,8 @@ export type Database = {
           description: string
           entry_fee?: number | null
           finished_at?: string | null
+          finished_notified?: boolean
+          first_match_notified?: boolean
           first_place_prize?: number | null
           guess_label: string
           id?: string
@@ -385,6 +389,8 @@ export type Database = {
           description?: string
           entry_fee?: number | null
           finished_at?: string | null
+          finished_notified?: boolean
+          first_match_notified?: boolean
           first_place_prize?: number | null
           guess_label?: string
           id?: string
