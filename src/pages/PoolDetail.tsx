@@ -17,7 +17,7 @@ import DeclareResultDialog from "@/components/DeclareResultDialog";
 import WinnerDisplay from "@/components/WinnerDisplay";
 import FootballPredictionForm from "@/components/FootballPredictionForm";
 import FootballRanking from "@/components/FootballRanking";
-import FootballParticipantsPredictions from "@/components/FootballParticipantsPredictions";
+
 import { PrizePixSubmission } from "@/components/PrizePixSubmission";
 import { AdminPrizeManagement } from "@/components/AdminPrizeManagement";
 import { PaymentProofSubmission } from "@/components/PaymentProofSubmission";
@@ -1546,12 +1546,6 @@ const PoolDetail = () => {
               </>
             )}
 
-            {approvedParticipants.length > 0 && (pool.pool_type === "football" || hasFootballMatches) && pool.status !== "finished" && new Date() > new Date(pool.deadline) && !hasAnyMatchResult && (isOwner || currentUserParticipant?.status === 'approved') && (
-              <>
-                <Separator />
-                <FootballParticipantsPredictions poolId={pool.id} participants={approvedParticipants} />
-              </>
-            )}
 
             {approvedParticipants.length > 0 && !(pool.pool_type === "football" || hasFootballMatches) && (isOwner || currentUserParticipant?.status === 'approved') && (
               <>
