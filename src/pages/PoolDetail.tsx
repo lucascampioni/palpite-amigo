@@ -329,7 +329,29 @@ const PoolDetail = () => {
     }
 
     setPool(poolData);
-    setIsOwner(user?.id === poolData.owner_id);
+    const ownerCheck = user?.id === poolData.owner_id;
+    setIsOwner(ownerCheck);
+
+    // Check if user is a participant
+    const { data: userParticipantCheck } = await supabase
+      .from("participants")
+      .select("id")
+      .eq("pool_id", poolData.id)
+      .eq("user_id", user?.id || '')
+      .maybeSingle();
+
+    // If deadline passed (or pool cancelled/finished) and user is NOT participant and NOT owner, redirect
+    const deadlinePassed = new Date(poolData.deadline) < new Date();
+    const poolClosed = poolData.status === 'cancelled' || poolData.status === 'finished';
+    if ((deadlinePassed || poolClosed) && !ownerCheck && !userParticipantCheck) {
+      toast({
+        variant: "destructive",
+        title: "Inscrições encerradas",
+        description: "O prazo para participar deste bolão já expirou.",
+      });
+      navigate("/");
+      return;
+    }
 
     // Load owner name using security definer function
     const { data: ownerNameData } = await supabase
