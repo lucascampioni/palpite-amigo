@@ -62,7 +62,7 @@ const CreateFootballPool = () => {
   const [savePixToProfile, setSavePixToProfile] = useState(false);
   const [isOfficial, setIsOfficial] = useState(false);
   const [scoringSystem, setScoringSystem] = useState<'standard' | 'exact_only'>('exact_only');
-  const [maxWinners, setMaxWinners] = useState<number>(3);
+  const [maxWinners, setMaxWinners] = useState<number>(1);
   const [prizeType, setPrizeType] = useState<'fixed' | 'percentage'>('fixed');
   const [firstPlacePrize, setFirstPlacePrize] = useState("");
   const [secondPlacePrize, setSecondPlacePrize] = useState("");
