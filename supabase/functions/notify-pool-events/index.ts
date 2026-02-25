@@ -100,7 +100,64 @@ serve(async (req) => {
     }
 
     // ═══════════════════════════════════════════════════════════════
-    // 2. POOL FINISHED - notify participants when ranking is final
+    // 2. POOL CANCELLED - notify participants when all matches postponed
+    // ═══════════════════════════════════════════════════════════════
+
+    const { data: cancelledPoolsNotNotified, error: cancelPoolsErr } = await supabase
+      .from('pools')
+      .select('id, title, slug')
+      .eq('pool_type', 'football')
+      .eq('status', 'cancelled')
+      .eq('cancelled_notified', false);
+
+    if (cancelPoolsErr) throw cancelPoolsErr;
+
+    for (const pool of cancelledPoolsNotNotified || []) {
+      console.log(`🚫 Pool "${pool.title}" cancelled - sending notifications`);
+      const poolLink = `https://delfos.app.br/bolao/${pool.slug || pool.id}`;
+
+      const { data: participants } = await supabase
+        .from('participants')
+        .select('user_id, participant_name')
+        .eq('pool_id', pool.id)
+        .eq('status', 'approved');
+
+      if (!participants || participants.length === 0) {
+        await supabase.from('pools').update({ cancelled_notified: true }).eq('id', pool.id);
+        continue;
+      }
+
+      const userIds = participants.map(p => p.user_id);
+      const { data: profiles } = await supabase
+        .from('profiles')
+        .select('id, phone, notify_pool_updates')
+        .in('id', userIds);
+
+      const phoneMap: Record<string, string> = {};
+      profiles?.forEach(p => {
+        if (p.phone && p.notify_pool_updates) {
+          phoneMap[p.id] = p.phone;
+        }
+      });
+
+      for (const participant of participants) {
+        const phone = phoneMap[participant.user_id];
+        if (!phone) continue;
+
+        const message = `🎯 *Delfos*\n\nOlá ${participant.participant_name}! 🚫\n\nO bolão *"${pool.title}"* foi *cancelado* porque todos os jogos foram adiados ou cancelados.\n\nSentimos muito pelo inconveniente! Fique de olho nos próximos bolões. ⚽\n\n👉 ${poolLink}\n\n🔕 _Ajuste suas notificações no site quando quiser._`;
+
+        const sendResult = await sendWhatsApp(ZAPI_INSTANCE_ID, ZAPI_TOKEN, ZAPI_CLIENT_TOKEN, phone, message);
+        results.push({ type: 'pool_cancelled', pool: pool.title, phone, ...sendResult });
+
+        await new Promise(resolve => setTimeout(resolve, 1000));
+      }
+
+      await supabase.from('pools').update({ cancelled_notified: true }).eq('id', pool.id);
+      console.log(`✅ Cancellation notifications sent for pool "${pool.title}"`);
+    }
+
+    // ═══════════════════════════════════════════════════════════════
+    // 3. POOL FINISHED - notify participants when ranking is final
     // ═══════════════════════════════════════════════════════════════
 
     // Find finished pools that haven't sent finished notification yet
