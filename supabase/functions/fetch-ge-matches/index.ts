@@ -35,6 +35,7 @@ const API_FOOTBALL_BASE = 'https://v3.football.api-sports.io';
 const COMPETITIONS: Record<string, { leagueId: number; code: string; name: string; useDateFilter: boolean; season?: number }> = {
   brasileirao: { leagueId: 71, code: 'bsa', name: 'Campeonato Brasileiro Série A', useDateFilter: true, season: 2026 },
   paulista: { leagueId: 475, code: 'pau', name: 'Campeonato Paulista', useDateFilter: true, season: 2026 },
+  paulistaA2: { leagueId: 476, code: 'pa2', name: 'Campeonato Paulista A2', useDateFilter: true, season: 2026 },
   mineiro: { leagueId: 629, code: 'min', name: 'Campeonato Mineiro', useDateFilter: true, season: 2026 },
   carioca: { leagueId: 624, code: 'car', name: 'Campeonato Carioca', useDateFilter: true, season: 2026 },
   premierLeague: { leagueId: 39, code: 'pl', name: 'Premier League', useDateFilter: true, season: 2025 },
