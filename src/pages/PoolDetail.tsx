@@ -534,10 +534,9 @@ const PoolDetail = () => {
       return;
     }
 
-    // Check if prediction cutoff has passed (3h before first match)
-    const cutoff = firstMatchDate 
-      ? new Date(firstMatchDate.getTime() - 3 * 60 * 60 * 1000)
-      : new Date(pool.deadline);
+    // Check if prediction cutoff has passed (pool.deadline is kept updated by edge functions)
+    const cutoff = new Date(pool.deadline);
+
     if (new Date() > cutoff) {
       toast({
         variant: "destructive",
@@ -704,13 +703,10 @@ const PoolDetail = () => {
   };
 
   const approvedParticipants = participants.filter(p => p.status === 'approved');
-  // Prediction cutoff: 3h before first match, or pool deadline as fallback
-  const predictionCutoff = firstMatchDate 
-    ? new Date(firstMatchDate.getTime() - 3 * 60 * 60 * 1000) 
-    : new Date(pool.deadline);
-  const proofCutoff = firstMatchDate 
-    ? new Date(firstMatchDate.getTime() - 2.5 * 60 * 60 * 1000)
-    : new Date(pool.deadline);
+  // Use pool.deadline as single source of truth (updated by edge functions on match cancellations)
+  const predictionCutoff = new Date(pool.deadline);
+  // Proof cutoff: 30 min after prediction cutoff (i.e. 2h30 before first valid match)
+  const proofCutoff = new Date(predictionCutoff.getTime() + 30 * 60 * 1000);
   const isPastDeadline = new Date() > predictionCutoff;
   const isPastProofDeadline = new Date() > proofCutoff;
 
@@ -975,10 +971,7 @@ const PoolDetail = () => {
                 <span className="flex items-center gap-1 whitespace-nowrap">
                   <Calendar className="w-3.5 h-3.5" />
                   Palpites até <strong className="text-foreground ml-0.5">
-                    {firstMatchDate 
-                      ? format(new Date(firstMatchDate.getTime() - 3 * 60 * 60 * 1000), "dd/MM 'às' HH:mm", { locale: ptBR })
-                      : format(new Date(pool.deadline), "dd/MM 'às' HH:mm", { locale: ptBR })
-                    }
+                    {format(new Date(pool.deadline), "dd/MM 'às' HH:mm", { locale: ptBR })}
                   </strong>
                 </span>
                 <span className="text-muted-foreground/30">·</span>
@@ -1102,10 +1095,10 @@ const PoolDetail = () => {
                 </p>
                 <div className="space-y-2 text-sm text-yellow-800 dark:text-yellow-300">
                   <p>
-                    • Participantes que <strong>não enviarem comprovante</strong> até <strong>{format(new Date(firstMatchDate.getTime() - 2.5 * 60 * 60 * 1000), "dd/MM 'às' HH:mm", { locale: ptBR })}</strong> (2h30 antes do jogo) serão <strong>rejeitados automaticamente</strong>.
+                    • Participantes que <strong>não enviarem comprovante</strong> até <strong>{format(proofCutoff, "dd/MM 'às' HH:mm", { locale: ptBR })}</strong> (2h30 antes do jogo) serão <strong>rejeitados automaticamente</strong>.
                   </p>
                   <p>
-                    • Você tem até <strong>{format(firstMatchDate, "dd/MM 'às' HH:mm", { locale: ptBR })}</strong> (horário do 1º jogo) para aprovar/reprovar os participantes que enviaram comprovante.
+                    • Você tem até <strong>{firstMatchDate ? format(firstMatchDate, "dd/MM 'às' HH:mm", { locale: ptBR }) : format(new Date(new Date(pool.deadline).getTime() + 3 * 60 * 60 * 1000), "dd/MM 'às' HH:mm", { locale: ptBR })}</strong> (horário do 1º jogo) para aprovar/reprovar os participantes que enviaram comprovante.
                   </p>
                   <p className="font-semibold text-yellow-900 dark:text-yellow-200">
                     ⏰ Após esse horário, todos os participantes com comprovante pendente de análise serão <strong>APROVADOS AUTOMATICAMENTE</strong>.
