@@ -409,8 +409,13 @@ const PoolDetail = () => {
     setHasFootballMatches((matchesData?.length || 0) > 0);
     setFootballMatches(matchesData || []);
     
-    // Set earliest match date
-    if (matchesData && matchesData.length > 0) {
+    // Set earliest VALID match date (exclude postponed/cancelled/abandoned)
+    const excludedStatuses = ['postponed', 'cancelled', 'abandoned'];
+    const validMatches = matchesData?.filter(m => !excludedStatuses.includes(m.status)) || [];
+    if (validMatches.length > 0) {
+      setFirstMatchDate(new Date(validMatches[0].match_date));
+    } else if (matchesData && matchesData.length > 0) {
+      // Fallback: use first match even if excluded (pool may be cancelled)
       setFirstMatchDate(new Date(matchesData[0].match_date));
     }
     
