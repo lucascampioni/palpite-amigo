@@ -359,6 +359,49 @@ async function calculateMatchPoints(supabase: any, match: any, homeGoals: number
   console.log(`📊 Calculated points for ${predictions.length} predictions on match ${match.id}`);
 }
 
+async function recalculatePoolDeadline(supabase: any, poolId: string) {
+  const { data: poolMatches } = await supabase
+    .from('football_matches')
+    .select('status, match_date')
+    .eq('pool_id', poolId);
+
+  if (!poolMatches || poolMatches.length === 0) return;
+
+  // Check if ALL matches are excluded → cancel pool
+  const excludedStatuses = ['postponed', 'cancelled', 'abandoned'];
+  const allExcluded = poolMatches.every((m: any) => excludedStatuses.includes(m.status));
+  if (allExcluded) {
+    console.log(`🚫 All matches excluded for pool ${poolId}. Cancelling pool.`);
+    await supabase
+      .from('pools')
+      .update({ status: 'cancelled' })
+      .eq('id', poolId)
+      .in('status', ['active', 'closed']);
+    return;
+  }
+
+  // Find earliest valid (non-excluded) match
+  const validMatches = poolMatches
+    .filter((m: any) => !excludedStatuses.includes(m.status))
+    .sort((a: any, b: any) => new Date(a.match_date).getTime() - new Date(b.match_date).getTime());
+
+  if (validMatches.length === 0) return;
+
+  const firstValidMatchDate = new Date(validMatches[0].match_date);
+  const newDeadline = new Date(firstValidMatchDate.getTime() - 3 * 60 * 60 * 1000); // 3h before
+
+  // Update pool deadline
+  const { error } = await supabase
+    .from('pools')
+    .update({ deadline: newDeadline.toISOString() })
+    .eq('id', poolId)
+    .in('status', ['active', 'closed']);
+
+  if (!error) {
+    console.log(`📅 Pool ${poolId} deadline updated to ${newDeadline.toISOString()} (3h before first valid match)`);
+  }
+}
+
 async function checkPoolCompletion(supabase: any, poolId: string) {
   const { data: poolMatches } = await supabase
     .from('football_matches')

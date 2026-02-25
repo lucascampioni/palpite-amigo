@@ -202,24 +202,9 @@ serve(async (req) => {
           if (!error) {
             totalUpdated++;
 
-            // After updating, check if all matches in this pool are now postponed/cancelled
+            // After updating, if match became excluded, recalculate pool deadline and check cancellation
             if (['postponed', 'cancelled', 'abandoned'].includes(mappedStatus) && existing.pool_id) {
-              const { data: poolMatches } = await supabase
-                .from('football_matches')
-                .select('status')
-                .eq('pool_id', existing.pool_id);
-
-              if (poolMatches && poolMatches.length > 0) {
-                const allPostponed = poolMatches.every((m: any) => ['postponed', 'cancelled', 'abandoned'].includes(m.status));
-                if (allPostponed) {
-                  console.log(`🚫 All matches postponed for pool ${existing.pool_id}. Cancelling pool.`);
-                  await supabase
-                    .from('pools')
-                    .update({ status: 'cancelled' })
-                    .eq('id', existing.pool_id)
-                    .in('status', ['active', 'closed']);
-                }
-              }
+              await recalculatePoolDeadline(supabase, existing.pool_id);
             }
           }
         }
@@ -292,4 +277,44 @@ function mapApiStatus(apiStatus: string): string {
     'LIVE': '1H',
   };
   return statusMap[apiStatus] || 'scheduled';
+}
+
+async function recalculatePoolDeadline(supabase: any, poolId: string) {
+  const { data: poolMatches } = await supabase
+    .from('football_matches')
+    .select('status, match_date')
+    .eq('pool_id', poolId);
+
+  if (!poolMatches || poolMatches.length === 0) return;
+
+  const excludedStatuses = ['postponed', 'cancelled', 'abandoned'];
+  const allExcluded = poolMatches.every((m: any) => excludedStatuses.includes(m.status));
+  if (allExcluded) {
+    console.log(`🚫 All matches excluded for pool ${poolId}. Cancelling pool.`);
+    await supabase
+      .from('pools')
+      .update({ status: 'cancelled' })
+      .eq('id', poolId)
+      .in('status', ['active', 'closed']);
+    return;
+  }
+
+  const validMatches = poolMatches
+    .filter((m: any) => !excludedStatuses.includes(m.status))
+    .sort((a: any, b: any) => new Date(a.match_date).getTime() - new Date(b.match_date).getTime());
+
+  if (validMatches.length === 0) return;
+
+  const firstValidMatchDate = new Date(validMatches[0].match_date);
+  const newDeadline = new Date(firstValidMatchDate.getTime() - 3 * 60 * 60 * 1000);
+
+  const { error } = await supabase
+    .from('pools')
+    .update({ deadline: newDeadline.toISOString() })
+    .eq('id', poolId)
+    .in('status', ['active', 'closed']);
+
+  if (!error) {
+    console.log(`📅 Pool ${poolId} deadline updated to ${newDeadline.toISOString()} (3h before first valid match)`);
+  }
 }
