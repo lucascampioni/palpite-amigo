@@ -159,8 +159,33 @@ serve(async (req) => {
           .maybeSingle();
 
         if (existing) {
-          // Update only if status or score changed
-          const mappedStatus = mapApiStatus(apiStatus);
+          let mappedStatus = mapApiStatus(apiStatus);
+
+          // Detect if the match was rescheduled by >2 days or has undefined date
+          if (kickoff && existing.status !== 'finished') {
+            const { data: currentMatch } = await supabase
+              .from('football_matches')
+              .select('match_date')
+              .eq('id', existing.id)
+              .single();
+
+            if (currentMatch?.match_date) {
+              const originalDate = new Date(currentMatch.match_date).getTime();
+              const newDate = new Date(kickoff).getTime();
+              const daysDiff = Math.abs(newDate - originalDate) / (1000 * 60 * 60 * 24);
+
+              if (daysDiff > 2 && mappedStatus === 'scheduled') {
+                mappedStatus = 'postponed';
+                console.log(`📅 Match ${existing.id} rescheduled by ${daysDiff.toFixed(1)} days → marking as postponed`);
+              }
+            }
+          }
+
+          // If API says postponed, always respect it
+          if (apiStatus === 'PST' || apiStatus === 'TBD') {
+            mappedStatus = 'postponed';
+          }
+
           const { error } = await supabase
             .from('football_matches')
             .update({

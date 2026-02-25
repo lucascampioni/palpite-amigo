@@ -18,6 +18,7 @@ interface Match {
   match_date: string;
   home_score: number | null;
   away_score: number | null;
+  status?: string;
 }
 
 interface Prediction {
@@ -87,21 +88,27 @@ const FootballParticipantsPredictions = ({ poolId, participants }: FootballParti
               <div className="space-y-3">
                 {matches.map((match) => {
                   const prediction = getPrediction(participant.id, match.id);
+                  const isPostponed = match.status === 'postponed' || match.status === 'cancelled' || match.status === 'abandoned';
                   return (
-                    <div key={match.id} className="flex items-center justify-between p-3 rounded-lg bg-muted/50">
+                    <div key={match.id} className={`flex items-center justify-between p-3 rounded-lg ${isPostponed ? 'bg-muted/30 opacity-60' : 'bg-muted/50'}`}>
                       <div className="flex-1">
                         <p className="text-sm font-medium">
                           {match.home_team} vs {match.away_team}
+                          {isPostponed && (
+                            <Badge variant="outline" className="ml-2 text-[0.6rem] px-1.5 py-0 text-destructive border-destructive/50">
+                              Adiado — não conta
+                            </Badge>
+                          )}
                         </p>
                         <p className="text-xs text-muted-foreground">
                           {format(new Date(match.match_date), "dd/MM/yyyy", { locale: ptBR })}
                         </p>
                       </div>
                       <div className="flex items-center gap-3">
-                        <Badge variant="secondary" className="font-mono">
+                        <Badge variant="secondary" className={`font-mono ${isPostponed ? 'line-through' : ''}`}>
                           {prediction ? `${prediction.home_score_prediction} x ${prediction.away_score_prediction}` : "—"}
                         </Badge>
-                        {match.home_score !== null && match.away_score !== null && prediction && (
+                        {!isPostponed && match.home_score !== null && match.away_score !== null && prediction && (
                           <Badge 
                             variant={prediction.points_earned > 0 ? "default" : "outline"}
                             className="font-semibold"
