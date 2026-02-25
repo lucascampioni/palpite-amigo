@@ -365,7 +365,9 @@ async function checkPoolCompletion(supabase: any, poolId: string) {
     .select('status')
     .eq('pool_id', poolId);
 
-  const allFinished = poolMatches?.every((m: any) => m.status === 'finished');
+  // Exclude postponed/cancelled matches - they don't count
+  const countableMatches = poolMatches?.filter((m: any) => !['postponed', 'cancelled', 'abandoned'].includes(m.status)) || [];
+  const allFinished = countableMatches.length > 0 && countableMatches.every((m: any) => m.status === 'finished');
   if (!allFinished) return;
 
   console.log(`🏆 All matches finished for pool ${poolId}, calculating winner...`);

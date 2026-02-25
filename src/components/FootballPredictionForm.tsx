@@ -37,6 +37,7 @@ interface Match {
   away_team_crest?: string;
   external_id?: string;
   external_source?: string;
+  status?: string;
 }
 
 interface Prediction {
@@ -159,9 +160,14 @@ const FootballPredictionForm = ({ poolId, userId, onSuccess, entryFee, pool, pix
   };
 
   const handleSubmitClick = () => {
-    // Validate all predictions in all sets are filled
+    // Validate all predictions in all sets are filled (skip postponed matches)
     for (let i = 0; i < predictionSets.length; i++) {
-      const hasEmpty = predictionSets[i].some(p => p.homeScore === '' || p.awayScore === '');
+      const hasEmpty = predictionSets[i].some(p => {
+        const match = matches.find(m => m.id === p.matchId);
+        const isPostponed = (match as any)?.status === 'postponed' || (match as any)?.status === 'cancelled' || (match as any)?.status === 'abandoned';
+        if (isPostponed) return false; // Skip validation for postponed matches
+        return p.homeScore === '' || p.awayScore === '';
+      });
       if (hasEmpty) {
         setActiveSetIndex(i);
         toast({
@@ -455,8 +461,16 @@ const FootballPredictionForm = ({ poolId, userId, onSuccess, entryFee, pool, pix
       {/* Current set matches */}
       {matches.map((match) => {
         const prediction = currentPredictions.find(p => p.matchId === match.id);
+        const isPostponed = (match as any).status === 'postponed' || (match as any).status === 'cancelled' || (match as any).status === 'abandoned';
         return (
-          <Card key={match.id}>
+          <Card key={match.id} className={isPostponed ? 'opacity-50 relative' : ''}>
+            {isPostponed && (
+              <div className="absolute top-2 right-2 z-10">
+                <Badge variant="destructive" className="text-[0.65rem] px-2 py-0.5">
+                  ⚠️ Não conta — Jogo adiado
+                </Badge>
+              </div>
+            )}
             <CardHeader className="pb-3">
               <CardTitle className="text-base">
                 {match.home_team} vs {match.away_team}
@@ -464,6 +478,11 @@ const FootballPredictionForm = ({ poolId, userId, onSuccess, entryFee, pool, pix
               <p className="text-sm text-muted-foreground">
                 {format(new Date(match.match_date), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
               </p>
+              {isPostponed && (
+                <p className="text-xs text-destructive font-medium mt-1">
+                  Esta partida foi adiada e não será contabilizada no bolão.
+                </p>
+              )}
             </CardHeader>
             <CardContent>
               <div className="grid grid-cols-2 gap-4">
@@ -483,10 +502,11 @@ const FootballPredictionForm = ({ poolId, userId, onSuccess, entryFee, pool, pix
                     type="number"
                     min="0"
                     max="99"
-                    placeholder=""
+                    placeholder={isPostponed ? "—" : ""}
                     value={prediction?.homeScore || ''}
                     onChange={(e) => handlePredictionChange(activeSetIndex, match.id, 'homeScore', e.target.value)}
-                    required
+                    required={!isPostponed}
+                    disabled={isPostponed}
                   />
                 </div>
                 <div className="space-y-2">
@@ -505,10 +525,11 @@ const FootballPredictionForm = ({ poolId, userId, onSuccess, entryFee, pool, pix
                     type="number"
                     min="0"
                     max="99"
-                    placeholder=""
+                    placeholder={isPostponed ? "—" : ""}
                     value={prediction?.awayScore || ''}
                     onChange={(e) => handlePredictionChange(activeSetIndex, match.id, 'awayScore', e.target.value)}
-                    required
+                    required={!isPostponed}
+                    disabled={isPostponed}
                   />
                 </div>
               </div>

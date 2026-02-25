@@ -673,16 +673,23 @@ const FootballRanking = ({ poolId, pool, approvedParticipantsCount, isOwner }: F
       'finished': { label: '✅ Encerrado', className: 'bg-muted text-muted-foreground' },
       'scheduled': { label: '⏳ Agendado', className: 'bg-muted text-muted-foreground' },
       'suspended': { label: '⚠️ Suspenso', className: 'bg-orange-500 text-white' },
-      'postponed': { label: '📅 Adiado', className: 'bg-muted text-muted-foreground' },
-      'cancelled': { label: '❌ Cancelado', className: 'bg-muted text-muted-foreground' },
+      'postponed': { label: '📅 Adiado — não conta', className: 'bg-orange-100 dark:bg-orange-950 text-orange-700 dark:text-orange-300' },
+      'cancelled': { label: '❌ Cancelado — não conta', className: 'bg-muted text-muted-foreground' },
+      'abandoned': { label: '❌ Abandonado — não conta', className: 'bg-muted text-muted-foreground' },
     };
     return map[status] || null;
   };
 
   const getPredictionBgColor = (prediction: MatchPrediction): string => {
     const liveStatuses = ['1H', '2H', 'HT', 'ET', 'P'];
+    const excludedStatuses = ['postponed', 'cancelled', 'abandoned'];
     const isLive = liveStatuses.includes(prediction.status);
     const isFinished = prediction.status === 'finished';
+    const isExcluded = excludedStatuses.includes(prediction.status);
+    
+    if (isExcluded) {
+      return "bg-muted/30 border-l-4 border-muted opacity-60";
+    }
     
     if (isLive) {
       return "bg-blue-50 dark:bg-blue-950/30 border-l-4 border-blue-500";
