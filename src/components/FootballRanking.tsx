@@ -911,8 +911,9 @@ const FootballRanking = ({ poolId, pool, approvedParticipantsCount, isOwner }: F
                                 const explanation = getPointsExplanation(pred, scoringSystem);
                                 const bgColor = getPredictionBgColor(pred);
                                 
-                                return (
-                                  <div key={pred.match_id} className={`flex items-start justify-between text-sm rounded p-3 gap-3 ${bgColor}`}>
+                                  const isExcluded = ['postponed', 'cancelled', 'abandoned'].includes(pred.status);
+                                  return (
+                                  <div key={pred.match_id} className={`flex items-start justify-between text-sm rounded p-3 gap-3 ${isExcluded ? 'bg-muted/30 opacity-60' : bgColor}`}>
                                     <div className="flex-1 space-y-2">
                                       <div className="flex items-center gap-1.5 flex-wrap">
                                         {pred.home_team_crest && (
@@ -931,26 +932,30 @@ const FootballRanking = ({ poolId, pool, approvedParticipantsCount, isOwner }: F
                                           ) : null;
                                         })()}
                                       </div>
-                                      <p className="text-xs text-muted-foreground">
-                                        {format(new Date(pred.match_date), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
-                                      </p>
-                                      <div className="flex items-center gap-2 flex-wrap">
-                                        <span className="text-xs text-muted-foreground">
-                                          Palpite: {pred.home_score_prediction} - {pred.away_score_prediction}
-                                        </span>
-                                        {pred.home_score !== null && pred.away_score !== null && (
-                                          <span className="text-xs font-semibold">
-                                            | Placar: {pred.home_score} - {pred.away_score}
-                                          </span>
-                                        )}
-                                      </div>
-                                      {explanation && (
-                                        <p className="text-xs font-medium text-foreground/80 italic">
-                                          {explanation}
-                                        </p>
+                                      {!isExcluded && (
+                                        <>
+                                          <p className="text-xs text-muted-foreground">
+                                            {format(new Date(pred.match_date), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
+                                          </p>
+                                          <div className="flex items-center gap-2 flex-wrap">
+                                            <span className="text-xs text-muted-foreground">
+                                              Palpite: {pred.home_score_prediction} - {pred.away_score_prediction}
+                                            </span>
+                                            {pred.home_score !== null && pred.away_score !== null && (
+                                              <span className="text-xs font-semibold">
+                                                | Placar: {pred.home_score} - {pred.away_score}
+                                              </span>
+                                            )}
+                                          </div>
+                                          {explanation && (
+                                            <p className="text-xs font-medium text-foreground/80 italic">
+                                              {explanation}
+                                            </p>
+                                          )}
+                                        </>
                                       )}
                                     </div>
-                                    {(() => {
+                                    {!isExcluded && (() => {
                                       const liveStatuses = ['1H', '2H', 'HT', 'ET', 'P'];
                                       const isLive = liveStatuses.includes(pred.status);
                                       const displayPoints = isLive && pred.home_score !== null && pred.away_score !== null
@@ -1087,8 +1092,9 @@ const FootballRanking = ({ poolId, pool, approvedParticipantsCount, isOwner }: F
                               const explanation = getPointsExplanation(pred, scoringSystem);
                               const bgColor = getPredictionBgColor(pred);
                               
+                              const isExcluded2 = ['postponed', 'cancelled', 'abandoned'].includes(pred.status);
                               return (
-                                <div key={pred.match_id} className={`flex items-start justify-between text-sm rounded p-3 gap-3 ${bgColor}`}>
+                                <div key={pred.match_id} className={`flex items-start justify-between text-sm rounded p-3 gap-3 ${isExcluded2 ? 'bg-muted/30 opacity-60' : bgColor}`}>
                                   <div className="flex-1 space-y-2">
                                     <div className="flex items-center gap-1.5 flex-wrap">
                                       {pred.home_team_crest && (
@@ -1107,26 +1113,30 @@ const FootballRanking = ({ poolId, pool, approvedParticipantsCount, isOwner }: F
                                         ) : null;
                                       })()}
                                     </div>
-                                    <p className="text-xs text-muted-foreground">
-                                      {format(new Date(pred.match_date), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
-                                    </p>
-                                    <div className="flex items-center gap-2 flex-wrap">
-                                      <span className="text-xs text-muted-foreground">
-                                        Palpite: {pred.home_score_prediction} - {pred.away_score_prediction}
-                                      </span>
-                                      {pred.home_score !== null && pred.away_score !== null && (
-                                        <span className="text-xs font-semibold">
-                                          | Placar: {pred.home_score} - {pred.away_score}
-                                        </span>
-                                      )}
-                                    </div>
-                                    {explanation && (
-                                      <p className="text-xs font-medium text-foreground/80 italic">
-                                        {explanation}
-                                      </p>
+                                    {!isExcluded2 && (
+                                      <>
+                                        <p className="text-xs text-muted-foreground">
+                                          {format(new Date(pred.match_date), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
+                                        </p>
+                                        <div className="flex items-center gap-2 flex-wrap">
+                                          <span className="text-xs text-muted-foreground">
+                                            Palpite: {pred.home_score_prediction} - {pred.away_score_prediction}
+                                          </span>
+                                          {pred.home_score !== null && pred.away_score !== null && (
+                                            <span className="text-xs font-semibold">
+                                              | Placar: {pred.home_score} - {pred.away_score}
+                                            </span>
+                                          )}
+                                        </div>
+                                        {explanation && (
+                                          <p className="text-xs font-medium text-foreground/80 italic">
+                                            {explanation}
+                                          </p>
+                                        )}
+                                      </>
                                     )}
                                   </div>
-                                  {(() => {
+                                  {!isExcluded2 && (() => {
                                     const liveStatuses2 = ['1H', '2H', 'HT', 'ET', 'P'];
                                     const isLive2 = liveStatuses2.includes(pred.status);
                                     const displayPoints2 = isLive2 && pred.home_score !== null && pred.away_score !== null

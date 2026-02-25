@@ -427,6 +427,11 @@ const FootballPredictionForm = ({ poolId, userId, onSuccess, entryFee, pool, pix
                 ⏱️ Se ninguém fizer pontos, o desempate será pela ordem de envio dos palpites — quem enviou primeiro leva a premiação.
               </p>
             </div>
+            <div className="mt-2 pt-2 border-t border-secondary/20">
+              <p className="text-xs text-muted-foreground">
+                📅 <strong>Jogos adiados:</strong> Se um jogo for adiado, cancelado ou abandonado, ele será automaticamente anulado e não contará na pontuação do bolão.
+              </p>
+            </div>
           </div>
         </CollapsibleContent>
       </Collapsible>
