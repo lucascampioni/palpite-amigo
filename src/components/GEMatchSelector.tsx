@@ -226,6 +226,7 @@ export const GEMatchSelector = ({ open, onOpenChange, onMatchesSelected }: GEMat
                 const champLabels: Record<string, string> = {
                   'bsa': '🇧🇷 Série A',
                   'pau': '🏟️ Paulistão',
+                  'pa2': '🏟️ Paulista A2',
                   'min': '🏟️ Mineiro',
                   'car': '🏟️ Carioca',
                   'pl': '🏴󠁧󠁢󠁥󠁮󠁧󠁿 Premier',
