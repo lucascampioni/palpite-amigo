@@ -140,6 +140,14 @@ export const AdminParticipantsManager = ({
   }, [firstMatchStarted]);
 
   const handleApproveClick = (participant: Participant) => {
+    if (firstMatchStarted) {
+      toast({
+        variant: "destructive",
+        title: "Aprovação bloqueada",
+        description: "Pelo menos um jogo já começou. Não é mais possível aprovar participantes.",
+      });
+      return;
+    }
     if (!participant.payment_proof) {
       setApprovingParticipantId(participant.id);
       setApproveWarningOpen(true);
@@ -149,13 +157,11 @@ export const AdminParticipantsManager = ({
   };
 
   const handleApprove = async (participantId: string) => {
-    // Block approval if first match started and participant has no proof
-    const participant = participants.find(p => p.id === participantId);
-    if (firstMatchStarted && participant && !participant.payment_proof) {
+    if (firstMatchStarted) {
       toast({
         variant: "destructive",
         title: "Aprovação bloqueada",
-        description: "O primeiro jogo já começou. Participantes sem comprovante não podem mais ser aprovados.",
+        description: "Pelo menos um jogo já começou. Não é mais possível aprovar participantes.",
       });
       return;
     }
@@ -420,16 +426,18 @@ export const AdminParticipantsManager = ({
                         </Button>
                       )}
                     </div>
-                    <Button
-                      variant="default"
-                      size="sm"
-                      onClick={() => handleApprove(p.id)}
-                      disabled={processing === p.id}
-                      className="w-full h-8 text-xs"
-                    >
-                      <Check className="w-3.5 h-3.5 mr-1" />
-                      Aprovar Participação
-                    </Button>
+                    {!firstMatchStarted && (
+                      <Button
+                        variant="default"
+                        size="sm"
+                        onClick={() => handleApprove(p.id)}
+                        disabled={processing === p.id}
+                        className="w-full h-8 text-xs"
+                      >
+                        <Check className="w-3.5 h-3.5 mr-1" />
+                        Aprovar Participação
+                      </Button>
+                    )}
                   </div>
                 ))}
               </CollapsibleContent>
