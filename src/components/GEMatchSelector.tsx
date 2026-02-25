@@ -73,41 +73,49 @@ export const GEMatchSelector = ({ open, onOpenChange, onMatchesSelected }: GEMat
         console.log(`✅ Found ${data.championships.length} championships`);
         
         // Reorganize by day instead of round
-        const reorganizedChampionships = data.championships.map((champ: any) => {
-          const dayMap = new Map<string, GEMatch[]>();
-          
-          // Flatten all matches from all rounds
-          champ.rounds?.forEach((round: any) => {
-            round.matches?.forEach((match: any) => {
-              const matchDate = new Date(match.matchDate);
-              const dateKey = format(matchDate, 'yyyy-MM-dd');
-              
-              if (!dayMap.has(dateKey)) {
-                dayMap.set(dateKey, []);
-              }
-              dayMap.get(dateKey)!.push(match);
+        const now = new Date();
+        const todayKey = format(now, 'yyyy-MM-dd');
+
+        const reorganizedChampionships = data.championships
+          .map((champ: any) => {
+            const dayMap = new Map<string, GEMatch[]>();
+            
+            // Flatten all matches from all rounds, only keep future matches
+            champ.rounds?.forEach((round: any) => {
+              round.matches?.forEach((match: any) => {
+                const matchDate = new Date(match.matchDate);
+                // Skip past matches (before today)
+                if (format(matchDate, 'yyyy-MM-dd') < todayKey) return;
+                
+                const dateKey = format(matchDate, 'yyyy-MM-dd');
+                if (!dayMap.has(dateKey)) {
+                  dayMap.set(dateKey, []);
+                }
+                dayMap.get(dateKey)!.push(match);
+              });
             });
-          });
-          
-          // Convert to array and sort by date
-          const days: DayGroup[] = Array.from(dayMap.entries())
-            .sort((a, b) => a[0].localeCompare(b[0]))
-            .map(([date, matches]) => ({
-              date,
-              displayDate: format(new Date(date + "T12:00:00"), "EEEE, dd/MM/yyyy", { locale: ptBR }),
-              matches: matches.sort((a, b) => 
-                new Date(a.matchDate).getTime() - new Date(b.matchDate).getTime()
-              ),
-            }));
-          
-          return {
-            id: champ.id,
-            name: champ.name,
-            days,
-          };
-        });
+            
+            // Convert to array and sort by date
+            const days: DayGroup[] = Array.from(dayMap.entries())
+              .sort((a, b) => a[0].localeCompare(b[0]))
+              .map(([date, matches]) => ({
+                date,
+                displayDate: format(new Date(date + "T12:00:00"), "EEEE, dd/MM/yyyy", { locale: ptBR }),
+                matches: matches.sort((a, b) => 
+                  new Date(a.matchDate).getTime() - new Date(b.matchDate).getTime()
+                ),
+              }));
+            
+            return {
+              id: champ.id,
+              name: champ.name,
+              days,
+            };
+          })
+          // Remove championships with no future matches
+          .filter((champ: Championship) => champ.days.length > 0);
         
-        console.log(`✅ Reorganized into days`);
+        console.log(`✅ Reorganized into days, ${reorganizedChampionships.length} championships with future matches`);
         setChampionships(reorganizedChampionships);
       } else {
         console.log('⚠️ No championships in response');
