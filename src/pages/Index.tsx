@@ -215,6 +215,8 @@ const Index = () => {
       ...rejectedPoolIds,
     ];
     
+    const nowISO = now.toISOString();
+
     let officialPoolsData: any[] = [];
     if (excludeFromOfficialIds.length > 0) {
       const { data } = await supabase
@@ -223,6 +225,7 @@ const Index = () => {
         .eq("is_official", true)
         .eq("is_private", false)
         .eq("status", "active")
+        .gt("deadline", nowISO)
         .not("id", "in", `(${excludeFromOfficialIds.map((id) => `"${id}"`).join(',')})`)
         .order("created_at", { ascending: false });
       officialPoolsData = data || [];
@@ -233,12 +236,10 @@ const Index = () => {
         .eq("is_official", true)
         .eq("is_private", false)
         .eq("status", "active")
+        .gt("deadline", nowISO)
         .order("created_at", { ascending: false });
       officialPoolsData = data || [];
     }
-    
-    
-    officialPoolsData = officialPoolsData.filter(pool => new Date(pool.deadline) > now);
 
     const excludeIds = [
       ...ownedPools?.map(p => p.id) || [],
@@ -256,6 +257,7 @@ const Index = () => {
         .select("*, participants(count)")
         .eq("status", "active")
         .eq("is_private", false)
+        .gt("deadline", nowISO)
         .not("id", "in", `(${excludeIds.map((id) => `"${id}"`).join(',')})`)
         .order("created_at", { ascending: false });
       activePools = data || [];
@@ -265,11 +267,10 @@ const Index = () => {
         .select("*, participants(count)")
         .eq("status", "active")
         .eq("is_private", false)
-        .order("created_at", { ascending: false});
+        .gt("deadline", nowISO)
+        .order("created_at", { ascending: false });
       activePools = data || [];
     }
-    
-    activePools = activePools.filter(pool => new Date(pool.deadline) > now);
 
 
     // Fetch pending approvals for pools the user created
