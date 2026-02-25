@@ -1407,6 +1407,68 @@ const PoolDetail = () => {
               </>
             )}
 
+            {/* Informações importantes for joined users */}
+            {((pool.status === "active" || pool.status === "finished") && (pool.pool_type === "football" || hasFootballMatches) && (currentUserParticipant?.status === 'approved' || isOwner)) && (
+              <>
+                <Separator />
+                <Collapsible>
+                  <CollapsibleTrigger className="w-full p-3 rounded-lg bg-secondary/10 border border-secondary/20 flex items-center justify-between text-sm font-medium hover:bg-secondary/20 transition-colors">
+                    <span>💡 Informações importantes</span>
+                    <ChevronDown className="w-4 h-4 text-muted-foreground" />
+                  </CollapsibleTrigger>
+                  <CollapsibleContent>
+                    <div className="px-3 pb-3 pt-2 rounded-b-lg bg-secondary/10 border border-t-0 border-secondary/20 space-y-1">
+                      <p className="text-xs text-muted-foreground">
+                        • O vencedor do bolão será definido de acordo com o resultado dos jogos.
+                      </p>
+                      <div className="mt-2 pt-2 border-t border-secondary/20">
+                        <p className="text-xs text-muted-foreground font-medium">📊 Sistema de Pontuação:</p>
+                        {pool?.scoring_system === 'exact_only' ? (
+                          <ul className="list-disc list-inside space-y-0.5 text-muted-foreground text-xs mt-1">
+                            <li><strong>1 ponto</strong>: Placar exato</li>
+                            <li><strong>0 pontos</strong>: Qualquer outro resultado</li>
+                          </ul>
+                        ) : pool?.scoring_system === 'simplified' ? (
+                          <ul className="list-disc list-inside space-y-0.5 text-muted-foreground text-xs mt-1">
+                            <li><strong>3 pontos</strong>: Placar exato</li>
+                            <li><strong>1 ponto</strong>: Acertar o vencedor ou empate</li>
+                          </ul>
+                        ) : (
+                          <ul className="list-disc list-inside space-y-0.5 text-muted-foreground text-xs mt-1">
+                            <li><strong>5 pontos</strong>: Placar exato</li>
+                            <li><strong>3 pontos</strong>: Acertar o vencedor ou empate</li>
+                            <li><strong>+1 ponto</strong>: Acertar a diferença de gols (caso acerte o vencedor ou empate)</li>
+                          </ul>
+                        )}
+                      </div>
+                      <div className="mt-2 pt-2 border-t border-secondary/20">
+                        <p className="text-xs text-muted-foreground flex items-center gap-1">
+                          ✅ <strong>Critério de empate:</strong>
+                        </p>
+                        {pool?.max_winners === 1 ? (
+                          <p className="text-xs text-muted-foreground mt-1">
+                            Se houver empate na maior pontuação, o prêmio do 1º lugar será dividido igualmente entre todos os empatados.
+                          </p>
+                        ) : (
+                          <p className="text-xs text-muted-foreground mt-1">
+                            Se houver empate, os valores das posições empatadas serão somados e divididos igualmente entre os vencedores.
+                          </p>
+                        )}
+                        <p className="text-xs text-muted-foreground mt-1">
+                          ⏱️ Se ninguém fizer pontos, o desempate será pela ordem de envio dos palpites — quem enviou primeiro leva a premiação.
+                        </p>
+                      </div>
+                      <div className="mt-2 pt-2 border-t border-secondary/20">
+                        <p className="text-xs text-muted-foreground">
+                          📅 <strong>Jogos adiados:</strong> Se um jogo for adiado, cancelado ou abandonado, ele será automaticamente anulado e não contará na pontuação do bolão.
+                        </p>
+                      </div>
+                    </div>
+                  </CollapsibleContent>
+                </Collapsible>
+              </>
+            )}
+
             {((pool.status === "active" || pool.status === "finished") && (pool.pool_type === "football" || hasFootballMatches) && (isOwner || currentUserParticipant?.status === 'approved')) && (
               <>
                 <Separator />
