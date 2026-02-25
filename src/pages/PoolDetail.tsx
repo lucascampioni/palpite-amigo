@@ -657,6 +657,7 @@ const PoolDetail = () => {
   const totalEntryFee = singleEntryFee * predictionSetsCount;
 
   const getStatusColor = (status: string) => {
+    if (status === "cancelled") return "bg-destructive text-destructive-foreground";
     if (status === "finished") return "bg-gray-500 text-white";
     if (isRejected) return "bg-destructive text-destructive-foreground";
     if (isAwaitingApproval) return "bg-yellow-500 text-white";
@@ -666,6 +667,7 @@ const PoolDetail = () => {
   };
 
   const getStatusText = (status: string) => {
+    if (status === "cancelled") return "🚫 Cancelado";
     if (status === "finished") return "Finalizado";
     if (isRejected) return "❌ Participação Reprovada";
     if (isAwaitingApproval) return "⏳ Pendente Aprovação";
@@ -782,6 +784,19 @@ const PoolDetail = () => {
                 📱 Falar com o organizador no WhatsApp
               </Button>
             )}
+          </div>
+        )}
+
+        {/* Cancelled Banner */}
+        {pool.status === "cancelled" && (
+          <div className="p-4 rounded-xl bg-gradient-to-r from-destructive to-destructive/80 text-destructive-foreground shadow-lg">
+            <div className="flex items-center gap-3">
+              <span className="text-2xl">🚫</span>
+              <div>
+                <p className="font-bold text-lg">Bolão Cancelado</p>
+                <p className="text-sm opacity-90">Todos os jogos deste bolão foram adiados ou cancelados. O bolão foi cancelado automaticamente.</p>
+              </div>
+            </div>
           </div>
         )}
 

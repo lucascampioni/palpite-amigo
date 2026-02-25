@@ -365,6 +365,20 @@ async function checkPoolCompletion(supabase: any, poolId: string) {
     .select('status')
     .eq('pool_id', poolId);
 
+  if (!poolMatches || poolMatches.length === 0) return;
+
+  // Check if ALL matches are postponed/cancelled/abandoned → cancel pool
+  const allPostponed = poolMatches.every((m: any) => ['postponed', 'cancelled', 'abandoned'].includes(m.status));
+  if (allPostponed) {
+    console.log(`🚫 All ${poolMatches.length} matches postponed/cancelled for pool ${poolId}. Cancelling pool.`);
+    await supabase
+      .from('pools')
+      .update({ status: 'cancelled' })
+      .eq('id', poolId)
+      .in('status', ['active', 'closed']);
+    return;
+  }
+
   // Exclude postponed/cancelled matches - they don't count
   const countableMatches = poolMatches?.filter((m: any) => !['postponed', 'cancelled', 'abandoned'].includes(m.status)) || [];
   const allFinished = countableMatches.length > 0 && countableMatches.every((m: any) => m.status === 'finished');

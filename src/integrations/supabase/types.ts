@@ -326,6 +326,7 @@ export type Database = {
       }
       pools: {
         Row: {
+          cancelled_notified: boolean
           created_at: string
           deadline: string
           description: string
@@ -355,6 +356,7 @@ export type Database = {
           winner_id: string | null
         }
         Insert: {
+          cancelled_notified?: boolean
           created_at?: string
           deadline: string
           description: string
@@ -384,6 +386,7 @@ export type Database = {
           winner_id?: string | null
         }
         Update: {
+          cancelled_notified?: boolean
           created_at?: string
           deadline?: string
           description?: string
@@ -627,7 +630,7 @@ export type Database = {
       app_role: "admin" | "user" | "pool_creator"
       measurement_unit: "kg" | "cm" | "reais" | "units" | "score"
       participant_status: "pending" | "approved" | "rejected" | "awaiting_proof"
-      pool_status: "draft" | "active" | "closed" | "finished"
+      pool_status: "draft" | "active" | "closed" | "finished" | "cancelled"
       pool_type: "custom" | "football"
     }
     CompositeTypes: {
@@ -759,7 +762,7 @@ export const Constants = {
       app_role: ["admin", "user", "pool_creator"],
       measurement_unit: ["kg", "cm", "reais", "units", "score"],
       participant_status: ["pending", "approved", "rejected", "awaiting_proof"],
-      pool_status: ["draft", "active", "closed", "finished"],
+      pool_status: ["draft", "active", "closed", "finished", "cancelled"],
       pool_type: ["custom", "football"],
     },
   },

@@ -31,6 +31,9 @@ const PoolCard = ({ pool, onClick, isUserParticipating = false, hasWonPrize = fa
   const isInProgress = pool.status === "active" && isExpired && isUserParticipating;
 
   const getStatusColor = (status: string) => {
+    if (status === "cancelled") {
+      return "bg-destructive text-destructive-foreground";
+    }
     if (isUserParticipating && status === "active") {
       return "bg-primary text-primary-foreground";
     }
@@ -44,6 +47,9 @@ const PoolCard = ({ pool, onClick, isUserParticipating = false, hasWonPrize = fa
   };
 
   const getStatusText = (status: string) => {
+    if (status === "cancelled") {
+      return "🚫 Cancelado";
+    }
     if (isUserParticipating && status === "active") {
       return "Participando";
     }
@@ -135,7 +141,12 @@ const PoolCard = ({ pool, onClick, isUserParticipating = false, hasWonPrize = fa
         <CardDescription className="line-clamp-2 mt-3 text-base">{pool.description}</CardDescription>
       </CardHeader>
       <CardContent className="space-y-2 relative pt-0">
-        {pool.status === "finished" && pool.finished_at ? (
+        {pool.status === "cancelled" ? (
+          <div className="flex items-center gap-2 text-sm font-medium text-destructive bg-destructive/10 p-3 rounded-xl border border-destructive/20">
+            <Clock className="w-5 h-5 text-destructive" />
+            <span>Cancelado — todos os jogos foram adiados</span>
+          </div>
+        ) : pool.status === "finished" && pool.finished_at ? (
           <div className="flex items-center gap-2 text-sm font-medium text-foreground/80 bg-muted/50 p-3 rounded-xl border border-border/50">
             <Clock className="w-5 h-5 text-muted-foreground" />
             <span>Finalizado em: {format(new Date(pool.finished_at), "dd 'de' MMMM, HH:mm", { locale: ptBR })}</span>

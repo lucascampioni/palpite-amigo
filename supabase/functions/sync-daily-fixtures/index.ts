@@ -154,7 +154,7 @@ serve(async (req) => {
         // Try to update existing match
         const { data: existing } = await supabase
           .from('football_matches')
-          .select('id, status')
+          .select('id, status, pool_id')
           .eq('external_id', externalId)
           .maybeSingle();
 
@@ -199,7 +199,29 @@ serve(async (req) => {
             })
             .eq('id', existing.id);
 
-          if (!error) totalUpdated++;
+          if (!error) {
+            totalUpdated++;
+
+            // After updating, check if all matches in this pool are now postponed/cancelled
+            if (['postponed', 'cancelled', 'abandoned'].includes(mappedStatus) && existing.pool_id) {
+              const { data: poolMatches } = await supabase
+                .from('football_matches')
+                .select('status')
+                .eq('pool_id', existing.pool_id);
+
+              if (poolMatches && poolMatches.length > 0) {
+                const allPostponed = poolMatches.every((m: any) => ['postponed', 'cancelled', 'abandoned'].includes(m.status));
+                if (allPostponed) {
+                  console.log(`🚫 All matches postponed for pool ${existing.pool_id}. Cancelling pool.`);
+                  await supabase
+                    .from('pools')
+                    .update({ status: 'cancelled' })
+                    .eq('id', existing.pool_id)
+                    .in('status', ['active', 'closed']);
+                }
+              }
+            }
+          }
         }
         // Note: We don't auto-create matches - they're created when pools are set up
       }
