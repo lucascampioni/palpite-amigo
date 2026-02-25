@@ -340,27 +340,32 @@ export const AdminParticipantsManager = ({
                 {approvedOpen ? <ChevronUp className="w-4 h-4 text-green-600" /> : <ChevronDown className="w-4 h-4 text-green-600" />}
               </CollapsibleTrigger>
               <CollapsibleContent className="mt-2 space-y-1">
-                {approved.map((p) => (
-                  <div key={p.id} className="flex items-center justify-between py-2 px-3 rounded-lg bg-card border text-sm">
-                    <span className="font-medium truncate">{p.participant_name}</span>
-                    <div className="flex items-center gap-1 shrink-0">
-                      {p.payment_proof && (
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => viewProof(p.payment_proof!)}
-                          className="h-7 w-7"
-                          title="Ver comprovante"
-                        >
-                          <Eye className="w-4 h-4 text-blue-500" />
-                        </Button>
-                      )}
-                      {p.guess_value && p.guess_value !== "Palpites de futebol" && (
-                        <Badge variant="outline" className="text-xs ml-2 shrink-0">{p.guess_value}</Badge>
-                      )}
+                {approved.map((p) => {
+                  const count = predictionCounts[p.id] || 1;
+                  const totalValue = fee > 0 ? fee * count : 0;
+                  return (
+                    <div key={p.id} className="flex items-center justify-between py-2 px-3 rounded-lg bg-card border text-sm">
+                      <span className="font-medium truncate">{p.participant_name}</span>
+                      <div className="flex items-center gap-1 shrink-0">
+                        {p.payment_proof && (
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => viewProof(p.payment_proof!)}
+                            className="h-7 w-7"
+                            title="Ver comprovante"
+                          >
+                            <Eye className="w-4 h-4 text-blue-500" />
+                          </Button>
+                        )}
+                        <Badge variant="outline" className="text-xs ml-2 shrink-0">
+                          {count} {count === 1 ? 'palpite' : 'palpites'}
+                          {totalValue > 0 ? ` · R$ ${totalValue.toFixed(2).replace('.', ',')}` : ''}
+                        </Badge>
+                      </div>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </CollapsibleContent>
             </Collapsible>
           )}
