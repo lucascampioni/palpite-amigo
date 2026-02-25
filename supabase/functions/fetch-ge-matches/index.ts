@@ -256,10 +256,17 @@ function translateRound(round: string): string {
   return round;
 }
 
+const EXCLUDED_STATUSES = new Set(['PST', 'CANC', 'ABD', 'WO', 'AWD']);
+
 function organizeFixtures(fixtures: any[], competitionName: string, competitionCode: string, isWorldCup = false): Championship {
+  // Filter out postponed, cancelled, abandoned matches
+  const validFixtures = fixtures.filter(f => {
+    const status = f.fixture?.status?.short;
+    return !EXCLUDED_STATUSES.has(status);
+  });
   const roundsMap = new Map<string, Match[]>();
 
-  for (const fixture of fixtures) {
+  for (const fixture of validFixtures) {
     const fixtureId = fixture.fixture?.id;
     const round = translateRound(fixture.league?.round || 'Rodada 1');
     const kickoff = fixture.fixture?.date || new Date().toISOString();
