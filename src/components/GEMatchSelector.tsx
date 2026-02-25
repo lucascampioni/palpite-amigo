@@ -216,8 +216,8 @@ export const GEMatchSelector = ({ open, onOpenChange, onMatchesSelected }: GEMat
             <TabsList className="w-full flex flex-wrap gap-1 h-auto p-1">
               {championships.map((champ) => {
                 const champLabels: Record<string, string> = {
-                  'bsa': '🇧🇷 Brasileirão',
-                  'pau': '🏟️ Paulista',
+                  'bsa': '🇧🇷 Série A',
+                  'pau': '🏟️ Paulistão',
                   'min': '🏟️ Mineiro',
                   'car': '🏟️ Carioca',
                   'pl': '🏴󠁧󠁢󠁥󠁮󠁧󠁿 Premier',
@@ -226,7 +226,7 @@ export const GEMatchSelector = ({ open, onOpenChange, onMatchesSelected }: GEMat
                 };
                 const label = champLabels[champ.id] || champ.name;
                 return (
-                  <TabsTrigger key={champ.id} value={champ.id} className="flex-1 min-w-0 text-[10px] sm:text-sm px-1.5 sm:px-2 py-1.5">
+                  <TabsTrigger key={champ.id} value={champ.id} className="min-w-0 text-[10px] sm:text-xs px-2 sm:px-3 py-1.5 whitespace-nowrap">
                     {label}
                   </TabsTrigger>
                 );
