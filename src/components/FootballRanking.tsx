@@ -984,60 +984,71 @@ const FootballRanking = ({ poolId, pool, approvedParticipantsCount, isOwner }: F
                                 }
 
                                 return (
-                                  <div key={pred.match_id} className={`text-sm rounded p-2 ${isExcluded ? 'bg-muted/30 opacity-60' : bgColor}`}>
-                                    <div className="flex items-center justify-between gap-2">
-                                      <div className="flex items-center gap-1.5 min-w-0 flex-1">
-                                        <div className="flex items-center gap-0.5 flex-shrink-0">
-                                          {pred.home_team_crest && (
-                                            <img src={pred.home_team_crest} alt={pred.home_team} className="w-4 h-4 object-contain" />
-                                          )}
-                                          <span className="text-[0.6rem] text-muted-foreground">vs</span>
-                                          {pred.away_team_crest && (
-                                            <img src={pred.away_team_crest} alt={pred.away_team} className="w-4 h-4 object-contain" />
-                                          )}
+                                  <Collapsible key={pred.match_id}>
+                                    <div className={`text-sm rounded overflow-hidden ${isExcluded ? 'bg-muted/30 opacity-60' : bgColor}`}>
+                                      <CollapsibleTrigger className="w-full">
+                                        <div className="p-2">
+                                          <div className="flex items-center justify-between gap-2">
+                                            <div className="flex items-center gap-1.5 min-w-0 flex-1">
+                                              <div className="flex items-center gap-0.5 flex-shrink-0">
+                                                {pred.home_team_crest && (
+                                                  <img src={pred.home_team_crest} alt={pred.home_team} className="w-4 h-4 object-contain" />
+                                                )}
+                                                <span className="text-[0.6rem] text-muted-foreground">vs</span>
+                                                {pred.away_team_crest && (
+                                                  <img src={pred.away_team_crest} alt={pred.away_team} className="w-4 h-4 object-contain" />
+                                                )}
+                                              </div>
+                                              {(() => {
+                                                const statusInfo = getMatchStatusLabel(pred.status);
+                                                return statusInfo ? (
+                                                  <Badge className={`text-[0.55rem] px-1 py-0 flex-shrink-0 ${statusInfo.className}`}>
+                                                    {statusInfo.label}
+                                                  </Badge>
+                                                ) : null;
+                                              })()}
+                                            </div>
+                                            <div className="flex items-center gap-1 flex-shrink-0">
+                                              {!isExcluded && (
+                                                <Badge 
+                                                  variant={displayPoints > 0 ? "default" : "secondary"}
+                                                  className="text-xs"
+                                                >
+                                                  {displayPoints} pt{displayPoints !== 1 ? 's' : ''}
+                                                </Badge>
+                                              )}
+                                              <ChevronDown className="h-3 w-3 text-muted-foreground/50" />
+                                            </div>
+                                          </div>
+                                          <p className="font-medium text-xs text-muted-foreground mt-0.5 truncate pl-0.5 text-left">{pred.home_team} vs {pred.away_team}</p>
                                         </div>
-                                        {(() => {
-                                          const statusInfo = getMatchStatusLabel(pred.status);
-                                          return statusInfo ? (
-                                            <Badge className={`text-[0.55rem] px-1 py-0 flex-shrink-0 ${statusInfo.className}`}>
-                                              {statusInfo.label}
-                                            </Badge>
-                                          ) : null;
-                                        })()}
-                                      </div>
-                                      {!isExcluded && (
-                                        <Badge 
-                                          variant={displayPoints > 0 ? "default" : "secondary"}
-                                          className="text-xs flex-shrink-0"
-                                        >
-                                          {displayPoints} pt{displayPoints !== 1 ? 's' : ''}
-                                        </Badge>
-                                      )}
-                                    </div>
-                                    <p className="font-medium text-xs text-muted-foreground mt-0.5 truncate pl-0.5 text-left">{pred.home_team} vs {pred.away_team}</p>
-                                    {!isExcluded && (
-                                      <div className="mt-1.5 space-y-1 pl-0.5">
-                                        <p className="text-xs text-muted-foreground">
-                                          {format(new Date(pred.match_date), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
-                                        </p>
-                                        <div className="flex items-center gap-2 flex-wrap">
-                                          <span className="text-xs text-muted-foreground">
-                                            Palpite: {pred.home_score_prediction} - {pred.away_score_prediction}
-                                          </span>
-                                          {pred.home_score !== null && pred.away_score !== null && (
-                                            <span className="text-xs font-semibold">
-                                              | Placar: {pred.home_score} - {pred.away_score}
-                                            </span>
-                                          )}
-                                        </div>
-                                        {explanation && (
-                                          <p className="text-xs font-medium text-foreground/80 italic">
-                                            {explanation}
-                                          </p>
+                                      </CollapsibleTrigger>
+                                      <CollapsibleContent>
+                                        {!isExcluded && (
+                                          <div className="px-2 pb-2 space-y-1">
+                                            <p className="text-xs text-muted-foreground">
+                                              {format(new Date(pred.match_date), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
+                                            </p>
+                                            <div className="flex items-center gap-2 flex-wrap">
+                                              <span className="text-xs text-muted-foreground">
+                                                Palpite: {pred.home_score_prediction} - {pred.away_score_prediction}
+                                              </span>
+                                              {pred.home_score !== null && pred.away_score !== null && (
+                                                <span className="text-xs font-semibold">
+                                                  | Placar: {pred.home_score} - {pred.away_score}
+                                                </span>
+                                              )}
+                                            </div>
+                                            {explanation && (
+                                              <p className="text-xs font-medium text-foreground/80 italic">
+                                                {explanation}
+                                              </p>
+                                            )}
+                                          </div>
                                         )}
-                                      </div>
-                                    )}
-                                  </div>
+                                      </CollapsibleContent>
+                                    </div>
+                                  </Collapsible>
                                 );
                               })
                             )}
@@ -1230,60 +1241,71 @@ const FootballRanking = ({ poolId, pool, approvedParticipantsCount, isOwner }: F
                                }
 
                                return (
-                                 <div key={pred.match_id} className={`text-sm rounded p-2 ${isExcluded2 ? 'bg-muted/30 opacity-60' : bgColor}`}>
-                                   <div className="flex items-center justify-between gap-2">
-                                     <div className="flex items-center gap-1.5 min-w-0 flex-1">
-                                       <div className="flex items-center gap-0.5 flex-shrink-0">
-                                         {pred.home_team_crest && (
-                                           <img src={pred.home_team_crest} alt={pred.home_team} className="w-4 h-4 object-contain" />
-                                         )}
-                                         <span className="text-[0.6rem] text-muted-foreground">vs</span>
-                                         {pred.away_team_crest && (
-                                           <img src={pred.away_team_crest} alt={pred.away_team} className="w-4 h-4 object-contain" />
-                                         )}
+                                 <Collapsible key={pred.match_id}>
+                                   <div className={`text-sm rounded overflow-hidden ${isExcluded2 ? 'bg-muted/30 opacity-60' : bgColor}`}>
+                                     <CollapsibleTrigger className="w-full">
+                                       <div className="p-2">
+                                         <div className="flex items-center justify-between gap-2">
+                                           <div className="flex items-center gap-1.5 min-w-0 flex-1">
+                                             <div className="flex items-center gap-0.5 flex-shrink-0">
+                                               {pred.home_team_crest && (
+                                                 <img src={pred.home_team_crest} alt={pred.home_team} className="w-4 h-4 object-contain" />
+                                               )}
+                                               <span className="text-[0.6rem] text-muted-foreground">vs</span>
+                                               {pred.away_team_crest && (
+                                                 <img src={pred.away_team_crest} alt={pred.away_team} className="w-4 h-4 object-contain" />
+                                               )}
+                                             </div>
+                                             {(() => {
+                                               const statusInfo = getMatchStatusLabel(pred.status);
+                                               return statusInfo ? (
+                                                 <Badge className={`text-[0.55rem] px-1 py-0 flex-shrink-0 ${statusInfo.className}`}>
+                                                   {statusInfo.label}
+                                                 </Badge>
+                                               ) : null;
+                                             })()}
+                                           </div>
+                                           <div className="flex items-center gap-1 flex-shrink-0">
+                                             {!isExcluded2 && (
+                                               <Badge 
+                                                 variant={displayPoints2 > 0 ? "default" : "secondary"}
+                                                 className="text-xs"
+                                               >
+                                                 {displayPoints2} pt{displayPoints2 !== 1 ? 's' : ''}
+                                               </Badge>
+                                             )}
+                                             <ChevronDown className="h-3 w-3 text-muted-foreground/50" />
+                                           </div>
+                                         </div>
+                                         <p className="font-medium text-xs text-muted-foreground mt-0.5 truncate pl-0.5 text-left">{pred.home_team} vs {pred.away_team}</p>
                                        </div>
-                                       {(() => {
-                                         const statusInfo = getMatchStatusLabel(pred.status);
-                                         return statusInfo ? (
-                                           <Badge className={`text-[0.55rem] px-1 py-0 flex-shrink-0 ${statusInfo.className}`}>
-                                             {statusInfo.label}
-                                           </Badge>
-                                         ) : null;
-                                       })()}
-                                     </div>
-                                     {!isExcluded2 && (
-                                       <Badge 
-                                         variant={displayPoints2 > 0 ? "default" : "secondary"}
-                                         className="text-xs flex-shrink-0"
-                                       >
-                                         {displayPoints2} pt{displayPoints2 !== 1 ? 's' : ''}
-                                       </Badge>
-                                     )}
-                                   </div>
-                                   <p className="font-medium text-xs text-muted-foreground mt-0.5 truncate pl-0.5 text-left">{pred.home_team} vs {pred.away_team}</p>
-                                   {!isExcluded2 && (
-                                     <div className="mt-1.5 space-y-1 pl-0.5">
-                                       <p className="text-xs text-muted-foreground">
-                                         {format(new Date(pred.match_date), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
-                                       </p>
-                                       <div className="flex items-center gap-2 flex-wrap">
-                                         <span className="text-xs text-muted-foreground">
-                                           Palpite: {pred.home_score_prediction} - {pred.away_score_prediction}
-                                         </span>
-                                         {pred.home_score !== null && pred.away_score !== null && (
-                                           <span className="text-xs font-semibold">
-                                             | Placar: {pred.home_score} - {pred.away_score}
-                                           </span>
-                                         )}
-                                       </div>
-                                       {explanation && (
-                                         <p className="text-xs font-medium text-foreground/80 italic">
-                                           {explanation}
-                                         </p>
+                                     </CollapsibleTrigger>
+                                     <CollapsibleContent>
+                                       {!isExcluded2 && (
+                                         <div className="px-2 pb-2 space-y-1">
+                                           <p className="text-xs text-muted-foreground">
+                                             {format(new Date(pred.match_date), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
+                                           </p>
+                                           <div className="flex items-center gap-2 flex-wrap">
+                                             <span className="text-xs text-muted-foreground">
+                                               Palpite: {pred.home_score_prediction} - {pred.away_score_prediction}
+                                             </span>
+                                             {pred.home_score !== null && pred.away_score !== null && (
+                                               <span className="text-xs font-semibold">
+                                                 | Placar: {pred.home_score} - {pred.away_score}
+                                               </span>
+                                             )}
+                                           </div>
+                                           {explanation && (
+                                             <p className="text-xs font-medium text-foreground/80 italic">
+                                               {explanation}
+                                             </p>
+                                           )}
+                                         </div>
                                        )}
-                                     </div>
-                                   )}
-                                 </div>
+                                     </CollapsibleContent>
+                                   </div>
+                                 </Collapsible>
                                );
                              })
                           )}
