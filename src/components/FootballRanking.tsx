@@ -953,7 +953,7 @@ const FootballRanking = ({ poolId, pool, approvedParticipantsCount, isOwner }: F
                                                 <ChevronDown className="h-3 w-3 text-muted-foreground/50" />
                                               </div>
                                             </div>
-                                            <p className="font-medium text-xs text-muted-foreground mt-0.5 truncate pl-0.5">{pred.home_team} vs {pred.away_team}</p>
+                                            <p className="font-medium text-xs text-muted-foreground mt-0.5 truncate pl-0.5 text-left">{pred.home_team} vs {pred.away_team}</p>
                                           </div>
                                         </CollapsibleTrigger>
                                         <CollapsibleContent>
@@ -1196,7 +1196,7 @@ const FootballRanking = ({ poolId, pool, approvedParticipantsCount, isOwner }: F
                                                <ChevronDown className="h-3 w-3 text-muted-foreground/50" />
                                              </div>
                                            </div>
-                                           <p className="font-medium text-xs text-muted-foreground mt-0.5 truncate pl-0.5">{pred.home_team} vs {pred.away_team}</p>
+                                           <p className="font-medium text-xs text-muted-foreground mt-0.5 truncate pl-0.5 text-left">{pred.home_team} vs {pred.away_team}</p>
                                          </div>
                                        </CollapsibleTrigger>
                                        <CollapsibleContent>
