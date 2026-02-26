@@ -713,11 +713,11 @@ const FootballRanking = ({ poolId, pool, approvedParticipantsCount, isOwner }: F
     <Card>
       <CardHeader>
         <div>
-          <CardTitle className="flex items-center gap-2">
-            <Trophy className="w-5 h-5 text-primary" />
-            {allMatchesFinished ? 'Ranking Final' : 'Ranking Parcial'}
+          <CardTitle className="flex items-center gap-2 flex-wrap">
+            <Trophy className="w-5 h-5 text-primary flex-shrink-0" />
+            <span className="break-words">{allMatchesFinished ? 'Ranking Final' : 'Ranking Parcial'}</span>
             {hasLiveMatches && (
-              <Badge className="bg-red-500 text-white text-[0.6rem] px-1.5 py-0 animate-pulse">
+              <Badge className="bg-red-500 text-white text-[0.55rem] sm:text-[0.6rem] px-1.5 py-0 animate-pulse whitespace-nowrap flex-shrink-0">
                 AO VIVO
               </Badge>
             )}
