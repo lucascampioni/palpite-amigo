@@ -1015,7 +1015,7 @@ const PoolDetail = () => {
                   items.push({ emoji: '🥉', val: formatPrize(isPercentage ? calcPrize(pct) : pct) });
                 }
                 const isFinished = pool.status === 'finished';
-                const showPercentageOnly = isPercentage && !isFinished;
+                const showPercentageOnly = isPercentage && !isFinished && !isPastDeadline;
                 return (
                   <div className="rounded-xl bg-gradient-to-r from-yellow-500/10 via-primary/5 to-orange-500/10 border border-primary/20 px-3 py-2.5">
                     {showPercentageOnly ? (
@@ -1074,7 +1074,7 @@ const PoolDetail = () => {
                           const pctStr = pctParts.join(' · ');
                           return (
                             <p className="text-[0.65rem] text-muted-foreground text-center mt-1">
-                              {isFinished
+                              {isFinished || isPastDeadline
                                 ? `* ${pctStr} do valor arrecadado (${totalPredictionSets} palpite${totalPredictionSets !== 1 ? 's' : ''})`
                                 : `* ${pctStr} do valor arrecadado — atualizado conforme novas inscrições`}
                             </p>
