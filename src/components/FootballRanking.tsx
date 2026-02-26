@@ -558,12 +558,14 @@ const FootballRanking = ({ poolId, pool, approvedParticipantsCount, isOwner }: F
       return index + 1;
     }
 
-    // For TOP 1 pools: positions are always sequential (no skipping)
+    // For TOP 1 pools: dense ranking (no skipping positions)
     if (isTop1Only) {
       if (ranking[index - 1].total_points === participant.total_points) {
         return getActualPosition(index - 1, ranking[index - 1]);
       }
-      return index + 1;
+      // Dense rank: previous position + 1 (not index + 1)
+      const prevPosition = getActualPosition(index - 1, ranking[index - 1]);
+      return (prevPosition ?? 0) + 1;
     }
 
     // For TOP 2/3: skip positions when there are ties (standard dense ranking)
