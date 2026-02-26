@@ -926,26 +926,31 @@ const FootballRanking = ({ poolId, pool, approvedParticipantsCount, isOwner }: F
                                       <div className={`text-sm rounded overflow-hidden ${isExcluded ? 'bg-muted/30 opacity-60' : bgColor}`}>
                                         <CollapsibleTrigger className="w-full">
                                           <div className="flex items-center justify-between p-2 gap-2">
-                                            <div className="flex items-center gap-1.5 min-w-0 flex-1 flex-wrap">
-                                              {pred.home_team_crest && (
-                                                <img src={pred.home_team_crest} alt={pred.home_team} className="w-4 h-4 flex-shrink-0 object-contain" />
-                                              )}
+                                            <div className="flex items-center gap-1.5 min-w-0 flex-1">
+                                              <div className="flex items-center gap-0.5 flex-shrink-0">
+                                                {pred.home_team_crest && (
+                                                  <img src={pred.home_team_crest} alt={pred.home_team} className="w-4 h-4 object-contain" />
+                                                )}
+                                                {pred.away_team_crest && (
+                                                  <img src={pred.away_team_crest} alt={pred.away_team} className="w-4 h-4 object-contain" />
+                                                )}
+                                              </div>
                                               <p className="font-medium text-xs leading-tight truncate">{pred.home_team} vs {pred.away_team}</p>
-                                              {pred.away_team_crest && (
-                                                <img src={pred.away_team_crest} alt={pred.away_team} className="w-4 h-4 flex-shrink-0 object-contain" />
-                                              )}
-                                              <Badge className={`text-[0.55rem] px-1 py-0 ${getMatchStatusLabel(pred.status)?.className || ''}`}>
+                                              <Badge className={`text-[0.55rem] px-1 py-0 flex-shrink-0 ${getMatchStatusLabel(pred.status)?.className || ''}`}>
                                                 🏁 Encerrado
                                               </Badge>
                                             </div>
-                                            {!isExcluded && (
-                                              <Badge 
-                                                variant={displayPoints > 0 ? "default" : "secondary"}
-                                                className="text-xs flex-shrink-0"
-                                              >
-                                                {displayPoints} pt{displayPoints !== 1 ? 's' : ''}
-                                              </Badge>
-                                            )}
+                                            <div className="flex items-center gap-1 flex-shrink-0">
+                                              {!isExcluded && (
+                                                <Badge 
+                                                  variant={displayPoints > 0 ? "default" : "secondary"}
+                                                  className="text-xs"
+                                                >
+                                                  {displayPoints} pt{displayPoints !== 1 ? 's' : ''}
+                                                </Badge>
+                                              )}
+                                              <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" />
+                                            </div>
                                           </div>
                                         </CollapsibleTrigger>
                                         <CollapsibleContent>
@@ -1161,26 +1166,31 @@ const FootballRanking = ({ poolId, pool, approvedParticipantsCount, isOwner }: F
                                      <div className={`text-sm rounded overflow-hidden ${isExcluded2 ? 'bg-muted/30 opacity-60' : bgColor}`}>
                                        <CollapsibleTrigger className="w-full">
                                          <div className="flex items-center justify-between p-2 gap-2">
-                                           <div className="flex items-center gap-1.5 min-w-0 flex-1 flex-wrap">
-                                             {pred.home_team_crest && (
-                                               <img src={pred.home_team_crest} alt={pred.home_team} className="w-4 h-4 flex-shrink-0 object-contain" />
-                                             )}
+                                           <div className="flex items-center gap-1.5 min-w-0 flex-1">
+                                             <div className="flex items-center gap-0.5 flex-shrink-0">
+                                               {pred.home_team_crest && (
+                                                 <img src={pred.home_team_crest} alt={pred.home_team} className="w-4 h-4 object-contain" />
+                                               )}
+                                               {pred.away_team_crest && (
+                                                 <img src={pred.away_team_crest} alt={pred.away_team} className="w-4 h-4 object-contain" />
+                                               )}
+                                             </div>
                                              <p className="font-medium text-xs leading-tight truncate">{pred.home_team} vs {pred.away_team}</p>
-                                             {pred.away_team_crest && (
-                                               <img src={pred.away_team_crest} alt={pred.away_team} className="w-4 h-4 flex-shrink-0 object-contain" />
-                                             )}
-                                             <Badge className={`text-[0.55rem] px-1 py-0 ${getMatchStatusLabel(pred.status)?.className || ''}`}>
+                                             <Badge className={`text-[0.55rem] px-1 py-0 flex-shrink-0 ${getMatchStatusLabel(pred.status)?.className || ''}`}>
                                                🏁 Encerrado
                                              </Badge>
                                            </div>
-                                           {!isExcluded2 && (
-                                             <Badge 
-                                               variant={displayPoints2 > 0 ? "default" : "secondary"}
-                                               className="text-xs flex-shrink-0"
-                                             >
-                                               {displayPoints2} pt{displayPoints2 !== 1 ? 's' : ''}
-                                             </Badge>
-                                           )}
+                                           <div className="flex items-center gap-1 flex-shrink-0">
+                                             {!isExcluded2 && (
+                                               <Badge 
+                                                 variant={displayPoints2 > 0 ? "default" : "secondary"}
+                                                 className="text-xs"
+                                               >
+                                                 {displayPoints2} pt{displayPoints2 !== 1 ? 's' : ''}
+                                               </Badge>
+                                             )}
+                                             <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" />
+                                           </div>
                                          </div>
                                        </CollapsibleTrigger>
                                        <CollapsibleContent>
