@@ -670,7 +670,7 @@ const FootballRanking = ({ poolId, pool, approvedParticipantsCount, isOwner }: F
       'HT': { label: '⏸️ Intervalo', className: 'bg-yellow-500 text-black' },
       'ET': { label: '🔴 Prorrogação', className: 'bg-red-500 text-white animate-pulse' },
       'P': { label: '🔴 Pênaltis', className: 'bg-red-500 text-white animate-pulse' },
-      'finished': { label: '✅ Encerrado', className: 'bg-muted text-muted-foreground' },
+      'finished': { label: '🏁 Encerrado', className: 'bg-muted text-muted-foreground' },
       'scheduled': { label: '⏳ Agendado', className: 'bg-muted text-muted-foreground' },
       'suspended': { label: '⚠️ Suspenso', className: 'bg-orange-500 text-white' },
       'postponed': { label: '📅 Adiado — não conta', className: 'bg-orange-100 dark:bg-orange-950 text-orange-700 dark:text-orange-300' },
