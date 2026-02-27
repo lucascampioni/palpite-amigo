@@ -452,7 +452,6 @@ const FootballRanking = ({ poolId, pool, approvedParticipantsCount, isOwner }: F
 
     const maxW = poolData.max_winners || 3;
     const isPercentage = poolData.prize_type === 'percentage';
-    // For percentage prizes, totalCollected is based on total prediction sets (each set = 1 entry fee)
     const totalPredictionSets = ranking.length;
     const totalCollected = isPercentage ? (poolData.entry_fee || 0) * totalPredictionSets : 0;
 
@@ -470,12 +469,22 @@ const FootballRanking = ({ poolId, pool, approvedParticipantsCount, isOwner }: F
     if (!hasPrizes) return ranking;
 
     const result = [...ranking];
+
+    // When all participants have 0 points and tiebreaker by time was applied,
+    // positions are sequential — prizes go strictly to top N by position, no splitting.
+    const allZero = result.every(r => r.total_points === 0);
+    if (allZero) {
+      for (let i = 0; i < Math.min(maxW, result.length); i++) {
+        result[i].prize_amount = prizes[i] || 0;
+      }
+      return result;
+    }
+
     let currentPosition = 0;
 
     while (currentPosition < result.length) {
       const currentScore = result[currentPosition].total_points;
       
-      // Find ALL participants with the same score (entire tie group, not limited by maxW)
       let tieGroupEnd = currentPosition;
       while (tieGroupEnd < result.length && result[tieGroupEnd].total_points === currentScore) {
         tieGroupEnd++;
@@ -483,25 +492,20 @@ const FootballRanking = ({ poolId, pool, approvedParticipantsCount, isOwner }: F
       
       const tieGroupSize = tieGroupEnd - currentPosition;
       
-      // If this tie group doesn't touch any prize position, stop
       if (currentPosition >= maxW) break;
       
-      // Sum prizes for positions covered by the tie group (limited to maxW)
       let prizeSum = 0;
       const prizeEnd = Math.min(tieGroupEnd, maxW);
       for (let i = currentPosition; i < prizeEnd; i++) {
         prizeSum += prizes[i] || 0;
       }
 
-      // Distribute prize equally among ALL members of the tie group
       const prizePerParticipant = tieGroupSize > 0 ? prizeSum / tieGroupSize : 0;
 
-      // Assign prize to all tied prediction sets
       for (let i = currentPosition; i < tieGroupEnd; i++) {
         result[i].prize_amount = prizePerParticipant;
       }
 
-      // Move to next position after the tied group
       currentPosition = tieGroupEnd;
     }
 
