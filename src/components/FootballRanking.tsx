@@ -376,7 +376,7 @@ const FootballRanking = ({ poolId, pool, approvedParticipantsCount, isOwner }: F
     setLoading(false);
   };
 
-  const getPrizeStatusBadge = (status: string | null | undefined, prizeAmount?: number) => {
+  const getPrizeStatusBadge = (status: string | null | undefined, prizeAmount?: number, isCurrentUser?: boolean) => {
     if (!prizeAmount || prizeAmount === 0) return null;
     
     if (!status || status === 'awaiting_pix') {
@@ -404,7 +404,7 @@ const FootballRanking = ({ poolId, pool, approvedParticipantsCount, isOwner }: F
           <Badge variant="outline" className="text-[0.625rem] sm:text-xs bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200 border-green-300 dark:border-green-700 px-1.5 sm:px-2 py-0 sm:py-0.5 whitespace-nowrap">
             Pago
           </Badge>
-          {!isOwner && whatsappLink && (
+          {!isOwner && isCurrentUser && whatsappLink && (
             <a 
               href={whatsappLink} 
               target="_blank" 
@@ -896,7 +896,7 @@ const FootballRanking = ({ poolId, pool, approvedParticipantsCount, isOwner }: F
                                     R$ {currentUser.prize_amount.toFixed(2).replace('.', ',')}
                                   </Badge>
                                 )}
-                                {allMatchesFinished && getPrizeStatusBadge(currentUser.prize_status, currentUser.prize_amount)}
+                                {allMatchesFinished && getPrizeStatusBadge(currentUser.prize_status, currentUser.prize_amount, true)}
                               </div>
                               {expandedMyPosition.has(currentUser.ranking_key) ? (
                                 <ChevronUp className="h-4 w-4 sm:h-5 sm:w-5 text-primary flex-shrink-0" />
@@ -918,7 +918,7 @@ const FootballRanking = ({ poolId, pool, approvedParticipantsCount, isOwner }: F
                                 R$ {currentUser.prize_amount.toFixed(2).replace('.', ',')}
                               </Badge>
                             )}
-                            {allMatchesFinished && getPrizeStatusBadge(currentUser.prize_status, currentUser.prize_amount)}
+                            {allMatchesFinished && getPrizeStatusBadge(currentUser.prize_status, currentUser.prize_amount, true)}
                           </div>
                         </div>
                       </CollapsibleTrigger>
@@ -1153,7 +1153,7 @@ const FootballRanking = ({ poolId, pool, approvedParticipantsCount, isOwner }: F
                                   R$ {participant.prize_amount.toFixed(2).replace('.', ',')}
                                 </Badge>
                               )}
-                              {allMatchesFinished && getPrizeStatusBadge(participant.prize_status, participant.prize_amount)}
+                              {allMatchesFinished && getPrizeStatusBadge(participant.prize_status, participant.prize_amount, participant.id === currentUserParticipantId)}
                             </div>
                             {isExpanded ? (
                               <ChevronUp className="h-4 w-4 sm:h-5 sm:w-5 text-muted-foreground flex-shrink-0" />
@@ -1175,7 +1175,7 @@ const FootballRanking = ({ poolId, pool, approvedParticipantsCount, isOwner }: F
                               R$ {participant.prize_amount.toFixed(2).replace('.', ',')}
                             </Badge>
                           )}
-                          {allMatchesFinished && getPrizeStatusBadge(participant.prize_status, participant.prize_amount)}
+                          {allMatchesFinished && getPrizeStatusBadge(participant.prize_status, participant.prize_amount, participant.id === currentUserParticipantId)}
                         </div>
                       </div>
                     </CollapsibleTrigger>
