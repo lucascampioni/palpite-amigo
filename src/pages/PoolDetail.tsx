@@ -1343,11 +1343,20 @@ const PoolDetail = () => {
                       placement={userPrizeInfo.placement}
                       isTied={userPrizeInfo.isTied}
                       tiedWithCount={userPrizeInfo.tiedWithCount}
-                      totalPrizes={{
-                        first: pool.first_place_prize ? parseFloat(pool.first_place_prize) : 0,
-                        second: pool.second_place_prize ? parseFloat(pool.second_place_prize) : 0,
-                        third: pool.third_place_prize ? parseFloat(pool.third_place_prize) : 0
-                      }}
+                      totalPrizes={(() => {
+                        const isPercentage = pool.prize_type === 'percentage';
+                        const totalPredictionSets = rankingData.length > 0 ? rankingData.length : participants.filter(p => p.status === 'approved').length;
+                        const totalCollected = (pool.entry_fee ? parseFloat(pool.entry_fee) : 0) * totalPredictionSets;
+                        const calc = (val: any) => {
+                          const num = val ? parseFloat(val) : 0;
+                          return isPercentage ? (num / 100) * totalCollected : num;
+                        };
+                        return {
+                          first: calc(pool.first_place_prize),
+                          second: calc(pool.second_place_prize),
+                          third: calc(pool.third_place_prize)
+                        };
+                      })()}
                       onSuccess={loadPoolData}
                     />
                   </>
