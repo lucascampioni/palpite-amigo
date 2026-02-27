@@ -40,6 +40,7 @@ const EditFootballPool = () => {
   const [matches, setMatches] = useState<Match[]>([]);
   const [isPrivate, setIsPrivate] = useState(false);
   const [isOfficial, setIsOfficial] = useState(false);
+  const [hasWhatsappGroup, setHasWhatsappGroup] = useState(false);
   const [scoringSystem, setScoringSystem] = useState<'standard' | 'exact_only'>('exact_only');
   const [showGESelector, setShowGESelector] = useState(false);
   const [deadline, setDeadline] = useState<string>("");
@@ -100,6 +101,7 @@ const EditFootballPool = () => {
     setDescription(poolData.description || "");
     setIsPrivate(poolData.is_private);
     setIsOfficial(poolData.is_official || false);
+    setHasWhatsappGroup(poolData.has_whatsapp_group || false);
     setScoringSystem((poolData.scoring_system || 'exact_only') as 'standard' | 'exact_only');
     setEntryFee(poolData.entry_fee ? poolData.entry_fee.toString() : "");
     setMaxParticipants(poolData.max_participants ? poolData.max_participants.toString() : "unlimited");
@@ -246,6 +248,7 @@ const EditFootballPool = () => {
           deadline: new Date(deadline).toISOString(),
           is_private: isPrivate,
           is_official: isOfficial,
+          has_whatsapp_group: hasWhatsappGroup,
           scoring_system: scoringSystem,
           entry_fee: entryFee ? parseFloat(entryFee) : null,
           max_participants: maxParticipants !== "unlimited" ? parseInt(maxParticipants) : null,
@@ -585,6 +588,20 @@ const EditFootballPool = () => {
                     </div>
                   </div>
                 </div>
+              </div>
+
+              <div className="flex items-center justify-between rounded-lg border p-4 bg-muted/30">
+                <div className="space-y-0.5">
+                  <Label htmlFor="has-whatsapp-group">📱 Grupo do WhatsApp</Label>
+                  <p className="text-sm text-muted-foreground">
+                    Há um grupo no WhatsApp para esse bolão?
+                  </p>
+                </div>
+                <Switch
+                  id="has-whatsapp-group"
+                  checked={hasWhatsappGroup}
+                  onCheckedChange={setHasWhatsappGroup}
+                />
               </div>
 
               <div className="flex items-center justify-between rounded-lg border p-4">

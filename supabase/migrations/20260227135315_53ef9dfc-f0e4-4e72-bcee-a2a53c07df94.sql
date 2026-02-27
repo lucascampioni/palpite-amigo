@@ -1,0 +1,1 @@
+ALTER TABLE public.pools ADD COLUMN has_whatsapp_group boolean NOT NULL DEFAULT false;

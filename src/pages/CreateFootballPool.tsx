@@ -61,6 +61,7 @@ const CreateFootballPool = () => {
   const [replaceProfilePix, setReplaceProfilePix] = useState(false);
   const [savePixToProfile, setSavePixToProfile] = useState(false);
   const [isOfficial, setIsOfficial] = useState(false);
+  const [hasWhatsappGroup, setHasWhatsappGroup] = useState(false);
   const [scoringSystem, setScoringSystem] = useState<'standard' | 'exact_only'>('exact_only');
   const [maxWinners, setMaxWinners] = useState<number>(1);
   const [prizeType, setPrizeType] = useState<'fixed' | 'percentage'>('fixed');
@@ -273,6 +274,7 @@ const CreateFootballPool = () => {
         entry_fee: entryFee ? parseFloat(entryFee) : null,
         max_participants: maxParticipants && maxParticipants !== "unlimited" ? parseInt(maxParticipants) : null,
         is_official: isOfficial,
+        has_whatsapp_group: hasWhatsappGroup,
         max_winners: maxWinners,
         prize_type: prizeType,
         first_place_prize: firstPlacePrize ? parseFloat(firstPlacePrize) : null,
@@ -749,6 +751,20 @@ const CreateFootballPool = () => {
                     )}
                   </div>
                 )}
+              </div>
+
+              <div className="flex items-center justify-between rounded-lg border p-4 bg-muted/30">
+                <div className="space-y-0.5">
+                  <Label htmlFor="has-whatsapp-group" className="text-base font-semibold">📱 Grupo do WhatsApp</Label>
+                  <p className="text-sm text-muted-foreground">
+                    Há um grupo no WhatsApp para esse bolão?
+                  </p>
+                </div>
+                <Switch
+                  id="has-whatsapp-group"
+                  checked={hasWhatsappGroup}
+                  onCheckedChange={setHasWhatsappGroup}
+                />
               </div>
 
               <div className="flex items-center justify-between rounded-lg border p-4 bg-muted/30">
