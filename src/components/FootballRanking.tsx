@@ -385,12 +385,7 @@ const FootballRanking = ({ poolId, pool, approvedParticipantsCount, isOwner }: F
         onClick={(e) => {
           e.preventDefault();
           e.stopPropagation();
-          const el = document.getElementById(`premio-${participantId}`);
-          if (el) {
-            el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-            el.classList.add('ring-2', 'ring-primary', 'rounded-lg');
-            setTimeout(() => el.classList.remove('ring-2', 'ring-primary', 'rounded-lg'), 2000);
-          }
+          window.dispatchEvent(new CustomEvent('scroll-to-prize', { detail: participantId }));
         }}
         className="flex items-center gap-1 text-[0.6rem] sm:text-xs text-muted-foreground hover:text-primary transition-colors"
       >
