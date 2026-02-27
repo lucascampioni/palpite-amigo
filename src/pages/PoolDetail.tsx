@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
-import { ArrowLeft, Calendar, Trophy, Users, Share2, Award, Copy, Lock, Unlock, CheckCircle, Edit, ChevronDown, ChevronUp, Info, Trash2, X } from "lucide-react";
+import { ArrowLeft, Calendar, Trophy, Users, Share2, Award, Copy, Lock, Unlock, CheckCircle, Edit, ChevronDown, ChevronUp, Info, Trash2, X, MessageCircle } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { Input } from "@/components/ui/input";
@@ -1400,6 +1400,17 @@ const PoolDetail = () => {
                         >
                           <CheckCircle className="w-4 h-4" />
                           Ver comprovante de pagamento
+                        </a>
+                      )}
+                      {ownerPhone && (
+                        <a
+                          href={`https://wa.me/${ownerPhone.replace(/\D/g, '')}?text=${encodeURIComponent(`Olá ${ownerName || ''}! Meu prêmio do bolão "${pool?.title}" foi marcado como pago, mas ainda não recebi. Pode verificar?`)}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-2 text-xs text-muted-foreground hover:text-primary transition-colors"
+                        >
+                          <MessageCircle className="w-3.5 h-3.5" />
+                          Não recebeu? Fale com o criador
                         </a>
                       )}
                     </div>
