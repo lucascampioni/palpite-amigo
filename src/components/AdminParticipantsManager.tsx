@@ -66,6 +66,7 @@ export const AdminParticipantsManager = ({
 }: AdminParticipantsManagerProps) => {
   const { toast } = useToast();
   const [processing, setProcessing] = useState<string | null>(null);
+  const [participantsOpen, setParticipantsOpen] = useState(false);
   const [approvedOpen, setApprovedOpen] = useState(false);
   const [pendingOpen, setPendingOpen] = useState(false);
   const [rejectedOpen, setRejectedOpen] = useState(false);
@@ -253,202 +254,212 @@ export const AdminParticipantsManager = ({
   return (
     <>
       <Card className="border">
-        <CardContent className="p-4 space-y-3">
-          {/* Summary header */}
-          <div className="flex items-center gap-3">
-            <Users className="w-5 h-5 text-primary" />
-            <div className="flex items-center gap-2 flex-wrap">
-              <span className="text-sm font-semibold">Participantes</span>
-              <span className="text-xs text-muted-foreground">
-                {approved.length} aprovado(s){actualPending.length > 0 && ` · ${actualPending.length} pendente(s)`}{(rejected.length + definitelyRejected.length) > 0 && ` · ${rejected.length + definitelyRejected.length} rejeitado(s)`}
-              </span>
-            </div>
-          </div>
+        <CardContent className="p-4">
+          <Collapsible open={participantsOpen} onOpenChange={setParticipantsOpen}>
+            <CollapsibleTrigger className="w-full flex items-center justify-between gap-3 text-left">
+              <div className="flex items-center gap-3 min-w-0">
+                <Users className="w-5 h-5 text-primary shrink-0" />
+                <div className="flex items-center gap-2 flex-wrap min-w-0">
+                  <span className="text-sm font-semibold">Participantes</span>
+                  <span className="text-xs text-muted-foreground">
+                    {approved.length} aprovado(s){actualPending.length > 0 && ` · ${actualPending.length} pendente(s)`}{(rejected.length + definitelyRejected.length) > 0 && ` · ${rejected.length + definitelyRejected.length} rejeitado(s)`}
+                  </span>
+                </div>
+              </div>
+              {participantsOpen ? (
+                <ChevronUp className="w-4 h-4 text-muted-foreground shrink-0" />
+              ) : (
+                <ChevronDown className="w-4 h-4 text-muted-foreground shrink-0" />
+              )}
+            </CollapsibleTrigger>
 
-          {/* Pending List */}
-          {actualPending.length > 0 && (
-            <Collapsible open={pendingOpen} onOpenChange={setPendingOpen}>
-              <CollapsibleTrigger className="w-full flex items-center justify-between p-3 rounded-lg bg-orange-50 dark:bg-orange-950/50 border border-orange-200 dark:border-orange-800 hover:bg-orange-100 dark:hover:bg-orange-950 transition-colors">
-                <span className="text-sm font-medium text-orange-700 dark:text-orange-400 flex items-center gap-2">
-                  ⏳ Pendentes ({actualPending.length})
-                </span>
-                {pendingOpen ? <ChevronUp className="w-4 h-4 text-orange-600" /> : <ChevronDown className="w-4 h-4 text-orange-600" />}
-              </CollapsibleTrigger>
-              <CollapsibleContent className="mt-2 space-y-1">
-                {actualPending.map((p) => (
-                  <div key={p.id} className="flex items-center justify-between py-2 px-3 rounded-lg bg-card border text-sm gap-2">
-                    <div className="min-w-0 flex-1">
-                      <span className="font-medium truncate block">{p.participant_name}</span>
-                      {predictionCounts[p.id] && predictionCounts[p.id] > 1 && (
-                        <span className="text-[11px] font-semibold text-primary">
-                          {predictionCounts[p.id]} palpites{fee > 0 ? ` · R$ ${(fee * predictionCounts[p.id]).toFixed(2).replace('.', ',')}` : ''}
-                        </span>
-                      )}
-                      {predictionCounts[p.id] && predictionCounts[p.id] === 1 && fee > 0 && (
-                        <span className="text-[11px] text-muted-foreground">
-                          1 palpite · R$ {fee.toFixed(2).replace('.', ',')}
-                        </span>
-                      )}
-                      {p.payment_proof ? (
-                        <span className="text-[11px] text-blue-500 dark:text-blue-400">✅ Comprovante enviado</span>
-                      ) : (
-                        <span className="text-[11px] text-muted-foreground">⏳ Sem comprovante</span>
-                      )}
-                    </div>
-                    <div className="flex items-center gap-1 shrink-0">
-                      {p.payment_proof && (
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => viewProof(p.payment_proof!)}
-                          className="h-7 w-7"
-                          title="Ver comprovante"
-                        >
-                          <Eye className="w-4 h-4 text-blue-500" />
-                        </Button>
-                      )}
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => handleApproveClick(p)}
-                        disabled={processing === p.id}
-                        className="h-7 w-7 text-green-600 hover:text-green-700 hover:bg-green-50"
-                        title="Aprovar"
-                      >
-                        <Check className="w-4 h-4" />
-                      </Button>
-                      {p.payment_proof && (
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => openRejectDialog(p)}
-                          disabled={processing === p.id}
-                          className="h-7 w-7 text-destructive hover:text-destructive hover:bg-destructive/10"
-                          title="Rejeitar"
-                        >
-                          <X className="w-4 h-4" />
-                        </Button>
-                      )}
-                    </div>
-                  </div>
-                ))}
-              </CollapsibleContent>
-            </Collapsible>
-          )}
-
-          {/* Approved List */}
-          {approved.length > 0 && (
-            <Collapsible open={approvedOpen} onOpenChange={setApprovedOpen}>
-              <CollapsibleTrigger className="w-full flex items-center justify-between p-3 rounded-lg bg-green-50 dark:bg-green-950/50 border border-green-200 dark:border-green-800 hover:bg-green-100 dark:hover:bg-green-950 transition-colors">
-                <span className="text-sm font-medium text-green-700 dark:text-green-400 flex items-center gap-2">
-                  ✅ Aprovados ({approved.length})
-                </span>
-                {approvedOpen ? <ChevronUp className="w-4 h-4 text-green-600" /> : <ChevronDown className="w-4 h-4 text-green-600" />}
-              </CollapsibleTrigger>
-              <CollapsibleContent className="mt-2 space-y-1">
-                {approved.map((p) => {
-                  const count = predictionCounts[p.id] || 1;
-                  const totalValue = fee > 0 ? fee * count : 0;
-                  return (
-                    <div key={p.id} className="flex items-center justify-between py-2 px-3 rounded-lg bg-card border text-sm">
-                      <span className="font-medium truncate">{p.participant_name}</span>
-                      <div className="flex items-center gap-1 shrink-0">
-                        {p.payment_proof && (
+            <CollapsibleContent className="mt-3 space-y-3">
+              {/* Pending List */}
+              {actualPending.length > 0 && (
+                <Collapsible open={pendingOpen} onOpenChange={setPendingOpen}>
+                  <CollapsibleTrigger className="w-full flex items-center justify-between p-3 rounded-lg bg-orange-50 dark:bg-orange-950/50 border border-orange-200 dark:border-orange-800 hover:bg-orange-100 dark:hover:bg-orange-950 transition-colors">
+                    <span className="text-sm font-medium text-orange-700 dark:text-orange-400 flex items-center gap-2">
+                      ⏳ Pendentes ({actualPending.length})
+                    </span>
+                    {pendingOpen ? <ChevronUp className="w-4 h-4 text-orange-600" /> : <ChevronDown className="w-4 h-4 text-orange-600" />}
+                  </CollapsibleTrigger>
+                  <CollapsibleContent className="mt-2 space-y-1">
+                    {actualPending.map((p) => (
+                      <div key={p.id} className="flex items-center justify-between py-2 px-3 rounded-lg bg-card border text-sm gap-2">
+                        <div className="min-w-0 flex-1">
+                          <span className="font-medium truncate block">{p.participant_name}</span>
+                          {predictionCounts[p.id] && predictionCounts[p.id] > 1 && (
+                            <span className="text-[11px] font-semibold text-primary">
+                              {predictionCounts[p.id]} palpites{fee > 0 ? ` · R$ ${(fee * predictionCounts[p.id]).toFixed(2).replace('.', ',')}` : ''}
+                            </span>
+                          )}
+                          {predictionCounts[p.id] && predictionCounts[p.id] === 1 && fee > 0 && (
+                            <span className="text-[11px] text-muted-foreground">
+                              1 palpite · R$ {fee.toFixed(2).replace('.', ',')}
+                            </span>
+                          )}
+                          {p.payment_proof ? (
+                            <span className="text-[11px] text-blue-500 dark:text-blue-400">✅ Comprovante enviado</span>
+                          ) : (
+                            <span className="text-[11px] text-muted-foreground">⏳ Sem comprovante</span>
+                          )}
+                        </div>
+                        <div className="flex items-center gap-1 shrink-0">
+                          {p.payment_proof && (
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => viewProof(p.payment_proof!)}
+                              className="h-7 w-7"
+                              title="Ver comprovante"
+                            >
+                              <Eye className="w-4 h-4 text-blue-500" />
+                            </Button>
+                          )}
                           <Button
                             variant="ghost"
                             size="icon"
-                            onClick={() => viewProof(p.payment_proof!)}
-                            className="h-7 w-7"
-                            title="Ver comprovante"
+                            onClick={() => handleApproveClick(p)}
+                            disabled={processing === p.id}
+                            className="h-7 w-7 text-green-600 hover:text-green-700 hover:bg-green-50"
+                            title="Aprovar"
                           >
-                            <Eye className="w-4 h-4 text-blue-500" />
+                            <Check className="w-4 h-4" />
+                          </Button>
+                          {p.payment_proof && (
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => openRejectDialog(p)}
+                              disabled={processing === p.id}
+                              className="h-7 w-7 text-destructive hover:text-destructive hover:bg-destructive/10"
+                              title="Rejeitar"
+                            >
+                              <X className="w-4 h-4" />
+                            </Button>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </CollapsibleContent>
+                </Collapsible>
+              )}
+
+              {/* Approved List */}
+              {approved.length > 0 && (
+                <Collapsible open={approvedOpen} onOpenChange={setApprovedOpen}>
+                  <CollapsibleTrigger className="w-full flex items-center justify-between p-3 rounded-lg bg-green-50 dark:bg-green-950/50 border border-green-200 dark:border-green-800 hover:bg-green-100 dark:hover:bg-green-950 transition-colors">
+                    <span className="text-sm font-medium text-green-700 dark:text-green-400 flex items-center gap-2">
+                      ✅ Aprovados ({approved.length})
+                    </span>
+                    {approvedOpen ? <ChevronUp className="w-4 h-4 text-green-600" /> : <ChevronDown className="w-4 h-4 text-green-600" />}
+                  </CollapsibleTrigger>
+                  <CollapsibleContent className="mt-2 space-y-1">
+                    {approved.map((p) => {
+                      const count = predictionCounts[p.id] || 1;
+                      const totalValue = fee > 0 ? fee * count : 0;
+                      return (
+                        <div key={p.id} className="flex items-center justify-between py-2 px-3 rounded-lg bg-card border text-sm">
+                          <span className="font-medium truncate">{p.participant_name}</span>
+                          <div className="flex items-center gap-1 shrink-0">
+                            {p.payment_proof && (
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => viewProof(p.payment_proof!)}
+                                className="h-7 w-7"
+                                title="Ver comprovante"
+                              >
+                                <Eye className="w-4 h-4 text-blue-500" />
+                              </Button>
+                            )}
+                            <Badge variant="outline" className="text-xs ml-2 shrink-0">
+                              {count} {count === 1 ? 'palpite' : 'palpites'}
+                              {totalValue > 0 ? ` · R$ ${totalValue.toFixed(2).replace('.', ',')}` : ''}
+                            </Badge>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </CollapsibleContent>
+                </Collapsible>
+              )}
+
+              {/* Rejected List (includes definitively rejected) */}
+              {(rejected.length + definitelyRejected.length) > 0 && (
+                <Collapsible open={rejectedOpen} onOpenChange={setRejectedOpen}>
+                  <CollapsibleTrigger className="w-full flex items-center justify-between p-3 rounded-lg bg-red-50 dark:bg-red-950/50 border border-red-200 dark:border-red-800 hover:bg-red-100 dark:hover:bg-red-950 transition-colors">
+                    <span className="text-sm font-medium text-red-700 dark:text-red-400 flex items-center gap-2">
+                      ❌ Rejeitados ({rejected.length + definitelyRejected.length})
+                    </span>
+                    {rejectedOpen ? <ChevronUp className="w-4 h-4 text-red-600" /> : <ChevronDown className="w-4 h-4 text-red-600" />}
+                  </CollapsibleTrigger>
+                  <CollapsibleContent className="mt-2 space-y-2">
+                    {/* Definitively rejected (no proof + match started) */}
+                    {definitelyRejected.map((p) => (
+                      <div key={p.id} className="p-3 rounded-lg bg-card border space-y-1">
+                        <div className="min-w-0">
+                          <p className="font-medium text-sm truncate">{p.participant_name}</p>
+                          <p className="text-[11px] text-destructive">
+                            🚫 Reprovado — não enviou comprovante antes do início dos jogos
+                          </p>
+                        </div>
+                      </div>
+                    ))}
+                    {/* Manually rejected */}
+                    {rejected.map((p) => (
+                      <div key={p.id} className="p-3 rounded-lg bg-card border space-y-2">
+                        <div className="flex items-center justify-between">
+                          <div className="min-w-0 flex-1">
+                            <p className="font-medium text-sm truncate">{p.participant_name}</p>
+                            {p.rejection_reason && (
+                              <p className="text-[11px] text-muted-foreground truncate">
+                                Motivo: {p.rejection_reason}
+                              </p>
+                            )}
+                            {p.rejection_details && (
+                              <p className="text-[11px] text-muted-foreground truncate">
+                                {p.rejection_details}
+                              </p>
+                            )}
+                          </div>
+                          {p.payment_proof && (
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => viewProof(p.payment_proof!)}
+                              className="h-7 w-7 shrink-0"
+                              title="Ver comprovante"
+                            >
+                              <Eye className="w-4 h-4 text-blue-500" />
+                            </Button>
+                          )}
+                        </div>
+                        {!firstMatchStarted && (
+                          <Button
+                            variant="default"
+                            size="sm"
+                            onClick={() => handleApprove(p.id)}
+                            disabled={processing === p.id}
+                            className="w-full h-8 text-xs"
+                          >
+                            <Check className="w-3.5 h-3.5 mr-1" />
+                            Aprovar Participação
                           </Button>
                         )}
-                        <Badge variant="outline" className="text-xs ml-2 shrink-0">
-                          {count} {count === 1 ? 'palpite' : 'palpites'}
-                          {totalValue > 0 ? ` · R$ ${totalValue.toFixed(2).replace('.', ',')}` : ''}
-                        </Badge>
                       </div>
-                    </div>
-                  );
-                })}
-              </CollapsibleContent>
-            </Collapsible>
-          )}
+                    ))}
+                  </CollapsibleContent>
+                </Collapsible>
+              )}
 
-          {/* Rejected List (includes definitively rejected) */}
-          {(rejected.length + definitelyRejected.length) > 0 && (
-            <Collapsible open={rejectedOpen} onOpenChange={setRejectedOpen}>
-              <CollapsibleTrigger className="w-full flex items-center justify-between p-3 rounded-lg bg-red-50 dark:bg-red-950/50 border border-red-200 dark:border-red-800 hover:bg-red-100 dark:hover:bg-red-950 transition-colors">
-                <span className="text-sm font-medium text-red-700 dark:text-red-400 flex items-center gap-2">
-                  ❌ Rejeitados ({rejected.length + definitelyRejected.length})
-                </span>
-                {rejectedOpen ? <ChevronUp className="w-4 h-4 text-red-600" /> : <ChevronDown className="w-4 h-4 text-red-600" />}
-              </CollapsibleTrigger>
-              <CollapsibleContent className="mt-2 space-y-2">
-                {/* Definitively rejected (no proof + match started) */}
-                {definitelyRejected.map((p) => (
-                  <div key={p.id} className="p-3 rounded-lg bg-card border space-y-1">
-                    <div className="min-w-0">
-                      <p className="font-medium text-sm truncate">{p.participant_name}</p>
-                      <p className="text-[11px] text-destructive">
-                        🚫 Reprovado — não enviou comprovante antes do início dos jogos
-                      </p>
-                    </div>
-                  </div>
-                ))}
-                {/* Manually rejected */}
-                {rejected.map((p) => (
-                  <div key={p.id} className="p-3 rounded-lg bg-card border space-y-2">
-                    <div className="flex items-center justify-between">
-                      <div className="min-w-0 flex-1">
-                        <p className="font-medium text-sm truncate">{p.participant_name}</p>
-                        {p.rejection_reason && (
-                          <p className="text-[11px] text-muted-foreground truncate">
-                            Motivo: {p.rejection_reason}
-                          </p>
-                        )}
-                        {p.rejection_details && (
-                          <p className="text-[11px] text-muted-foreground truncate">
-                            {p.rejection_details}
-                          </p>
-                        )}
-                      </div>
-                      {p.payment_proof && (
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => viewProof(p.payment_proof!)}
-                          className="h-7 w-7 shrink-0"
-                          title="Ver comprovante"
-                        >
-                          <Eye className="w-4 h-4 text-blue-500" />
-                        </Button>
-                      )}
-                    </div>
-                    {!firstMatchStarted && (
-                      <Button
-                        variant="default"
-                        size="sm"
-                        onClick={() => handleApprove(p.id)}
-                        disabled={processing === p.id}
-                        className="w-full h-8 text-xs"
-                      >
-                        <Check className="w-3.5 h-3.5 mr-1" />
-                        Aprovar Participação
-                      </Button>
-                    )}
-                  </div>
-                ))}
-              </CollapsibleContent>
-            </Collapsible>
-          )}
-
-          {approved.length === 0 && actualPending.length === 0 && rejected.length === 0 && definitelyRejected.length === 0 && (
-            <p className="text-sm text-muted-foreground text-center py-2">
-              Nenhum participante ainda.
-            </p>
-          )}
+              {approved.length === 0 && actualPending.length === 0 && rejected.length === 0 && definitelyRejected.length === 0 && (
+                <p className="text-sm text-muted-foreground text-center py-2">
+                  Nenhum participante ainda.
+                </p>
+              )}
+            </CollapsibleContent>
+          </Collapsible>
         </CardContent>
       </Card>
 
