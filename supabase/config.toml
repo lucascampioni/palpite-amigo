@@ -34,7 +34,7 @@ verify_jwt = false
 verify_jwt = false
 
 [functions.update-football-winners]
-verify_jwt = true
+verify_jwt = false
 
 [functions.migrate-match-ids]
 verify_jwt = false
