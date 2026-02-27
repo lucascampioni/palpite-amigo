@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Trophy, Medal, ChevronDown, ChevronUp } from "lucide-react";
+import { Trophy, Medal, ChevronDown, ChevronUp, MessageCircle } from "lucide-react";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -56,6 +56,7 @@ const FootballRanking = ({ poolId, pool, approvedParticipantsCount, isOwner }: F
   const [participantPredictions, setParticipantPredictions] = useState<Record<string, MatchPrediction[]>>({});
   const [participantSetCounts, setParticipantSetCounts] = useState<Record<string, number>>({});
   const [allMatchesFinished, setAllMatchesFinished] = useState(false);
+  const [ownerPhone, setOwnerPhone] = useState<string | null>(null);
   const [hasLiveMatches, setHasLiveMatches] = useState(false);
   const [scoringSystem, setScoringSystem] = useState<string>('standard');
   const [currentUserParticipantId, setCurrentUserParticipantId] = useState<string | null>(null);
@@ -70,7 +71,13 @@ const FootballRanking = ({ poolId, pool, approvedParticipantsCount, isOwner }: F
     loadRanking();
     loadPoolScoringSystem();
     loadCurrentUserParticipant();
+    loadOwnerPhone();
   }, [poolId]);
+
+  const loadOwnerPhone = async () => {
+    const { data } = await supabase.rpc('get_pool_owner_phone', { pool_uuid: poolId });
+    if (data) setOwnerPhone(data);
+  };
 
   const loadCurrentUserParticipant = async () => {
     const { data: { user } } = await supabase.auth.getUser();
@@ -389,10 +396,26 @@ const FootballRanking = ({ poolId, pool, approvedParticipantsCount, isOwner }: F
     }
     
     if (status === 'prize_sent') {
+      const whatsappLink = ownerPhone 
+        ? `https://wa.me/${ownerPhone.replace(/\D/g, '')}?text=${encodeURIComponent('Olá! Estou entrando em contato pois meu prêmio foi marcado como pago no bolão, mas ainda não recebi. Pode verificar?')}`
+        : null;
       return (
-        <Badge variant="outline" className="text-[0.625rem] sm:text-xs bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200 border-green-300 dark:border-green-700 px-1.5 sm:px-2 py-0 sm:py-0.5 whitespace-nowrap">
-          Pago
-        </Badge>
+        <div className="flex flex-col items-start gap-1">
+          <Badge variant="outline" className="text-[0.625rem] sm:text-xs bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200 border-green-300 dark:border-green-700 px-1.5 sm:px-2 py-0 sm:py-0.5 whitespace-nowrap">
+            Pago
+          </Badge>
+          {!isOwner && whatsappLink && (
+            <a 
+              href={whatsappLink} 
+              target="_blank" 
+              rel="noopener noreferrer"
+              className="flex items-center gap-1 text-[0.6rem] sm:text-xs text-muted-foreground hover:text-primary transition-colors"
+            >
+              <MessageCircle className="w-3 h-3" />
+              <span>Não recebeu? Fale com o criador</span>
+            </a>
+          )}
+        </div>
       );
     }
     
