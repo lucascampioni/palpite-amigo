@@ -31,6 +31,7 @@ const Index = () => {
   const [officialPools, setOfficialPools] = useState<any[]>([]);
   const [availablePools, setAvailablePools] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [initialLoadDone, setInitialLoadDone] = useState(false);
   const [showFinishedCreated, setShowFinishedCreated] = useState(false);
   const [showFinishedParticipating, setShowFinishedParticipating] = useState(false);
   const [showFailedPools, setShowFailedPools] = useState(false);
@@ -83,7 +84,7 @@ const Index = () => {
   const loadPools = async () => {
     if (!session?.user) return;
 
-    setLoading(true);
+    if (!initialLoadDone) setLoading(true);
     const now = new Date();
 
     const { data: ownedPools } = await supabase
@@ -334,6 +335,7 @@ const Index = () => {
     setAvailablePools(activePools);
     
     setLoading(false);
+    setInitialLoadDone(true);
   };
 
   const handleSignOut = async () => {
