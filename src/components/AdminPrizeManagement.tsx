@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Upload, CheckCircle, Copy, Check } from "lucide-react";
+import { Upload, CheckCircle, Copy, Check, Clock } from "lucide-react";
 
 interface AdminPrizeManagementProps {
   participant: {
@@ -151,6 +151,23 @@ export const AdminPrizeManagement = ({ participant, poolId, onSuccess }: AdminPr
             </a>
           )}
         </CardContent>
+      </Card>
+    );
+  }
+
+  // Awaiting PIX key from winner
+  if (!participant.prize_pix_key) {
+    return (
+      <Card className="border-yellow-300 dark:border-yellow-700 bg-yellow-50 dark:bg-yellow-950">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-yellow-800 dark:text-yellow-200">
+            <Clock className="w-5 h-5" />
+            Aguardando chave PIX - {participant.participant_name}
+          </CardTitle>
+          <CardDescription className="text-yellow-700 dark:text-yellow-300">
+            Este ganhador ainda não informou sua chave PIX para recebimento do prêmio.
+          </CardDescription>
+        </CardHeader>
       </Card>
     );
   }
