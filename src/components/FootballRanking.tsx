@@ -985,7 +985,7 @@ const FootballRanking = ({ poolId, pool, approvedParticipantsCount, isOwner }: F
                                   {getRankIcon(actualPosition, !!(currentUser.prize_amount && currentUser.prize_amount > 0))}
                                 </div>
                               )}
-                              <span className="font-semibold text-sm truncate min-w-0">
+                              <span className="font-semibold text-sm break-words whitespace-normal sm:whitespace-nowrap sm:truncate min-w-0">
                                 {getDisplayName(currentUser)}
                               </span>
                             </div>
