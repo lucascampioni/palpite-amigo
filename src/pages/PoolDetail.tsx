@@ -109,17 +109,13 @@ const PoolDetail = () => {
         groupEnd++;
       }
 
-      // Calculate overlap of the tie group with the prize-bearing top 3 positions
-      const topStart = 0;
-      const topEnd = 2; // indices 0,1,2 correspond to 1º, 2º, 3º
-      const overlapStart = Math.max(groupStart, topStart);
-      const overlapEnd = Math.min(groupEnd, topEnd);
-      const overlapCount = overlapEnd >= overlapStart ? (overlapEnd - overlapStart + 1) : 0;
+      const maxW = pool.max_winners || 3;
+      const tieGroupSize = groupEnd - groupStart + 1;
 
-      if (overlapCount <= 0) return; // no prize for this user
+      // The tie group must touch at least one prize position (0 to maxW-1)
+      if (groupStart >= maxW) return; // entire group is outside prize range
 
       // Calculate actual prize values, handling percentage-based prizes
-      // For percentage prizes, use total prediction sets (from ranking data) not just participant count
       const totalPredictionSets = rankingData.length > 0 ? rankingData.length : participants.filter(p => p.status === 'approved').length;
       const totalCollected = (pool.entry_fee ? parseFloat(pool.entry_fee) : 0) * totalPredictionSets;
       const isPercentage = pool.prize_type === 'percentage';
@@ -131,23 +127,26 @@ const PoolDetail = () => {
 
       const prizes = [
         calcPrize(pool.first_place_prize),
-        calcPrize(pool.second_place_prize),
-        calcPrize(pool.third_place_prize),
+        maxW >= 2 ? calcPrize(pool.second_place_prize) : 0,
+        maxW >= 3 ? calcPrize(pool.third_place_prize) : 0,
       ];
 
-      // Sum prizes for the overlapped positions only, then split equally among overlapped participants
+      // Sum prizes for positions covered by the tie group (limited to max_winners)
       let prizeSum = 0;
-      for (let i = overlapStart; i <= overlapEnd; i++) {
+      const prizeEnd = Math.min(groupEnd, maxW - 1);
+      for (let i = groupStart; i <= prizeEnd; i++) {
         prizeSum += prizes[i] || 0;
       }
-      const prizeAmount = prizeSum / overlapCount;
+      
+      // Divide equally among ALL members of the tie group
+      const prizeAmount = prizeSum / tieGroupSize;
 
       if (prizeAmount > 0) {
         setUserPrizeInfo({
           amount: prizeAmount,
-          placement: overlapStart + 1, // placement is the first position involved in the tie within top 3
-          isTied: overlapCount > 1,
-          tiedWithCount: overlapCount > 1 ? overlapCount - 1 : 0
+          placement: groupStart + 1,
+          isTied: tieGroupSize > 1,
+          tiedWithCount: tieGroupSize > 1 ? tieGroupSize - 1 : 0
         });
       }
     };
