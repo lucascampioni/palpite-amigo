@@ -66,9 +66,10 @@ export const AdminParticipantsManager = ({
 }: AdminParticipantsManagerProps) => {
   const { toast } = useToast();
   const [processing, setProcessing] = useState<string | null>(null);
-  const [participantsOpen, setParticipantsOpen] = useState(false);
+  const hasPending = participants.some(p => p.status === "pending");
+  const [participantsOpen, setParticipantsOpen] = useState(hasPending);
   const [approvedOpen, setApprovedOpen] = useState(false);
-  const [pendingOpen, setPendingOpen] = useState(false);
+  const [pendingOpen, setPendingOpen] = useState(hasPending);
   const [rejectedOpen, setRejectedOpen] = useState(false);
   const [rejectDialogOpen, setRejectDialogOpen] = useState(false);
   const [rejectingParticipant, setRejectingParticipant] = useState<Participant | null>(null);
