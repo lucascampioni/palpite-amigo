@@ -415,7 +415,7 @@ const Profile = () => {
           </CardHeader>
           <CardContent className="space-y-4">
             <p className="text-xs text-muted-foreground">
-              Salve sua chave PIX para receber prêmios automaticamente nos próximos bolões.
+              Salve sua chave PIX para facilitar o recebimento de prêmios nos próximos bolões.
             </p>
             {editingPix ? (
               <div className="space-y-3">
