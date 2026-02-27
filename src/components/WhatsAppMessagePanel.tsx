@@ -24,7 +24,7 @@ interface AllUser {
   notify_new_pools?: boolean;
 }
 
-type TemplateCategory = "divulgacao" | "lembrete" | "resultado" | "pagamento";
+type TemplateCategory = "divulgacao" | "lembrete" | "andamento" | "resultado" | "pagamento";
 type TemplateMode = "copy" | "api" | "both";
 
 interface MessageTemplate {
@@ -135,6 +135,24 @@ const createMessageTemplates = (): MessageTemplate[] => [
     mode: "copy",
   },
   {
+    id: "live_ranking",
+    label: "Ranking ao vivo (grupo)",
+    icon: <Trophy className="w-4 h-4" />,
+    getMessage: (name, pool, poolLink) =>
+      `🎯 *Delfos*\n\n⚽🔥 O bolão *"${pool}"* tá rolando!\n\nOs jogos já começaram e o ranking está sendo atualizado em tempo real! 📊\n\nCorre lá pra conferir como você tá no ranking e torcer pelos seus palpites! 🏆💪\n\n👉 ${poolLink}`,
+    category: "andamento",
+    mode: "copy",
+  },
+  {
+    id: "live_ranking_private",
+    label: "Ranking ao vivo (privado)",
+    icon: <Trophy className="w-4 h-4" />,
+    getMessage: (name, pool, poolLink) =>
+      `🎯 *Delfos*\n\nOlá ${name}! ⚽🔥\n\nO bolão *"${pool}"* tá rolando e o ranking está sendo atualizado em tempo real! 📊\n\nConfere lá como você tá! 🏆\n\n👉 ${poolLink}`,
+    category: "andamento",
+    mode: "copy",
+  },
+  {
     id: "position_update",
     label: "Atualização posição",
     icon: <Trophy className="w-4 h-4" />,
@@ -183,6 +201,7 @@ const createMessageTemplates = (): MessageTemplate[] => [
 const categoryLabels: Record<TemplateCategory, string> = {
   divulgacao: "📣 Divulgação",
   lembrete: "📢 Lembretes",
+  andamento: "⚽ Em andamento",
   resultado: "🏆 Resultados",
   pagamento: "💰 Pagamentos",
 };
@@ -281,9 +300,12 @@ const WhatsAppMessagePanel = ({ poolTitle, poolId, poolSlug, participants, poolD
   
   // Filter templates: admin sees api+both, creator sees copy+both
   // Then filter by pool state visibility
+  const isInProgress = !isBeforeDeadline && !isFinished && poolStatus !== "cancelled";
+
   const visibilityFilter = (t: MessageTemplate) => {
     if (t.category === "divulgacao") return isBeforeDeadline;
     if (t.category === "lembrete") return isWithin24h;
+    if (t.category === "andamento") return isInProgress;
     if (t.category === "resultado") return isFinished;
     if (t.category === "pagamento") return isFinished;
     return true;
@@ -364,7 +386,7 @@ const WhatsAppMessagePanel = ({ poolTitle, poolId, poolSlug, participants, poolD
     }
   };
 
-  const categories: TemplateCategory[] = ["divulgacao", "lembrete", "resultado", "pagamento"];
+  const categories: TemplateCategory[] = ["divulgacao", "lembrete", "andamento", "resultado", "pagamento"];
 
   const getStatusIcon = (id: string) => {
     const status = individualStatus[id];
