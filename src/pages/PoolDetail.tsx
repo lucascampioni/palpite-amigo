@@ -1536,7 +1536,7 @@ const PoolDetail = () => {
             {isOwner && pool.status === "finished" && (
               <>
                 <Separator />
-                <div className="space-y-4">
+                <div className="space-y-4" id="gerenciar-premios">
                   <h3 className="font-semibold text-lg flex items-center gap-2">
                     <Trophy className="w-5 h-5 text-yellow-500" />
                     Gerenciar Prêmios
@@ -1544,24 +1544,57 @@ const PoolDetail = () => {
                   {participants
                     .filter(p => p.prize_status && p.prize_status !== 'prize_sent')
                     .map((participant) => (
-                      <AdminPrizeManagement
-                        key={participant.id}
-                        participant={{
-                          id: participant.id,
-                          participant_name: participant.participant_name,
-                          prize_pix_key: participant.prize_pix_key,
-                          prize_pix_key_type: participant.prize_pix_key_type,
-                          prize_status: participant.prize_status,
-                          prize_proof_url: participant.prize_proof_url,
-                        }}
-                        poolId={pool.id}
-                        onSuccess={loadPoolData}
-                      />
+                      <div key={participant.id} id={`premio-${participant.id}`}>
+                        <AdminPrizeManagement
+                          participant={{
+                            id: participant.id,
+                            participant_name: participant.participant_name,
+                            prize_pix_key: participant.prize_pix_key,
+                            prize_pix_key_type: participant.prize_pix_key_type,
+                            prize_status: participant.prize_status,
+                            prize_proof_url: participant.prize_proof_url,
+                          }}
+                          poolId={pool.id}
+                          onSuccess={loadPoolData}
+                        />
+                      </div>
                     ))}
-                  {participants.filter(p => p.prize_status && p.prize_status !== 'prize_sent').length === 0 && (
+                  {participants.filter(p => p.prize_status && p.prize_status !== 'prize_sent').length === 0 && 
+                   participants.filter(p => p.prize_status === 'prize_sent').length === 0 && (
                     <p className="text-sm text-muted-foreground">
                       Nenhum prêmio pendente no momento.
                     </p>
+                  )}
+
+                  {/* Paid prizes - collapsible */}
+                  {participants.filter(p => p.prize_status === 'prize_sent').length > 0 && (
+                    <Collapsible>
+                      <CollapsibleTrigger className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors w-full">
+                        <CheckCircle className="w-4 h-4 text-green-600" />
+                        <span>Prêmios já pagos ({participants.filter(p => p.prize_status === 'prize_sent').length})</span>
+                        <ChevronDown className="w-4 h-4 ml-auto" />
+                      </CollapsibleTrigger>
+                      <CollapsibleContent className="space-y-4 mt-3">
+                        {participants
+                          .filter(p => p.prize_status === 'prize_sent')
+                          .map((participant) => (
+                            <div key={participant.id} id={`premio-${participant.id}`}>
+                              <AdminPrizeManagement
+                                participant={{
+                                  id: participant.id,
+                                  participant_name: participant.participant_name,
+                                  prize_pix_key: participant.prize_pix_key,
+                                  prize_pix_key_type: participant.prize_pix_key_type,
+                                  prize_status: participant.prize_status,
+                                  prize_proof_url: participant.prize_proof_url,
+                                }}
+                                poolId={pool.id}
+                                onSuccess={loadPoolData}
+                              />
+                            </div>
+                          ))}
+                      </CollapsibleContent>
+                    </Collapsible>
                   )}
                 </div>
               </>
