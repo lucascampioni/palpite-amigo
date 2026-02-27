@@ -169,7 +169,9 @@ const PoolDetail = () => {
 
       if (!matches || matches.length === 0) return;
 
-      const allMatchesFinished = matches.every(m => m.status === 'finished');
+      const excludedStatuses = ['postponed', 'cancelled', 'abandoned'];
+      const countableMatches = matches.filter(m => !excludedStatuses.includes(m.status));
+      const allMatchesFinished = countableMatches.length > 0 && countableMatches.every(m => m.status === 'finished');
       if (!allMatchesFinished) return;
 
       console.log('All matches finished, updating winners prize_status...');
