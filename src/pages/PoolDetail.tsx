@@ -1634,25 +1634,33 @@ const PoolDetail = () => {
             {approvedParticipants.length > 0 && !(pool.pool_type === "football" || hasFootballMatches) && (isOwner || currentUserParticipant?.status === 'approved') && (
               <>
                 <Separator />
-                <div className="space-y-4">
-                  <h3 className="font-semibold text-lg">Participantes Aprovados</h3>
-                  <div className="grid gap-3">
-                    {approvedParticipants.map((participant) => (
-                      <Card key={participant.id}>
-                        <CardContent className="p-4">
-                          <div className="flex flex-col gap-3">
-                            <div className="flex items-center justify-between">
-                              <p className="font-medium">{participant.participant_name}</p>
-                              {pool.pool_type !== "football" && (
-                                <Badge variant="secondary">{participant.guess_value}</Badge>
-                              )}
+                <Collapsible>
+                  <CollapsibleTrigger className="w-full flex items-center justify-between py-2 hover:opacity-80 transition-opacity">
+                    <h3 className="font-semibold text-lg flex items-center gap-2">
+                      <Users className="w-5 h-5 text-primary" />
+                      Participantes Aprovados ({approvedParticipants.length})
+                    </h3>
+                    <ChevronDown className="w-5 h-5 text-muted-foreground" />
+                  </CollapsibleTrigger>
+                  <CollapsibleContent>
+                    <div className="grid gap-3 mt-3">
+                      {approvedParticipants.map((participant) => (
+                        <Card key={participant.id}>
+                          <CardContent className="p-4">
+                            <div className="flex flex-col gap-3">
+                              <div className="flex items-center justify-between">
+                                <p className="font-medium">{participant.participant_name}</p>
+                                {pool.pool_type !== "football" && (
+                                  <Badge variant="secondary">{participant.guess_value}</Badge>
+                                )}
+                              </div>
                             </div>
-                          </div>
-                        </CardContent>
-                      </Card>
-                    ))}
-                  </div>
-                </div>
+                          </CardContent>
+                        </Card>
+                      ))}
+                    </div>
+                  </CollapsibleContent>
+                </Collapsible>
               </>
             )}
           </CardContent>
