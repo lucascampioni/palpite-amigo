@@ -1282,13 +1282,29 @@ const PoolDetail = () => {
 
                       </>
                     ) : (
-                      <div className="p-6 rounded-lg bg-green-50 dark:bg-green-950 border-2 border-green-200 dark:border-green-800 text-center">
+                      <div className="p-6 rounded-lg bg-green-50 dark:bg-green-950 border-2 border-green-200 dark:border-green-800 text-center space-y-3">
                         <p className="text-lg font-semibold text-green-700 dark:text-green-300 mb-2">
                           ✓ Você já está participando deste bolão!
                         </p>
                         <p className="text-sm text-muted-foreground">
                           Boa sorte! Seus palpites foram salvos. Agora é só esperar a conclusão dos jogos.
                         </p>
+                        {pool.has_whatsapp_group && ownerPhone && (
+                          <Button
+                            variant="outline"
+                            className="w-full mt-2"
+                            onClick={() => {
+                              const phone = ownerPhone.replace(/\D/g, '');
+                              const message = encodeURIComponent(
+                                `Olá ${ownerName || ''}! Estou participando do bolão "${pool.title}" e gostaria de entrar no grupo do WhatsApp. Pode me adicionar?`
+                              );
+                              window.open(`https://wa.me/55${phone}?text=${message}`, '_blank');
+                            }}
+                          >
+                            <MessageCircle className="w-4 h-4 mr-2" />
+                            Ainda não faz parte do grupo do WhatsApp do bolão? Clique aqui para solicitar sua entrada!
+                          </Button>
+                        )}
                       </div>
                     )}
                   </>

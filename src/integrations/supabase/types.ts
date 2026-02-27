@@ -336,6 +336,7 @@ export type Database = {
           first_match_notified: boolean
           first_place_prize: number | null
           guess_label: string
+          has_whatsapp_group: boolean
           id: string
           is_official: boolean | null
           is_private: boolean
@@ -366,6 +367,7 @@ export type Database = {
           first_match_notified?: boolean
           first_place_prize?: number | null
           guess_label: string
+          has_whatsapp_group?: boolean
           id?: string
           is_official?: boolean | null
           is_private?: boolean
@@ -396,6 +398,7 @@ export type Database = {
           first_match_notified?: boolean
           first_place_prize?: number | null
           guess_label?: string
+          has_whatsapp_group?: boolean
           id?: string
           is_official?: boolean | null
           is_private?: boolean
