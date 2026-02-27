@@ -124,29 +124,13 @@ const createMessageTemplates = (): MessageTemplate[] => [
     mode: "copy",
   },
   {
-    id: "deadline_30min",
-    label: "Encerra em 30min",
-    icon: <Clock className="w-4 h-4" />,
-    getMessage: (name, pool, poolLink) =>
-      `🎯 *Delfos*\n\nOlá ${name}! ⏰\n\nOs palpites do bolão "${pool}" se encerram em *30 minutos*!\n\nCorra para fazer seus palpites antes que o prazo acabe! 🏃‍♂️⚽\n\n👉 ${poolLink}`,
-    category: "lembrete",
-    mode: "copy", // Creator copies to group
-  },
-  {
-    id: "deadline_1h",
-    label: "Encerra em 1 hora",
-    icon: <Clock className="w-4 h-4" />,
-    getMessage: (name, pool, poolLink) =>
-      `🎯 *Delfos*\n\nOlá ${name}! ⏰\n\nOs palpites do bolão "${pool}" se encerram em *1 hora*!\n\nNão perca o prazo! Faça seus palpites agora. ⚽\n\n👉 ${poolLink}`,
-    category: "lembrete",
-    mode: "copy",
-  },
-  {
     id: "reminder_join",
     label: "Lembrete participar",
     icon: <AlertTriangle className="w-4 h-4" />,
-    getMessage: (name, pool, poolLink) =>
-      `🎯 *Delfos*\n\nOlá ${name}! 👋\n\nVocê ainda não enviou seus palpites no bolão "${pool}"!\n\nParticipe antes que o prazo acabe! 🎯⚽\n\n👉 ${poolLink}`,
+    getMessage: (name, pool, poolLink, extra) => {
+      const deadlineDate = extra?.deadlineFormatted || "";
+      return `🎯 *Delfos*\n\nOlá ${name}! 👋⏰\n\nAs inscrições do bolão "${pool}" se encerram ${deadlineDate}!\n\nCorra para participar antes que o prazo acabe! 🎯⚽\n\n👉 ${poolLink}`;
+    },
     category: "lembrete",
     mode: "copy",
   },
@@ -208,6 +192,24 @@ type SendStatus = "idle" | "sending" | "success" | "error";
 const WhatsAppMessagePanel = ({ poolTitle, poolId, poolSlug, participants, poolDeadline, ranking, phones, allUsersWithPhone, isAdmin = false, poolPrizes, entryFee, prizeType, approvedPredictionSets, poolStatus }: WhatsAppMessagePanelProps) => {
   const [isOpen, setIsOpen] = useState(false);
   const [selectedTemplate, setSelectedTemplate] = useState<string | null>(null);
+
+  // Calculate time-based visibility
+  const now = new Date();
+  const deadline = new Date(poolDeadline);
+  const msUntilDeadline = deadline.getTime() - now.getTime();
+  const hoursUntilDeadline = msUntilDeadline / (1000 * 60 * 60);
+  const isBeforeDeadline = msUntilDeadline > 0;
+  const isWithin24h = hoursUntilDeadline <= 24 && hoursUntilDeadline > 0;
+  const isFinished = poolStatus === "finished";
+
+  // Format deadline for reminder message
+  const formatDeadlineText = () => {
+    const day = deadline.getDate().toString().padStart(2, '0');
+    const month = (deadline.getMonth() + 1).toString().padStart(2, '0');
+    const hours = deadline.getHours().toString().padStart(2, '0');
+    const minutes = deadline.getMinutes().toString().padStart(2, '0');
+    return `às ${hours}h${minutes} do dia ${day}/${month}`;
+  };
   const [sendingAll, setSendingAll] = useState(false);
   const [individualStatus, setIndividualStatus] = useState<Record<string, SendStatus>>({});
   const [copiedTemplate, setCopiedTemplate] = useState<string | null>(null);
@@ -246,6 +248,7 @@ const WhatsAppMessagePanel = ({ poolTitle, poolId, poolSlug, participants, poolD
     if (poolStatus) {
       extra.poolStatus = poolStatus;
     }
+    extra.deadlineFormatted = formatDeadlineText();
     return template.getMessage(name, poolTitle, poolLink, extra);
   };
 
@@ -277,9 +280,19 @@ const WhatsAppMessagePanel = ({ poolTitle, poolId, poolSlug, participants, poolD
   const showCopyMode = !isAdmin || (selectedTemplateObj && selectedTemplateObj.mode === "copy") || (selectedTemplateObj && selectedTemplateObj.mode === "both" && !isAdmin);
   
   // Filter templates: admin sees api+both, creator sees copy+both
-  const availableTemplates = isAdmin
+  // Then filter by pool state visibility
+  const visibilityFilter = (t: MessageTemplate) => {
+    if (t.category === "divulgacao") return isBeforeDeadline;
+    if (t.category === "lembrete") return isWithin24h;
+    if (t.category === "resultado") return isFinished;
+    if (t.category === "pagamento") return isFinished;
+    return true;
+  };
+
+  const availableTemplates = (isAdmin
     ? messageTemplates.filter(t => t.mode === "api" || t.mode === "both")
-    : messageTemplates.filter(t => t.mode === "copy" || t.mode === "both");
+    : messageTemplates.filter(t => t.mode === "copy" || t.mode === "both")
+  ).filter(visibilityFilter);
 
   const participantsWithPhone = approvedParticipants.filter(p => phones[p.user_id]);
 
