@@ -1343,7 +1343,7 @@ const PoolDetail = () => {
                         {pool.has_whatsapp_group && ownerPhone && (
                           <Button
                             variant="outline"
-                            className="w-full mt-2"
+                            className="w-full mt-2 h-auto py-3 whitespace-normal text-left"
                             onClick={() => {
                               const phone = ownerPhone.replace(/\D/g, '');
                               const message = encodeURIComponent(
@@ -1352,8 +1352,8 @@ const PoolDetail = () => {
                               window.open(`https://wa.me/55${phone}?text=${message}`, '_blank');
                             }}
                           >
-                            <MessageCircle className="w-4 h-4 mr-2" />
-                            Ainda não faz parte do grupo do WhatsApp do bolão? Clique aqui para solicitar sua entrada!
+                            <MessageCircle className="w-4 h-4 shrink-0" />
+                            <span>Ainda não faz parte do grupo do WhatsApp do bolão? Clique aqui para solicitar sua entrada!</span>
                           </Button>
                         )}
                       </div>
