@@ -1467,7 +1467,7 @@ const PoolDetail = () => {
                         Aguarde até 24h para recebimento.{' '}
                         {ownerPhone ? (
                           <a
-                            href={`https://wa.me/${ownerPhone.replace(/\D/g, '')}?text=${encodeURIComponent(`Olá ${ownerName || ''}! Enviei minha chave PIX no bolão "${pool?.title}" mas ainda não recebi o prêmio. Pode verificar?`)}`}
+                            href={`https://wa.me/${ownerPhone.replace(/\D/g, '')}?text=${encodeURIComponent(`Olá ${ownerName || ''}! Tudo bem? Participei do bolão "${pool?.title}" na Delfos e enviei minha chave PIX para recebimento do prêmio, mas ainda não recebi. Pode verificar, por favor?\n\nLink do bolão: https://delfos.app.br/bolao/${pool?.slug || pool?.id}`)}`}
                             target="_blank"
                             rel="noopener noreferrer"
                             className="text-blue-600 dark:text-blue-400 underline"
