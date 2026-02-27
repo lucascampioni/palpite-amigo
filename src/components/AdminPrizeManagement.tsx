@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Upload, CheckCircle, Copy, Check, Clock, MessageCircle, Loader2, AlertCircle } from "lucide-react";
+import { Upload, CheckCircle, Copy, Check, Clock, MessageCircle, AlertCircle, ExternalLink } from "lucide-react";
 
 interface AdminPrizeManagementProps {
   participant: {
@@ -29,7 +29,7 @@ export const AdminPrizeManagement = ({ participant, poolId, poolTitle, participa
   const [showFullKey, setShowFullKey] = useState(false);
   const [copied, setCopied] = useState(false);
   const [viewUrl, setViewUrl] = useState<string | null>(null);
-  const [sendingWhatsApp, setSendingWhatsApp] = useState(false);
+  
 
   useEffect(() => {
     const buildUrl = async () => {
@@ -159,25 +159,17 @@ export const AdminPrizeManagement = ({ participant, poolId, poolTitle, participa
     );
   }
 
-  const handleSendPixRequest = async () => {
+  const handleSendPixRequest = () => {
     if (!participantPhone) {
       toast.error("Este ganhador não tem telefone cadastrado");
       return;
     }
-    setSendingWhatsApp(true);
-    try {
-      const message = `🏆 *${poolTitle || 'Bolão'}* - Solicitação de Chave PIX\n\nOlá, ${participant.participant_name}! 🎉\n\nVocê foi um dos ganhadores do bolão *${poolTitle || ''}*!\n\nPara que possamos enviar o seu prêmio, precisamos da sua chave PIX. Por favor, acesse o app e informe sua chave na página do bolão.\n\n🔕 Ajuste suas notificações no site quando quiser.`;
-      const { error } = await supabase.functions.invoke("send-whatsapp", {
-        body: { phone: participantPhone, message },
-      });
-      if (error) throw error;
-      toast.success("Mensagem enviada com sucesso!");
-    } catch (error) {
-      console.error("Error sending WhatsApp:", error);
-      toast.error("Erro ao enviar mensagem. Tente novamente.");
-    } finally {
-      setSendingWhatsApp(false);
-    }
+    const digits = participantPhone.replace(/\D/g, '');
+    const phoneWithCountry = digits.startsWith('55') ? digits : `55${digits}`;
+    const poolLink = `https://app-delfos.lovable.app/pool/${poolId}`;
+    const message = `Olá, ${participant.participant_name}! 🎉\n\nParabéns! Você foi um dos ganhadores do bolão *${poolTitle || ''}*! 🏆\n\nPara que eu possa enviar o seu prêmio, preciso da sua chave PIX. Por favor, acesse o bolão pelo link abaixo e informe sua chave:\n\n${poolLink}\n\nQualquer dúvida, é só responder aqui!`;
+    const encoded = encodeURIComponent(message);
+    window.open(`https://wa.me/${phoneWithCountry}?text=${encoded}`, '_blank');
   };
 
   if (!participant.prize_pix_key) {
@@ -205,13 +197,8 @@ export const AdminPrizeManagement = ({ participant, poolId, poolTitle, participa
               size="sm"
               className="w-full text-xs"
               onClick={handleSendPixRequest}
-              disabled={sendingWhatsApp}
             >
-              {sendingWhatsApp ? (
-                <Loader2 className="w-4 h-4 animate-spin mr-1" />
-              ) : (
-                <MessageCircle className="w-4 h-4 mr-1" />
-              )}
+              <ExternalLink className="w-4 h-4 mr-1" />
               Solicitar chave PIX via WhatsApp
             </Button>
           ) : (
