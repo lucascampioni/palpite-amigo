@@ -156,7 +156,9 @@ const FootballRanking = ({ poolId, pool, approvedParticipantsCount, isOwner }: F
       }
     }
 
-    const allFinished = matches?.every(m => m.status === 'finished') ?? false;
+    const excludedStatuses = ['postponed', 'cancelled', 'abandoned'];
+    const countableMatches = matches?.filter(m => !excludedStatuses.includes(m.status)) ?? [];
+    const allFinished = countableMatches.length > 0 && countableMatches.every(m => m.status === 'finished');
     setAllMatchesFinished(allFinished);
     
     const liveStatuses = ['1H', '2H', 'HT', 'ET', 'P'];
