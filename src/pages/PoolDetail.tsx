@@ -1278,8 +1278,59 @@ const PoolDetail = () => {
                           />
                         )}
 
-
-
+                        {/* Edit / Cancel buttons for pending participants */}
+                        <div className="flex gap-2 mt-2">
+                          <Button
+                            variant="outline"
+                            className="flex-1"
+                            onClick={async () => {
+                              if (!confirm("Deseja editar seus palpites? Seus palpites atuais serão apagados e você poderá refazer a inscrição do zero.")) return;
+                              await supabase
+                                .from("football_predictions")
+                                .delete()
+                                .eq("participant_id", currentUserParticipant.id);
+                              await supabase
+                                .from("participants")
+                                .delete()
+                                .eq("id", currentUserParticipant.id);
+                              toast({
+                                title: "Palpites removidos",
+                                description: "Refaça sua inscrição com novos palpites.",
+                              });
+                              setCurrentUserParticipant(null);
+                              setHasJoined(false);
+                              setParticipants(prev => prev.filter(p => p.id !== currentUserParticipant.id));
+                            }}
+                          >
+                            <Edit className="w-4 h-4 mr-2" />
+                            Editar palpites
+                          </Button>
+                          <Button
+                            variant="destructive"
+                            className="flex-1"
+                            onClick={async () => {
+                              if (!confirm("Tem certeza que deseja cancelar sua participação? Todos os seus dados serão excluídos deste bolão.")) return;
+                              await supabase
+                                .from("football_predictions")
+                                .delete()
+                                .eq("participant_id", currentUserParticipant.id);
+                              await supabase
+                                .from("participants")
+                                .delete()
+                                .eq("id", currentUserParticipant.id);
+                              toast({
+                                title: "Participação cancelada",
+                                description: "Você saiu do bolão.",
+                              });
+                              setCurrentUserParticipant(null);
+                              setHasJoined(false);
+                              setParticipants(prev => prev.filter(p => p.id !== currentUserParticipant.id));
+                            }}
+                          >
+                            <X className="w-4 h-4 mr-2" />
+                            Cancelar participação
+                          </Button>
+                        </div>
                       </>
                     ) : (
                       <div className="p-6 rounded-lg bg-green-50 dark:bg-green-950 border-2 border-green-200 dark:border-green-800 text-center space-y-3">
