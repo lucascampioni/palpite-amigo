@@ -1026,7 +1026,7 @@ const FootballRanking = ({ poolId, pool, approvedParticipantsCount, isOwner }: F
                             )}
                             {allMatchesFinished && getPrizeStatusBadge(currentUser.prize_status, currentUser.prize_amount, true, currentUser.id)}
                           </div>
-                          {renderCompactPredictions(currentUser.ranking_key)}
+                          
                         </div>
                       </CollapsibleTrigger>
                       
@@ -1065,7 +1065,7 @@ const FootballRanking = ({ poolId, pool, approvedParticipantsCount, isOwner }: F
                                                   {pred.home_team_crest && (
                                                     <img src={pred.home_team_crest} alt={pred.home_team} className="w-4 h-4 object-contain" />
                                                   )}
-                                                  <span className="text-[0.6rem] text-muted-foreground">vs</span>
+                                                  <span className="text-[0.6rem] font-mono font-bold text-foreground">{pred.home_score_prediction}-{pred.away_score_prediction}</span>
                                                   {pred.away_team_crest && (
                                                     <img src={pred.away_team_crest} alt={pred.away_team} className="w-4 h-4 object-contain" />
                                                   )}
@@ -1127,7 +1127,7 @@ const FootballRanking = ({ poolId, pool, approvedParticipantsCount, isOwner }: F
                                                 {pred.home_team_crest && (
                                                   <img src={pred.home_team_crest} alt={pred.home_team} className="w-4 h-4 object-contain" />
                                                 )}
-                                                <span className="text-[0.6rem] text-muted-foreground">vs</span>
+                                                <span className="text-[0.6rem] font-mono font-bold text-foreground">{pred.home_score_prediction}-{pred.away_score_prediction}</span>
                                                 {pred.away_team_crest && (
                                                   <img src={pred.away_team_crest} alt={pred.away_team} className="w-4 h-4 object-contain" />
                                                 )}
@@ -1284,7 +1284,7 @@ const FootballRanking = ({ poolId, pool, approvedParticipantsCount, isOwner }: F
                           )}
                           {allMatchesFinished && getPrizeStatusBadge(participant.prize_status, participant.prize_amount, participant.id === currentUserParticipantId, participant.id)}
                         </div>
-                        {renderCompactPredictions(participant.ranking_key)}
+                        
                       </div>
                     </CollapsibleTrigger>
                     
@@ -1323,7 +1323,7 @@ const FootballRanking = ({ poolId, pool, approvedParticipantsCount, isOwner }: F
                                                  {pred.home_team_crest && (
                                                    <img src={pred.home_team_crest} alt={pred.home_team} className="w-4 h-4 object-contain" />
                                                  )}
-                                                 <span className="text-[0.6rem] text-muted-foreground">vs</span>
+                                                  <span className="text-[0.6rem] font-mono font-bold text-foreground">{pred.home_score_prediction}-{pred.away_score_prediction}</span>
                                                  {pred.away_team_crest && (
                                                    <img src={pred.away_team_crest} alt={pred.away_team} className="w-4 h-4 object-contain" />
                                                  )}
@@ -1385,7 +1385,7 @@ const FootballRanking = ({ poolId, pool, approvedParticipantsCount, isOwner }: F
                                                {pred.home_team_crest && (
                                                  <img src={pred.home_team_crest} alt={pred.home_team} className="w-4 h-4 object-contain" />
                                                )}
-                                               <span className="text-[0.6rem] text-muted-foreground">vs</span>
+                                               <span className="text-[0.6rem] font-mono font-bold text-foreground">{pred.home_score_prediction}-{pred.away_score_prediction}</span>
                                                {pred.away_team_crest && (
                                                  <img src={pred.away_team_crest} alt={pred.away_team} className="w-4 h-4 object-contain" />
                                                )}
