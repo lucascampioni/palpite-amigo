@@ -455,4 +455,23 @@ async function checkPoolCompletion(supabase: any, poolId: string) {
       result_value: `Vencedor: ${winner.name} com ${winner.points} pontos`,
     })
     .eq('id', poolId);
+
+  // Call update-football-winners to set prize_status for winners
+  console.log(`🎁 Calling update-football-winners for pool ${poolId}...`);
+  try {
+    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+    const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+    const response = await fetch(`${supabaseUrl}/functions/v1/update-football-winners`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${supabaseKey}`,
+      },
+      body: JSON.stringify({ pool_id: poolId }),
+    });
+    const result = await response.json();
+    console.log(`🎁 update-football-winners result:`, result);
+  } catch (winnerError) {
+    console.error(`❌ Error calling update-football-winners for pool ${poolId}:`, winnerError);
+  }
 }

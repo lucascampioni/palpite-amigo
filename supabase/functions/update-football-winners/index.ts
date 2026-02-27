@@ -25,10 +25,10 @@ serve(async (req) => {
 
     console.log(`Processing pool ${pool_id}`);
 
-    // Check if all matches are finished
+    // Check if all countable matches are finished (exclude postponed/cancelled/abandoned)
     const { data: matches, error: matchesError } = await supabaseClient
       .from('football_matches')
-      .select('id, home_score, away_score')
+      .select('id, home_score, away_score, status')
       .eq('pool_id', pool_id);
 
     if (matchesError) throw matchesError;
@@ -40,7 +40,17 @@ serve(async (req) => {
       );
     }
 
-    const allMatchesFinished = matches.every(m => m.home_score !== null && m.away_score !== null);
+    const excludedStatuses = ['postponed', 'cancelled', 'abandoned'];
+    const countableMatches = matches.filter(m => !excludedStatuses.includes(m.status));
+    
+    if (countableMatches.length === 0) {
+      return new Response(
+        JSON.stringify({ message: 'No countable matches found for this pool' }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    const allMatchesFinished = countableMatches.every(m => m.status === 'finished' && m.home_score !== null && m.away_score !== null);
 
     if (!allMatchesFinished) {
       return new Response(

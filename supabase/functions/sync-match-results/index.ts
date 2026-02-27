@@ -175,7 +175,8 @@ serve(async (req) => {
           .select('status')
           .eq('pool_id', poolId);
 
-        const allFinished = poolMatches?.every(m => m.status === 'finished');
+        const countableMatches = poolMatches?.filter((m: any) => !['postponed', 'cancelled', 'abandoned'].includes(m.status)) || [];
+        const allFinished = countableMatches.length > 0 && countableMatches.every((m: any) => m.status === 'finished');
 
         if (allFinished) {
           console.log(`All matches finished for pool ${poolId}, calculating winner...`);
@@ -194,7 +195,7 @@ serve(async (req) => {
 
           if (participants && participants.length > 0) {
             // Calculate total points for each participant
-            const participantPoints = participants.map(p => {
+            const participantPoints = participants.map((p: any) => {
               const totalPoints = (p.football_predictions as any[])
                 .reduce((sum: number, pred: any) => sum + (pred.points_earned || 0), 0);
               
@@ -207,7 +208,7 @@ serve(async (req) => {
             });
 
             // Find winner (highest points)
-            const winner = participantPoints.reduce((max, p) => 
+            const winner = participantPoints.reduce((max: any, p: any) => 
               p.points > max.points ? p : max
             );
 
@@ -222,6 +223,23 @@ serve(async (req) => {
                 result_value: `Vencedor: ${winner.name} com ${winner.points} pontos`
               })
               .eq('id', poolId);
+
+            // Call update-football-winners to set prize_status for winners
+            console.log(`🎁 Calling update-football-winners for pool ${poolId}...`);
+            try {
+              const response = await fetch(`${supabaseUrl}/functions/v1/update-football-winners`, {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                  'Authorization': `Bearer ${supabaseKey}`,
+                },
+                body: JSON.stringify({ pool_id: poolId }),
+              });
+              const result = await response.json();
+              console.log(`🎁 update-football-winners result:`, result);
+            } catch (winnerError) {
+              console.error(`❌ Error calling update-football-winners for pool ${poolId}:`, winnerError);
+            }
           }
         }
       } catch (error) {
