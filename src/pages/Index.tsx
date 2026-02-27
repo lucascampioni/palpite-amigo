@@ -169,7 +169,9 @@ const Index = () => {
         .order("created_at", { ascending: false });
       
       (data || []).forEach(pool => {
-        if (new Date(pool.deadline) < now || pool.status === 'finished') {
+        // Only mark as failed if pool is finished or cancelled — 
+        // deadline passing alone doesn't mean failure since auto-approve happens at match start
+        if (pool.status === 'finished' || pool.status === 'cancelled') {
           failedPools.push({ pool, reason: "Aprovação não concluída dentro do prazo" });
         } else {
           awaitingApprovalPoolsData.push(pool);
