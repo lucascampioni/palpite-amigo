@@ -48,6 +48,7 @@ const PoolDetail = () => {
   const [hasFootballMatches, setHasFootballMatches] = useState(false);
   const [footballMatches, setFootballMatches] = useState<any[]>([]);
   const [currentUserParticipant, setCurrentUserParticipant] = useState<any>(null);
+  const [paidPrizesOpen, setPaidPrizesOpen] = useState(false);
   const [signedProofUrl, setSignedProofUrl] = useState<string | null>(null);
   const [userPrizeInfo, setUserPrizeInfo] = useState<{ amount: number; placement: number; isTied: boolean; tiedWithCount: number } | null>(null);
   const [participantsPoints, setParticipantsPoints] = useState<Record<string, number>>({});
@@ -305,6 +306,29 @@ const PoolDetail = () => {
   useEffect(() => {
     if (poolId) loadPoolData();
   }, [poolId]);
+
+  // Listen for scroll-to-prize events from FootballRanking
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const participantId = (e as CustomEvent).detail;
+      // Check if this participant is in the paid section
+      const isPaid = participants.find(p => p.id === participantId)?.prize_status === 'prize_sent';
+      if (isPaid) {
+        setPaidPrizesOpen(true);
+      }
+      // Wait for collapsible to open, then scroll
+      setTimeout(() => {
+        const el = document.getElementById(`premio-${participantId}`);
+        if (el) {
+          el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          el.classList.add('ring-2', 'ring-primary', 'rounded-lg');
+          setTimeout(() => el.classList.remove('ring-2', 'ring-primary', 'rounded-lg'), 2000);
+        }
+      }, 300);
+    };
+    window.addEventListener('scroll-to-prize', handler);
+    return () => window.removeEventListener('scroll-to-prize', handler);
+  }, [participants]);
 
   const loadPoolData = async () => {
     try {
@@ -1568,11 +1592,11 @@ const PoolDetail = () => {
 
                   {/* Paid prizes - collapsible */}
                   {participants.filter(p => p.prize_status === 'prize_sent').length > 0 && (
-                    <Collapsible>
+                    <Collapsible open={paidPrizesOpen} onOpenChange={setPaidPrizesOpen}>
                       <CollapsibleTrigger className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors w-full">
                         <CheckCircle className="w-4 h-4 text-green-600" />
                         <span>Prêmios já pagos ({participants.filter(p => p.prize_status === 'prize_sent').length})</span>
-                        <ChevronDown className="w-4 h-4 ml-auto" />
+                        {paidPrizesOpen ? <ChevronUp className="w-4 h-4 ml-auto" /> : <ChevronDown className="w-4 h-4 ml-auto" />}
                       </CollapsibleTrigger>
                       <CollapsibleContent className="space-y-4 mt-3">
                         {participants
