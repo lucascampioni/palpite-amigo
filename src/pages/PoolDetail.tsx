@@ -1577,8 +1577,11 @@ const PoolDetail = () => {
                             prize_pix_key_type: participant.prize_pix_key_type,
                             prize_status: participant.prize_status,
                             prize_proof_url: participant.prize_proof_url,
+                            user_id: participant.user_id,
                           }}
                           poolId={pool.id}
+                          poolTitle={pool.title}
+                          participantPhone={participantPhones[participant.user_id]}
                           onSuccess={loadPoolData}
                         />
                       </div>
@@ -1611,8 +1614,11 @@ const PoolDetail = () => {
                                   prize_pix_key_type: participant.prize_pix_key_type,
                                   prize_status: participant.prize_status,
                                   prize_proof_url: participant.prize_proof_url,
+                                  user_id: participant.user_id,
                                 }}
                                 poolId={pool.id}
+                                poolTitle={pool.title}
+                                participantPhone={participantPhones[participant.user_id]}
                                 onSuccess={loadPoolData}
                               />
                             </div>

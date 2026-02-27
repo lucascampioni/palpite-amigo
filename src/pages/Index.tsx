@@ -296,21 +296,25 @@ const Index = () => {
         });
       }
 
-      // Fetch winners awaiting prize send (pix_submitted) in pools the user created
+      // Fetch winners with unpaid prizes in pools the user created
+      // Include both awaiting_pix (winner hasn't sent key yet) and pix_submitted (waiting for organizer to pay)
       const { data: prizePendingParticipants } = await supabase
         .from("participants")
-        .select("pool_id")
+        .select("pool_id, prize_status")
         .in("pool_id", ownedPoolIds)
-        .eq("prize_status", "pix_submitted");
+        .in("prize_status", ["pix_submitted", "awaiting_pix"]);
       
       if (prizePendingParticipants && prizePendingParticipants.length > 0) {
-        const countByPool: Record<string, number> = {};
+        const infoByPool: Record<string, { total: number; awaitingPix: number; readyToPay: number }> = {};
         prizePendingParticipants.forEach(p => {
-          countByPool[p.pool_id] = (countByPool[p.pool_id] || 0) + 1;
+          if (!infoByPool[p.pool_id]) infoByPool[p.pool_id] = { total: 0, awaitingPix: 0, readyToPay: 0 };
+          infoByPool[p.pool_id].total++;
+          if (p.prize_status === 'awaiting_pix') infoByPool[p.pool_id].awaitingPix++;
+          if (p.prize_status === 'pix_submitted') infoByPool[p.pool_id].readyToPay++;
         });
-        Object.entries(countByPool).forEach(([poolId, count]) => {
+        Object.entries(infoByPool).forEach(([poolId, info]) => {
           const pool = ownedPools.find(p => p.id === poolId);
-          if (pool) poolsPendingPrizeSend.push({ pool, winnersCount: count });
+          if (pool) poolsPendingPrizeSend.push({ pool, winnersCount: info.total, awaitingPixCount: info.awaitingPix, readyToPayCount: info.readyToPay } as any);
         });
       }
     }
@@ -550,22 +554,31 @@ const Index = () => {
                 {myPoolsPendingPrizeSend.length > 0 && (
                   <AlertSection
                     icon="🏆"
-                    title="Pendente Envio do Prêmio"
-                    subtitle="Ganhadores aguardando o envio do prêmio via PIX"
+                    title="Prêmios Pendentes de Envio"
+                    subtitle="Ganhadores aguardando o envio do prêmio"
                     bgClass="bg-amber-50 dark:bg-amber-950/50 border-amber-200 dark:border-amber-800"
                   >
-                    {myPoolsPendingPrizeSend.map(({ pool, winnersCount }) => (
-                      <button
-                        key={pool.id}
-                        onClick={() => navigate(`/bolao/${pool.slug}`)}
-                        className="w-full text-left p-3 rounded-lg bg-card border hover:border-primary/50 hover:shadow-sm transition-all"
-                      >
-                        <p className="font-medium text-sm">{pool.title}</p>
-                        <p className="text-xs text-muted-foreground mt-0.5">
-                          <span className="font-bold text-foreground">{winnersCount}</span> ganhador(es) aguardando envio do prêmio
-                        </p>
-                      </button>
-                    ))}
+                    {myPoolsPendingPrizeSend.map(({ pool, winnersCount, ...rest }) => {
+                      const info = rest as any;
+                      return (
+                        <button
+                          key={pool.id}
+                          onClick={() => navigate(`/bolao/${pool.slug}`)}
+                          className="w-full text-left p-3 rounded-lg bg-card border hover:border-primary/50 hover:shadow-sm transition-all"
+                        >
+                          <p className="font-medium text-sm">{pool.title}</p>
+                          <p className="text-xs text-muted-foreground mt-0.5">
+                            <span className="font-bold text-foreground">{winnersCount}</span> prêmio(s) pendente(s)
+                            {info.readyToPayCount > 0 && (
+                              <span className="text-primary"> • {info.readyToPayCount} pronto(s) p/ pagar</span>
+                            )}
+                            {info.awaitingPixCount > 0 && (
+                              <span className="text-yellow-600 dark:text-yellow-400"> • {info.awaitingPixCount} aguardando chave PIX</span>
+                            )}
+                          </p>
+                        </button>
+                      );
+                    })}
                   </AlertSection>
                 )}
               </div>
