@@ -560,6 +560,90 @@ const FootballRanking = ({ poolId, pool, approvedParticipantsCount, isOwner }: F
     }
   };
 
+  // Bulk-load all predictions when ranking is populated
+  useEffect(() => {
+    if (ranking.length > 0) {
+      loadAllPredictions();
+    }
+  }, [ranking.length]);
+
+  const loadAllPredictions = async () => {
+    const keysToLoad = ranking.map(r => r.ranking_key).filter(k => !participantPredictions[k]);
+    if (keysToLoad.length === 0) return;
+
+    const entries = keysToLoad.map(k => {
+      const [pid, ps] = k.split('_');
+      return { pid, ps: parseInt(ps) || 1, key: k };
+    });
+
+    const participantIds = [...new Set(entries.map(e => e.pid))];
+
+    const { data: predictions } = await supabase
+      .from("football_predictions")
+      .select(`
+        match_id,
+        participant_id,
+        home_score_prediction,
+        away_score_prediction,
+        points_earned,
+        prediction_set,
+        football_matches (
+          home_team,
+          away_team,
+          home_score,
+          away_score,
+          match_date,
+          home_team_crest,
+          away_team_crest,
+          status
+        )
+      `)
+      .in("participant_id", participantIds)
+      .order("football_matches(match_date)", { ascending: true });
+
+    if (!predictions) return;
+
+    const grouped: Record<string, MatchPrediction[]> = {};
+    for (const p of predictions as any[]) {
+      const key = `${p.participant_id}_${p.prediction_set || 1}`;
+      if (!grouped[key]) grouped[key] = [];
+      grouped[key].push({
+        match_id: p.match_id,
+        home_team: p.football_matches.home_team,
+        away_team: p.football_matches.away_team,
+        home_score: p.football_matches.home_score,
+        away_score: p.football_matches.away_score,
+        home_score_prediction: p.home_score_prediction,
+        away_score_prediction: p.away_score_prediction,
+        points_earned: p.points_earned,
+        match_date: p.football_matches.match_date,
+        home_team_crest: p.football_matches.home_team_crest,
+        away_team_crest: p.football_matches.away_team_crest,
+        status: p.football_matches.status,
+      });
+    }
+
+    setParticipantPredictions(prev => ({ ...prev, ...grouped }));
+  };
+
+  const renderCompactPredictions = (rankingKey: string) => {
+    const preds = participantPredictions[rankingKey];
+    if (!preds || preds.length === 0) return null;
+    const validPreds = preds.filter(p => !['postponed', 'cancelled', 'abandoned'].includes(p.status));
+    if (validPreds.length === 0) return null;
+    return (
+      <div className="mt-1.5 flex flex-wrap gap-1 pl-10 sm:pl-12">
+        {validPreds.map(pred => (
+          <span key={pred.match_id} className="inline-flex items-center gap-0.5 text-[0.6rem] bg-background/80 border border-border/50 rounded px-1 py-0.5">
+            {pred.home_team_crest && <img src={pred.home_team_crest} alt="" className="w-3 h-3 object-contain" />}
+            <span className="font-mono font-semibold">{pred.home_score_prediction}-{pred.away_score_prediction}</span>
+            {pred.away_team_crest && <img src={pred.away_team_crest} alt="" className="w-3 h-3 object-contain" />}
+          </span>
+        ))}
+      </div>
+    );
+  };
+
   const toggleParticipant = async (rankingKey: string) => {
     const newExpanded = new Set(expandedParticipants);
     if (newExpanded.has(rankingKey)) {
@@ -942,6 +1026,7 @@ const FootballRanking = ({ poolId, pool, approvedParticipantsCount, isOwner }: F
                             )}
                             {allMatchesFinished && getPrizeStatusBadge(currentUser.prize_status, currentUser.prize_amount, true, currentUser.id)}
                           </div>
+                          {renderCompactPredictions(currentUser.ranking_key)}
                         </div>
                       </CollapsibleTrigger>
                       
@@ -1199,6 +1284,7 @@ const FootballRanking = ({ poolId, pool, approvedParticipantsCount, isOwner }: F
                           )}
                           {allMatchesFinished && getPrizeStatusBadge(participant.prize_status, participant.prize_amount, participant.id === currentUserParticipantId, participant.id)}
                         </div>
+                        {renderCompactPredictions(participant.ranking_key)}
                       </div>
                     </CollapsibleTrigger>
                     
