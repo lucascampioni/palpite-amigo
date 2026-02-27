@@ -1459,12 +1459,24 @@ const PoolDetail = () => {
                 {currentUserParticipant.prize_status === 'pix_submitted' && (
                   <>
                     <Separator />
-                    <div className="p-4 rounded-lg bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-800">
+                    <div className="p-3 rounded-lg bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-800">
                       <p className="text-sm font-medium text-blue-700 dark:text-blue-300">
                         ✓ Chave PIX Enviada!
                       </p>
                       <p className="text-xs text-muted-foreground mt-1">
-                        Aguarde o envio do prêmio para sua chave PIX.
+                        Aguarde até 24h para recebimento.{' '}
+                        {ownerPhone ? (
+                          <a
+                            href={`https://wa.me/${ownerPhone.replace(/\D/g, '')}?text=${encodeURIComponent(`Olá ${ownerName || ''}! Enviei minha chave PIX no bolão "${pool?.title}" mas ainda não recebi o prêmio. Pode verificar?`)}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-blue-600 dark:text-blue-400 underline"
+                          >
+                            Passou de 24h? Fale com o organizador
+                          </a>
+                        ) : (
+                          <span>Caso passe de 24h, entre em contato com o organizador.</span>
+                        )}
                       </p>
                     </div>
                   </>
