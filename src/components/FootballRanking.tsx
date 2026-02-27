@@ -427,36 +427,37 @@ const FootballRanking = ({ poolId, pool, approvedParticipantsCount, isOwner }: F
     const result = [...ranking];
     let currentPosition = 0;
 
-    while (currentPosition < result.length && currentPosition < maxW) {
+    while (currentPosition < result.length) {
       const currentScore = result[currentPosition].total_points;
       
-      // Find all participants with the same score (tied) - but only consider those in top positions
-      const tiedInTop = [];
-      for (let i = currentPosition; i < result.length && i < maxW && result[i].total_points === currentScore; i++) {
-        tiedInTop.push(result[i]);
+      // Find ALL participants with the same score (entire tie group, not limited by maxW)
+      let tieGroupEnd = currentPosition;
+      while (tieGroupEnd < result.length && result[tieGroupEnd].total_points === currentScore) {
+        tieGroupEnd++;
       }
       
-      const tiedCount = tiedInTop.length;
+      const tieGroupSize = tieGroupEnd - currentPosition;
       
-      // Calculate sum of prizes for tied positions
+      // If this tie group doesn't touch any prize position, stop
+      if (currentPosition >= maxW) break;
+      
+      // Sum prizes for positions covered by the tie group (limited to maxW)
       let prizeSum = 0;
-      for (let i = currentPosition; i < Math.min(currentPosition + tiedCount, maxW); i++) {
-        prizeSum += prizes[i];
+      const prizeEnd = Math.min(tieGroupEnd, maxW);
+      for (let i = currentPosition; i < prizeEnd; i++) {
+        prizeSum += prizes[i] || 0;
       }
 
-      // Distribute prize equally among tied participants
-      const prizePerParticipant = tiedCount > 0 ? prizeSum / tiedCount : 0;
+      // Distribute prize equally among ALL members of the tie group
+      const prizePerParticipant = tieGroupSize > 0 ? prizeSum / tieGroupSize : 0;
 
       // Assign prize to all tied prediction sets
-      tiedInTop.forEach(participant => {
-        const index = result.findIndex(p => p.ranking_key === participant.ranking_key);
-        if (index !== -1) {
-          result[index].prize_amount = prizePerParticipant;
-        }
-      });
+      for (let i = currentPosition; i < tieGroupEnd; i++) {
+        result[i].prize_amount = prizePerParticipant;
+      }
 
       // Move to next position after the tied group
-      currentPosition += tiedCount;
+      currentPosition = tieGroupEnd;
     }
 
     return result;
