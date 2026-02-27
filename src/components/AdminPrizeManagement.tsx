@@ -140,7 +140,7 @@ export const AdminPrizeManagement = ({ participant, poolId, poolTitle, participa
             Prêmio Enviado
           </CardTitle>
           <CardDescription>
-            O prêmio para {participant.participant_name} já foi enviado.
+            O prêmio para <span className="font-bold text-foreground">{participant.participant_name}</span> já foi enviado.
           </CardDescription>
         </CardHeader>
         <CardContent>
