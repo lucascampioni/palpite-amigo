@@ -20,6 +20,7 @@ const CommunitiesTab = ({ userId }: CommunitiesTabProps) => {
   const [communities, setCommunities] = useState<any[]>([]);
   const [memberships, setMemberships] = useState<Record<string, any>>({});
   const [memberCounts, setMemberCounts] = useState<Record<string, number>>({});
+  const [poolCounts, setPoolCounts] = useState<Record<string, number>>({});
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [userProfile, setUserProfile] = useState<any>(null);
@@ -47,10 +48,21 @@ const CommunitiesTab = ({ userId }: CommunitiesTabProps) => {
     setMemberships(memberMap);
 
     if (comms && comms.length > 0) {
-      const { data: counts } = await supabase.from("community_members").select("community_id");
+      const [{ data: counts }, { data: poolsData }] = await Promise.all([
+        supabase.from("community_members").select("community_id"),
+        supabase.from("pools").select("owner_id").in("status", ["active"]),
+      ]);
       const countMap: Record<string, number> = {};
       (counts || []).forEach(c => { countMap[c.community_id] = (countMap[c.community_id] || 0) + 1; });
       setMemberCounts(countMap);
+
+      // Map pools to communities by responsible_user_id
+      const poolCountMap: Record<string, number> = {};
+      (comms || []).forEach(comm => {
+        const count = (poolsData || []).filter(p => p.owner_id === comm.responsible_user_id).length;
+        poolCountMap[comm.id] = count;
+      });
+      setPoolCounts(poolCountMap);
     }
 
     setLoading(false);
@@ -178,6 +190,7 @@ const CommunitiesTab = ({ userId }: CommunitiesTabProps) => {
             community={community}
             membership={memberships[community.id]}
             memberCount={memberCounts[community.id] || 0}
+            poolCount={poolCounts[community.id] || 0}
             userNotifyEnabled={userProfile?.notify_new_pools ?? false}
             onFollow={() => handleFollow(community.id)}
             onUnfollow={() => handleUnfollow(community.id)}

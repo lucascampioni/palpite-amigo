@@ -3,13 +3,14 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
-import { Users, Bell, BellOff, Star, UserCheck, ChevronRight } from "lucide-react";
+import { Users, Bell, BellOff, Star, UserCheck, ChevronRight, Trophy } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface CommunityCardProps {
   community: any;
   membership: any;
   memberCount: number;
+  poolCount: number;
   userNotifyEnabled: boolean;
   onFollow: () => void;
   onUnfollow: () => void;
@@ -21,6 +22,7 @@ const CommunityCard = ({
   community,
   membership,
   memberCount,
+  poolCount,
   userNotifyEnabled,
   onFollow,
   onUnfollow,
@@ -83,7 +85,7 @@ const CommunityCard = ({
               <p className="text-xs text-muted-foreground line-clamp-2 mb-2">{community.description}</p>
             )}
 
-            <div className="flex items-center gap-3 text-xs text-muted-foreground">
+            <div className="flex items-center gap-3 flex-wrap text-xs text-muted-foreground">
               <span className="flex items-center gap-1">
                 <UserCheck className="w-3.5 h-3.5" />
                 {responsibleName}
@@ -91,6 +93,10 @@ const CommunityCard = ({
               <span className="flex items-center gap-1">
                 <Users className="w-3.5 h-3.5" />
                 {memberCount} {memberCount === 1 ? "membro" : "membros"}
+              </span>
+              <span className="flex items-center gap-1">
+                <Trophy className="w-3.5 h-3.5" />
+                {poolCount} {poolCount === 1 ? "bolão" : "bolões"}
               </span>
             </div>
           </div>
