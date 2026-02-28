@@ -525,10 +525,6 @@ const Index = () => {
                   </AlertSection>
                 )}
 
-          {/* ========= TAB: COMUNIDADES ========= */}
-          <TabsContent value="comunidades" className="mt-0">
-            <CommunitiesTab userId={session?.user?.id} />
-          </TabsContent>
 
                 {myAwaitingPixPools.length > 0 && (
                   <AlertSection
@@ -605,6 +601,11 @@ const Index = () => {
                 <p className="text-sm text-muted-foreground">Você está em dia! 🎉</p>
               </div>
             )}
+          </TabsContent>
+
+          {/* ========= TAB: COMUNIDADES ========= */}
+          <TabsContent value="comunidades" className="mt-0">
+            <CommunitiesTab userId={session?.user?.id} />
           </TabsContent>
 
           {/* ========= TAB: MEUS BOLÕES ========= */}
