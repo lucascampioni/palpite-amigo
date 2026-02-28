@@ -755,20 +755,6 @@ const CreateFootballPool = () => {
 
               <div className="flex items-center justify-between rounded-lg border p-4 bg-muted/30">
                 <div className="space-y-0.5">
-                  <Label htmlFor="has-whatsapp-group" className="text-base font-semibold">📱 Grupo do WhatsApp</Label>
-                  <p className="text-sm text-muted-foreground">
-                    Há um grupo no WhatsApp para esse bolão?
-                  </p>
-                </div>
-                <Switch
-                  id="has-whatsapp-group"
-                  checked={hasWhatsappGroup}
-                  onCheckedChange={setHasWhatsappGroup}
-                />
-              </div>
-
-              <div className="flex items-center justify-between rounded-lg border p-4 bg-muted/30">
-                <div className="space-y-0.5">
                   <Label htmlFor="is-private" className="text-base font-semibold">Privacidade do Bolão</Label>
                   <p className="text-sm text-muted-foreground flex items-center gap-1.5">
                     {isPrivate ? (
