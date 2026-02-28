@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Session } from "@supabase/supabase-js";
 import delfosLogo from "@/assets/delfos-logo.png";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Users, UserCheck, Star } from "lucide-react";
+import { ArrowLeft, Users, UserCheck, Star, ChevronDown, ChevronUp } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import PoolCard from "@/components/PoolCard";
 
@@ -16,6 +16,7 @@ const CommunityDetail = () => {
   const [pools, setPools] = useState<any[]>([]);
   const [memberCount, setMemberCount] = useState(0);
   const [loading, setLoading] = useState(true);
+  const [showFinished, setShowFinished] = useState(false);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -133,17 +134,27 @@ const CommunityDetail = () => {
           </section>
         )}
 
-        {/* Finished pools */}
+        {/* Finished pools - collapsible */}
         {finishedPools.length > 0 && (
-          <section className="space-y-3">
-            <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">
-              🏆 Bolões Finalizados
-            </h3>
-            <div className="space-y-3">
-              {finishedPools.map(pool => (
-                <PoolCard key={pool.id} pool={pool} onClick={() => navigate(`/bolao/${pool.slug}`)} />
-              ))}
-            </div>
+          <section className="space-y-2">
+            <Button
+              variant="ghost"
+              size="sm"
+              className="w-full justify-between h-9 text-muted-foreground hover:text-foreground"
+              onClick={() => setShowFinished(!showFinished)}
+            >
+              <span className="text-xs font-medium">
+                ✅ Finalizados ({finishedPools.length})
+              </span>
+              {showFinished ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+            </Button>
+            {showFinished && (
+              <div className="space-y-3">
+                {finishedPools.map(pool => (
+                  <PoolCard key={pool.id} pool={pool} onClick={() => navigate(`/bolao/${pool.slug}`)} />
+                ))}
+              </div>
+            )}
           </section>
         )}
 
