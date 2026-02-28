@@ -896,42 +896,43 @@ const PoolDetail = () => {
         )}
 
         <Card>
-          <CardHeader>
-            <div className="flex items-start justify-between">
-              <div className="space-y-2">
-                <CardTitle className="text-3xl">{pool.title}</CardTitle>
+          <CardHeader className="p-4 sm:p-6">
+            <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
+              <div className="space-y-1.5 min-w-0">
+                <CardTitle className="text-xl sm:text-3xl leading-tight">{pool.title}</CardTitle>
                 {ownerName && (
-                  <p className="text-sm text-muted-foreground">
+                  <p className="text-xs sm:text-sm text-muted-foreground">
                     Criado por <span className="font-medium">{ownerName}</span>
                   </p>
                 )}
-                <div className="flex gap-2 flex-wrap">
-                  <Badge className={getStatusColor(pool.status)}>
+                <div className="flex gap-1.5 sm:gap-2 flex-wrap">
+                  <Badge className={`text-[10px] sm:text-xs px-2 py-0.5 ${getStatusColor(pool.status)}`}>
                     {getStatusText(pool.status)}
                   </Badge>
                   {pool.is_private ? (
-                    <Badge variant="secondary" className="text-sm">
-                      <Lock className="w-3 h-3 mr-1" />
-                      Bolão Privado
+                    <Badge variant="secondary" className="text-[10px] sm:text-xs px-2 py-0.5">
+                      <Lock className="w-2.5 h-2.5 sm:w-3 sm:h-3 mr-0.5 sm:mr-1" />
+                      Privado
                     </Badge>
                   ) : (
-                    <Badge variant="default" className="text-sm">
-                      <Unlock className="w-3 h-3 mr-1" />
-                      Bolão Público
+                    <Badge variant="default" className="text-[10px] sm:text-xs px-2 py-0.5">
+                      <Unlock className="w-2.5 h-2.5 sm:w-3 sm:h-3 mr-0.5 sm:mr-1" />
+                      Público
                     </Badge>
                   )}
                   {isPastDeadline && pool.status === "active" && (
-                    <Badge variant="destructive">
+                    <Badge variant="destructive" className="text-[10px] sm:text-xs px-2 py-0.5">
                       Prazo Expirado
                     </Badge>
                   )}
                 </div>
               </div>
-              <div className="flex gap-2">
-                {isOwner && participants.length === 0 && (
+              {isOwner && participants.length === 0 && (
+                <div className="flex gap-2 shrink-0">
                   <Button
                     variant="destructive"
                     size="sm"
+                    className="h-8 text-xs sm:text-sm"
                     onClick={async () => {
                       if (!confirm("Tem certeza que deseja excluir este bolão? Esta ação não pode ser desfeita.")) return;
                       await supabase.from("pool_payment_info").delete().eq("pool_id", poolId!);
@@ -945,23 +946,22 @@ const PoolDetail = () => {
                       }
                     }}
                   >
-                    <Trash2 className="w-4 h-4 mr-2" />
+                    <Trash2 className="w-3.5 h-3.5 mr-1" />
                     Excluir
                   </Button>
-                )}
-                {isOwner && participants.length === 0 && (
                   <Button
                     variant="outline"
                     size="sm"
+                    className="h-8 text-xs sm:text-sm"
                     onClick={() => navigate(`/editar-bolao/${poolId}`)}
                   >
-                    <Edit className="w-4 h-4 mr-2" />
+                    <Edit className="w-3.5 h-3.5 mr-1" />
                     Editar
                   </Button>
-                )}
-              </div>
+                </div>
+              )}
             </div>
-            <CardDescription className="text-base mt-4">{pool.description}</CardDescription>
+            <CardDescription className="text-sm sm:text-base mt-3">{pool.description}</CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
             {/* Winner Display - hidden from rejected participants */}
