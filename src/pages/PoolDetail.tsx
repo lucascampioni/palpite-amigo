@@ -1333,10 +1333,11 @@ const PoolDetail = () => {
                         )}
 
                         {/* Edit / Cancel buttons for pending participants (only if no proof sent) */}
-                        {!currentUserParticipant.payment_proof && <div className="flex gap-2 mt-2">
+                        {!currentUserParticipant.payment_proof && <div className="flex flex-col sm:flex-row gap-2 mt-2">
                           <Button
                             variant="outline"
-                            className="flex-1"
+                            size="sm"
+                            className="flex-1 h-9 text-xs sm:text-sm"
                             onClick={async () => {
                               if (!confirm("Deseja editar seus palpites? Seus palpites atuais serão apagados e você poderá refazer a inscrição do zero.")) return;
                               await supabase
@@ -1361,7 +1362,8 @@ const PoolDetail = () => {
                           </Button>
                           <Button
                             variant="destructive"
-                            className="flex-1"
+                            size="sm"
+                            className="flex-1 h-9 text-xs sm:text-sm"
                             onClick={async () => {
                               if (!confirm("Tem certeza que deseja cancelar sua participação? Todos os seus dados serão excluídos deste bolão.")) return;
                               await supabase
