@@ -15,6 +15,8 @@ import ResetPassword from "./pages/ResetPassword";
 import WhatsAppRequests from "./pages/WhatsAppRequests";
 import WhatsAppVerification from "./pages/WhatsAppVerification";
 import NotFound from "./pages/NotFound";
+import Communities from "./pages/Communities";
+import CommunityDetail from "./pages/CommunityDetail";
 
 const queryClient = new QueryClient();
 
@@ -36,6 +38,8 @@ const App = () => (
           <Route path="/privacidade" element={<Privacy />} />
           <Route path="/solicitacoes-whatsapp" element={<WhatsAppRequests />} />
           <Route path="/verificacao-whatsapp" element={<WhatsAppVerification />} />
+          <Route path="/comunidades" element={<Communities />} />
+          <Route path="/comunidade/:slug" element={<CommunityDetail />} />
           {/* Backward compatibility redirects for old URLs */}
           <Route path="/auth" element={<Auth />} />
           <Route path="/pool/:slug" element={<PoolDetail />} />

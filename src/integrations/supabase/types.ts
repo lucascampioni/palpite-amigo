@@ -47,6 +47,77 @@ export type Database = {
         }
         Relationships: []
       }
+      communities: {
+        Row: {
+          created_at: string
+          created_by: string
+          description: string | null
+          display_responsible_name: string | null
+          id: string
+          is_official: boolean
+          name: string
+          responsible_user_id: string
+          slug: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          description?: string | null
+          display_responsible_name?: string | null
+          id?: string
+          is_official?: boolean
+          name: string
+          responsible_user_id: string
+          slug?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          description?: string | null
+          display_responsible_name?: string | null
+          id?: string
+          is_official?: boolean
+          name?: string
+          responsible_user_id?: string
+          slug?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      community_members: {
+        Row: {
+          community_id: string
+          created_at: string
+          id: string
+          notify_new_pools: boolean
+          user_id: string
+        }
+        Insert: {
+          community_id: string
+          created_at?: string
+          id?: string
+          notify_new_pools?: boolean
+          user_id: string
+        }
+        Update: {
+          community_id?: string
+          created_at?: string
+          id?: string
+          notify_new_pools?: boolean
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "community_members_community_id_fkey"
+            columns: ["community_id"]
+            isOneToOne: false
+            referencedRelation: "communities"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       football_matches: {
         Row: {
           away_score: number | null

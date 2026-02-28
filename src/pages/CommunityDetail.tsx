@@ -1,0 +1,164 @@
+import { useEffect, useState } from "react";
+import { useParams, useNavigate } from "react-router-dom";
+import { supabase } from "@/integrations/supabase/client";
+import { Session } from "@supabase/supabase-js";
+import delfosLogo from "@/assets/delfos-logo.png";
+import { Button } from "@/components/ui/button";
+import { ArrowLeft, Users, UserCheck, Star } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import PoolCard from "@/components/PoolCard";
+
+const CommunityDetail = () => {
+  const { slug } = useParams();
+  const navigate = useNavigate();
+  const [session, setSession] = useState<Session | null>(null);
+  const [community, setCommunity] = useState<any>(null);
+  const [pools, setPools] = useState<any[]>([]);
+  const [memberCount, setMemberCount] = useState(0);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setSession(session);
+      if (!session) navigate("/entrar");
+    });
+  }, [navigate]);
+
+  useEffect(() => {
+    if (session && slug) loadCommunity();
+  }, [session, slug]);
+
+  const loadCommunity = async () => {
+    setLoading(true);
+
+    const { data: comm } = await supabase
+      .from("communities")
+      .select("*")
+      .eq("slug", slug)
+      .single();
+
+    if (!comm) {
+      navigate("/comunidades");
+      return;
+    }
+    setCommunity(comm);
+
+    // Get member count
+    const { data: members } = await supabase
+      .from("community_members")
+      .select("id")
+      .eq("community_id", comm.id);
+    setMemberCount(members?.length || 0);
+
+    // Get all pools by responsible user (active + finished)
+    const { data: poolsData } = await supabase
+      .from("pools")
+      .select("*, participants(count)")
+      .eq("owner_id", comm.responsible_user_id)
+      .in("status", ["active", "finished"])
+      .order("created_at", { ascending: false });
+
+    setPools(poolsData || []);
+    setLoading(false);
+  };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="flex flex-col items-center gap-3">
+          <img src={delfosLogo} alt="Delfos" className="h-16 sm:h-20 w-auto animate-pulse" />
+          <p className="text-muted-foreground text-sm">Carregando...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!community) return null;
+
+  const activePools = pools.filter(p => p.status === "active");
+  const finishedPools = pools.filter(p => p.status === "finished");
+  const responsibleName = community.display_responsible_name || "Organizador";
+
+  return (
+    <div className="min-h-screen bg-background flex flex-col">
+      <header className="sticky top-0 z-20 bg-card/95 backdrop-blur-lg border-b border-border/50 shadow-md">
+        <div className="max-w-3xl mx-auto px-3 py-2 flex items-center gap-2">
+          <Button variant="ghost" size="icon" className="h-9 w-9 rounded-full" onClick={() => navigate("/comunidades")}>
+            <ArrowLeft className="w-4 h-4" />
+          </Button>
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2">
+              {community.is_official && (
+                <Badge className="bg-primary/15 text-primary border-primary/30 text-[10px] px-1.5 py-0 font-semibold shrink-0">
+                  <Star className="w-3 h-3 mr-0.5" />
+                  Oficial
+                </Badge>
+              )}
+              <h1 className="font-bold text-sm truncate">{community.name}</h1>
+            </div>
+          </div>
+        </div>
+        <div className="h-[2px] bg-gradient-to-r from-primary via-secondary to-accent" />
+      </header>
+
+      <main className="flex-1 max-w-3xl mx-auto w-full px-3 pt-4 pb-4 space-y-5">
+        {/* Community info */}
+        <div className="space-y-2">
+          {community.description && (
+            <p className="text-sm text-muted-foreground">{community.description}</p>
+          )}
+          <div className="flex items-center gap-4 text-xs text-muted-foreground">
+            <span className="flex items-center gap-1">
+              <UserCheck className="w-3.5 h-3.5" />
+              {responsibleName}
+            </span>
+            <span className="flex items-center gap-1">
+              <Users className="w-3.5 h-3.5" />
+              {memberCount} {memberCount === 1 ? "membro" : "membros"}
+            </span>
+          </div>
+        </div>
+
+        {/* Active pools */}
+        {activePools.length > 0 && (
+          <section className="space-y-3">
+            <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">
+              ⚽ Bolões Ativos
+            </h3>
+            <div className="space-y-3">
+              {activePools.map(pool => (
+                <PoolCard key={pool.id} pool={pool} onClick={() => navigate(`/bolao/${pool.slug}`)} />
+              ))}
+            </div>
+          </section>
+        )}
+
+        {/* Finished pools */}
+        {finishedPools.length > 0 && (
+          <section className="space-y-3">
+            <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">
+              🏆 Bolões Finalizados
+            </h3>
+            <div className="space-y-3">
+              {finishedPools.map(pool => (
+                <PoolCard key={pool.id} pool={pool} onClick={() => navigate(`/bolao/${pool.slug}`)} />
+              ))}
+            </div>
+          </section>
+        )}
+
+        {pools.length === 0 && (
+          <div className="text-center py-12 space-y-3">
+            <div className="w-20 h-20 mx-auto rounded-full bg-muted flex items-center justify-center">
+              <Users className="w-8 h-8 text-muted-foreground" />
+            </div>
+            <h3 className="text-lg font-semibold text-muted-foreground">Nenhum bolão ainda</h3>
+            <p className="text-sm text-muted-foreground">Os bolões desta comunidade aparecerão aqui.</p>
+          </div>
+        )}
+      </main>
+    </div>
+  );
+};
+
+export default CommunityDetail;
