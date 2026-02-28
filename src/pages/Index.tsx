@@ -47,6 +47,9 @@ const Index = () => {
         if (!session) {
           navigate("/entrar");
         }
+        if (event === 'SIGNED_IN') {
+          window.scrollTo(0, 0);
+        }
       }
     );
 
@@ -63,7 +66,6 @@ const Index = () => {
           .single();
 
         // Only redirect to verification if user HAS a phone number but it's not verified yet
-        // Users without a phone can access normally and add it later in their profile
         if (profile && profile.phone !== null && profile.phone !== '' && !profile.phone_verified) {
           navigate("/verificacao-whatsapp");
           return;
@@ -71,6 +73,7 @@ const Index = () => {
 
         NotificationService.requestPermissions();
         NotificationService.setupRealtimeNotifications(session.user.id);
+        window.scrollTo(0, 0);
       }
     });
 
@@ -337,6 +340,9 @@ const Index = () => {
     setAvailablePools(activePools);
     
     setLoading(false);
+    if (!initialLoadDone) {
+      window.scrollTo(0, 0);
+    }
     setInitialLoadDone(true);
   };
 
