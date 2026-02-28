@@ -405,26 +405,11 @@ const Index = () => {
       </header>
 
       {/* Main Content with Tabs */}
-      <main className="flex-1 max-w-3xl mx-auto w-full px-3 pt-3 pb-4">
-        {/* Search Bar */}
-        <div className="relative mb-3">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-          <Input
-            placeholder="Buscar bolão..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-9 pr-9 h-10 rounded-xl bg-muted/40 border-muted"
-          />
-          {searchQuery && (
-            <button onClick={() => setSearchQuery("")} className="absolute right-3 top-1/2 -translate-y-1/2">
-              <X className="w-4 h-4 text-muted-foreground hover:text-foreground" />
-            </button>
-          )}
-        </div>
+      <main className="flex-1 max-w-3xl mx-auto w-full px-3 pt-1 pb-4">
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
           {/* Tab Navigation */}
-          <TabsList className={`w-full grid ${userRole?.canCreatePools ? 'grid-cols-5' : 'grid-cols-4'} mb-4 h-auto bg-muted/60 rounded-xl p-1 gap-0.5`}>
+          <TabsList className={`w-full grid ${userRole?.canCreatePools ? 'grid-cols-5' : 'grid-cols-4'} mb-2 h-auto bg-muted/60 rounded-xl p-1 gap-0.5`}>
             <TabsTrigger value="explorar" className="rounded-lg text-[10px] sm:text-xs font-medium data-[state=active]:bg-card data-[state=active]:shadow-sm relative flex flex-col items-center gap-0.5 py-1.5 px-0.5">
               <Home className="w-4 h-4" />
               <span>Início</span>
@@ -468,6 +453,24 @@ const Index = () => {
               )}
             </TabsTrigger>
           </TabsList>
+
+          {/* Search Bar */}
+          {activeTab !== "comunidades" && (
+            <div className="relative mb-3">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+              <Input
+                placeholder="Buscar bolão..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-9 pr-9 h-10 rounded-xl bg-muted/40 border-muted"
+              />
+              {searchQuery && (
+                <button onClick={() => setSearchQuery("")} className="absolute right-3 top-1/2 -translate-y-1/2">
+                  <X className="w-4 h-4 text-muted-foreground hover:text-foreground" />
+                </button>
+              )}
+            </div>
+          )}
 
           {/* ========= TAB: EXPLORAR (INÍCIO) ========= */}
           <TabsContent value="explorar" className="space-y-5 mt-0">
