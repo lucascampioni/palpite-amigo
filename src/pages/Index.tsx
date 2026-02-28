@@ -748,6 +748,20 @@ const Index = () => {
           </TabsContent>
         </Tabs>
       </main>
+
+      {/* Bottom Navigation */}
+      <nav className="sticky bottom-0 bg-card/95 backdrop-blur-lg border-t border-border/50 shadow-lg">
+        <div className="max-w-3xl mx-auto flex">
+          <button className="flex-1 flex flex-col items-center gap-0.5 py-2 text-primary font-semibold transition-colors">
+            <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M15 21v-8a1 1 0 0 0-1-1h-4a1 1 0 0 0-1 1v8"/><path d="M3 10a2 2 0 0 1 .709-1.528l7-5.999a2 2 0 0 1 2.582 0l7 5.999A2 2 0 0 1 21 10v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>
+            <span className="text-[10px]">Início</span>
+          </button>
+          <button onClick={() => navigate("/comunidades")} className="flex-1 flex flex-col items-center gap-0.5 py-2 text-muted-foreground hover:text-foreground transition-colors">
+            <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+            <span className="text-[10px] font-medium">Comunidades</span>
+          </button>
+        </div>
+      </nav>
     </div>
   );
 };
