@@ -18,6 +18,7 @@ const CommunityDetail = () => {
   const [loading, setLoading] = useState(true);
   const [showFinished, setShowFinished] = useState(false);
   const [responsiblePhone, setResponsiblePhone] = useState<string | null>(null);
+  const [participantMap, setParticipantMap] = useState<Record<string, any>>({});
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -69,6 +70,25 @@ const CommunityDetail = () => {
       .order("created_at", { ascending: false });
 
     setPools(poolsData || []);
+
+    // Fetch user's participation status for these pools
+    if (poolsData && poolsData.length > 0 && session) {
+      const poolIds = poolsData.map((p: any) => p.id);
+      const { data: myParticipants } = await supabase
+        .from("participants")
+        .select("pool_id, status, payment_proof, prize_status")
+        .eq("user_id", session.user.id)
+        .in("pool_id", poolIds);
+
+      const pMap: Record<string, any> = {};
+      (myParticipants || []).forEach((p: any) => {
+        pMap[p.pool_id] = p;
+      });
+      setParticipantMap(pMap);
+    } else {
+      setParticipantMap({});
+    }
+
     setLoading(false);
   };
 
@@ -164,7 +184,14 @@ const CommunityDetail = () => {
             </h3>
             <div className="space-y-3">
               {activePools.map(pool => (
-                <PoolCard key={pool.id} pool={pool} onClick={() => navigate(`/bolao/${pool.slug}`)} />
+                <PoolCard
+                  key={pool.id}
+                  pool={pool}
+                  onClick={() => navigate(`/bolao/${pool.slug}`)}
+                  isUserParticipating={participantMap[pool.id]?.status === 'approved'}
+                  hasPendingPayment={participantMap[pool.id]?.status === 'pending' && !participantMap[pool.id]?.payment_proof}
+                  hasAwaitingApproval={participantMap[pool.id]?.status === 'pending' && !!participantMap[pool.id]?.payment_proof}
+                />
               ))}
             </div>
           </section>
@@ -187,7 +214,12 @@ const CommunityDetail = () => {
             {showFinished && (
               <div className="space-y-3">
                 {finishedPools.map(pool => (
-                  <PoolCard key={pool.id} pool={pool} onClick={() => navigate(`/bolao/${pool.slug}`)} />
+                  <PoolCard
+                    key={pool.id}
+                    pool={pool}
+                    onClick={() => navigate(`/bolao/${pool.slug}`)}
+                    isUserParticipating={participantMap[pool.id]?.status === 'approved'}
+                  />
                 ))}
               </div>
             )}
