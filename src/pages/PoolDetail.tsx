@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
-import { ArrowLeft, Calendar, Trophy, Users, Share2, Award, Copy, Lock, Unlock, CheckCircle, Edit, ChevronDown, ChevronUp, Info, Trash2, X, MessageCircle } from "lucide-react";
+import { ArrowLeft, Calendar, Trophy, Users, Share2, Award, Copy, Lock, Unlock, CheckCircle, Edit, ChevronDown, ChevronUp, Info, Trash2, X, MessageCircle, Send } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { Input } from "@/components/ui/input";
@@ -61,6 +61,7 @@ const PoolDetail = () => {
   const [showPoolInfo, setShowPoolInfo] = useState(false);
   const [ownerName, setOwnerName] = useState<string | null>(null);
   const [ownerPhone, setOwnerPhone] = useState<string | null>(null);
+  const [sendingCommunityNotification, setSendingCommunityNotification] = useState(false);
 
   useEffect(() => {
     const buildSigned = async () => {
@@ -681,6 +682,43 @@ const PoolDetail = () => {
           : "Apenas pessoas com o link poderão acessar",
       });
       loadPoolData();
+    }
+  };
+
+  const handleNotifyCommunityFollowers = async () => {
+    if (!poolId || !pool) return;
+    if (pool.community_notified) {
+      toast({ variant: "destructive", title: "Já enviado", description: "A notificação para a comunidade já foi enviada anteriormente." });
+      return;
+    }
+
+    if (!confirm("Enviar notificação via WhatsApp para todos os seguidores da comunidade que ativaram notificações? Esta ação só pode ser feita uma vez.")) return;
+
+    setSendingCommunityNotification(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('notify-community-followers', {
+        body: { pool_id: poolId },
+      });
+
+      if (error) throw error;
+
+      if (data?.success) {
+        toast({
+          title: "Notificação enviada! 🎉",
+          description: `${data.sent} mensagem(ns) enviada(s) com sucesso.`,
+        });
+        setPool((prev: any) => ({ ...prev, community_notified: true }));
+      } else {
+        throw new Error(data?.error || 'Erro desconhecido');
+      }
+    } catch (err: any) {
+      toast({
+        variant: "destructive",
+        title: "Erro ao enviar",
+        description: err.message || "Não foi possível enviar as notificações.",
+      });
+    } finally {
+      setSendingCommunityNotification(false);
     }
   };
 
@@ -1564,6 +1602,50 @@ const PoolDetail = () => {
                   approvedPredictionSets={approvedParticipants.length}
                   poolStatus={pool.status}
                 />
+              </>
+            )}
+
+            {/* Notify Community Followers Button - owner only, one-time */}
+            {isOwner && pool.status === 'active' && (
+              <>
+                <Separator />
+                <div className="p-4 rounded-xl border border-border bg-card space-y-3">
+                  <div className="flex items-start gap-3">
+                    <Send className="w-5 h-5 text-primary mt-0.5 shrink-0" />
+                    <div className="space-y-1">
+                      <h4 className="font-semibold text-sm">Divulgar para seguidores da comunidade</h4>
+                      <p className="text-xs text-muted-foreground">
+                        Envia uma mensagem via WhatsApp para todos os seguidores da sua comunidade que ativaram as notificações de novos bolões.
+                      </p>
+                      {pool.community_notified && (
+                        <p className="text-xs text-green-600 font-medium flex items-center gap-1">
+                          <CheckCircle className="w-3.5 h-3.5" />
+                          Notificação já enviada para este bolão
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                  <Button
+                    size="sm"
+                    className="w-full"
+                    disabled={pool.community_notified || sendingCommunityNotification}
+                    onClick={handleNotifyCommunityFollowers}
+                  >
+                    {sendingCommunityNotification ? (
+                      "Enviando..."
+                    ) : pool.community_notified ? (
+                      <>
+                        <CheckCircle className="w-4 h-4 mr-1" />
+                        Já enviado
+                      </>
+                    ) : (
+                      <>
+                        <Send className="w-4 h-4 mr-1" />
+                        Enviar notificação (apenas 1x)
+                      </>
+                    )}
+                  </Button>
+                </div>
               </>
             )}
 
