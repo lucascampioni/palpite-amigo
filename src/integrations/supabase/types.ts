@@ -398,6 +398,7 @@ export type Database = {
       pools: {
         Row: {
           cancelled_notified: boolean
+          community_notified: boolean
           created_at: string
           deadline: string
           description: string
@@ -429,6 +430,7 @@ export type Database = {
         }
         Insert: {
           cancelled_notified?: boolean
+          community_notified?: boolean
           created_at?: string
           deadline: string
           description: string
@@ -460,6 +462,7 @@ export type Database = {
         }
         Update: {
           cancelled_notified?: boolean
+          community_notified?: boolean
           created_at?: string
           deadline?: string
           description?: string
