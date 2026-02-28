@@ -62,6 +62,7 @@ const PoolDetail = () => {
   const [ownerName, setOwnerName] = useState<string | null>(null);
   const [ownerPhone, setOwnerPhone] = useState<string | null>(null);
   const [sendingCommunityNotification, setSendingCommunityNotification] = useState(false);
+  const [ownerCommunityName, setOwnerCommunityName] = useState<string | null>(null);
 
   useEffect(() => {
     const buildSigned = async () => {
@@ -389,7 +390,15 @@ const PoolDetail = () => {
       .rpc("get_pool_owner_phone", { pool_uuid: poolData.id });
     setOwnerPhone(ownerPhoneData || null);
 
-    // Check if user has phone registered
+    // Load community name for this pool's owner
+    const { data: ownerCommunity } = await supabase
+      .from('communities')
+      .select('name')
+      .eq('responsible_user_id', poolData.owner_id)
+      .limit(1)
+      .maybeSingle();
+    setOwnerCommunityName(ownerCommunity?.name || null);
+
     if (user) {
       const { data: profileData } = await supabase
         .from("profiles")
@@ -1606,19 +1615,26 @@ const PoolDetail = () => {
             )}
 
             {/* Notify Community Followers Button - owner only, one-time */}
-            {isOwner && pool.status === 'active' && (
+            {isOwner && pool.status === 'active' && ownerCommunityName && (
               <>
                 <Separator />
-                <div className="p-4 rounded-xl border border-border bg-card space-y-3">
+                <div className={`p-4 rounded-xl border-2 space-y-3 ${pool.community_notified ? 'border-border bg-card' : 'border-orange-400/60 bg-orange-50/50 dark:bg-orange-950/20'}`}>
                   <div className="flex items-start gap-3">
-                    <Send className="w-5 h-5 text-primary mt-0.5 shrink-0" />
+                    <Send className={`w-5 h-5 mt-0.5 shrink-0 ${pool.community_notified ? 'text-muted-foreground' : 'text-orange-500'}`} />
                     <div className="space-y-1">
-                      <h4 className="font-semibold text-sm">Divulgar para seguidores da comunidade</h4>
+                      <h4 className="font-semibold text-sm">
+                        Divulgar para seguidores da {ownerCommunityName}
+                      </h4>
                       <p className="text-xs text-muted-foreground">
-                        Envia uma mensagem via WhatsApp para todos os seguidores da sua comunidade que ativaram as notificações de novos bolões.
+                        Envia uma mensagem via WhatsApp para <strong>todos</strong> os seguidores da sua comunidade que ativaram as notificações de novos bolões.
                       </p>
+                      {!pool.community_notified && (
+                        <p className="text-xs text-orange-600 dark:text-orange-400 font-medium mt-1">
+                          ⚠️ Essa ação envia mensagens em massa e só pode ser feita <strong>uma única vez</strong> por bolão.
+                        </p>
+                      )}
                       {pool.community_notified && (
-                        <p className="text-xs text-green-600 font-medium flex items-center gap-1">
+                        <p className="text-xs font-medium flex items-center gap-1 text-green-600">
                           <CheckCircle className="w-3.5 h-3.5" />
                           Notificação já enviada para este bolão
                         </p>
@@ -1627,12 +1643,13 @@ const PoolDetail = () => {
                   </div>
                   <Button
                     size="sm"
-                    className="w-full"
+                    variant={pool.community_notified ? "outline" : "default"}
+                    className={`w-full ${!pool.community_notified ? 'bg-orange-500 hover:bg-orange-600 text-white' : ''}`}
                     disabled={pool.community_notified || sendingCommunityNotification}
                     onClick={handleNotifyCommunityFollowers}
                   >
                     {sendingCommunityNotification ? (
-                      "Enviando..."
+                      "Enviando mensagens..."
                     ) : pool.community_notified ? (
                       <>
                         <CheckCircle className="w-4 h-4 mr-1" />
@@ -1641,7 +1658,7 @@ const PoolDetail = () => {
                     ) : (
                       <>
                         <Send className="w-4 h-4 mr-1" />
-                        Enviar notificação (apenas 1x)
+                        Enviar notificação para seguidores (apenas 1x)
                       </>
                     )}
                   </Button>
