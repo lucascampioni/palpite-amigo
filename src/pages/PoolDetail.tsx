@@ -1161,22 +1161,29 @@ const PoolDetail = () => {
 
             {/* Auto-approve warning for creators */}
             {isOwner && pool.entry_fee && parseFloat(pool.entry_fee) > 0 && firstMatchDate && pool.status === 'active' && (
-              <div className="p-4 rounded-xl bg-yellow-50 dark:bg-yellow-950/30 border-2 border-yellow-300 dark:border-yellow-700">
-                <p className="font-bold text-yellow-700 dark:text-yellow-400 flex items-center gap-2 mb-2">
-                  ⚠️ Atenção - Prazos de aprovação
-                </p>
-                <div className="space-y-2 text-sm text-yellow-800 dark:text-yellow-300">
-                  <p>
-                    • Participantes que <strong>não enviarem comprovante</strong> até <strong>{format(proofCutoff, "dd/MM 'às' HH:mm", { locale: ptBR })}</strong> (2h30 antes do jogo) serão <strong>rejeitados automaticamente</strong>.
-                  </p>
-                  <p>
-                    • Você tem até <strong>{firstMatchDate ? format(firstMatchDate, "dd/MM 'às' HH:mm", { locale: ptBR }) : format(new Date(new Date(pool.deadline).getTime() + 3 * 60 * 60 * 1000), "dd/MM 'às' HH:mm", { locale: ptBR })}</strong> (horário do 1º jogo) para aprovar/reprovar os participantes que enviaram comprovante.
-                  </p>
-                  <p className="font-semibold text-yellow-900 dark:text-yellow-200">
-                    ⏰ Após esse horário, todos os participantes com comprovante pendente de análise serão <strong>APROVADOS AUTOMATICAMENTE</strong>.
-                  </p>
-                </div>
-              </div>
+              <Collapsible>
+                <CollapsibleTrigger className="w-full p-3 rounded-xl bg-yellow-50 dark:bg-yellow-950/30 border-2 border-yellow-300 dark:border-yellow-700 flex items-center justify-between">
+                  <span className="font-bold text-xs sm:text-sm text-yellow-700 dark:text-yellow-400 flex items-center gap-1.5">
+                    ⚠️ Atenção - Prazos de aprovação
+                  </span>
+                  <ChevronDown className="w-4 h-4 text-yellow-600 dark:text-yellow-400 shrink-0 transition-transform group-data-[state=open]:rotate-180" />
+                </CollapsibleTrigger>
+                <CollapsibleContent>
+                  <div className="px-3 pb-3 pt-2 rounded-b-xl bg-yellow-50 dark:bg-yellow-950/30 border-2 border-t-0 border-yellow-300 dark:border-yellow-700 -mt-2">
+                    <div className="space-y-1.5 text-[11px] sm:text-xs text-yellow-800 dark:text-yellow-300 leading-relaxed">
+                      <p>
+                        • Sem comprovante até <strong>{format(proofCutoff, "dd/MM 'às' HH:mm", { locale: ptBR })}</strong> → <strong>rejeitado automaticamente</strong>.
+                      </p>
+                      <p>
+                        • Você tem até <strong>{firstMatchDate ? format(firstMatchDate, "dd/MM 'às' HH:mm", { locale: ptBR }) : format(new Date(new Date(pool.deadline).getTime() + 3 * 60 * 60 * 1000), "dd/MM 'às' HH:mm", { locale: ptBR })}</strong> para aprovar/reprovar.
+                      </p>
+                      <p className="font-semibold text-yellow-900 dark:text-yellow-200">
+                        ⏰ Após isso, pendentes com comprovante serão <strong>APROVADOS AUTOMATICAMENTE</strong>.
+                      </p>
+                    </div>
+                  </div>
+                </CollapsibleContent>
+              </Collapsible>
             )}
 
             {/* Admin: Participants Manager (collapsible approved/pending/rejected) */}
