@@ -590,20 +590,6 @@ const EditFootballPool = () => {
                 </div>
               </div>
 
-              <div className="flex items-center justify-between rounded-lg border p-4 bg-muted/30">
-                <div className="space-y-0.5">
-                  <Label htmlFor="has-whatsapp-group">📱 Grupo do WhatsApp</Label>
-                  <p className="text-sm text-muted-foreground">
-                    Há um grupo no WhatsApp para esse bolão?
-                  </p>
-                </div>
-                <Switch
-                  id="has-whatsapp-group"
-                  checked={hasWhatsappGroup}
-                  onCheckedChange={setHasWhatsappGroup}
-                />
-              </div>
-
               <div className="flex items-center justify-between rounded-lg border p-4">
                 <div className="space-y-0.5">
                   <Label htmlFor="is-private">Bolão Privado</Label>

@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Session } from "@supabase/supabase-js";
 import delfosLogo from "@/assets/delfos-logo.png";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Users, UserCheck, Star, ChevronDown, ChevronUp } from "lucide-react";
+import { ArrowLeft, Users, UserCheck, Star, ChevronDown, ChevronUp, MessageCircle } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import PoolCard from "@/components/PoolCard";
 
@@ -17,6 +17,7 @@ const CommunityDetail = () => {
   const [memberCount, setMemberCount] = useState(0);
   const [loading, setLoading] = useState(true);
   const [showFinished, setShowFinished] = useState(false);
+  const [responsiblePhone, setResponsiblePhone] = useState<string | null>(null);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -43,6 +44,14 @@ const CommunityDetail = () => {
       return;
     }
     setCommunity(comm);
+
+    // Get responsible user's phone
+    const { data: responsibleProfile } = await supabase
+      .from("profiles")
+      .select("phone")
+      .eq("id", comm.responsible_user_id)
+      .single();
+    setResponsiblePhone(responsibleProfile?.phone || null);
 
     // Get member count
     const { data: members } = await supabase
@@ -119,6 +128,33 @@ const CommunityDetail = () => {
             </span>
           </div>
         </div>
+
+        {/* WhatsApp group CTA */}
+        {responsiblePhone && (
+          <div className="p-3 rounded-xl bg-muted/40 border border-border/50 flex items-center gap-3">
+            <MessageCircle className="w-5 h-5 text-green-600 shrink-0" />
+            <div className="flex-1 min-w-0">
+              <p className="text-xs sm:text-sm text-muted-foreground leading-snug">
+                Não faz parte do grupo do WhatsApp da comunidade?
+              </p>
+            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              className="shrink-0 h-8 text-xs gap-1.5 border-green-300 text-green-700 hover:bg-green-50 dark:border-green-700 dark:text-green-400 dark:hover:bg-green-950"
+              onClick={() => {
+                const phone = responsiblePhone.replace(/\D/g, '');
+                const message = encodeURIComponent(
+                  `Olá ${responsibleName}! Sou membro da comunidade "${community.name}" na Delfos e gostaria de entrar no grupo do WhatsApp. Pode me adicionar?`
+                );
+                window.open(`https://wa.me/55${phone}?text=${message}`, '_blank');
+              }}
+            >
+              <MessageCircle className="w-3.5 h-3.5" />
+              Falar com responsável
+            </Button>
+          </div>
+        )}
 
         {/* Active pools */}
         {activePools.length > 0 && (
