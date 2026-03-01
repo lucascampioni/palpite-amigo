@@ -34,7 +34,7 @@ serve(async (req) => {
     // Find active pools that haven't sent first_match notification yet
     const { data: activePoolsNotNotified, error: poolsErr } = await supabase
       .from('pools')
-      .select('id, title, slug')
+      .select('id, title, slug, owner_id')
       .eq('pool_type', 'football')
       .eq('status', 'active')
       .eq('first_match_notified', false);
@@ -67,26 +67,41 @@ serve(async (req) => {
         continue;
       }
 
-      // Get phones (only those who opted in to pool updates)
+      // Get phones (only those who opted in to pool updates) + owner
       const userIds = participants.map(p => p.user_id);
+      // Include owner_id to also notify them
+      if (!userIds.includes(pool.owner_id)) {
+        userIds.push(pool.owner_id);
+      }
       const { data: profiles } = await supabase
         .from('profiles')
-        .select('id, phone, notify_pool_updates')
+        .select('id, phone, notify_pool_updates, full_name')
         .in('id', userIds);
 
       const phoneMap: Record<string, string> = {};
+      const nameMap: Record<string, string> = {};
       profiles?.forEach(p => {
         if (p.phone && p.notify_pool_updates) {
           phoneMap[p.id] = p.phone;
         }
+        nameMap[p.id] = p.full_name;
       });
 
+      // Build recipients: participants + owner
+      const recipients = participants.map(p => ({ user_id: p.user_id, name: p.participant_name }));
+      if (!recipients.find(r => r.user_id === pool.owner_id)) {
+        recipients.push({ user_id: pool.owner_id, name: nameMap[pool.owner_id] || 'Organizador' });
+      }
+
       // Send messages
-      for (const participant of participants) {
-        const phone = phoneMap[participant.user_id];
+      for (const recipient of recipients) {
+        const phone = phoneMap[recipient.user_id];
         if (!phone) continue;
 
-        const message = `🎯 *Delfos*\n\nOlá ${participant.participant_name}! ⚽🔥\n\nOs palpites do bolão *"${pool.title}"* foram encerrados e os jogos já começaram!\n\nAcesse o app para ver a premiação final, acompanhar os *placares ao vivo* e o *ranking em tempo real*! 📊🏆\n\n👉 ${poolLink}\n\n🔕 _Ajuste suas notificações no site quando quiser._`;
+        const isOwner = recipient.user_id === pool.owner_id;
+        const message = isOwner
+          ? `🎯 *Delfos*\n\nOlá ${recipient.name}! ⚽🔥\n\nOs jogos do seu bolão *"${pool.title}"* já começaram!\n\nAcesse o app para acompanhar os *placares ao vivo*, o *ranking em tempo real* e a premiação final! 📊🏆\n\n👉 ${poolLink}\n\n🔕 _Ajuste suas notificações no site quando quiser._`
+          : `🎯 *Delfos*\n\nOlá ${recipient.name}! ⚽🔥\n\nOs palpites do bolão *"${pool.title}"* foram encerrados e os jogos já começaram!\n\nAcesse o app para ver a premiação final, acompanhar os *placares ao vivo* e o *ranking em tempo real*! 📊🏆\n\n👉 ${poolLink}\n\n🔕 _Ajuste suas notificações no site quando quiser._`;
 
         const sendResult = await sendWhatsApp(ZAPI_INSTANCE_ID, ZAPI_TOKEN, ZAPI_CLIENT_TOKEN, phone, message);
         results.push({ type: 'first_match_started', pool: pool.title, phone, ...sendResult });
@@ -105,7 +120,7 @@ serve(async (req) => {
 
     const { data: cancelledPoolsNotNotified, error: cancelPoolsErr } = await supabase
       .from('pools')
-      .select('id, title, slug')
+      .select('id, title, slug, owner_id')
       .eq('pool_type', 'football')
       .eq('status', 'cancelled')
       .eq('cancelled_notified', false);
@@ -128,23 +143,33 @@ serve(async (req) => {
       }
 
       const userIds = participants.map(p => p.user_id);
+      if (!userIds.includes(pool.owner_id)) {
+        userIds.push(pool.owner_id);
+      }
       const { data: profiles } = await supabase
         .from('profiles')
-        .select('id, phone, notify_pool_updates')
+        .select('id, phone, notify_pool_updates, full_name')
         .in('id', userIds);
 
       const phoneMap: Record<string, string> = {};
+      const nameMap: Record<string, string> = {};
       profiles?.forEach(p => {
         if (p.phone && p.notify_pool_updates) {
           phoneMap[p.id] = p.phone;
         }
+        nameMap[p.id] = p.full_name;
       });
 
-      for (const participant of participants) {
-        const phone = phoneMap[participant.user_id];
+      const recipients = participants.map(p => ({ user_id: p.user_id, name: p.participant_name }));
+      if (!recipients.find(r => r.user_id === pool.owner_id)) {
+        recipients.push({ user_id: pool.owner_id, name: nameMap[pool.owner_id] || 'Organizador' });
+      }
+
+      for (const recipient of recipients) {
+        const phone = phoneMap[recipient.user_id];
         if (!phone) continue;
 
-        const message = `🎯 *Delfos*\n\nOlá ${participant.participant_name}! 🚫\n\nO bolão *"${pool.title}"* foi *cancelado* porque todos os jogos foram adiados ou cancelados.\n\nSentimos muito pelo inconveniente! Fique de olho nos próximos bolões. ⚽\n\n👉 ${poolLink}\n\n🔕 _Ajuste suas notificações no site quando quiser._`;
+        const message = `🎯 *Delfos*\n\nOlá ${recipient.name}! 🚫\n\nO bolão *"${pool.title}"* foi *cancelado* porque todos os jogos foram adiados ou cancelados.\n\nSentimos muito pelo inconveniente! Fique de olho nos próximos bolões. ⚽\n\n👉 ${poolLink}\n\n🔕 _Ajuste suas notificações no site quando quiser._`;
 
         const sendResult = await sendWhatsApp(ZAPI_INSTANCE_ID, ZAPI_TOKEN, ZAPI_CLIENT_TOKEN, phone, message);
         results.push({ type: 'pool_cancelled', pool: pool.title, phone, ...sendResult });
@@ -163,7 +188,7 @@ serve(async (req) => {
     // Find finished pools that haven't sent finished notification yet
     const { data: finishedPoolsNotNotified, error: finPoolsErr } = await supabase
       .from('pools')
-      .select('id, title, slug')
+      .select('id, title, slug, owner_id')
       .eq('pool_type', 'football')
       .eq('status', 'finished')
       .eq('finished_notified', false);
@@ -187,26 +212,39 @@ serve(async (req) => {
         continue;
       }
 
-      // Get phones
       const userIds = participants.map(p => p.user_id);
+      if (!userIds.includes(pool.owner_id)) {
+        userIds.push(pool.owner_id);
+      }
       const { data: profiles } = await supabase
         .from('profiles')
-        .select('id, phone, notify_pool_updates')
+        .select('id, phone, notify_pool_updates, full_name')
         .in('id', userIds);
 
       const phoneMap: Record<string, string> = {};
+      const nameMap: Record<string, string> = {};
       profiles?.forEach(p => {
         if (p.phone && p.notify_pool_updates) {
           phoneMap[p.id] = p.phone;
         }
+        nameMap[p.id] = p.full_name;
       });
 
+      // Build recipients: participants + owner
+      const recipients = participants.map(p => ({ user_id: p.user_id, name: p.participant_name }));
+      if (!recipients.find(r => r.user_id === pool.owner_id)) {
+        recipients.push({ user_id: pool.owner_id, name: nameMap[pool.owner_id] || 'Organizador' });
+      }
+
       // Send messages
-      for (const participant of participants) {
-        const phone = phoneMap[participant.user_id];
+      for (const recipient of recipients) {
+        const phone = phoneMap[recipient.user_id];
         if (!phone) continue;
 
-        const message = `🎯 *Delfos*\n\nOlá ${participant.participant_name}! 🏁\n\nO bolão *"${pool.title}"* foi *finalizado* e o ranking final está definido!\n\nAcesse o app para ver a classificação completa e descobrir se você foi o vencedor! 🏆🎉\n\n👉 ${poolLink}\n\n🔕 _Ajuste suas notificações no site quando quiser._`;
+        const isOwner = recipient.user_id === pool.owner_id;
+        const message = isOwner
+          ? `🎯 *Delfos*\n\nOlá ${recipient.name}! 🏁\n\nSeu bolão *"${pool.title}"* foi *finalizado* e o ranking final está definido!\n\nAcesse o app para ver a classificação completa e gerenciar a premiação! 🏆🎉\n\n👉 ${poolLink}\n\n🔕 _Ajuste suas notificações no site quando quiser._`
+          : `🎯 *Delfos*\n\nOlá ${recipient.name}! 🏁\n\nO bolão *"${pool.title}"* foi *finalizado* e o ranking final está definido!\n\nAcesse o app para ver a classificação completa e descobrir se você foi o vencedor! 🏆🎉\n\n👉 ${poolLink}\n\n🔕 _Ajuste suas notificações no site quando quiser._`;
 
         const sendResult = await sendWhatsApp(ZAPI_INSTANCE_ID, ZAPI_TOKEN, ZAPI_CLIENT_TOKEN, phone, message);
         results.push({ type: 'pool_finished', pool: pool.title, phone, ...sendResult });
