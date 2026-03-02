@@ -9,6 +9,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2 } from "lucide-react";
 import { format } from "date-fns";
+import { abbreviateTeamName } from "@/lib/team-utils";
 import { ptBR } from "date-fns/locale";
 
 interface GEMatch {
@@ -296,9 +297,9 @@ export const GEMatchSelector = ({ open, onOpenChange, onMatchesSelected }: GEMat
                                             }}
                                           />
                                         )}
-                                        <span className="font-medium text-xs sm:text-sm truncate">{match.homeTeam}</span>
+                                        <span className="font-medium text-xs sm:text-sm truncate">{abbreviateTeamName(match.homeTeam)}</span>
                                         <span className="text-muted-foreground text-xs">x</span>
-                                        <span className="font-medium text-xs sm:text-sm truncate">{match.awayTeam}</span>
+                                        <span className="font-medium text-xs sm:text-sm truncate">{abbreviateTeamName(match.awayTeam)}</span>
                                         {match.awayTeamCrest && (
                                           <img 
                                             src={match.awayTeamCrest} 
