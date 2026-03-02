@@ -317,10 +317,22 @@ const Auth = () => {
     });
 
     if (error) {
+      const errorMap: Record<string, string> = {
+        'Invalid login credentials': 'Email ou senha incorretos. Verifique e tente novamente.',
+        'Email not confirmed': 'Email ainda não confirmado. Verifique sua caixa de entrada.',
+        'Too many requests': 'Muitas tentativas. Aguarde alguns minutos e tente novamente.',
+        'User not found': 'Usuário não encontrado.',
+        'Invalid email or password': 'Email ou senha incorretos.',
+      };
+      const translatedMessage = errorMap[error.message] || 
+        (/invalid.*credentials/i.test(error.message) ? 'Email ou senha incorretos. Verifique e tente novamente.' :
+        /not confirmed/i.test(error.message) ? 'Email ainda não confirmado. Verifique sua caixa de entrada.' :
+        /rate limit|too many/i.test(error.message) ? 'Muitas tentativas. Aguarde alguns minutos.' :
+        error.message);
       toast({
         variant: "destructive",
         title: "Erro ao fazer login",
-        description: error.message,
+        description: translatedMessage,
       });
     }
 
@@ -336,10 +348,15 @@ const Auth = () => {
     });
 
     if (error) {
+      const msg = /rate limit|too many/i.test(error.message) 
+        ? 'Muitas tentativas. Aguarde alguns minutos.' 
+        : /not found/i.test(error.message) 
+        ? 'Email não encontrado.' 
+        : 'Não foi possível enviar o email. Tente novamente.';
       toast({
         variant: "destructive",
         title: "Erro ao enviar email",
-        description: error.message,
+        description: msg,
       });
     } else {
       toast({
