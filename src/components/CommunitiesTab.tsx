@@ -107,6 +107,7 @@ const CommunitiesTab = ({ userId }: CommunitiesTabProps) => {
         title: "Ative as notificações no perfil",
         description: "Para receber notificações de comunidades, ative a opção 'Novos bolões disponíveis' no seu perfil primeiro.",
         variant: "destructive",
+        duration: 8000,
       });
       return;
     }
