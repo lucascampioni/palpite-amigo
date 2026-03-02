@@ -1487,6 +1487,105 @@ const FootballRanking = ({ poolId, pool, approvedParticipantsCount, isOwner }: F
               );
             })}
           </div>
+          {/* Prize distribution explanation */}
+          {allMatchesFinished && pool && ranking.some(r => (r.prize_amount ?? 0) > 0) && (() => {
+            const maxW = pool.max_winners || 3;
+            const isPercentage = pool.prize_type === 'percentage';
+            const totalPredictionSets = ranking.length;
+            const totalCollected = isPercentage ? (pool.entry_fee || 0) * totalPredictionSets : 0;
+            const allZero = ranking.every(r => r.total_points === 0);
+
+            const rawPrizes = [
+              pool.first_place_prize || 0,
+              maxW >= 2 ? (pool.second_place_prize || 0) : 0,
+              maxW >= 3 ? (pool.third_place_prize || 0) : 0,
+            ].slice(0, maxW);
+
+            const prizes = isPercentage
+              ? rawPrizes.map(p => (p / 100) * totalCollected)
+              : rawPrizes;
+
+            const positionLabels = ['1º lugar', '2º lugar', '3º lugar'];
+            const explanationLines: string[] = [];
+
+            if (isPercentage) {
+              explanationLines.push(`💰 Premiação calculada sobre o total arrecadado: R$ ${totalCollected.toFixed(2).replace('.', ',')} (${totalPredictionSets} palpites × R$ ${(pool.entry_fee || 0).toFixed(2).replace('.', ',')}).`);
+            }
+
+            explanationLines.push(`🏆 Premiação configurada para Top ${maxW}.`);
+
+            // Original prize values
+            const prizeDescParts = prizes.map((p, i) => `${positionLabels[i]}: R$ ${p.toFixed(2).replace('.', ',')}`);
+            explanationLines.push(`Valores originais: ${prizeDescParts.join(' | ')}.`);
+
+            if (allZero) {
+              explanationLines.push(`⏱️ Nenhum participante fez pontos. Os premiados foram definidos pela ordem de envio dos palpites.`);
+              const winners = ranking.filter(r => (r.prize_amount ?? 0) > 0);
+              winners.forEach((w, i) => {
+                explanationLines.push(`• ${positionLabels[i]}: ${w.participant_name} → R$ ${(w.prize_amount || 0).toFixed(2).replace('.', ',')}`);
+              });
+            } else {
+              // Detect tie groups within prize positions
+              let pos = 0;
+              const tieExplanations: string[] = [];
+              while (pos < ranking.length && pos < maxW) {
+                const score = ranking[pos].total_points;
+                if (score === 0) break;
+                let end = pos;
+                while (end < ranking.length && ranking[end].total_points === score) end++;
+                const groupSize = end - pos;
+
+                if (groupSize > 1 && pos < maxW) {
+                  // There's a tie
+                  const coveredPositions = [];
+                  for (let i = pos; i < Math.min(end, maxW); i++) {
+                    coveredPositions.push(positionLabels[i]);
+                  }
+                  const sumPrize = coveredPositions.reduce((s, _, idx) => s + (prizes[pos + idx] || 0), 0);
+                  const perPerson = sumPrize / groupSize;
+                  const names = ranking.slice(pos, end).map(r => r.participant_name).join(', ');
+                  
+                  tieExplanations.push(
+                    `🤝 Empate na ${coveredPositions[0]} posição (${score} pts) entre ${groupSize} participantes (${names}). ` +
+                    `Prêmio${coveredPositions.length > 1 ? ` do ${coveredPositions.join(' + ')}` : ` do ${coveredPositions[0]}`} somado = R$ ${sumPrize.toFixed(2).replace('.', ',')} ÷ ${groupSize} = R$ ${perPerson.toFixed(2).replace('.', ',')} cada.`
+                  );
+                } else if (groupSize === 1 && pos < maxW) {
+                  const prizeVal = ranking[pos].prize_amount || 0;
+                  if (prizeVal > 0) {
+                    tieExplanations.push(`• ${positionLabels[pos]}: ${ranking[pos].participant_name} (${score} pts) → R$ ${prizeVal.toFixed(2).replace('.', ',')}`);
+                  }
+                }
+                pos = end;
+              }
+              if (tieExplanations.length > 0) {
+                explanationLines.push('');
+                explanationLines.push('📊 Distribuição final:');
+                explanationLines.push(...tieExplanations);
+              }
+            }
+
+            return (
+              <div className="mt-4 pt-3 border-t">
+                <Collapsible>
+                  <CollapsibleTrigger className="w-full flex items-center justify-between gap-2 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors py-2">
+                    <span className="flex items-center gap-1.5">
+                      📋 Como foi dividida a premiação?
+                    </span>
+                    <ChevronDown className="h-4 w-4 transition-transform duration-200 [&[data-state=open]]:rotate-180" />
+                  </CollapsibleTrigger>
+                  <CollapsibleContent>
+                    <div className="rounded-lg bg-muted/50 border border-border/50 p-3 sm:p-4 mt-2 space-y-1.5">
+                      {explanationLines.map((line, i) => (
+                        line === '' ? <div key={i} className="h-1" /> :
+                        <p key={i} className="text-xs sm:text-sm text-foreground/80">{line}</p>
+                      ))}
+                    </div>
+                  </CollapsibleContent>
+                </Collapsible>
+              </div>
+            );
+          })()}
+
           {/* Pagination */}
           {ranking.length > ITEMS_PER_PAGE && (() => {
             const totalPages = Math.ceil(ranking.length / ITEMS_PER_PAGE);
