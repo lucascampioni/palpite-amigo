@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -265,6 +265,62 @@ const PoolDetail = () => {
 
     updateWinnersPrizeStatus();
   }, [pool, participants, participantsPoints, hasFootballMatches, poolId]);
+
+  // Calculate prize amount per winner participant for admin management
+  const winnerPrizeAmounts = useMemo<Record<string, number>>(() => {
+    if (!pool || participants.length === 0) return {};
+    
+    const maxW = pool.max_winners || 3;
+    const totalPredictionSets = rankingData.length > 0 ? rankingData.length : participants.filter(p => p.status === 'approved').length;
+    const totalCollected = (pool.entry_fee ? parseFloat(String(pool.entry_fee)) : 0) * totalPredictionSets;
+    const isPercentage = pool.prize_type === 'percentage';
+    
+    const calcPrize = (val: any) => {
+      const num = val ? parseFloat(String(val)) : 0;
+      return isPercentage ? (num / 100) * totalCollected : num;
+    };
+
+    const prizes = [
+      calcPrize(pool.first_place_prize),
+      maxW >= 2 ? calcPrize(pool.second_place_prize) : 0,
+      maxW >= 3 ? calcPrize(pool.third_place_prize) : 0,
+    ];
+
+    const sorted = participants
+      .filter(p => p.status === 'approved')
+      .map(p => ({ ...p, total_points: participantsPoints[p.id] || 0 }))
+      .sort((a, b) => {
+        if (b.total_points !== a.total_points) return b.total_points - a.total_points;
+        return new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
+      });
+
+    const amounts: Record<string, number> = {};
+    let pos = 0;
+    while (pos < sorted.length) {
+      const score = sorted[pos].total_points;
+      let groupEnd = pos;
+      while (groupEnd < sorted.length - 1 && sorted[groupEnd + 1].total_points === score) {
+        groupEnd++;
+      }
+      const groupSize = groupEnd - pos + 1;
+      
+      if (pos < maxW) {
+        let prizeSum = 0;
+        const end = Math.min(groupEnd, maxW - 1);
+        for (let i = pos; i <= end; i++) {
+          prizeSum += prizes[i] || 0;
+        }
+        const perPerson = prizeSum / groupSize;
+        if (perPerson > 0) {
+          for (let i = pos; i <= groupEnd; i++) {
+            amounts[sorted[i].id] = perPerson;
+          }
+        }
+      }
+      pos = groupEnd + 1;
+    }
+    return amounts;
+  }, [pool, participants, participantsPoints, rankingData]);
 
   useEffect(() => {
     const checkAuthAndLoadData = async () => {
@@ -1770,6 +1826,7 @@ const PoolDetail = () => {
                           poolId={pool.id}
                           poolTitle={pool.title}
                           participantPhone={participantPhones[participant.user_id]}
+                          prizeAmount={winnerPrizeAmounts[participant.id]}
                           onSuccess={loadPoolData}
                         />
                       </div>
@@ -1807,6 +1864,7 @@ const PoolDetail = () => {
                                 poolId={pool.id}
                                 poolTitle={pool.title}
                                 participantPhone={participantPhones[participant.user_id]}
+                                prizeAmount={winnerPrizeAmounts[participant.id]}
                                 onSuccess={loadPoolData}
                               />
                             </div>
