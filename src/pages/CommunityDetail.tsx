@@ -4,13 +4,16 @@ import { supabase } from "@/integrations/supabase/client";
 import { Session } from "@supabase/supabase-js";
 import delfosLogo from "@/assets/delfos-logo.png";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Users, UserCheck, Star, ChevronDown, ChevronUp, MessageCircle } from "lucide-react";
+import { ArrowLeft, Users, UserCheck, Star, ChevronDown, ChevronUp, MessageCircle, Bell, BellOff, Heart } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { Switch } from "@/components/ui/switch";
+import { useToast } from "@/hooks/use-toast";
 import PoolCard from "@/components/PoolCard";
 
 const CommunityDetail = () => {
   const { slug } = useParams();
   const navigate = useNavigate();
+  const { toast } = useToast();
   const [session, setSession] = useState<Session | null>(null);
   const [community, setCommunity] = useState<any>(null);
   const [pools, setPools] = useState<any[]>([]);
@@ -19,6 +22,8 @@ const CommunityDetail = () => {
   const [showFinished, setShowFinished] = useState(false);
   const [responsiblePhone, setResponsiblePhone] = useState<string | null>(null);
   const [participantMap, setParticipantMap] = useState<Record<string, any>>({});
+  const [membership, setMembership] = useState<any>(null);
+  const [userProfile, setUserProfile] = useState<any>(null);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -46,19 +51,16 @@ const CommunityDetail = () => {
     }
     setCommunity(comm);
 
-    // Get responsible user's phone
-    const { data: responsibleProfile } = await supabase
-      .from("profiles")
-      .select("phone")
-      .eq("id", comm.responsible_user_id)
-      .single();
+    // Get responsible phone, membership, profile, members in parallel
+    const [{ data: responsibleProfile }, { data: myMembership }, { data: profile }, { data: members }] = await Promise.all([
+      supabase.from("profiles").select("phone").eq("id", comm.responsible_user_id).single(),
+      session ? supabase.from("community_members").select("*").eq("community_id", comm.id).eq("user_id", session.user.id).maybeSingle() : Promise.resolve({ data: null }),
+      session ? supabase.from("profiles").select("notify_new_pools").eq("id", session.user.id).single() : Promise.resolve({ data: null }),
+      supabase.from("community_members").select("id").eq("community_id", comm.id),
+    ]);
     setResponsiblePhone(responsibleProfile?.phone || null);
-
-    // Get member count
-    const { data: members } = await supabase
-      .from("community_members")
-      .select("id")
-      .eq("community_id", comm.id);
+    setMembership(myMembership);
+    setUserProfile(profile);
     setMemberCount(members?.length || 0);
 
     // Get all pools by responsible user (active + finished)
@@ -92,6 +94,56 @@ const CommunityDetail = () => {
     setLoading(false);
   };
 
+  const handleFollow = async () => {
+    if (!session || !community) return;
+    const notifyEnabled = userProfile?.notify_new_pools ?? false;
+    const { error } = await supabase.from("community_members").insert({
+      community_id: community.id,
+      user_id: session.user.id,
+      notify_new_pools: notifyEnabled,
+    });
+    if (error) {
+      toast({ title: "Erro ao seguir comunidade", description: error.message, variant: "destructive" });
+      return;
+    }
+    toast({ title: "Comunidade seguida! 🎉" });
+    loadCommunity();
+  };
+
+  const handleUnfollow = async () => {
+    if (!session || !community) return;
+    if (community.is_official) {
+      toast({ title: "Não é possível", description: "Você não pode deixar de seguir a comunidade oficial.", variant: "destructive" });
+      return;
+    }
+    const { error } = await supabase.from("community_members").delete().eq("community_id", community.id).eq("user_id", session.user.id);
+    if (error) {
+      toast({ title: "Erro", description: error.message, variant: "destructive" });
+      return;
+    }
+    toast({ title: "Você deixou de seguir a comunidade" });
+    loadCommunity();
+  };
+
+  const handleToggleNotify = async (value: boolean) => {
+    if (!session || !community) return;
+    if (value && !userProfile?.notify_new_pools) {
+      toast({
+        title: "Ative as notificações no perfil",
+        description: "Para receber notificações de comunidades, ative a opção 'Novos bolões disponíveis' no seu perfil primeiro.",
+        variant: "destructive",
+        duration: 8000,
+      });
+      return;
+    }
+    const { error } = await supabase.from("community_members").update({ notify_new_pools: value }).eq("community_id", community.id).eq("user_id", session.user.id);
+    if (error) {
+      toast({ title: "Erro", description: error.message, variant: "destructive" });
+      return;
+    }
+    setMembership((prev: any) => ({ ...prev, notify_new_pools: value }));
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
@@ -108,6 +160,8 @@ const CommunityDetail = () => {
   const activePools = pools.filter(p => p.status === "active");
   const finishedPools = pools.filter(p => p.status === "finished");
   const responsibleName = community.display_responsible_name || "Organizador";
+  const isFollowing = !!membership;
+  const notifyEnabled = membership?.notify_new_pools ?? false;
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
@@ -147,6 +201,53 @@ const CommunityDetail = () => {
               {memberCount} {memberCount === 1 ? "membro" : "membros"}
             </span>
           </div>
+        </div>
+
+        {/* Follow & Notify section */}
+        <div className="p-3 rounded-xl bg-muted/40 border border-border/50 space-y-3">
+          <div className="flex items-center gap-3">
+            <Heart className={`w-5 h-5 shrink-0 ${isFollowing ? 'text-primary fill-primary' : 'text-muted-foreground'}`} />
+            <div className="flex-1 min-w-0">
+              {isFollowing ? (
+                <p className="text-xs sm:text-sm text-foreground font-medium">Você segue esta comunidade</p>
+              ) : (
+                <p className="text-xs sm:text-sm text-muted-foreground">Siga para acompanhar os bolões desta comunidade</p>
+              )}
+            </div>
+            {isFollowing ? (
+              !community.is_official && (
+                <Button variant="outline" size="sm" className="shrink-0 h-8 text-xs" onClick={handleUnfollow}>
+                  Deixar de seguir
+                </Button>
+              )
+            ) : (
+              <Button size="sm" className="shrink-0 h-8 text-xs gap-1.5" onClick={handleFollow}>
+                <Heart className="w-3.5 h-3.5" />
+                Seguir
+              </Button>
+            )}
+          </div>
+
+          {isFollowing && (
+            <div className="flex items-center gap-3 pt-2 border-t border-border/50">
+              {notifyEnabled ? (
+                <Bell className="w-4 h-4 text-primary shrink-0" />
+              ) : (
+                <BellOff className="w-4 h-4 text-muted-foreground shrink-0" />
+              )}
+              <div className="flex-1 min-w-0">
+                <p className="text-xs sm:text-sm text-muted-foreground leading-snug">
+                  {notifyEnabled
+                    ? "Notificações ativas — você será avisado sobre novos bolões"
+                    : "Ative as notificações para não perder nenhum bolão novo desta comunidade"}
+                </p>
+              </div>
+              <Switch
+                checked={notifyEnabled}
+                onCheckedChange={handleToggleNotify}
+              />
+            </div>
+          )}
         </div>
 
         {/* WhatsApp group CTA */}
