@@ -231,7 +231,7 @@ const AdminCommunityManagement = ({ onRefresh }: Props) => {
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="font-semibold text-sm">{c.name} {c.is_official && "⭐"}</p>
-                    <p className="text-xs text-muted-foreground">{c.display_responsible_name || "Sem nome de exibição"}</p>
+                    <p className="text-xs text-muted-foreground">{c.display_responsible_name || eligibleUsers.find(u => u.id === c.responsible_user_id)?.full_name || "Sem responsável"}</p>
                     {c.description && <p className="text-xs text-muted-foreground mt-0.5">{c.description}</p>}
                   </div>
                   <div className="flex items-center gap-1">

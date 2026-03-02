@@ -21,6 +21,7 @@ const CommunitiesTab = ({ userId }: CommunitiesTabProps) => {
   const [memberships, setMemberships] = useState<Record<string, any>>({});
   const [memberCounts, setMemberCounts] = useState<Record<string, number>>({});
   const [poolCounts, setPoolCounts] = useState<Record<string, number>>({});
+  const [responsibleNames, setResponsibleNames] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [userProfile, setUserProfile] = useState<any>(null);
@@ -48,13 +49,26 @@ const CommunitiesTab = ({ userId }: CommunitiesTabProps) => {
     setMemberships(memberMap);
 
     if (comms && comms.length > 0) {
-      const [{ data: counts }, { data: poolsData }] = await Promise.all([
+      // Get responsible user IDs that don't have display names
+      const responsibleIds = [...new Set(comms.filter((c: any) => !c.display_responsible_name).map((c: any) => c.responsible_user_id))];
+
+      const [{ data: counts }, { data: poolsData }, ...profileResults] = await Promise.all([
         supabase.from("community_members").select("community_id"),
         supabase.from("pools").select("owner_id").in("status", ["active"]),
+        ...(responsibleIds.length > 0
+          ? [supabase.from("profiles").select("id, full_name").in("id", responsibleIds)]
+          : []),
       ]);
       const countMap: Record<string, number> = {};
       (counts || []).forEach(c => { countMap[c.community_id] = (countMap[c.community_id] || 0) + 1; });
       setMemberCounts(countMap);
+
+      // Build responsible names map
+      const namesMap: Record<string, string> = {};
+      if (profileResults.length > 0 && profileResults[0]?.data) {
+        (profileResults[0].data as any[]).forEach((p: any) => { namesMap[p.id] = p.full_name; });
+      }
+      setResponsibleNames(namesMap);
 
       // Map pools to communities by responsible_user_id
       const poolCountMap: Record<string, number> = {};
@@ -192,6 +206,7 @@ const CommunitiesTab = ({ userId }: CommunitiesTabProps) => {
             membership={memberships[community.id]}
             memberCount={memberCounts[community.id] || 0}
             poolCount={poolCounts[community.id] || 0}
+            responsibleName={community.display_responsible_name || responsibleNames[community.responsible_user_id] || "Organizador"}
             userNotifyEnabled={userProfile?.notify_new_pools ?? false}
             onFollow={() => handleFollow(community.id)}
             onUnfollow={() => handleUnfollow(community.id)}
