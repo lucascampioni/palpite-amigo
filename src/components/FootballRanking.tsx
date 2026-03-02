@@ -6,6 +6,7 @@ import { Trophy, Medal, ChevronDown, ChevronUp, MessageCircle } from "lucide-rea
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { abbreviateTeamName } from "@/lib/team-utils";
 
 interface FootballRankingProps {
   poolId: string;
@@ -48,37 +49,7 @@ interface MatchPrediction {
   status: string;
 }
 
-const abbreviateTeamName = (name: string, maxLen = 16): string => {
-  if (name.length <= maxLen) return name;
-  // Common abbreviations for Brazilian football
-  const abbrevMap: Record<string, string> = {
-    'Atletico': 'Atl.',
-    'Atlético': 'Atl.',
-    'Atletico Paranaense': 'Atl. Paranaense',
-    'Atlético Paranaense': 'Atl. Paranaense',
-    'Athletico Paranaense': 'Ath. Paranaense',
-    'Internacional': 'Inter',
-    'Corinthians': 'Corinthians',
-    'Bragantino': 'Bragantino',
-    'RB Bragantino': 'RB Bragantino',
-    'Fluminense': 'Fluminense',
-    'Palmeiras': 'Palmeiras',
-    'Botafogo': 'Botafogo',
-    'Fortaleza': 'Fortaleza',
-    'Cruzeiro': 'Cruzeiro',
-    'Atletico Mineiro': 'Atl. Mineiro',
-    'Atlético Mineiro': 'Atl. Mineiro',
-    'Atletico MG': 'Atl. MG',
-    'Atlético MG': 'Atl. MG',
-    'Atletico GO': 'Atl. GO',
-    'Atlético GO': 'Atl. GO',
-    'Atletico Goianiense': 'Atl. Goianiense',
-    'Atlético Goianiense': 'Atl. Goianiense',
-  };
-  if (abbrevMap[name] && abbrevMap[name].length <= maxLen) return abbrevMap[name];
-  // Truncate with ellipsis as fallback
-  return name.substring(0, maxLen - 1) + '…';
-};
+
 
 const FootballRanking = ({ poolId, pool, approvedParticipantsCount, isOwner }: FootballRankingProps) => {
   const [ranking, setRanking] = useState<ParticipantScore[]>([]);
