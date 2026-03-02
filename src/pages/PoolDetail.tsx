@@ -811,6 +811,7 @@ const PoolDetail = () => {
   const isPendingPayment = !isOwner && currentUserParticipant?.status === 'pending' && !currentUserParticipant?.payment_proof;
   const isAwaitingApproval = !isOwner && currentUserParticipant?.status === 'pending' && !!currentUserParticipant?.payment_proof;
   const isRejected = !isOwner && currentUserParticipant?.status === 'rejected';
+  const isFinishedCommunityPool = pool.status === 'finished' && !!ownerCommunityName;
 
   // Calculate total entry fee considering multiple prediction sets
   const predictionSetsCount = (() => {
@@ -1743,7 +1744,7 @@ const PoolDetail = () => {
             )}
 
             {/* Informações importantes for joined users */}
-            {((pool.status === "active" || pool.status === "finished") && (pool.pool_type === "football" || hasFootballMatches) && (currentUserParticipant?.status === 'approved' || isOwner)) && (
+            {((pool.status === "active" || pool.status === "finished") && (pool.pool_type === "football" || hasFootballMatches) && (currentUserParticipant?.status === 'approved' || isOwner || isFinishedCommunityPool)) && (
               <>
                 <Separator />
                 <Collapsible>
@@ -1804,7 +1805,7 @@ const PoolDetail = () => {
               </>
             )}
 
-            {((pool.status === "active" || pool.status === "finished") && (pool.pool_type === "football" || hasFootballMatches) && (isOwner || currentUserParticipant?.status === 'approved')) && (
+            {((pool.status === "active" || pool.status === "finished") && (pool.pool_type === "football" || hasFootballMatches) && (isOwner || currentUserParticipant?.status === 'approved' || isFinishedCommunityPool)) && (
               <>
                 <Separator />
                 <FootballRanking poolId={pool.id} pool={pool} approvedParticipantsCount={participants.filter(p => p.status === 'approved').length} isOwner={isOwner} />
