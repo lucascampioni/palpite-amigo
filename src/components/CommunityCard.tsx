@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -34,6 +34,17 @@ const CommunityCard = ({
   const isFollowing = !!membership;
   const notifyActive = membership?.notify_new_pools ?? false;
   const [animateNotify, setAnimateNotify] = useState(false);
+  const wasFollowingRef = useRef(isFollowing);
+
+  // Animate when user just followed and notify is already active
+  useEffect(() => {
+    if (!wasFollowingRef.current && isFollowing && notifyActive) {
+      setAnimateNotify(true);
+      const timeout = setTimeout(() => setAnimateNotify(false), 1500);
+      return () => clearTimeout(timeout);
+    }
+    wasFollowingRef.current = isFollowing;
+  }, [isFollowing, notifyActive]);
 
   const handleFollowClick = (e: React.MouseEvent) => {
     e.stopPropagation();
