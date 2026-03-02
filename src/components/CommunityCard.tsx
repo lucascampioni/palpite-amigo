@@ -11,6 +11,7 @@ interface CommunityCardProps {
   membership: any;
   memberCount: number;
   poolCount: number;
+  responsibleName?: string;
   userNotifyEnabled: boolean;
   onFollow: () => void;
   onUnfollow: () => void;
@@ -23,6 +24,7 @@ const CommunityCard = ({
   membership,
   memberCount,
   poolCount,
+  responsibleName: responsibleNameProp,
   userNotifyEnabled,
   onFollow,
   onUnfollow,
@@ -56,7 +58,7 @@ const CommunityCard = ({
     onToggleNotify(checked);
   };
 
-  const responsibleName = community.display_responsible_name || "Organizador";
+  const responsibleName = responsibleNameProp || community.display_responsible_name || "Organizador";
 
   return (
     <Card

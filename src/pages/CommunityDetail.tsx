@@ -21,6 +21,7 @@ const CommunityDetail = () => {
   const [loading, setLoading] = useState(true);
   const [showFinished, setShowFinished] = useState(false);
   const [responsiblePhone, setResponsiblePhone] = useState<string | null>(null);
+  const [responsibleFullName, setResponsibleFullName] = useState<string | null>(null);
   const [participantMap, setParticipantMap] = useState<Record<string, any>>({});
   const [membership, setMembership] = useState<any>(null);
   const [userProfile, setUserProfile] = useState<any>(null);
@@ -53,12 +54,13 @@ const CommunityDetail = () => {
 
     // Get responsible phone, membership, profile, members in parallel
     const [{ data: responsibleProfile }, { data: myMembership }, { data: profile }, { data: members }] = await Promise.all([
-      supabase.from("profiles").select("phone").eq("id", comm.responsible_user_id).single(),
+      supabase.from("profiles").select("phone, full_name").eq("id", comm.responsible_user_id).single(),
       session ? supabase.from("community_members").select("*").eq("community_id", comm.id).eq("user_id", session.user.id).maybeSingle() : Promise.resolve({ data: null }),
       session ? supabase.from("profiles").select("notify_new_pools").eq("id", session.user.id).single() : Promise.resolve({ data: null }),
       supabase.from("community_members").select("id").eq("community_id", comm.id),
     ]);
     setResponsiblePhone(responsibleProfile?.phone || null);
+    setResponsibleFullName(responsibleProfile?.full_name || null);
     setMembership(myMembership);
     setUserProfile(profile);
     setMemberCount(members?.length || 0);
@@ -159,7 +161,7 @@ const CommunityDetail = () => {
 
   const activePools = pools.filter(p => p.status === "active");
   const finishedPools = pools.filter(p => p.status === "finished");
-  const responsibleName = community.display_responsible_name || "Organizador";
+  const responsibleName = community.display_responsible_name || responsibleFullName || "Organizador";
   const isFollowing = !!membership;
   const notifyEnabled = membership?.notify_new_pools ?? false;
 
