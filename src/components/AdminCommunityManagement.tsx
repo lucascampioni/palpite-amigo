@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Trash2, Users } from "lucide-react";
+import { Plus, Trash2, Users, Pencil, X, Check } from "lucide-react";
 
 interface Props {
   onRefresh: () => void;
@@ -20,6 +20,9 @@ const AdminCommunityManagement = ({ onRefresh }: Props) => {
   const [newResponsibleId, setNewResponsibleId] = useState("");
   const [newDisplayName, setNewDisplayName] = useState("");
   const [loading, setLoading] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editForm, setEditForm] = useState({ name: "", description: "", responsible_user_id: "", display_responsible_name: "" });
+  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     loadData();
@@ -33,7 +36,6 @@ const AdminCommunityManagement = ({ onRefresh }: Props) => {
       .order("created_at", { ascending: true });
     setCommunities(comms || []);
 
-    // Get users who can create pools (admin or pool_creator roles)
     const { data: roles } = await supabase
       .from("user_roles")
       .select("user_id, role")
@@ -95,6 +97,47 @@ const AdminCommunityManagement = ({ onRefresh }: Props) => {
     onRefresh();
   };
 
+  const startEdit = (c: any) => {
+    setEditingId(c.id);
+    setEditForm({
+      name: c.name || "",
+      description: c.description || "",
+      responsible_user_id: c.responsible_user_id || "",
+      display_responsible_name: c.display_responsible_name || "",
+    });
+  };
+
+  const cancelEdit = () => {
+    setEditingId(null);
+  };
+
+  const handleSaveEdit = async () => {
+    if (!editingId || !editForm.name.trim() || !editForm.responsible_user_id) {
+      toast({ title: "Preencha o nome e selecione o responsável", variant: "destructive" });
+      return;
+    }
+
+    setSaving(true);
+    const { error } = await supabase.from("communities").update({
+      name: editForm.name.trim(),
+      description: editForm.description.trim() || null,
+      responsible_user_id: editForm.responsible_user_id,
+      display_responsible_name: editForm.display_responsible_name.trim() || null,
+    }).eq("id", editingId);
+
+    setSaving(false);
+
+    if (error) {
+      toast({ title: "Erro ao salvar", description: error.message, variant: "destructive" });
+      return;
+    }
+
+    toast({ title: "Comunidade atualizada! ✅" });
+    setEditingId(null);
+    loadData();
+    onRefresh();
+  };
+
   return (
     <div className="space-y-6">
       <Card>
@@ -145,15 +188,63 @@ const AdminCommunityManagement = ({ onRefresh }: Props) => {
         </CardHeader>
         <CardContent className="space-y-3">
           {communities.map(c => (
-            <div key={c.id} className="flex items-center justify-between p-3 rounded-lg bg-muted/50">
-              <div>
-                <p className="font-semibold text-sm">{c.name} {c.is_official && "⭐"}</p>
-                <p className="text-xs text-muted-foreground">{c.display_responsible_name || "Sem nome de exibição"}</p>
-              </div>
-              {!c.is_official && (
-                <Button size="icon" variant="ghost" className="h-8 w-8 text-destructive" onClick={() => handleDelete(c.id, c.name)}>
-                  <Trash2 className="w-4 h-4" />
-                </Button>
+            <div key={c.id} className="p-3 rounded-lg bg-muted/50 space-y-3">
+              {editingId === c.id ? (
+                <>
+                  <div className="space-y-2">
+                    <div>
+                      <Label className="text-xs">Nome</Label>
+                      <Input value={editForm.name} onChange={e => setEditForm(f => ({ ...f, name: e.target.value }))} />
+                    </div>
+                    <div>
+                      <Label className="text-xs">Descrição</Label>
+                      <Input value={editForm.description} onChange={e => setEditForm(f => ({ ...f, description: e.target.value }))} />
+                    </div>
+                    <div>
+                      <Label className="text-xs">Responsável</Label>
+                      <select
+                        className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm"
+                        value={editForm.responsible_user_id}
+                        onChange={e => setEditForm(f => ({ ...f, responsible_user_id: e.target.value }))}
+                      >
+                        <option value="">Selecione...</option>
+                        {eligibleUsers.map(u => (
+                          <option key={u.id} value={u.id}>{u.full_name}</option>
+                        ))}
+                      </select>
+                    </div>
+                    <div>
+                      <Label className="text-xs">Nome de exibição</Label>
+                      <Input value={editForm.display_responsible_name} onChange={e => setEditForm(f => ({ ...f, display_responsible_name: e.target.value }))} />
+                    </div>
+                  </div>
+                  <div className="flex gap-2 justify-end">
+                    <Button size="sm" variant="ghost" className="h-8 text-xs" onClick={cancelEdit} disabled={saving}>
+                      <X className="w-3.5 h-3.5 mr-1" /> Cancelar
+                    </Button>
+                    <Button size="sm" className="h-8 text-xs" onClick={handleSaveEdit} disabled={saving}>
+                      <Check className="w-3.5 h-3.5 mr-1" /> {saving ? "Salvando..." : "Salvar"}
+                    </Button>
+                  </div>
+                </>
+              ) : (
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="font-semibold text-sm">{c.name} {c.is_official && "⭐"}</p>
+                    <p className="text-xs text-muted-foreground">{c.display_responsible_name || "Sem nome de exibição"}</p>
+                    {c.description && <p className="text-xs text-muted-foreground mt-0.5">{c.description}</p>}
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => startEdit(c)}>
+                      <Pencil className="w-4 h-4" />
+                    </Button>
+                    {!c.is_official && (
+                      <Button size="icon" variant="ghost" className="h-8 w-8 text-destructive" onClick={() => handleDelete(c.id, c.name)}>
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
+                    )}
+                  </div>
+                </div>
               )}
             </div>
           ))}
