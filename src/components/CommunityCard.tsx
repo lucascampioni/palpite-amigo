@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -45,17 +45,12 @@ const CommunityCard = ({
     }
   };
 
-  // Animate the checkbox when user just followed and notifications are enabled
-  useEffect(() => {
-    if (isFollowing && notifyActive) {
-      setAnimateNotify(true);
-      const timeout = setTimeout(() => setAnimateNotify(false), 1500);
-      return () => clearTimeout(timeout);
-    }
-  }, [isFollowing, notifyActive]);
-
   const handleNotifyChange = (checked: boolean) => {
     onToggleNotify(checked);
+    if (checked) {
+      setAnimateNotify(true);
+      setTimeout(() => setAnimateNotify(false), 1500);
+    }
   };
 
   const responsibleName = responsibleNameProp || community.display_responsible_name || "Organizador";
