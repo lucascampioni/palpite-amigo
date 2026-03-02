@@ -20,10 +20,11 @@ interface AdminPrizeManagementProps {
   poolId: string;
   poolTitle?: string;
   participantPhone?: string;
+  prizeAmount?: number;
   onSuccess?: () => void;
 }
 
-export const AdminPrizeManagement = ({ participant, poolId, poolTitle, participantPhone, onSuccess }: AdminPrizeManagementProps) => {
+export const AdminPrizeManagement = ({ participant, poolId, poolTitle, participantPhone, prizeAmount, onSuccess }: AdminPrizeManagementProps) => {
   const [proofFile, setProofFile] = useState<File | null>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [showFullKey, setShowFullKey] = useState(false);
@@ -141,6 +142,11 @@ export const AdminPrizeManagement = ({ participant, poolId, poolTitle, participa
           </CardTitle>
           <CardDescription>
             O prêmio para <span className="font-bold text-foreground">{participant.participant_name}</span> já foi enviado.
+            {prizeAmount != null && prizeAmount > 0 && (
+              <span className="ml-1 font-semibold text-green-700 dark:text-green-300">
+                (R$ {prizeAmount.toFixed(2).replace('.', ',')})
+              </span>
+            )}
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -182,6 +188,11 @@ export const AdminPrizeManagement = ({ participant, poolId, poolTitle, participa
           </CardTitle>
           <CardDescription className="text-yellow-700 dark:text-yellow-300">
             Este ganhador ainda não informou sua chave PIX para recebimento do prêmio.
+            {prizeAmount != null && prizeAmount > 0 && (
+              <span className="block mt-1 font-semibold text-yellow-800 dark:text-yellow-200">
+                💰 Valor a enviar: R$ {prizeAmount.toFixed(2).replace('.', ',')}
+              </span>
+            )}
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-3 pt-0">
@@ -220,6 +231,11 @@ export const AdminPrizeManagement = ({ participant, poolId, poolTitle, participa
         </CardTitle>
         <CardDescription>
           Chave PIX do ganhador para envio do prêmio
+          {prizeAmount != null && prizeAmount > 0 && (
+            <span className="block mt-1 font-semibold text-primary text-base">
+              💰 Valor a enviar: R$ {prizeAmount.toFixed(2).replace('.', ',')}
+            </span>
+          )}
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
