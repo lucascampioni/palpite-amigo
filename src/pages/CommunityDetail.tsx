@@ -213,14 +213,21 @@ const CommunityDetail = () => {
             </Button>
             {showFinished && (
               <div className="space-y-3">
-                {finishedPools.map(pool => (
-                  <PoolCard
-                    key={pool.id}
-                    pool={pool}
-                    onClick={() => navigate(`/bolao/${pool.slug}`)}
-                    isUserParticipating={participantMap[pool.id]?.status === 'approved'}
-                  />
-                ))}
+                {finishedPools.map(pool => {
+                  const participantCount = pool.participants?.[0]?.count || 0;
+                  const totalPrize = pool.prize_type === 'percentage'
+                    ? (pool.entry_fee || 0) * participantCount
+                    : ((pool.first_place_prize || 0) + (pool.second_place_prize || 0) + (pool.third_place_prize || 0));
+                  return (
+                    <PoolCard
+                      key={pool.id}
+                      pool={{...pool, participant_count: participantCount}}
+                      onClick={() => navigate(`/bolao/${pool.slug}`)}
+                      isUserParticipating={participantMap[pool.id]?.status === 'approved'}
+                      totalPrize={totalPrize}
+                    />
+                  );
+                })}
               </div>
             )}
           </section>

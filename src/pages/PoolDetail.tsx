@@ -423,10 +423,21 @@ const PoolDetail = () => {
       .eq("user_id", user?.id || '')
       .maybeSingle();
 
+    // Check if pool belongs to a community (allows public access for finished pools)
+    const { data: poolCommunity } = await supabase
+      .from('communities')
+      .select('id')
+      .eq('responsible_user_id', poolData.owner_id)
+      .limit(1)
+      .maybeSingle();
+    const belongsToCommunity = !!poolCommunity;
+
     // If deadline passed (or pool cancelled/finished) and user is NOT participant and NOT owner, redirect
+    // Exception: finished pools from communities are accessible to all authenticated users
     const deadlinePassed = new Date(poolData.deadline) < new Date();
     const poolClosed = poolData.status === 'cancelled' || poolData.status === 'finished';
-    if ((deadlinePassed || poolClosed) && !ownerCheck && !userParticipantCheck) {
+    const isFinishedCommunityPool = poolData.status === 'finished' && belongsToCommunity;
+    if ((deadlinePassed || poolClosed) && !ownerCheck && !userParticipantCheck && !isFinishedCommunityPool) {
       toast({
         variant: "destructive",
         title: "Inscrições encerradas",
