@@ -974,6 +974,211 @@ const FootballRanking = ({ poolId, pool, approvedParticipantsCount, isOwner }: F
           );
         })()}
 
+        {/* Prize distribution explanation - at the top for visibility */}
+        {allMatchesFinished && pool && ranking.some(r => (r.prize_amount ?? 0) > 0) && (() => {
+          const maxW = pool.max_winners || 3;
+          const isPercentage = pool.prize_type === 'percentage';
+          const totalPredictionSets = ranking.length;
+          const totalCollected = isPercentage ? (pool.entry_fee || 0) * totalPredictionSets : 0;
+          const allZero = ranking.every(r => r.total_points === 0);
+
+          const rawPrizes = [
+            pool.first_place_prize || 0,
+            maxW >= 2 ? (pool.second_place_prize || 0) : 0,
+            maxW >= 3 ? (pool.third_place_prize || 0) : 0,
+          ].slice(0, maxW);
+
+          const prizes = isPercentage
+            ? rawPrizes.map(p => (p / 100) * totalCollected)
+            : rawPrizes;
+
+          const positionLabels = ['1º lugar', '2º lugar', '3º lugar'];
+
+          // Build explanation items as structured objects for better rendering
+          const items: { icon: string; text: string; bold?: boolean; indent?: boolean }[] = [];
+
+          if (isPercentage) {
+            items.push({
+              icon: '💰',
+              text: `Total arrecadado: R$ ${totalCollected.toFixed(2).replace('.', ',')} (${totalPredictionSets} palpites × R$ ${(pool.entry_fee || 0).toFixed(2).replace('.', ',')})`,
+            });
+          }
+
+          items.push({
+            icon: '🏆',
+            text: `Premiação para os Top ${maxW}`,
+            bold: true,
+          });
+
+          if (allZero) {
+            items.push({
+              icon: '⏱️',
+              text: 'Nenhum participante pontuou. A classificação seguiu a ordem de envio dos palpites (quem enviou primeiro ficou à frente).',
+            });
+            const winners = ranking.filter(r => (r.prize_amount ?? 0) > 0);
+            winners.forEach((w, i) => {
+              items.push({
+                icon: '',
+                text: `${positionLabels[i]}: ${w.participant_name} → R$ ${(w.prize_amount || 0).toFixed(2).replace('.', ',')}`,
+                indent: true,
+              });
+            });
+          } else {
+            // Detect tie groups within prize positions
+            let pos = 0;
+            while (pos < ranking.length && pos < maxW) {
+              const score = ranking[pos].total_points;
+              if (score === 0) break;
+              let end = pos;
+              while (end < ranking.length && ranking[end].total_points === score) end++;
+              const groupSize = end - pos;
+
+              if (groupSize > 1 && pos < maxW) {
+                // Tie group — calculate which prize positions are covered
+                const coveredCount = Math.min(end, maxW) - pos;
+                const coveredLabels = [];
+                for (let i = pos; i < Math.min(end, maxW); i++) {
+                  coveredLabels.push(positionLabels[i]);
+                }
+                const sumPrize = coveredLabels.reduce((s, _, idx) => s + (prizes[pos + idx] || 0), 0);
+                const perPerson = sumPrize / groupSize;
+                const names = ranking.slice(pos, end).map(r => r.participant_name);
+
+                // Describe what happened
+                if (coveredCount >= maxW - pos) {
+                  // This tie consumed all remaining prize positions
+                  if (coveredLabels.length > 1) {
+                    items.push({
+                      icon: '🤝',
+                      text: `${groupSize} participantes empataram com ${score} pts, ocupando do ${coveredLabels[0]} ao ${coveredLabels[coveredLabels.length - 1]}.`,
+                    });
+                    items.push({
+                      icon: '',
+                      text: `Os prêmios dessas posições foram somados (R$ ${sumPrize.toFixed(2).replace('.', ',')}) e divididos igualmente: R$ ${perPerson.toFixed(2).replace('.', ',')} para cada um.`,
+                      indent: true,
+                    });
+                  } else {
+                    items.push({
+                      icon: '🤝',
+                      text: `${groupSize} participantes empataram com ${score} pts na disputa pelo ${coveredLabels[0]}.`,
+                    });
+                    items.push({
+                      icon: '',
+                      text: `O prêmio de R$ ${sumPrize.toFixed(2).replace('.', ',')} foi dividido igualmente: R$ ${perPerson.toFixed(2).replace('.', ',')} para cada um.`,
+                      indent: true,
+                    });
+                  }
+
+                  // If this tie absorbed lower positions, explain it
+                  const absorbedPositions = [];
+                  for (let i = Math.min(end, maxW); i < maxW; i++) {
+                    absorbedPositions.push(positionLabels[i]);
+                  }
+                  // Actually check: positions after the tie group that have no winner
+                  if (end > pos + coveredCount) {
+                    // More tied people than covered positions
+                  }
+                  if (coveredCount < maxW - pos && end >= maxW) {
+                    // The tie pushed out remaining positions
+                  }
+
+                  items.push({
+                    icon: '',
+                    text: `Participantes: ${names.join(', ')}`,
+                    indent: true,
+                  });
+                } else {
+                  items.push({
+                    icon: '🤝',
+                    text: `${groupSize} participantes empataram com ${score} pts na disputa pelo ${coveredLabels[0]}.`,
+                  });
+                  items.push({
+                    icon: '',
+                    text: `Os prêmios do ${coveredLabels.join(' e ')} foram somados (R$ ${sumPrize.toFixed(2).replace('.', ',')}) e divididos igualmente: R$ ${perPerson.toFixed(2).replace('.', ',')} para cada um.`,
+                    indent: true,
+                  });
+                  items.push({
+                    icon: '',
+                    text: `Participantes: ${names.join(', ')}`,
+                    indent: true,
+                  });
+                  // Explain absorbed positions
+                  const nextPos = end;
+                  if (nextPos < maxW) {
+                    // There are still positions available, no absorption to explain
+                  } else {
+                    // The tie consumed multiple positions, pushing out lower ones
+                    const missingLabels = [];
+                    for (let i = pos + 1; i < maxW; i++) {
+                      if (i >= Math.min(end, maxW)) {
+                        missingLabels.push(positionLabels[i]);
+                      }
+                    }
+                    if (missingLabels.length > 0) {
+                      items.push({
+                        icon: '⚠️',
+                        text: `Como o empate ocupou as posições acima, não houve ${missingLabels.join(' nem ')} separado.`,
+                        indent: true,
+                      });
+                    }
+                  }
+                }
+              } else if (groupSize === 1 && pos < maxW) {
+                const prizeVal = ranking[pos].prize_amount || 0;
+                if (prizeVal > 0) {
+                  items.push({
+                    icon: pos === 0 ? '🥇' : pos === 1 ? '🥈' : '🥉',
+                    text: `${positionLabels[pos]}: ${ranking[pos].participant_name} (${score} pts) → R$ ${prizeVal.toFixed(2).replace('.', ',')}`,
+                  });
+                }
+              }
+              pos = end;
+            }
+
+            // Explain if positions were absorbed by ties above
+            if (pos < maxW && pos > 0) {
+              const missingLabels = [];
+              for (let i = pos; i < maxW; i++) {
+                missingLabels.push(positionLabels[i]);
+              }
+              if (missingLabels.length > 0) {
+                const hasPeopleBelow = ranking.length > pos && ranking[pos].total_points > 0;
+                if (hasPeopleBelow) {
+                  items.push({
+                    icon: 'ℹ️',
+                    text: `O ${missingLabels.join(' e ')} não tiveram premiação separada, pois os empates nas posições anteriores já consumiram todos os prêmios destinados ao Top ${maxW}.`,
+                  });
+                }
+              }
+            }
+          }
+
+          return (
+            <div className="mb-5 pb-4 border-b">
+              <Collapsible>
+                <CollapsibleTrigger className="w-full flex items-center justify-between gap-2 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors py-1.5">
+                  <span className="flex items-center gap-1.5">
+                    📋 Como foi dividida a premiação?
+                  </span>
+                  <ChevronDown className="h-4 w-4 flex-shrink-0" />
+                </CollapsibleTrigger>
+                <CollapsibleContent>
+                  <div className="rounded-lg bg-muted/50 border border-border/50 p-3 mt-2 space-y-2">
+                    {items.map((item, i) => (
+                      <div key={i} className={`flex gap-2 ${item.indent ? 'pl-5 sm:pl-6' : ''}`}>
+                        {item.icon && <span className="flex-shrink-0 text-sm leading-5">{item.icon}</span>}
+                        <p className={`text-xs sm:text-sm leading-5 ${item.bold ? 'font-semibold text-foreground' : 'text-foreground/80'}`}>
+                          {item.text}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                </CollapsibleContent>
+              </Collapsible>
+            </div>
+          );
+        })()}
+
         {/* Current user position preview */}
         {currentUserParticipantId && ranking.some(p => p.id === currentUserParticipantId) && (() => {
           const userEntries = ranking.filter(p => p.id === currentUserParticipantId);
@@ -1487,104 +1692,7 @@ const FootballRanking = ({ poolId, pool, approvedParticipantsCount, isOwner }: F
               );
             })}
           </div>
-          {/* Prize distribution explanation */}
-          {allMatchesFinished && pool && ranking.some(r => (r.prize_amount ?? 0) > 0) && (() => {
-            const maxW = pool.max_winners || 3;
-            const isPercentage = pool.prize_type === 'percentage';
-            const totalPredictionSets = ranking.length;
-            const totalCollected = isPercentage ? (pool.entry_fee || 0) * totalPredictionSets : 0;
-            const allZero = ranking.every(r => r.total_points === 0);
-
-            const rawPrizes = [
-              pool.first_place_prize || 0,
-              maxW >= 2 ? (pool.second_place_prize || 0) : 0,
-              maxW >= 3 ? (pool.third_place_prize || 0) : 0,
-            ].slice(0, maxW);
-
-            const prizes = isPercentage
-              ? rawPrizes.map(p => (p / 100) * totalCollected)
-              : rawPrizes;
-
-            const positionLabels = ['1º lugar', '2º lugar', '3º lugar'];
-            const explanationLines: string[] = [];
-
-            if (isPercentage) {
-              explanationLines.push(`💰 Premiação calculada sobre o total arrecadado: R$ ${totalCollected.toFixed(2).replace('.', ',')} (${totalPredictionSets} palpites × R$ ${(pool.entry_fee || 0).toFixed(2).replace('.', ',')}).`);
-            }
-
-            explanationLines.push(`🏆 Premiação configurada para Top ${maxW}.`);
-
-            // Original prize values
-            const prizeDescParts = prizes.map((p, i) => `${positionLabels[i]}: R$ ${p.toFixed(2).replace('.', ',')}`);
-            explanationLines.push(`Valores originais: ${prizeDescParts.join(' | ')}.`);
-
-            if (allZero) {
-              explanationLines.push(`⏱️ Nenhum participante fez pontos. Os premiados foram definidos pela ordem de envio dos palpites.`);
-              const winners = ranking.filter(r => (r.prize_amount ?? 0) > 0);
-              winners.forEach((w, i) => {
-                explanationLines.push(`• ${positionLabels[i]}: ${w.participant_name} → R$ ${(w.prize_amount || 0).toFixed(2).replace('.', ',')}`);
-              });
-            } else {
-              // Detect tie groups within prize positions
-              let pos = 0;
-              const tieExplanations: string[] = [];
-              while (pos < ranking.length && pos < maxW) {
-                const score = ranking[pos].total_points;
-                if (score === 0) break;
-                let end = pos;
-                while (end < ranking.length && ranking[end].total_points === score) end++;
-                const groupSize = end - pos;
-
-                if (groupSize > 1 && pos < maxW) {
-                  // There's a tie
-                  const coveredPositions = [];
-                  for (let i = pos; i < Math.min(end, maxW); i++) {
-                    coveredPositions.push(positionLabels[i]);
-                  }
-                  const sumPrize = coveredPositions.reduce((s, _, idx) => s + (prizes[pos + idx] || 0), 0);
-                  const perPerson = sumPrize / groupSize;
-                  const names = ranking.slice(pos, end).map(r => r.participant_name).join(', ');
-                  
-                  tieExplanations.push(
-                    `🤝 Empate na ${coveredPositions[0]} posição (${score} pts) entre ${groupSize} participantes (${names}). ` +
-                    `Prêmio${coveredPositions.length > 1 ? ` do ${coveredPositions.join(' + ')}` : ` do ${coveredPositions[0]}`} somado = R$ ${sumPrize.toFixed(2).replace('.', ',')} ÷ ${groupSize} = R$ ${perPerson.toFixed(2).replace('.', ',')} cada.`
-                  );
-                } else if (groupSize === 1 && pos < maxW) {
-                  const prizeVal = ranking[pos].prize_amount || 0;
-                  if (prizeVal > 0) {
-                    tieExplanations.push(`• ${positionLabels[pos]}: ${ranking[pos].participant_name} (${score} pts) → R$ ${prizeVal.toFixed(2).replace('.', ',')}`);
-                  }
-                }
-                pos = end;
-              }
-              if (tieExplanations.length > 0) {
-                explanationLines.push('');
-                explanationLines.push('📊 Distribuição final:');
-                explanationLines.push(...tieExplanations);
-              }
-            }
-
-            return (
-              <div className="mt-4 pt-3 border-t">
-                <Collapsible>
-                  <CollapsibleTrigger className="w-full flex items-center justify-between gap-2 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors py-2">
-                    <span className="flex items-center gap-1.5">
-                      📋 Como foi dividida a premiação?
-                    </span>
-                    <ChevronDown className="h-4 w-4 transition-transform duration-200 [&[data-state=open]]:rotate-180" />
-                  </CollapsibleTrigger>
-                  <CollapsibleContent>
-                    <div className="rounded-lg bg-muted/50 border border-border/50 p-3 sm:p-4 mt-2 space-y-1.5">
-                      {explanationLines.map((line, i) => (
-                        line === '' ? <div key={i} className="h-1" /> :
-                        <p key={i} className="text-xs sm:text-sm text-foreground/80">{line}</p>
-                      ))}
-                    </div>
-                  </CollapsibleContent>
-                </Collapsible>
-              </div>
-            );
-          })()}
+          {/* Prize explanation moved to top - see after champion highlight */}
 
           {/* Pagination */}
           {ranking.length > ITEMS_PER_PAGE && (() => {
