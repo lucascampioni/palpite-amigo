@@ -24,9 +24,10 @@ interface PoolCardProps {
   prizeReceived?: boolean;
   hasPendingPayment?: boolean;
   hasAwaitingApproval?: boolean;
+  totalPrize?: number | null;
 }
 
-const PoolCard = ({ pool, onClick, isUserParticipating = false, hasWonPrize = false, prizeReceived = false, hasPendingPayment = false, hasAwaitingApproval = false }: PoolCardProps) => {
+const PoolCard = ({ pool, onClick, isUserParticipating = false, hasWonPrize = false, prizeReceived = false, hasPendingPayment = false, hasAwaitingApproval = false, totalPrize }: PoolCardProps) => {
   const isExpired = isPast(new Date(pool.deadline));
   const isInProgress = pool.status === "active" && isExpired && isUserParticipating;
 
@@ -161,6 +162,12 @@ const PoolCard = ({ pool, onClick, isUserParticipating = false, hasWonPrize = fa
           <div className="flex items-center gap-2 text-sm font-medium text-foreground/80 bg-accent/5 p-3 rounded-xl border border-accent/15">
             <Users className="w-5 h-5 text-accent" />
             <span>{pool.participant_count} participante(s)</span>
+          </div>
+        )}
+        {pool.status === "finished" && totalPrize != null && totalPrize > 0 && (
+          <div className="flex items-center gap-2 text-sm font-semibold text-secondary bg-secondary/10 p-3 rounded-xl border border-secondary/20">
+            <Trophy className="w-5 h-5 text-secondary" />
+            <span>Premiação total: R$ {totalPrize.toFixed(2).replace('.', ',')}</span>
           </div>
         )}
       </CardContent>
