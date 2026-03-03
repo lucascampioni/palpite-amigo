@@ -262,31 +262,37 @@ export const GEMatchSelector = ({ open, onOpenChange, onMatchesSelected }: GEMat
             </div>
 
             {/* Filter chips */}
-            <ScrollArea className="w-full">
-              <div className="flex gap-1.5 pb-2 flex-wrap">
+            <ScrollArea className="w-full max-h-[35vh]">
+              <div className="grid grid-cols-2 gap-1.5 pb-2">
                 {filterMode === 'day' ? (
                   availableDays.map(day => (
-                    <Badge
+                    <button
                       key={day.key}
-                      variant={activeDayFilter === day.key ? 'default' : 'outline'}
-                      className="cursor-pointer whitespace-nowrap text-xs px-2.5 py-1"
                       onClick={() => setActiveDayFilter(day.key)}
+                      className={`rounded-full border text-xs px-3 py-1.5 text-center transition-colors truncate ${
+                        activeDayFilter === day.key
+                          ? 'bg-primary text-primary-foreground border-primary'
+                          : 'bg-background text-foreground border-border hover:bg-muted'
+                      }`}
                     >
                       {day.display} ({day.count})
-                    </Badge>
+                    </button>
                   ))
                 ) : (
                   availableChamps.map(c => {
                     const info = CHAMP_LABELS[c.code];
                     return (
-                      <Badge
+                      <button
                         key={c.code}
-                        variant={activeChampFilter === c.code ? 'default' : 'outline'}
-                        className="cursor-pointer whitespace-nowrap text-xs px-2.5 py-1"
                         onClick={() => setActiveChampFilter(c.code)}
+                        className={`rounded-full border text-xs px-3 py-1.5 text-center transition-colors truncate ${
+                          activeChampFilter === c.code
+                            ? 'bg-primary text-primary-foreground border-primary'
+                            : 'bg-background text-foreground border-border hover:bg-muted'
+                        }`}
                       >
                         {info ? `${info.emoji} ${info.label}` : c.name} ({c.count})
-                      </Badge>
+                      </button>
                     );
                   })
                 )}
