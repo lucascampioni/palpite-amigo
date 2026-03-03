@@ -3,7 +3,8 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
-import { Users, Bell, BellOff, Star, UserCheck, ChevronRight, Trophy } from "lucide-react";
+import { Users, Bell, BellOff, Star, UserCheck, ChevronRight, Trophy, Share2 } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 
 interface CommunityCardProps {
@@ -31,6 +32,7 @@ const CommunityCard = ({
   onToggleNotify,
   onClick,
 }: CommunityCardProps) => {
+  const { toast } = useToast();
   const isFollowing = !!membership;
   const notifyActive = membership?.notify_new_pools ?? false;
   const [animateNotify, setAnimateNotify] = useState(false);
@@ -161,7 +163,23 @@ const CommunityCard = ({
           </div>
         </div>
 
-        <div className="flex justify-end mt-2">
+        <div className="flex justify-between items-center mt-2">
+          <button
+            className="text-[11px] text-muted-foreground flex items-center gap-1 hover:text-primary transition-colors"
+            onClick={(e) => {
+              e.stopPropagation();
+              const url = `https://delfos.app.br/comunidade/${community.slug}`;
+              if (navigator.share) {
+                navigator.share({ title: community.name, text: community.description || `Confira a comunidade ${community.name} na Delfos!`, url });
+              } else {
+                navigator.clipboard.writeText(url);
+                toast({ title: "Link copiado!", description: "Compartilhe com seus amigos." });
+              }
+            }}
+          >
+            <Share2 className="w-3 h-3" />
+            Compartilhar
+          </button>
           <span className="text-[11px] text-muted-foreground flex items-center gap-0.5">
             Ver bolões <ChevronRight className="w-3 h-3" />
           </span>
