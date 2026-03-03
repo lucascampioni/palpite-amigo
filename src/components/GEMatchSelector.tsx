@@ -212,7 +212,7 @@ export const GEMatchSelector = ({ open, onOpenChange, onMatchesSelected }: GEMat
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogContent className="w-[95vw] max-w-4xl max-h-[85vh] flex flex-col p-3 sm:p-6">
+      <DialogContent className="w-[95vw] max-w-4xl h-[90vh] sm:h-auto sm:max-h-[85vh] flex flex-col p-3 sm:p-6 overflow-hidden">
         <DialogHeader>
           <DialogTitle>⚽ Selecione os Jogos</DialogTitle>
           <DialogDescription>
@@ -253,7 +253,7 @@ export const GEMatchSelector = ({ open, onOpenChange, onMatchesSelected }: GEMat
             </div>
 
             {/* Expandable list */}
-            <ScrollArea className="flex-1 min-h-0 max-h-[60vh]">
+            <ScrollArea className="flex-1 min-h-0" style={{ maxHeight: 'calc(90vh - 200px)' }}>
               <div className="space-y-1 pr-2">
                 {groupedMatches.map(group => {
                   const isExpanded = expandedSections.has(group.key);
