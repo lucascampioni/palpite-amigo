@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Session } from "@supabase/supabase-js";
 import delfosLogo from "@/assets/delfos-logo.png";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Users, UserCheck, Star, ChevronDown, ChevronUp, MessageCircle, Bell, BellOff, Heart } from "lucide-react";
+import { ArrowLeft, Users, UserCheck, Star, ChevronDown, ChevronUp, MessageCircle, Bell, BellOff, Heart, Share2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
@@ -183,6 +183,23 @@ const CommunityDetail = () => {
               <h1 className="font-bold text-sm truncate">{community.name}</h1>
             </div>
           </div>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-9 w-9 rounded-full shrink-0"
+            onClick={(e) => {
+              e.stopPropagation();
+              const url = `https://delfos.app.br/comunidade/${community.slug}`;
+              if (navigator.share) {
+                navigator.share({ title: community.name, text: community.description || `Confira a comunidade ${community.name} na Delfos!`, url });
+              } else {
+                navigator.clipboard.writeText(url);
+                toast({ title: "Link copiado!", description: "Compartilhe com seus amigos." });
+              }
+            }}
+          >
+            <Share2 className="w-4 h-4" />
+          </Button>
         </div>
         <div className="h-[2px] bg-gradient-to-r from-primary via-secondary to-accent" />
       </header>
