@@ -1271,17 +1271,17 @@ const PoolDetail = () => {
             {isOwner && pool.status === "active" && (
               <>
                 <Separator />
-                <div className="p-4 rounded-lg bg-muted/50 border">
-                  <div className="flex items-center justify-between">
-                    <div className="space-y-1">
-                      <p className="text-sm font-medium">Privacidade do Bolão</p>
-                      <p className="text-xs text-muted-foreground">
+                <div className="p-3 sm:p-4 rounded-lg bg-muted/50 border">
+                  <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
+                    <div className="flex-1 min-w-0 space-y-0.5">
+                      <p className="text-xs sm:text-sm font-medium">Privacidade do Bolão</p>
+                      <p className="text-[11px] sm:text-xs text-muted-foreground leading-snug">
                         {pool.is_private 
-                          ? "🔒 Bolão está PRIVADO - Apenas pessoas com o link podem acessar" 
-                          : "🌐 Bolão está PÚBLICO - Visível na lista de bolões públicos"}
+                          ? "🔒 PRIVADO — Só quem tem o link acessa" 
+                          : "🌐 PÚBLICO — Visível para todos"}
                       </p>
                     </div>
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center justify-between sm:justify-end gap-2 shrink-0">
                       <span className="text-xs font-medium text-muted-foreground">
                         {pool.is_private ? "Privado" : "Público"}
                       </span>
