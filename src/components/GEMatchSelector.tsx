@@ -2,11 +2,9 @@ import { useEffect, useState, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Card, CardContent } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Filter, Calendar, Trophy } from "lucide-react";
+import { Loader2, Calendar, Trophy, ChevronDown } from "lucide-react";
 import { format } from "date-fns";
 import { abbreviateTeamName } from "@/lib/team-utils";
 import { ptBR } from "date-fns/locale";
@@ -54,8 +52,7 @@ export const GEMatchSelector = ({ open, onOpenChange, onMatchesSelected }: GEMat
   const [allMatches, setAllMatches] = useState<GEMatch[]>([]);
   const [selectedMatches, setSelectedMatches] = useState<Set<string>>(new Set());
   const [filterMode, setFilterMode] = useState<FilterMode>('day');
-  const [activeChampFilter, setActiveChampFilter] = useState<string | null>(null);
-  const [activeDayFilter, setActiveDayFilter] = useState<string | null>(null);
+  const [expandedSections, setExpandedSections] = useState<Set<string>>(new Set());
 
   const fetchMatches = async () => {
     setLoading(true);
@@ -138,57 +135,61 @@ export const GEMatchSelector = ({ open, onOpenChange, onMatchesSelected }: GEMat
     return Array.from(map.values()).sort((a, b) => a.key.localeCompare(b.key));
   }, [allMatches]);
 
-  // Filtered matches
-  const filteredMatches = useMemo(() => {
-    let matches = allMatches;
-    if (filterMode === 'championship' && activeChampFilter) {
-      matches = matches.filter(m => m.champCode === activeChampFilter);
-    }
-    if (filterMode === 'day' && activeDayFilter) {
-      matches = matches.filter(m => format(new Date(m.matchDate), 'yyyy-MM-dd') === activeDayFilter);
-    }
-    return matches;
-  }, [allMatches, filterMode, activeChampFilter, activeDayFilter]);
-
-  // Group filtered matches for display
+  // Group all matches by the selected mode
   const groupedMatches = useMemo(() => {
-    if (filterMode === 'championship') {
-      // Group by day
-      const map = new Map<string, { display: string; matches: GEMatch[] }>();
-      filteredMatches.forEach(m => {
+    if (filterMode === 'day') {
+      // Group by day, sub-group by championship
+      const dayMap = new Map<string, { display: string; matches: GEMatch[] }>();
+      allMatches.forEach(m => {
         const key = format(new Date(m.matchDate), 'yyyy-MM-dd');
-        if (!map.has(key)) {
-          map.set(key, {
-            display: format(new Date(m.matchDate), "EEEE, dd/MM/yyyy", { locale: ptBR }),
+        if (!dayMap.has(key)) {
+          dayMap.set(key, {
+            display: format(new Date(m.matchDate), "EEE, dd/MM", { locale: ptBR }),
             matches: [],
           });
         }
-        map.get(key)!.matches.push(m);
+        dayMap.get(key)!.matches.push(m);
       });
-      return Array.from(map.entries())
+      return Array.from(dayMap.entries())
         .sort((a, b) => a[0].localeCompare(b[0]))
-        .map(([key, val]) => ({ key, label: val.display, matches: val.matches }));
+        .map(([key, val]) => ({ key, label: val.display, count: val.matches.length, matches: val.matches }));
     } else {
       // Group by championship
-      const map = new Map<string, { code: string; name: string; matches: GEMatch[] }>();
-      filteredMatches.forEach(m => {
+      const champMap = new Map<string, { code: string; name: string; matches: GEMatch[] }>();
+      allMatches.forEach(m => {
         const code = m.champCode || '';
-        if (!map.has(code)) {
-          map.set(code, { code, name: m.championship, matches: [] });
+        if (!champMap.has(code)) {
+          champMap.set(code, { code, name: m.championship, matches: [] });
         }
-        map.get(code)!.matches.push(m);
+        champMap.get(code)!.matches.push(m);
       });
-      return Array.from(map.values()).map(val => {
+      return Array.from(champMap.values()).map(val => {
         const info = CHAMP_LABELS[val.code];
         return {
           key: val.code,
           label: info ? `${info.emoji} ${info.label}` : val.name,
+          count: val.matches.length,
           matches: val.matches,
         };
       });
     }
-  }, [filteredMatches, filterMode]);
+  }, [allMatches, filterMode]);
 
+  const toggleSection = (key: string) => {
+    setExpandedSections(prev => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      return next;
+    });
+  };
+
+  // Auto-expand first section
+  useEffect(() => {
+    if (groupedMatches.length > 0 && expandedSections.size === 0) {
+      setExpandedSections(new Set([groupedMatches[0].key]));
+    }
+  }, [groupedMatches]);
   const toggleMatch = (externalId: string, matchDate: string) => {
     const matchTime = new Date(matchDate);
     const now = new Date();
@@ -208,16 +209,6 @@ export const GEMatchSelector = ({ open, onOpenChange, onMatchesSelected }: GEMat
     setSelectedMatches(new Set());
     onMatchesSelected([]);
   };
-
-  // Auto-select first filter
-  useEffect(() => {
-    if (filterMode === 'day' && !activeDayFilter && availableDays.length > 0) {
-      setActiveDayFilter(availableDays[0].key);
-    }
-    if (filterMode === 'championship' && !activeChampFilter && availableChamps.length > 0) {
-      setActiveChampFilter(availableChamps[0].code);
-    }
-  }, [filterMode, availableDays, availableChamps]);
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
@@ -244,7 +235,7 @@ export const GEMatchSelector = ({ open, onOpenChange, onMatchesSelected }: GEMat
               <Button
                 variant={filterMode === 'day' ? 'default' : 'outline'}
                 size="sm"
-                onClick={() => setFilterMode('day')}
+                onClick={() => { setFilterMode('day'); setExpandedSections(new Set()); }}
                 className="gap-1.5"
               >
                 <Calendar className="w-3.5 h-3.5" />
@@ -253,7 +244,7 @@ export const GEMatchSelector = ({ open, onOpenChange, onMatchesSelected }: GEMat
               <Button
                 variant={filterMode === 'championship' ? 'default' : 'outline'}
                 size="sm"
-                onClick={() => setFilterMode('championship')}
+                onClick={() => { setFilterMode('championship'); setExpandedSections(new Set()); }}
                 className="gap-1.5"
               >
                 <Trophy className="w-3.5 h-3.5" />
@@ -261,74 +252,54 @@ export const GEMatchSelector = ({ open, onOpenChange, onMatchesSelected }: GEMat
               </Button>
             </div>
 
-            {/* Filter chips */}
-            <ScrollArea className="w-full max-h-[35vh]">
-              <div className="grid grid-cols-2 gap-1.5 pb-2">
-                {filterMode === 'day' ? (
-                  availableDays.map(day => (
-                    <button
-                      key={day.key}
-                      onClick={() => setActiveDayFilter(day.key)}
-                      className={`rounded-full border text-xs px-3 py-1.5 text-center transition-colors truncate ${
-                        activeDayFilter === day.key
-                          ? 'bg-primary text-primary-foreground border-primary'
-                          : 'bg-background text-foreground border-border hover:bg-muted'
-                      }`}
-                    >
-                      {day.display} ({day.count})
-                    </button>
-                  ))
-                ) : (
-                  availableChamps.map(c => {
-                    const info = CHAMP_LABELS[c.code];
-                    return (
+            {/* Expandable list */}
+            <ScrollArea className="flex-1 min-h-0 max-h-[60vh]">
+              <div className="space-y-1 pr-2">
+                {groupedMatches.map(group => {
+                  const isExpanded = expandedSections.has(group.key);
+                  const selectedInGroup = group.matches.filter(m => selectedMatches.has(m.externalId)).length;
+
+                  return (
+                    <div key={group.key} className="border rounded-lg overflow-hidden">
+                      {/* Section header */}
                       <button
-                        key={c.code}
-                        onClick={() => setActiveChampFilter(c.code)}
-                        className={`rounded-full border text-xs px-3 py-1.5 text-center transition-colors truncate ${
-                          activeChampFilter === c.code
-                            ? 'bg-primary text-primary-foreground border-primary'
-                            : 'bg-background text-foreground border-border hover:bg-muted'
-                        }`}
+                        onClick={() => toggleSection(group.key)}
+                        className="w-full flex items-center justify-between px-3 py-2.5 bg-muted/50 hover:bg-muted transition-colors"
                       >
-                        {info ? `${info.emoji} ${info.label}` : c.name} ({c.count})
+                        <div className="flex items-center gap-2 min-w-0">
+                          <ChevronDown className={`w-4 h-4 text-muted-foreground transition-transform flex-shrink-0 ${isExpanded ? '' : '-rotate-90'}`} />
+                          <span className="text-sm font-medium capitalize truncate">{group.label}</span>
+                          <span className="text-xs text-muted-foreground flex-shrink-0">({group.count})</span>
+                        </div>
+                        {selectedInGroup > 0 && (
+                          <span className="text-[10px] bg-primary text-primary-foreground rounded-full px-1.5 py-0.5 flex-shrink-0 ml-1">
+                            {selectedInGroup}
+                          </span>
+                        )}
                       </button>
-                    );
-                  })
-                )}
-              </div>
-            </ScrollArea>
 
-            {/* Matches list */}
-            <ScrollArea className="flex-1 min-h-0 max-h-[50vh]">
-              <div className="space-y-4 pr-2">
-                {groupedMatches.map(group => (
-                  <div key={group.key}>
-                    <p className="text-xs font-semibold text-muted-foreground uppercase mb-2 capitalize">
-                      {group.label}
-                    </p>
-                    <div className="space-y-1.5">
-                      {group.matches.map(match => {
-                        const matchTime = new Date(match.matchDate);
-                        const now = new Date();
-                        const minutesUntilMatch = (matchTime.getTime() - now.getTime()) / (1000 * 60);
-                        const isUnavailable = minutesUntilMatch < 300;
-                        const champInfo = CHAMP_LABELS[match.champCode || ''];
+                      {/* Matches inside */}
+                      {isExpanded && (
+                        <div className="divide-y divide-border">
+                          {group.matches.map(match => {
+                            const matchTime = new Date(match.matchDate);
+                            const now = new Date();
+                            const minutesUntilMatch = (matchTime.getTime() - now.getTime()) / (1000 * 60);
+                            const isUnavailable = minutesUntilMatch < 300;
+                            const champInfo = CHAMP_LABELS[match.champCode || ''];
 
-                        return (
-                          <Card
-                            key={match.externalId}
-                            className={`transition-colors ${
-                              isUnavailable
-                                ? 'opacity-50 cursor-not-allowed'
-                                : selectedMatches.has(match.externalId)
-                                  ? 'border-primary bg-primary/5 cursor-pointer'
-                                  : 'cursor-pointer hover:bg-muted/50'
-                            }`}
-                            onClick={() => !isUnavailable && toggleMatch(match.externalId, match.matchDate)}
-                          >
-                            <CardContent className="py-2.5 px-3">
-                              <div className="flex items-center gap-2.5">
+                            return (
+                              <div
+                                key={match.externalId}
+                                className={`flex items-center gap-2.5 px-3 py-2 transition-colors ${
+                                  isUnavailable
+                                    ? 'opacity-50 cursor-not-allowed'
+                                    : selectedMatches.has(match.externalId)
+                                      ? 'bg-primary/5 cursor-pointer'
+                                      : 'cursor-pointer hover:bg-muted/30'
+                                }`}
+                                onClick={() => !isUnavailable && toggleMatch(match.externalId, match.matchDate)}
+                              >
                                 <Checkbox
                                   checked={selectedMatches.has(match.externalId)}
                                   disabled={isUnavailable}
@@ -364,16 +335,16 @@ export const GEMatchSelector = ({ open, onOpenChange, onMatchesSelected }: GEMat
                                   </div>
                                 </div>
                               </div>
-                            </CardContent>
-                          </Card>
-                        );
-                      })}
+                            );
+                          })}
+                        </div>
+                      )}
                     </div>
-                  </div>
-                ))}
-                {filteredMatches.length === 0 && (
+                  );
+                })}
+                {groupedMatches.length === 0 && (
                   <div className="text-center py-8 text-muted-foreground text-sm">
-                    Nenhum jogo encontrado para este filtro
+                    Nenhum jogo encontrado
                   </div>
                 )}
               </div>
