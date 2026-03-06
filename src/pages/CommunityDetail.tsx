@@ -223,14 +223,30 @@ const CommunityDetail = () => {
         </div>
 
         {/* Follow & Notify section */}
-        <div className="p-3 rounded-xl bg-muted/40 border border-border/50 space-y-3">
+        <div className={`p-3 rounded-xl border space-y-3 transition-all duration-500 ${
+          isFollowing 
+            ? 'bg-muted/40 border-border/50' 
+            : 'bg-gradient-to-r from-primary/10 via-secondary/10 to-accent/10 border-primary/30 shadow-lg shadow-primary/5 animate-fade-in'
+        }`}>
+          {!isFollowing && (
+            <div className="flex items-center gap-2 mb-1">
+              <span className="relative flex h-2 w-2">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75" />
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-primary" />
+              </span>
+              <p className="text-[11px] font-semibold text-primary uppercase tracking-wider">Comunidade aberta</p>
+            </div>
+          )}
           <div className="flex items-center gap-3">
-            <Heart className={`w-5 h-5 shrink-0 ${isFollowing ? 'text-primary fill-primary' : 'text-muted-foreground'}`} />
+            <Heart className={`w-5 h-5 shrink-0 transition-all duration-300 ${isFollowing ? 'text-primary fill-primary' : 'text-primary animate-[pulse_1.5s_ease-in-out_infinite]'}`} />
             <div className="flex-1 min-w-0">
               {isFollowing ? (
                 <p className="text-xs sm:text-sm text-foreground font-medium">Você segue esta comunidade</p>
               ) : (
-                <p className="text-xs sm:text-sm text-muted-foreground">Siga para acompanhar os bolões desta comunidade</p>
+                <div className="space-y-0.5">
+                  <p className="text-xs sm:text-sm font-semibold text-foreground">Siga e não perca nenhum bolão!</p>
+                  <p className="text-[11px] text-muted-foreground">Receba alertas quando novos bolões forem criados</p>
+                </div>
               )}
             </div>
             {isFollowing ? (
@@ -240,7 +256,7 @@ const CommunityDetail = () => {
                 </Button>
               )
             ) : (
-              <Button size="sm" className="shrink-0 h-8 text-xs gap-1.5" onClick={handleFollow}>
+              <Button size="sm" className="shrink-0 h-8 text-xs gap-1.5 animate-scale-in shadow-md" onClick={handleFollow}>
                 <Heart className="w-3.5 h-3.5" />
                 Seguir
               </Button>
