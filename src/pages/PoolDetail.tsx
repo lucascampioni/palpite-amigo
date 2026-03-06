@@ -1460,7 +1460,8 @@ const PoolDetail = () => {
                             <X className="w-4 h-4 mr-2" />
                             Cancelar participação
                           </Button>
-                        </div>}
+                         </div>
+                        </>}
                       </>
                     ) : (
                       <div className="p-6 rounded-lg bg-green-50 dark:bg-green-950 border-2 border-green-200 dark:border-green-800 text-center space-y-3">
