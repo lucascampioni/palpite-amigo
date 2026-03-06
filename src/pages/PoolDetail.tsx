@@ -1401,7 +1401,13 @@ const PoolDetail = () => {
                         )}
 
                         {/* Edit / Cancel buttons for pending participants (only if no proof sent) */}
-                        {!currentUserParticipant.payment_proof && <div className="flex flex-col sm:flex-row gap-2 mt-2">
+                        {!currentUserParticipant.payment_proof && <>
+                          <div className="p-3 rounded-lg bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800/50 mt-2">
+                            <p className="text-xs text-amber-800 dark:text-amber-300 leading-relaxed">
+                              💡 Quer fazer mais palpites? Toque em <strong>Editar palpites</strong> e adicione novos conjuntos. Após o pagamento, não será possível adicionar novos palpites.
+                            </p>
+                          </div>
+                          <div className="flex flex-col sm:flex-row gap-2 mt-2">
                           <Button
                             variant="outline"
                             size="sm"
