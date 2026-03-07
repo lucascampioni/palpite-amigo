@@ -391,8 +391,37 @@ serve(async (req) => {
         champName: 'Campeonato Cearense',
         round: 'Rodada',
       },
+      {
+        match: {
+          homeTeam: 'Internacional',
+          awayTeam: 'Grêmio',
+          matchDate: '2026-03-08T21:00:00Z',
+          championship: 'Campeonato Gaúcho',
+          externalId: 'manual_gau_inter_gremio_20260308',
+          round: 'Rodada',
+          homeTeamCrest: 'https://media.api-sports.io/football/teams/119.png',
+          awayTeamCrest: 'https://media.api-sports.io/football/teams/130.png',
+        },
+        champCode: 'gau',
+        champName: 'Campeonato Gaúcho',
+        round: 'Rodada',
+      },
+      {
+        match: {
+          homeTeam: 'Náutico',
+          awayTeam: 'Sport',
+          matchDate: '2026-03-08T21:00:00Z',
+          championship: 'Campeonato Pernambucano',
+          externalId: 'manual_per_nautico_sport_20260308',
+          round: 'Rodada',
+          homeTeamCrest: 'https://media.api-sports.io/football/teams/2313.png',
+          awayTeamCrest: 'https://media.api-sports.io/football/teams/2312.png',
+        },
+        champCode: 'per',
+        champName: 'Campeonato Pernambucano',
+        round: 'Rodada',
+      },
     ];
-
     for (const manual of manualMatches) {
       // Only add if match date is in the future
       if (new Date(manual.match.matchDate) > new Date()) {
