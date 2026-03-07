@@ -99,8 +99,9 @@ serve(async (req) => {
 
     // Build message
     const poolLink = `https://delfos.app.br/bolao/${pool.slug || pool.id}`;
+    const communityNames = communities.map(c => c.name).join(' e ');
     const message = `⚽ *Novo bolão disponível!*\n\n` +
-      `O bolão *${pool.title}* está valendo! 🎉\n\n` +
+      `O bolão *${pool.title}* da comunidade *${communityNames}* está valendo! 🎉\n\n` +
       `Acesse agora e faça seu palpite:\n${poolLink}\n\n` +
       `🔕 Ajuste suas notificações no site quando quiser.`;
 
