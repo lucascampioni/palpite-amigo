@@ -359,6 +359,60 @@ serve(async (req) => {
       }
     }
 
+    // Manual matches that are missing from the API
+    const manualMatches: { match: Match; champCode: string; champName: string; round: string }[] = [
+      {
+        match: {
+          homeTeam: 'Paysandu',
+          awayTeam: 'Remo',
+          matchDate: '2026-03-08T20:00:00Z',
+          championship: 'Campeonato Paraense',
+          externalId: 'manual_par_paysandu_remo_20260308',
+          round: 'Rodada',
+          homeTeamCrest: 'https://media.api-sports.io/football/teams/7791.png',
+          awayTeamCrest: 'https://media.api-sports.io/football/teams/7770.png',
+        },
+        champCode: 'par',
+        champName: 'Campeonato Paraense',
+        round: 'Rodada',
+      },
+      {
+        match: {
+          homeTeam: 'Ceará',
+          awayTeam: 'Fortaleza',
+          matchDate: '2026-03-08T19:00:00Z',
+          championship: 'Campeonato Cearense',
+          externalId: 'manual_cea_ceara_fortaleza_20260308',
+          round: 'Rodada',
+          homeTeamCrest: 'https://media.api-sports.io/football/teams/2304.png',
+          awayTeamCrest: 'https://media.api-sports.io/football/teams/2305.png',
+        },
+        champCode: 'cea',
+        champName: 'Campeonato Cearense',
+        round: 'Rodada',
+      },
+    ];
+
+    for (const manual of manualMatches) {
+      // Only add if match date is in the future
+      if (new Date(manual.match.matchDate) > new Date()) {
+        let existingChamp = championships.find(c => c.id === manual.champCode);
+        if (!existingChamp) {
+          existingChamp = { id: manual.champCode, name: manual.champName, rounds: [] };
+          championships.push(existingChamp);
+        }
+        let existingRound = existingChamp.rounds.find(r => r.name === manual.round);
+        if (!existingRound) {
+          existingRound = { number: existingChamp.rounds.length + 1, name: manual.round, matches: [] };
+          existingChamp.rounds.push(existingRound);
+        }
+        // Avoid duplicates
+        if (!existingRound.matches.some(m => m.externalId === manual.match.externalId)) {
+          existingRound.matches.push(manual.match);
+        }
+      }
+    }
+
     console.log(`📋 Total: ${championships.length} championships`);
 
     return new Response(JSON.stringify({ 
