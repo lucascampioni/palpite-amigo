@@ -39,6 +39,7 @@ const CHAMP_LABELS: Record<string, { label: string; emoji: string }> = {
   'gau': { label: 'Gaúcho', emoji: '🏟️' },
   'cea': { label: 'Cearense', emoji: '🏟️' },
   'par': { label: 'Paraense', emoji: '🏟️' },
+  'per': { label: 'Pernambucano', emoji: '🏟️' },
   'ita': { label: 'Serie A 🇮🇹', emoji: '🇮🇹' },
   'fra': { label: 'Ligue 1 🇫🇷', emoji: '🇫🇷' },
   'pl': { label: 'Premier', emoji: '🏴󠁧󠁢󠁥󠁮󠁧󠁿' },
