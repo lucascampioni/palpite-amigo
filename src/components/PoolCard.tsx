@@ -142,6 +142,17 @@ const PoolCard = ({ pool, onClick, isUserParticipating = false, hasWonPrize = fa
           </div>
         </div>
         <CardDescription className="line-clamp-2 mt-3 text-base">{pool.description}</CardDescription>
+        {communityName && (
+          <div className="flex items-center gap-1.5 mt-2 text-xs text-muted-foreground">
+            <MapPin className="w-3.5 h-3.5 text-primary/60 flex-shrink-0" />
+            <span className="truncate">
+              <span className="font-medium text-foreground/70">{communityName}</span>
+              {responsibleName && (
+                <span> · por {responsibleName}</span>
+              )}
+            </span>
+          </div>
+        )}
       </CardHeader>
       <CardContent className="space-y-2 relative pt-0">
         {pool.status === "cancelled" ? (
