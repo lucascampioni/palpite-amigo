@@ -11,7 +11,7 @@ interface WinnerDisplayProps {
   estabelecimentoPrizeDescription?: string;
 }
 
-const WinnerDisplay = ({ winners, resultValue, measurementUnit }: WinnerDisplayProps) => {
+const WinnerDisplay = ({ winners, resultValue, measurementUnit, prizeType, estabelecimentoPrizeDescription }: WinnerDisplayProps) => {
   const isMultipleWinners = winners.length > 1;
   const tiebreakerApplied = winners.some(w => w.tiebreaker_by_join_time);
 
