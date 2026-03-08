@@ -403,6 +403,7 @@ export type Database = {
           deadline: string
           description: string
           entry_fee: number | null
+          estabelecimento_prize_address: string | null
           estabelecimento_prize_description: string | null
           finished_at: string | null
           finished_notified: boolean
@@ -436,6 +437,7 @@ export type Database = {
           deadline: string
           description: string
           entry_fee?: number | null
+          estabelecimento_prize_address?: string | null
           estabelecimento_prize_description?: string | null
           finished_at?: string | null
           finished_notified?: boolean
@@ -469,6 +471,7 @@ export type Database = {
           deadline?: string
           description?: string
           entry_fee?: number | null
+          estabelecimento_prize_address?: string | null
           estabelecimento_prize_description?: string | null
           finished_at?: string | null
           finished_notified?: boolean
