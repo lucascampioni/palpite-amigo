@@ -691,7 +691,7 @@ const CreateFootballPool = () => {
 
               <div className="space-y-3">
                 <div className="flex items-start gap-2">
-                  <Label className="text-base">🔑 Chave PIX para receber pagamentos {userRole?.isAdmin ? '(opcional)' : '*'}</Label>
+                  <Label className="text-base">🔑 Chave PIX para receber pagamentos {(userRole?.isAdmin || userRole?.isEstabelecimento) ? '(opcional)' : '*'}</Label>
                 </div>
                 <div className="rounded-lg border border-blue-200 dark:border-blue-800 bg-blue-50/50 dark:bg-blue-950/20 p-3">
                   <div className="flex items-start gap-2">
