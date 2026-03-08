@@ -252,6 +252,60 @@ serve(async (req) => {
         });
       }
 
+      case "list_all_participants": {
+        const { status: filterStatus, search, page = 1, limit = 50 } = body;
+        const offset = (page - 1) * limit;
+
+        let query = adminClient
+          .from("participants")
+          .select(`
+            id, participant_name, status, payment_proof, created_at, pool_id, user_id,
+            rejection_reason, rejection_details, guess_value
+          `, { count: "exact" })
+          .order("created_at", { ascending: false })
+          .range(offset, offset + limit - 1);
+
+        if (filterStatus && filterStatus !== "all") {
+          query = query.eq("status", filterStatus);
+        }
+
+        const { data: participantsData, error: pError, count } = await query;
+        if (pError) throw pError;
+
+        // Get unique pool IDs and fetch pool titles
+        const poolIds = [...new Set((participantsData || []).map((p: any) => p.pool_id))];
+        const { data: poolsData } = await adminClient
+          .from("pools")
+          .select("id, title, slug, status, owner_id")
+          .in("id", poolIds);
+
+        // Get owner names
+        const ownerIds = [...new Set((poolsData || []).map((p: any) => p.owner_id))];
+        const { data: ownerProfiles } = await adminClient
+          .from("profiles")
+          .select("id, full_name")
+          .in("id", ownerIds.length > 0 ? ownerIds : ["00000000-0000-0000-0000-000000000000"]);
+
+        const poolMap: Record<string, any> = {};
+        (poolsData || []).forEach((p: any) => {
+          const owner = (ownerProfiles || []).find((o: any) => o.id === p.owner_id);
+          poolMap[p.id] = { ...p, owner_name: owner?.full_name || "Desconhecido" };
+        });
+
+        const enriched = (participantsData || []).map((p: any) => ({
+          ...p,
+          pool_title: poolMap[p.pool_id]?.title || "Bolão removido",
+          pool_slug: poolMap[p.pool_id]?.slug || "",
+          pool_status: poolMap[p.pool_id]?.status || "",
+          pool_owner_name: poolMap[p.pool_id]?.owner_name || "",
+        }));
+
+        return new Response(JSON.stringify({ participants: enriched, total: count }), {
+          status: 200,
+          headers: { "Content-Type": "application/json", ...corsHeaders },
+        });
+      }
+
       default:
         return new Response(JSON.stringify({ error: "Ação desconhecida" }), {
           status: 400,
