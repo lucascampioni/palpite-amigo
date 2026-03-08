@@ -432,8 +432,16 @@ const CreateFootballPool = () => {
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="entry_fee">Valor de Entrada {userRole?.isAdmin ? '(opcional)' : '*'}</Label>
+                  <Label htmlFor="entry_fee">Valor de Entrada {(userRole?.isAdmin || userRole?.isEstabelecimento) ? '(opcional)' : '*'}</Label>
                   <Input
+                    id="entry_fee"
+                    name="entry_fee"
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    placeholder="Ex: 10.00"
+                    required={!userRole?.isAdmin && !userRole?.isEstabelecimento}
+                  />
                     id="entry_fee"
                     name="entry_fee"
                     type="number"
