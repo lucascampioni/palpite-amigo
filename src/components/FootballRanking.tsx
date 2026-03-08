@@ -18,6 +18,7 @@ interface FootballRankingProps {
     max_winners?: number;
     prize_type?: string;
     entry_fee?: number;
+    estabelecimento_prize_description?: string;
   };
   approvedParticipantsCount?: number;
   isOwner?: boolean;
