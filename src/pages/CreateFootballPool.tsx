@@ -513,88 +513,113 @@ const CreateFootballPool = () => {
                   )}
                 </div>
                 
-                <div className="space-y-2">
-                  <Label>Quantos lugares serão premiados?</Label>
-                  <div className="flex gap-2">
-                    {[1, 2, 3].map((n) => (
-                      <button
-                        key={n}
-                        type="button"
-                        onClick={() => setMaxWinners(n)}
-                        className={`flex-1 py-2 px-4 rounded-lg border-2 font-semibold transition-colors ${
-                          maxWinners === n
-                            ? 'border-primary bg-primary/10 text-primary'
-                            : 'border-muted hover:border-primary/50'
-                        }`}
-                      >
-                        Top {n}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                <div className={`grid grid-cols-1 ${maxWinners >= 2 ? (maxWinners >= 3 ? 'md:grid-cols-3' : 'md:grid-cols-2') : ''} gap-4`}>
-                  <div className="space-y-2">
-                    <Label htmlFor="first_place_prize">1º Lugar {prizeType === 'percentage' ? '(%)' : '(R$)'}</Label>
-                    <Input
-                      id="first_place_prize"
-                      name="first_place_prize"
-                      type="number"
-                      step={prizeType === 'percentage' ? '1' : '0.01'}
-                      min={prizeType === 'percentage' ? '1' : '0'}
-                      max={prizeType === 'percentage' ? '100' : undefined}
-                      value={firstPlacePrize}
-                      onChange={(e) => setFirstPlacePrize(e.target.value)}
-                      placeholder={prizeType === 'percentage' ? 'Ex: 60' : 'Ex: 100.00'}
-                    />
-                  </div>
-                  {maxWinners >= 2 && (
+                {prizeType !== 'estabelecimento' && (
+                  <>
                     <div className="space-y-2">
-                      <Label htmlFor="second_place_prize">2º Lugar {prizeType === 'percentage' ? '(%)' : '(R$)'}</Label>
-                      <Input
-                        id="second_place_prize"
-                        name="second_place_prize"
-                        type="number"
-                        step={prizeType === 'percentage' ? '1' : '0.01'}
-                        min={prizeType === 'percentage' ? '1' : '0'}
-                        max={prizeType === 'percentage' ? '100' : undefined}
-                        value={secondPlacePrize}
-                        onChange={(e) => setSecondPlacePrize(e.target.value)}
-                        placeholder={prizeType === 'percentage' ? 'Ex: 30' : 'Ex: 50.00'}
-                      />
+                      <Label>Quantos lugares serão premiados?</Label>
+                      <div className="flex gap-2">
+                        {[1, 2, 3].map((n) => (
+                          <button
+                            key={n}
+                            type="button"
+                            onClick={() => setMaxWinners(n)}
+                            className={`flex-1 py-2 px-4 rounded-lg border-2 font-semibold transition-colors ${
+                              maxWinners === n
+                                ? 'border-primary bg-primary/10 text-primary'
+                                : 'border-muted hover:border-primary/50'
+                            }`}
+                          >
+                            Top {n}
+                          </button>
+                        ))}
+                      </div>
                     </div>
-                  )}
-                  {maxWinners >= 3 && (
-                    <div className="space-y-2">
-                      <Label htmlFor="third_place_prize">3º Lugar {prizeType === 'percentage' ? '(%)' : '(R$)'}</Label>
-                      <Input
-                        id="third_place_prize"
-                        name="third_place_prize"
-                        type="number"
-                        step={prizeType === 'percentage' ? '1' : '0.01'}
-                        min={prizeType === 'percentage' ? '1' : '0'}
-                        max={prizeType === 'percentage' ? '100' : undefined}
-                        value={thirdPlacePrize}
-                        onChange={(e) => setThirdPlacePrize(e.target.value)}
-                        placeholder={prizeType === 'percentage' ? 'Ex: 10' : 'Ex: 25.00'}
-                      />
-                    </div>
-                  )}
-                </div>
 
-                {prizeType === 'percentage' && totalPercentage > 0 && (
-                  <div className={`p-3 rounded-lg text-sm font-medium ${
-                    totalPercentage > 100 
-                      ? 'bg-destructive/10 text-destructive border border-destructive/30' 
-                      : 'bg-muted/50 text-muted-foreground'
-                  }`}>
-                    {totalPercentage > 100 ? (
-                      <p>⚠️ A soma das porcentagens ({totalPercentage}%) ultrapassa 100%!</p>
-                    ) : remainingPercentage > 0 ? (
-                      <p>💰 {remainingPercentage}% do valor arrecadado ficará com você (organizador)</p>
-                    ) : (
-                      <p>✅ 100% do valor arrecadado será distribuído como premiação</p>
+                    <div className={`grid grid-cols-1 ${maxWinners >= 2 ? (maxWinners >= 3 ? 'md:grid-cols-3' : 'md:grid-cols-2') : ''} gap-4`}>
+                      <div className="space-y-2">
+                        <Label htmlFor="first_place_prize">1º Lugar {prizeType === 'percentage' ? '(%)' : '(R$)'}</Label>
+                        <Input
+                          id="first_place_prize"
+                          name="first_place_prize"
+                          type="number"
+                          step={prizeType === 'percentage' ? '1' : '0.01'}
+                          min={prizeType === 'percentage' ? '1' : '0'}
+                          max={prizeType === 'percentage' ? '100' : undefined}
+                          value={firstPlacePrize}
+                          onChange={(e) => setFirstPlacePrize(e.target.value)}
+                          placeholder={prizeType === 'percentage' ? 'Ex: 60' : 'Ex: 100.00'}
+                        />
+                      </div>
+                      {maxWinners >= 2 && (
+                        <div className="space-y-2">
+                          <Label htmlFor="second_place_prize">2º Lugar {prizeType === 'percentage' ? '(%)' : '(R$)'}</Label>
+                          <Input
+                            id="second_place_prize"
+                            name="second_place_prize"
+                            type="number"
+                            step={prizeType === 'percentage' ? '1' : '0.01'}
+                            min={prizeType === 'percentage' ? '1' : '0'}
+                            max={prizeType === 'percentage' ? '100' : undefined}
+                            value={secondPlacePrize}
+                            onChange={(e) => setSecondPlacePrize(e.target.value)}
+                            placeholder={prizeType === 'percentage' ? 'Ex: 30' : 'Ex: 50.00'}
+                          />
+                        </div>
+                      )}
+                      {maxWinners >= 3 && (
+                        <div className="space-y-2">
+                          <Label htmlFor="third_place_prize">3º Lugar {prizeType === 'percentage' ? '(%)' : '(R$)'}</Label>
+                          <Input
+                            id="third_place_prize"
+                            name="third_place_prize"
+                            type="number"
+                            step={prizeType === 'percentage' ? '1' : '0.01'}
+                            min={prizeType === 'percentage' ? '1' : '0'}
+                            max={prizeType === 'percentage' ? '100' : undefined}
+                            value={thirdPlacePrize}
+                            onChange={(e) => setThirdPlacePrize(e.target.value)}
+                            placeholder={prizeType === 'percentage' ? 'Ex: 10' : 'Ex: 25.00'}
+                          />
+                        </div>
+                      )}
+                    </div>
+
+                    {prizeType === 'percentage' && totalPercentage > 0 && (
+                      <div className={`p-3 rounded-lg text-sm font-medium ${
+                        totalPercentage > 100 
+                          ? 'bg-destructive/10 text-destructive border border-destructive/30' 
+                          : 'bg-muted/50 text-muted-foreground'
+                      }`}>
+                        {totalPercentage > 100 ? (
+                          <p>⚠️ A soma das porcentagens ({totalPercentage}%) ultrapassa 100%!</p>
+                        ) : remainingPercentage > 0 ? (
+                          <p>💰 {remainingPercentage}% do valor arrecadado ficará com você (organizador)</p>
+                        ) : (
+                          <p>✅ 100% do valor arrecadado será distribuído como premiação</p>
+                        )}
+                      </div>
                     )}
+                  </>
+                )}
+
+                {prizeType === 'estabelecimento' && (
+                  <div className="space-y-3">
+                    <div className="space-y-2">
+                      <Label htmlFor="estabelecimento_prize">🏆 Descrição do Prêmio *</Label>
+                      <Textarea
+                        id="estabelecimento_prize"
+                        value={estabelecimentoPrizeDescription}
+                        onChange={(e) => setEstabelecimentoPrizeDescription(e.target.value)}
+                        placeholder="Ex: 1 corte de cabelo grátis, 1 balde de cerveja, 1 pizza grande..."
+                        rows={3}
+                        required
+                      />
+                    </div>
+                    <div className="rounded-lg border border-amber-200 dark:border-amber-800 bg-amber-50/50 dark:bg-amber-950/20 p-3">
+                      <p className="text-xs text-muted-foreground">
+                        <strong>⚠️ Regra de desempate:</strong> Em caso de empate em primeiro lugar, será criado um novo bolão (sem custo adicional) apenas entre os empatados para definir o campeão e ganhador do prêmio.
+                      </p>
+                    </div>
                   </div>
                 )}
               </div>
