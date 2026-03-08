@@ -1039,6 +1039,8 @@ const PoolDetail = () => {
                   winners={winners} 
                   resultValue={pool.result_value}
                   measurementUnit={pool.measurement_unit}
+                  prizeType={pool.prize_type}
+                  estabelecimentoPrizeDescription={pool.estabelecimento_prize_description}
                 />
                 <Separator />
               </>
