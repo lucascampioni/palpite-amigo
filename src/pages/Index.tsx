@@ -719,7 +719,7 @@ const Index = () => {
                     {showFinishedParticipating && (
                       <div className="space-y-3">
                         {filterPools(myParticipatingPools.filter(p => p.status === "finished")).map((pool) => (
-                          <PoolCard key={pool.id} pool={pool} isUserParticipating prizeReceived={participantPrizeStatus[pool.id] === 'prize_sent'} onClick={() => navigate(`/bolao/${pool.slug}`)} />
+                          <PoolCard key={pool.id} pool={pool} isUserParticipating prizeReceived={participantPrizeStatus[pool.id] === 'prize_sent'} onClick={() => navigate(`/bolao/${pool.slug}`)} {...getCommunityProps(pool)} />
                         ))}
                       </div>
                     )}
