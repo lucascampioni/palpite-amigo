@@ -25,6 +25,8 @@ interface PoolCardProps {
   hasPendingPayment?: boolean;
   hasAwaitingApproval?: boolean;
   totalPrize?: number | null;
+  communityName?: string | null;
+  responsibleName?: string | null;
 }
 
 const PoolCard = ({ pool, onClick, isUserParticipating = false, hasWonPrize = false, prizeReceived = false, hasPendingPayment = false, hasAwaitingApproval = false, totalPrize }: PoolCardProps) => {
