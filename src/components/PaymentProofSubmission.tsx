@@ -122,10 +122,13 @@ export const PaymentProofSubmission = ({
       if (onSuccess) onSuccess();
     } catch (error: any) {
       console.error('Error uploading proof:', error);
+      const isNetworkError = error?.message === 'Failed to fetch' || error?.name === 'TypeError';
       toast({
         variant: "destructive",
         title: "Erro ao enviar",
-        description: error.message,
+        description: isNetworkError 
+          ? "Erro de conexão. Verifique sua internet e tente novamente. Se o problema persistir, tente com uma imagem menor."
+          : (error.message || "Erro desconhecido"),
       });
     } finally {
       setUploading(false);
