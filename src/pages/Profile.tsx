@@ -15,6 +15,7 @@ import { toast } from "@/hooks/use-toast";
 import { useUserRole } from "@/hooks/useUserRole";
 import AdminUserManagement from "@/components/AdminUserManagement";
 import AdminPoolManagement from "@/components/AdminPoolManagement";
+import AdminAllParticipants from "@/components/AdminAllParticipants";
 
 const Profile = () => {
   const navigate = useNavigate();
@@ -559,16 +560,20 @@ const Profile = () => {
             </CardHeader>
             <CardContent>
               <Tabs defaultValue="users" className="w-full">
-                <TabsList className="grid w-full grid-cols-3">
-                  <TabsTrigger value="users">Usuários</TabsTrigger>
-                  <TabsTrigger value="pools">Bolões</TabsTrigger>
-                  <TabsTrigger value="other">Outros</TabsTrigger>
+                <TabsList className="grid w-full grid-cols-4">
+                  <TabsTrigger value="users" className="text-[11px] sm:text-xs">Usuários</TabsTrigger>
+                  <TabsTrigger value="pools" className="text-[11px] sm:text-xs">Bolões</TabsTrigger>
+                  <TabsTrigger value="participants" className="text-[11px] sm:text-xs">Participantes</TabsTrigger>
+                  <TabsTrigger value="other" className="text-[11px] sm:text-xs">Outros</TabsTrigger>
                 </TabsList>
                 <TabsContent value="users" className="mt-4">
                   <AdminUserManagement />
                 </TabsContent>
                 <TabsContent value="pools" className="mt-4">
                   <AdminPoolManagement />
+                </TabsContent>
+                <TabsContent value="participants" className="mt-4">
+                  <AdminAllParticipants />
                 </TabsContent>
                 <TabsContent value="other" className="mt-4">
                   <Button
