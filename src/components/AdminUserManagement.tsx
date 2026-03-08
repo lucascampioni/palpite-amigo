@@ -97,6 +97,7 @@ const AdminUserManagement = () => {
     switch (role) {
       case "admin": return <Badge variant="destructive" className="text-xs">Admin</Badge>;
       case "pool_creator": return <Badge className="text-xs bg-accent text-accent-foreground">Organizador</Badge>;
+      case "estabelecimento": return <Badge className="text-xs bg-amber-600 text-white">Estabelecimento</Badge>;
       default: return <Badge variant="secondary" className="text-xs">Usuário</Badge>;
     }
   };
