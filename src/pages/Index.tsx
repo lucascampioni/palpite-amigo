@@ -328,6 +328,50 @@ const Index = () => {
       }
     }
 
+    // Fetch community info for all pools
+    const allPoolOwnerIds = [...new Set([
+      ...(ownedPools || []).map(p => p.owner_id),
+      ...participatingPoolsData.map(p => p.owner_id),
+      ...awaitingPixPoolsData.map(p => p.owner_id),
+      ...awaitingPaymentPoolsData.map(p => p.owner_id),
+      ...pendingPaymentPoolsData.map(p => p.owner_id),
+      ...awaitingApprovalPoolsData.map(p => p.owner_id),
+      ...officialPoolsData.map(p => p.owner_id),
+      ...activePools.map(p => p.owner_id),
+      ...failedPools.map(f => f.pool.owner_id),
+    ])];
+
+    const communityMap: Record<string, { name: string; responsibleName: string }> = {};
+    if (allPoolOwnerIds.length > 0) {
+      const { data: commsData } = await supabase
+        .from("communities")
+        .select("responsible_user_id, name, display_responsible_name")
+        .in("responsible_user_id", allPoolOwnerIds);
+      
+      if (commsData && commsData.length > 0) {
+        const ownerIdsNeedingNames = commsData
+          .filter(c => !c.display_responsible_name)
+          .map(c => c.responsible_user_id);
+        
+        let profileNames: Record<string, string> = {};
+        if (ownerIdsNeedingNames.length > 0) {
+          const { data: profiles } = await supabase
+            .from("profiles")
+            .select("id, full_name")
+            .in("id", ownerIdsNeedingNames);
+          (profiles || []).forEach(p => { profileNames[p.id] = p.full_name; });
+        }
+        
+        commsData.forEach(c => {
+          communityMap[c.responsible_user_id] = {
+            name: c.name,
+            responsibleName: c.display_responsible_name || profileNames[c.responsible_user_id] || "Organizador",
+          };
+        });
+      }
+    }
+    setCommunityByOwnerId(communityMap);
+
     setMyCreatedPools(ownedPools || []);
     setMyParticipatingPools(participatingPoolsData);
     setMyAwaitingPixPools(awaitingPixPoolsData);
