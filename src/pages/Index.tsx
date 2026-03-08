@@ -691,7 +691,7 @@ const Index = () => {
                 {myAwaitingApprovalPools.length > 0 && (
                   <div className="space-y-3">
                     {filterPools(myAwaitingApprovalPools).map((pool) => (
-                      <PoolCard key={pool.id} pool={pool} isUserParticipating hasAwaitingApproval onClick={() => navigate(`/bolao/${pool.slug}`)} />
+                      <PoolCard key={pool.id} pool={pool} isUserParticipating hasAwaitingApproval onClick={() => navigate(`/bolao/${pool.slug}`)} {...getCommunityProps(pool)} />
                     ))}
                   </div>
                 )}
