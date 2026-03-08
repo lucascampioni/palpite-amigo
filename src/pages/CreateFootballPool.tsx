@@ -66,6 +66,17 @@ const CreateFootballPool = () => {
   const [maxWinners, setMaxWinners] = useState<number>(1);
   const [prizeType, setPrizeType] = useState<'fixed' | 'percentage' | 'estabelecimento'>('fixed');
   const [estabelecimentoPrizeDescription, setEstabelecimentoPrizeDescription] = useState("");
+  const [estabelecimentoPrizeAddress, setEstabelecimentoPrizeAddress] = useState("");
+  const [saveAddress, setSaveAddress] = useState(false);
+
+  // Load saved address from localStorage
+  useEffect(() => {
+    const saved = localStorage.getItem('estabelecimento_saved_address');
+    if (saved) {
+      setEstabelecimentoPrizeAddress(saved);
+      setSaveAddress(true);
+    }
+  }, []);
   const [firstPlacePrize, setFirstPlacePrize] = useState("");
   const [secondPlacePrize, setSecondPlacePrize] = useState("");
   const [thirdPlacePrize, setThirdPlacePrize] = useState("");
@@ -196,9 +207,12 @@ const CreateFootballPool = () => {
           throw new Error("Chave PIX é obrigatória");
         }
       } else if (userRole?.isEstabelecimento) {
-        // Estabelecimento: no entry fee or PIX required, but prize description is required
+        // Estabelecimento: no entry fee or PIX required, but prize description and address are required
         if (prizeType === 'estabelecimento' && !estabelecimentoPrizeDescription.trim()) {
           throw new Error("Descrição do prêmio é obrigatória");
+        }
+        if (prizeType === 'estabelecimento' && !estabelecimentoPrizeAddress.trim()) {
+          throw new Error("Endereço do estabelecimento é obrigatório");
         }
       } else {
         // Admin: PIX required only if entry fee is set
@@ -291,6 +305,7 @@ const CreateFootballPool = () => {
         second_place_prize: prizeType !== 'estabelecimento' && maxWinners >= 2 && secondPlacePrize ? parseFloat(secondPlacePrize) : null,
         third_place_prize: prizeType !== 'estabelecimento' && maxWinners >= 3 && thirdPlacePrize ? parseFloat(thirdPlacePrize) : null,
         estabelecimento_prize_description: prizeType === 'estabelecimento' ? estabelecimentoPrizeDescription.trim() : null,
+        estabelecimento_prize_address: prizeType === 'estabelecimento' ? estabelecimentoPrizeAddress.trim() : null,
       } as any])
       .select()
       .single();
@@ -620,6 +635,39 @@ const CreateFootballPool = () => {
                         rows={3}
                         required
                       />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="estabelecimento_address">📍 Endereço para Resgate do Prêmio *</Label>
+                      <Textarea
+                        id="estabelecimento_address"
+                        value={estabelecimentoPrizeAddress}
+                        onChange={(e) => {
+                          setEstabelecimentoPrizeAddress(e.target.value);
+                          if (saveAddress && e.target.value.trim()) {
+                            localStorage.setItem('estabelecimento_saved_address', e.target.value.trim());
+                          }
+                        }}
+                        placeholder="Ex: Rua das Flores, 123 - Centro, São Paulo/SP"
+                        rows={2}
+                        required
+                      />
+                      <div className="flex items-center gap-2">
+                        <Checkbox
+                          id="save_address"
+                          checked={saveAddress}
+                          onCheckedChange={(checked) => {
+                            setSaveAddress(!!checked);
+                            if (checked && estabelecimentoPrizeAddress.trim()) {
+                              localStorage.setItem('estabelecimento_saved_address', estabelecimentoPrizeAddress.trim());
+                            } else if (!checked) {
+                              localStorage.removeItem('estabelecimento_saved_address');
+                            }
+                          }}
+                        />
+                        <Label htmlFor="save_address" className="text-xs text-muted-foreground cursor-pointer">
+                          Salvar este endereço para próximos bolões
+                        </Label>
+                      </div>
                     </div>
                     <div className="rounded-lg border border-amber-200 dark:border-amber-800 bg-amber-50/50 dark:bg-amber-950/20 p-3">
                       <p className="text-xs text-muted-foreground">

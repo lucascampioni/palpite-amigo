@@ -1,0 +1,1 @@
+ALTER TABLE public.pools ADD COLUMN estabelecimento_prize_address text;
