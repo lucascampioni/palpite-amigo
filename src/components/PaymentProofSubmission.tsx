@@ -60,7 +60,7 @@ export const PaymentProofSubmission = ({
       }
       
       // Validate file type
-      const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'application/pdf'];
+      const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'application/pdf'];
       if (!validTypes.includes(file.type)) {
         toast({
           variant: "destructive",
