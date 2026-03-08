@@ -682,7 +682,7 @@ const Index = () => {
                       </div>
                     </div>
                     {filterPools(myAwaitingPaymentPools).map((pool) => (
-                      <PoolCard key={pool.id} pool={pool} isUserParticipating onClick={() => navigate(`/bolao/${pool.slug}`)} />
+                      <PoolCard key={pool.id} pool={pool} isUserParticipating onClick={() => navigate(`/bolao/${pool.slug}`)} {...getCommunityProps(pool)} />
                     ))}
                   </div>
                 )}
