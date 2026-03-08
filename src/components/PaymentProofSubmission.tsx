@@ -96,7 +96,11 @@ export const PaymentProofSubmission = ({
 
       const { error: uploadError } = await supabase.storage
         .from('payment-proofs')
-        .upload(filePath, proofFile);
+        .upload(filePath, proofFile, {
+          cacheControl: '3600',
+          upsert: true,
+          contentType: proofFile.type,
+        });
 
       if (uploadError) throw uploadError;
 
