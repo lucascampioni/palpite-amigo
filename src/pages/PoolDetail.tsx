@@ -1138,13 +1138,22 @@ const PoolDetail = () => {
 
               {/* Estabelecimento prize display */}
               {pool.prize_type === 'estabelecimento' && pool.estabelecimento_prize_description && (
-                <div className="rounded-xl bg-gradient-to-r from-amber-500/10 via-primary/5 to-orange-500/10 border border-amber-500/30 px-3 py-2.5">
-                  <div className="flex items-center justify-center gap-2 mb-1">
+                <div className="rounded-xl bg-gradient-to-r from-amber-500/10 via-primary/5 to-orange-500/10 border-2 border-amber-500/40 px-4 py-3">
+                  <div className="flex items-center justify-center gap-2 mb-1.5">
                     <Trophy className="w-4 h-4 text-amber-600 flex-shrink-0" />
                     <span className="font-semibold text-amber-600">🏪 Prêmio do Estabelecimento</span>
                   </div>
                   <p className="text-sm text-center font-medium">{pool.estabelecimento_prize_description}</p>
-                  <p className="text-[0.65rem] text-muted-foreground text-center mt-1">
+                  {pool.estabelecimento_prize_address && (
+                    <div className="mt-2 p-2.5 rounded-lg bg-background/80 border border-amber-300/50 dark:border-amber-700/50">
+                      <p className="text-xs font-semibold text-center text-amber-700 dark:text-amber-400 mb-0.5">📍 Local para resgate do prêmio</p>
+                      <p className="text-sm text-center font-medium">{pool.estabelecimento_prize_address}</p>
+                      <p className="text-[0.6rem] text-muted-foreground text-center mt-1">
+                        O ganhador deve comparecer a este endereço para retirar o prêmio.
+                      </p>
+                    </div>
+                  )}
+                  <p className="text-[0.65rem] text-muted-foreground text-center mt-2">
                     ⚠️ Em caso de empate em 1º lugar, haverá um novo bolão (sem custo) entre os empatados para definir o campeão.
                   </p>
                 </div>

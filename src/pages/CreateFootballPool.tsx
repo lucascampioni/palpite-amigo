@@ -636,6 +636,39 @@ const CreateFootballPool = () => {
                         required
                       />
                     </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="estabelecimento_address">📍 Endereço para Resgate do Prêmio *</Label>
+                      <Textarea
+                        id="estabelecimento_address"
+                        value={estabelecimentoPrizeAddress}
+                        onChange={(e) => {
+                          setEstabelecimentoPrizeAddress(e.target.value);
+                          if (saveAddress && e.target.value.trim()) {
+                            localStorage.setItem('estabelecimento_saved_address', e.target.value.trim());
+                          }
+                        }}
+                        placeholder="Ex: Rua das Flores, 123 - Centro, São Paulo/SP"
+                        rows={2}
+                        required
+                      />
+                      <div className="flex items-center gap-2">
+                        <Checkbox
+                          id="save_address"
+                          checked={saveAddress}
+                          onCheckedChange={(checked) => {
+                            setSaveAddress(!!checked);
+                            if (checked && estabelecimentoPrizeAddress.trim()) {
+                              localStorage.setItem('estabelecimento_saved_address', estabelecimentoPrizeAddress.trim());
+                            } else if (!checked) {
+                              localStorage.removeItem('estabelecimento_saved_address');
+                            }
+                          }}
+                        />
+                        <Label htmlFor="save_address" className="text-xs text-muted-foreground cursor-pointer">
+                          Salvar este endereço para próximos bolões
+                        </Label>
+                      </div>
+                    </div>
                     <div className="rounded-lg border border-amber-200 dark:border-amber-800 bg-amber-50/50 dark:bg-amber-950/20 p-3">
                       <p className="text-xs text-muted-foreground">
                         <strong>⚠️ Regra de desempate:</strong> Em caso de empate em primeiro lugar, será criado um novo bolão (sem custo adicional) apenas entre os empatados para definir o campeão e ganhador do prêmio.
