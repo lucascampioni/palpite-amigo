@@ -60,7 +60,7 @@ export const PaymentProofSubmission = ({
       }
       
       // Validate file type
-      const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'application/pdf'];
+      const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'application/pdf'];
       if (!validTypes.includes(file.type)) {
         toast({
           variant: "destructive",
@@ -96,7 +96,11 @@ export const PaymentProofSubmission = ({
 
       const { error: uploadError } = await supabase.storage
         .from('payment-proofs')
-        .upload(filePath, proofFile);
+        .upload(filePath, proofFile, {
+          cacheControl: '3600',
+          upsert: true,
+          contentType: proofFile.type,
+        });
 
       if (uploadError) throw uploadError;
 
@@ -118,10 +122,13 @@ export const PaymentProofSubmission = ({
       if (onSuccess) onSuccess();
     } catch (error: any) {
       console.error('Error uploading proof:', error);
+      const isNetworkError = error?.message === 'Failed to fetch' || error?.name === 'TypeError';
       toast({
         variant: "destructive",
         title: "Erro ao enviar",
-        description: error.message,
+        description: isNetworkError 
+          ? "Erro de conexão. Verifique sua internet e tente novamente. Se o problema persistir, tente com uma imagem menor."
+          : (error.message || "Erro desconhecido"),
       });
     } finally {
       setUploading(false);
