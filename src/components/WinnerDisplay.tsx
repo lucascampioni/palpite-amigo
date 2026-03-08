@@ -7,9 +7,11 @@ interface WinnerDisplayProps {
   winners: any[];
   resultValue?: string;
   measurementUnit?: string;
+  prizeType?: string;
+  estabelecimentoPrizeDescription?: string;
 }
 
-const WinnerDisplay = ({ winners, resultValue, measurementUnit }: WinnerDisplayProps) => {
+const WinnerDisplay = ({ winners, resultValue, measurementUnit, prizeType, estabelecimentoPrizeDescription }: WinnerDisplayProps) => {
   const isMultipleWinners = winners.length > 1;
   const tiebreakerApplied = winners.some(w => w.tiebreaker_by_join_time);
 
@@ -43,11 +45,32 @@ const WinnerDisplay = ({ winners, resultValue, measurementUnit }: WinnerDisplayP
           ))}
         </div>
 
-        {tiebreakerApplied && (
+        {tiebreakerApplied && prizeType !== 'estabelecimento' && (
           <Alert className="mt-4 border-amber-500/30 bg-amber-500/10">
             <Clock className="h-4 w-4 text-amber-600" />
             <AlertDescription className="text-sm">
               <strong>Regra de desempate aplicada:</strong> Como ninguém fez pontos, {isMultipleWinners ? 'os vencedores foram definidos' : 'o vencedor foi definido'} pela ordem de envio dos palpites (quem enviou primeiro).
+            </AlertDescription>
+          </Alert>
+        )}
+
+        {prizeType === 'estabelecimento' && isMultipleWinners && (
+          <Alert className="mt-4 border-amber-500/30 bg-amber-500/10">
+            <Clock className="h-4 w-4 text-amber-600" />
+            <AlertDescription className="text-sm">
+              <strong>Empate em 1º lugar!</strong> Será criado um novo bolão (sem custo adicional) apenas entre os empatados para definir o campeão e ganhador do prêmio.
+              {estabelecimentoPrizeDescription && (
+                <span className="block mt-1">🏪 Prêmio: <strong>{estabelecimentoPrizeDescription}</strong></span>
+              )}
+            </AlertDescription>
+          </Alert>
+        )}
+
+        {prizeType === 'estabelecimento' && !isMultipleWinners && estabelecimentoPrizeDescription && (
+          <Alert className="mt-4 border-green-500/30 bg-green-500/10">
+            <Trophy className="h-4 w-4 text-green-600" />
+            <AlertDescription className="text-sm">
+              🏪 Prêmio: <strong>{estabelecimentoPrizeDescription}</strong>
             </AlertDescription>
           </Alert>
         )}

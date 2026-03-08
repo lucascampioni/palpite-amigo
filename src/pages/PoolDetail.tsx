@@ -1039,6 +1039,8 @@ const PoolDetail = () => {
                   winners={winners} 
                   resultValue={pool.result_value}
                   measurementUnit={pool.measurement_unit}
+                  prizeType={pool.prize_type}
+                  estabelecimentoPrizeDescription={pool.estabelecimento_prize_description}
                 />
                 <Separator />
               </>
@@ -1133,6 +1135,20 @@ const PoolDetail = () => {
                   </span>
                 )}
               </div>
+
+              {/* Estabelecimento prize display */}
+              {pool.prize_type === 'estabelecimento' && pool.estabelecimento_prize_description && (
+                <div className="rounded-xl bg-gradient-to-r from-amber-500/10 via-primary/5 to-orange-500/10 border border-amber-500/30 px-3 py-2.5">
+                  <div className="flex items-center justify-center gap-2 mb-1">
+                    <Trophy className="w-4 h-4 text-amber-600 flex-shrink-0" />
+                    <span className="font-semibold text-amber-600">🏪 Prêmio do Estabelecimento</span>
+                  </div>
+                  <p className="text-sm text-center font-medium">{pool.estabelecimento_prize_description}</p>
+                  <p className="text-[0.65rem] text-muted-foreground text-center mt-1">
+                    ⚠️ Em caso de empate em 1º lugar, haverá um novo bolão (sem custo) entre os empatados para definir o campeão.
+                  </p>
+                </div>
+              )}
 
               {/* Prize highlight */}
               {(pool.first_place_prize || pool.second_place_prize || pool.third_place_prize) && (() => {

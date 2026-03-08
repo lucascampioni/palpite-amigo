@@ -97,6 +97,7 @@ const AdminUserManagement = () => {
     switch (role) {
       case "admin": return <Badge variant="destructive" className="text-xs">Admin</Badge>;
       case "pool_creator": return <Badge className="text-xs bg-accent text-accent-foreground">Organizador</Badge>;
+      case "estabelecimento": return <Badge className="text-xs bg-amber-600 text-white">Estabelecimento</Badge>;
       default: return <Badge variant="secondary" className="text-xs">Usuário</Badge>;
     }
   };
@@ -182,6 +183,23 @@ const AdminUserManagement = () => {
                       <Shield className="w-3 h-3 mr-1" />
                     )}
                     {user.roles.includes("pool_creator") ? "Remover Organizador" : "Tornar Organizador"}
+                  </Button>
+
+                  <Button
+                    size="sm"
+                    variant={user.roles.includes("estabelecimento") ? "secondary" : "outline"}
+                    onClick={() => toggleRole(user.id, "estabelecimento", user.roles.includes("estabelecimento"))}
+                    disabled={actionLoading === `role-${user.id}-estabelecimento`}
+                    className="text-xs"
+                  >
+                    {actionLoading === `role-${user.id}-estabelecimento` ? (
+                      <Loader2 className="w-3 h-3 animate-spin mr-1" />
+                    ) : user.roles.includes("estabelecimento") ? (
+                      <ShieldOff className="w-3 h-3 mr-1" />
+                    ) : (
+                      <Shield className="w-3 h-3 mr-1" />
+                    )}
+                    {user.roles.includes("estabelecimento") ? "Remover Estabelecimento" : "Tornar Estabelecimento"}
                   </Button>
 
                   <AlertDialog>

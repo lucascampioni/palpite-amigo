@@ -64,7 +64,8 @@ const CreateFootballPool = () => {
   const [hasWhatsappGroup, setHasWhatsappGroup] = useState(false);
   const [scoringSystem, setScoringSystem] = useState<'standard' | 'exact_only'>('exact_only');
   const [maxWinners, setMaxWinners] = useState<number>(1);
-  const [prizeType, setPrizeType] = useState<'fixed' | 'percentage'>('fixed');
+  const [prizeType, setPrizeType] = useState<'fixed' | 'percentage' | 'estabelecimento'>('fixed');
+  const [estabelecimentoPrizeDescription, setEstabelecimentoPrizeDescription] = useState("");
   const [firstPlacePrize, setFirstPlacePrize] = useState("");
   const [secondPlacePrize, setSecondPlacePrize] = useState("");
   const [thirdPlacePrize, setThirdPlacePrize] = useState("");
@@ -106,7 +107,11 @@ const CreateFootballPool = () => {
   // Non-admin pool creators default to percentage prize type
   useEffect(() => {
     if (!isLoadingRole && userRole?.canCreatePools && !userRole?.isAdmin) {
-      setPrizeType('percentage');
+      if (userRole?.isEstabelecimento) {
+        setPrizeType('estabelecimento');
+      } else {
+        setPrizeType('percentage');
+      }
     }
   }, [isLoadingRole, userRole]);
   const [showGESelector, setShowGESelector] = useState(false);
@@ -183,12 +188,17 @@ const CreateFootballPool = () => {
       footballPoolSchema.parse({ title, description, pixKey: pixKeyValue, entryFee, maxParticipants });
       
       // Additional validation for non-admin users
-      if (!userRole?.isAdmin) {
+      if (!userRole?.isAdmin && !userRole?.isEstabelecimento) {
         if (!entryFee || parseFloat(entryFee) <= 0) {
           throw new Error("Valor de entrada é obrigatório");
         }
         if (!pixKeyValue.trim()) {
           throw new Error("Chave PIX é obrigatória");
+        }
+      } else if (userRole?.isEstabelecimento) {
+        // Estabelecimento: no entry fee or PIX required, but prize description is required
+        if (prizeType === 'estabelecimento' && !estabelecimentoPrizeDescription.trim()) {
+          throw new Error("Descrição do prêmio é obrigatória");
         }
       } else {
         // Admin: PIX required only if entry fee is set
@@ -275,12 +285,13 @@ const CreateFootballPool = () => {
         max_participants: maxParticipants && maxParticipants !== "unlimited" ? parseInt(maxParticipants) : null,
         is_official: isOfficial,
         has_whatsapp_group: hasWhatsappGroup,
-        max_winners: maxWinners,
+        max_winners: prizeType === 'estabelecimento' ? 1 : maxWinners,
         prize_type: prizeType,
-        first_place_prize: firstPlacePrize ? parseFloat(firstPlacePrize) : null,
-        second_place_prize: maxWinners >= 2 && secondPlacePrize ? parseFloat(secondPlacePrize) : null,
-        third_place_prize: maxWinners >= 3 && thirdPlacePrize ? parseFloat(thirdPlacePrize) : null,
-      }])
+        first_place_prize: prizeType !== 'estabelecimento' && firstPlacePrize ? parseFloat(firstPlacePrize) : null,
+        second_place_prize: prizeType !== 'estabelecimento' && maxWinners >= 2 && secondPlacePrize ? parseFloat(secondPlacePrize) : null,
+        third_place_prize: prizeType !== 'estabelecimento' && maxWinners >= 3 && thirdPlacePrize ? parseFloat(thirdPlacePrize) : null,
+        estabelecimento_prize_description: prizeType === 'estabelecimento' ? estabelecimentoPrizeDescription.trim() : null,
+      } as any])
       .select()
       .single();
 
@@ -421,7 +432,7 @@ const CreateFootballPool = () => {
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="entry_fee">Valor de Entrada {userRole?.isAdmin ? '(opcional)' : '*'}</Label>
+                  <Label htmlFor="entry_fee">Valor de Entrada {(userRole?.isAdmin || userRole?.isEstabelecimento) ? '(opcional)' : '*'}</Label>
                   <Input
                     id="entry_fee"
                     name="entry_fee"
@@ -429,7 +440,7 @@ const CreateFootballPool = () => {
                     step="0.01"
                     min="0"
                     placeholder="Ex: 10.00"
-                    required={!userRole?.isAdmin}
+                    required={!userRole?.isAdmin && !userRole?.isEstabelecimento}
                   />
                 </div>
 
@@ -469,107 +480,152 @@ const CreateFootballPool = () => {
                         💰 Valor Fixo (R$)
                       </button>
                     )}
-                    <button
-                      type="button"
-                      onClick={() => setPrizeType('percentage')}
-                      className={`flex-1 py-2 px-4 rounded-lg border-2 font-semibold transition-colors text-sm ${
-                        prizeType === 'percentage'
-                          ? 'border-primary bg-primary/10 text-primary'
-                          : 'border-muted hover:border-primary/50'
-                      }`}
-                    >
-                      📊 % do Arrecadado
-                    </button>
+                    {!userRole?.isEstabelecimento && (
+                      <button
+                        type="button"
+                        onClick={() => setPrizeType('percentage')}
+                        className={`flex-1 py-2 px-4 rounded-lg border-2 font-semibold transition-colors text-sm ${
+                          prizeType === 'percentage'
+                            ? 'border-primary bg-primary/10 text-primary'
+                            : 'border-muted hover:border-primary/50'
+                        }`}
+                      >
+                        📊 % do Arrecadado
+                      </button>
+                    )}
+                    {userRole?.isEstabelecimento && (
+                      <button
+                        type="button"
+                        onClick={() => setPrizeType('estabelecimento')}
+                        className={`flex-1 py-2 px-4 rounded-lg border-2 font-semibold transition-colors text-sm ${
+                          prizeType === 'estabelecimento'
+                            ? 'border-primary bg-primary/10 text-primary'
+                            : 'border-muted hover:border-primary/50'
+                        }`}
+                      >
+                        🏪 Prêmios do Estabelecimento
+                      </button>
+                    )}
                   </div>
                   {prizeType === 'percentage' && (
                     <p className="text-xs text-muted-foreground">
                       O valor do prêmio será calculado automaticamente com base no total arrecadado (nº de participantes × valor de entrada).
                     </p>
                   )}
+                  {prizeType === 'estabelecimento' && (
+                    <p className="text-xs text-muted-foreground">
+                      Descreva o prêmio que o estabelecimento oferecerá ao vencedor (ex: corte de cabelo, balde de cerveja, etc).
+                    </p>
+                  )}
                 </div>
                 
-                <div className="space-y-2">
-                  <Label>Quantos lugares serão premiados?</Label>
-                  <div className="flex gap-2">
-                    {[1, 2, 3].map((n) => (
-                      <button
-                        key={n}
-                        type="button"
-                        onClick={() => setMaxWinners(n)}
-                        className={`flex-1 py-2 px-4 rounded-lg border-2 font-semibold transition-colors ${
-                          maxWinners === n
-                            ? 'border-primary bg-primary/10 text-primary'
-                            : 'border-muted hover:border-primary/50'
-                        }`}
-                      >
-                        Top {n}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                <div className={`grid grid-cols-1 ${maxWinners >= 2 ? (maxWinners >= 3 ? 'md:grid-cols-3' : 'md:grid-cols-2') : ''} gap-4`}>
-                  <div className="space-y-2">
-                    <Label htmlFor="first_place_prize">1º Lugar {prizeType === 'percentage' ? '(%)' : '(R$)'}</Label>
-                    <Input
-                      id="first_place_prize"
-                      name="first_place_prize"
-                      type="number"
-                      step={prizeType === 'percentage' ? '1' : '0.01'}
-                      min={prizeType === 'percentage' ? '1' : '0'}
-                      max={prizeType === 'percentage' ? '100' : undefined}
-                      value={firstPlacePrize}
-                      onChange={(e) => setFirstPlacePrize(e.target.value)}
-                      placeholder={prizeType === 'percentage' ? 'Ex: 60' : 'Ex: 100.00'}
-                    />
-                  </div>
-                  {maxWinners >= 2 && (
+                {prizeType !== 'estabelecimento' && (
+                  <>
                     <div className="space-y-2">
-                      <Label htmlFor="second_place_prize">2º Lugar {prizeType === 'percentage' ? '(%)' : '(R$)'}</Label>
-                      <Input
-                        id="second_place_prize"
-                        name="second_place_prize"
-                        type="number"
-                        step={prizeType === 'percentage' ? '1' : '0.01'}
-                        min={prizeType === 'percentage' ? '1' : '0'}
-                        max={prizeType === 'percentage' ? '100' : undefined}
-                        value={secondPlacePrize}
-                        onChange={(e) => setSecondPlacePrize(e.target.value)}
-                        placeholder={prizeType === 'percentage' ? 'Ex: 30' : 'Ex: 50.00'}
-                      />
+                      <Label>Quantos lugares serão premiados?</Label>
+                      <div className="flex gap-2">
+                        {[1, 2, 3].map((n) => (
+                          <button
+                            key={n}
+                            type="button"
+                            onClick={() => setMaxWinners(n)}
+                            className={`flex-1 py-2 px-4 rounded-lg border-2 font-semibold transition-colors ${
+                              maxWinners === n
+                                ? 'border-primary bg-primary/10 text-primary'
+                                : 'border-muted hover:border-primary/50'
+                            }`}
+                          >
+                            Top {n}
+                          </button>
+                        ))}
+                      </div>
                     </div>
-                  )}
-                  {maxWinners >= 3 && (
-                    <div className="space-y-2">
-                      <Label htmlFor="third_place_prize">3º Lugar {prizeType === 'percentage' ? '(%)' : '(R$)'}</Label>
-                      <Input
-                        id="third_place_prize"
-                        name="third_place_prize"
-                        type="number"
-                        step={prizeType === 'percentage' ? '1' : '0.01'}
-                        min={prizeType === 'percentage' ? '1' : '0'}
-                        max={prizeType === 'percentage' ? '100' : undefined}
-                        value={thirdPlacePrize}
-                        onChange={(e) => setThirdPlacePrize(e.target.value)}
-                        placeholder={prizeType === 'percentage' ? 'Ex: 10' : 'Ex: 25.00'}
-                      />
-                    </div>
-                  )}
-                </div>
 
-                {prizeType === 'percentage' && totalPercentage > 0 && (
-                  <div className={`p-3 rounded-lg text-sm font-medium ${
-                    totalPercentage > 100 
-                      ? 'bg-destructive/10 text-destructive border border-destructive/30' 
-                      : 'bg-muted/50 text-muted-foreground'
-                  }`}>
-                    {totalPercentage > 100 ? (
-                      <p>⚠️ A soma das porcentagens ({totalPercentage}%) ultrapassa 100%!</p>
-                    ) : remainingPercentage > 0 ? (
-                      <p>💰 {remainingPercentage}% do valor arrecadado ficará com você (organizador)</p>
-                    ) : (
-                      <p>✅ 100% do valor arrecadado será distribuído como premiação</p>
+                    <div className={`grid grid-cols-1 ${maxWinners >= 2 ? (maxWinners >= 3 ? 'md:grid-cols-3' : 'md:grid-cols-2') : ''} gap-4`}>
+                      <div className="space-y-2">
+                        <Label htmlFor="first_place_prize">1º Lugar {prizeType === 'percentage' ? '(%)' : '(R$)'}</Label>
+                        <Input
+                          id="first_place_prize"
+                          name="first_place_prize"
+                          type="number"
+                          step={prizeType === 'percentage' ? '1' : '0.01'}
+                          min={prizeType === 'percentage' ? '1' : '0'}
+                          max={prizeType === 'percentage' ? '100' : undefined}
+                          value={firstPlacePrize}
+                          onChange={(e) => setFirstPlacePrize(e.target.value)}
+                          placeholder={prizeType === 'percentage' ? 'Ex: 60' : 'Ex: 100.00'}
+                        />
+                      </div>
+                      {maxWinners >= 2 && (
+                        <div className="space-y-2">
+                          <Label htmlFor="second_place_prize">2º Lugar {prizeType === 'percentage' ? '(%)' : '(R$)'}</Label>
+                          <Input
+                            id="second_place_prize"
+                            name="second_place_prize"
+                            type="number"
+                            step={prizeType === 'percentage' ? '1' : '0.01'}
+                            min={prizeType === 'percentage' ? '1' : '0'}
+                            max={prizeType === 'percentage' ? '100' : undefined}
+                            value={secondPlacePrize}
+                            onChange={(e) => setSecondPlacePrize(e.target.value)}
+                            placeholder={prizeType === 'percentage' ? 'Ex: 30' : 'Ex: 50.00'}
+                          />
+                        </div>
+                      )}
+                      {maxWinners >= 3 && (
+                        <div className="space-y-2">
+                          <Label htmlFor="third_place_prize">3º Lugar {prizeType === 'percentage' ? '(%)' : '(R$)'}</Label>
+                          <Input
+                            id="third_place_prize"
+                            name="third_place_prize"
+                            type="number"
+                            step={prizeType === 'percentage' ? '1' : '0.01'}
+                            min={prizeType === 'percentage' ? '1' : '0'}
+                            max={prizeType === 'percentage' ? '100' : undefined}
+                            value={thirdPlacePrize}
+                            onChange={(e) => setThirdPlacePrize(e.target.value)}
+                            placeholder={prizeType === 'percentage' ? 'Ex: 10' : 'Ex: 25.00'}
+                          />
+                        </div>
+                      )}
+                    </div>
+
+                    {prizeType === 'percentage' && totalPercentage > 0 && (
+                      <div className={`p-3 rounded-lg text-sm font-medium ${
+                        totalPercentage > 100 
+                          ? 'bg-destructive/10 text-destructive border border-destructive/30' 
+                          : 'bg-muted/50 text-muted-foreground'
+                      }`}>
+                        {totalPercentage > 100 ? (
+                          <p>⚠️ A soma das porcentagens ({totalPercentage}%) ultrapassa 100%!</p>
+                        ) : remainingPercentage > 0 ? (
+                          <p>💰 {remainingPercentage}% do valor arrecadado ficará com você (organizador)</p>
+                        ) : (
+                          <p>✅ 100% do valor arrecadado será distribuído como premiação</p>
+                        )}
+                      </div>
                     )}
+                  </>
+                )}
+
+                {prizeType === 'estabelecimento' && (
+                  <div className="space-y-3">
+                    <div className="space-y-2">
+                      <Label htmlFor="estabelecimento_prize">🏆 Descrição do Prêmio *</Label>
+                      <Textarea
+                        id="estabelecimento_prize"
+                        value={estabelecimentoPrizeDescription}
+                        onChange={(e) => setEstabelecimentoPrizeDescription(e.target.value)}
+                        placeholder="Ex: 1 corte de cabelo grátis, 1 balde de cerveja, 1 pizza grande..."
+                        rows={3}
+                        required
+                      />
+                    </div>
+                    <div className="rounded-lg border border-amber-200 dark:border-amber-800 bg-amber-50/50 dark:bg-amber-950/20 p-3">
+                      <p className="text-xs text-muted-foreground">
+                        <strong>⚠️ Regra de desempate:</strong> Em caso de empate em primeiro lugar, será criado um novo bolão (sem custo adicional) apenas entre os empatados para definir o campeão e ganhador do prêmio.
+                      </p>
+                    </div>
                   </div>
                 )}
               </div>
@@ -635,7 +691,7 @@ const CreateFootballPool = () => {
 
               <div className="space-y-3">
                 <div className="flex items-start gap-2">
-                  <Label className="text-base">🔑 Chave PIX para receber pagamentos {userRole?.isAdmin ? '(opcional)' : '*'}</Label>
+                  <Label className="text-base">🔑 Chave PIX para receber pagamentos {(userRole?.isAdmin || userRole?.isEstabelecimento) ? '(opcional)' : '*'}</Label>
                 </div>
                 <div className="rounded-lg border border-blue-200 dark:border-blue-800 bg-blue-50/50 dark:bg-blue-950/20 p-3">
                   <div className="flex items-start gap-2">
