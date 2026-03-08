@@ -744,7 +744,7 @@ const Index = () => {
                       <div className="space-y-3">
                         {myFailedPools.map(({ pool, reason }) => (
                           <div key={pool.id} className="space-y-1">
-                            <PoolCard pool={pool} onClick={() => navigate(`/bolao/${pool.slug}`)} />
+                            <PoolCard pool={pool} onClick={() => navigate(`/bolao/${pool.slug}`)} {...getCommunityProps(pool)} />
                             <p className="text-xs text-destructive font-medium pl-2">
                               Motivo: {reason}
                             </p>
