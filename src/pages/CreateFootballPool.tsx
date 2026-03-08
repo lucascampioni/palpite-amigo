@@ -441,15 +441,7 @@ const CreateFootballPool = () => {
                     min="0"
                     placeholder="Ex: 10.00"
                     required={!userRole?.isAdmin && !userRole?.isEstabelecimento}
-                  />
-                    id="entry_fee"
-                    name="entry_fee"
-                    type="number"
-                    step="0.01"
-                    min="0"
-                    placeholder="Ex: 10.00"
-                    required={!userRole?.isAdmin}
-                  />
+                </div>
                 </div>
 
                 <div className="space-y-2">
