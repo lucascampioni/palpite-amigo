@@ -698,7 +698,7 @@ const Index = () => {
                 {/* Active */}
                 <div className="space-y-3">
                   {filterPools(myParticipatingPools.filter(p => p.status === "active")).map((pool) => (
-                    <PoolCard key={pool.id} pool={pool} isUserParticipating onClick={() => navigate(`/bolao/${pool.slug}`)} />
+                    <PoolCard key={pool.id} pool={pool} isUserParticipating onClick={() => navigate(`/bolao/${pool.slug}`)} {...getCommunityProps(pool)} />
                   ))}
                 </div>
 
