@@ -327,6 +327,8 @@ const CommunityDetail = () => {
                   isUserParticipating={participantMap[pool.id]?.status === 'approved'}
                   hasPendingPayment={participantMap[pool.id]?.status === 'pending' && !participantMap[pool.id]?.payment_proof}
                   hasAwaitingApproval={participantMap[pool.id]?.status === 'pending' && !!participantMap[pool.id]?.payment_proof}
+                  communityName={community?.name}
+                  responsibleName={community?.display_responsible_name || responsibleFullName || "Organizador"}
                 />
               ))}
             </div>
@@ -361,6 +363,8 @@ const CommunityDetail = () => {
                       onClick={() => navigate(`/bolao/${pool.slug}`)}
                       isUserParticipating={participantMap[pool.id]?.status === 'approved'}
                       totalPrize={totalPrize}
+                      communityName={community?.name}
+                      responsibleName={community?.display_responsible_name || responsibleFullName || "Organizador"}
                     />
                   );
                 })}

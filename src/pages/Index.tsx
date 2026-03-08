@@ -31,6 +31,7 @@ const Index = () => {
   const [participantPrizeStatus, setParticipantPrizeStatus] = useState<Record<string, string>>({});
   const [officialPools, setOfficialPools] = useState<any[]>([]);
   const [availablePools, setAvailablePools] = useState<any[]>([]);
+  const [communityByOwnerId, setCommunityByOwnerId] = useState<Record<string, { name: string; responsibleName: string }>>({});
   const [loading, setLoading] = useState(true);
   const [initialLoadDone, setInitialLoadDone] = useState(false);
   const [showFinishedCreated, setShowFinishedCreated] = useState(false);
@@ -327,6 +328,50 @@ const Index = () => {
       }
     }
 
+    // Fetch community info for all pools
+    const allPoolOwnerIds = [...new Set([
+      ...(ownedPools || []).map(p => p.owner_id),
+      ...participatingPoolsData.map(p => p.owner_id),
+      ...awaitingPixPoolsData.map(p => p.owner_id),
+      ...awaitingPaymentPoolsData.map(p => p.owner_id),
+      ...pendingPaymentPoolsData.map(p => p.owner_id),
+      ...awaitingApprovalPoolsData.map(p => p.owner_id),
+      ...officialPoolsData.map(p => p.owner_id),
+      ...activePools.map(p => p.owner_id),
+      ...failedPools.map(f => f.pool.owner_id),
+    ])];
+
+    const communityMap: Record<string, { name: string; responsibleName: string }> = {};
+    if (allPoolOwnerIds.length > 0) {
+      const { data: commsData } = await supabase
+        .from("communities")
+        .select("responsible_user_id, name, display_responsible_name")
+        .in("responsible_user_id", allPoolOwnerIds);
+      
+      if (commsData && commsData.length > 0) {
+        const ownerIdsNeedingNames = commsData
+          .filter(c => !c.display_responsible_name)
+          .map(c => c.responsible_user_id);
+        
+        let profileNames: Record<string, string> = {};
+        if (ownerIdsNeedingNames.length > 0) {
+          const { data: profiles } = await supabase
+            .from("profiles")
+            .select("id, full_name")
+            .in("id", ownerIdsNeedingNames);
+          (profiles || []).forEach(p => { profileNames[p.id] = p.full_name; });
+        }
+        
+        commsData.forEach(c => {
+          communityMap[c.responsible_user_id] = {
+            name: c.name,
+            responsibleName: c.display_responsible_name || profileNames[c.responsible_user_id] || "Organizador",
+          };
+        });
+      }
+    }
+    setCommunityByOwnerId(communityMap);
+
     setMyCreatedPools(ownedPools || []);
     setMyParticipatingPools(participatingPoolsData);
     setMyAwaitingPixPools(awaitingPixPoolsData);
@@ -367,6 +412,11 @@ const Index = () => {
     const q = searchQuery.toLowerCase();
     return pools.filter(p => p.title?.toLowerCase().includes(q) || p.description?.toLowerCase().includes(q));
   };
+
+  const getCommunityProps = (pool: any) => ({
+    communityName: communityByOwnerId[pool.owner_id]?.name || null,
+    responsibleName: communityByOwnerId[pool.owner_id]?.responsibleName || null,
+  });
 
   if (loading) {
     return (
@@ -487,7 +537,7 @@ const Index = () => {
                 </h3>
                 <div className="space-y-3">
                   {filterPools(officialPools).map((pool) => (
-                    <PoolCard key={pool.id} pool={pool} onClick={() => navigate(`/bolao/${pool.slug}`)} />
+                    <PoolCard key={pool.id} pool={pool} onClick={() => navigate(`/bolao/${pool.slug}`)} {...getCommunityProps(pool)} />
                   ))}
                 </div>
               </section>
@@ -500,7 +550,7 @@ const Index = () => {
                 </h3>
                 <div className="space-y-3">
                   {filterPools(availablePools).map((pool) => (
-                    <PoolCard key={pool.id} pool={pool} onClick={() => navigate(`/bolao/${pool.slug}`)} />
+                    <PoolCard key={pool.id} pool={pool} onClick={() => navigate(`/bolao/${pool.slug}`)} {...getCommunityProps(pool)} />
                   ))}
                 </div>
               </section>
@@ -529,7 +579,7 @@ const Index = () => {
                     bgClass="bg-orange-50 dark:bg-orange-950/50 border-orange-200 dark:border-orange-800"
                   >
                     {filterPools(myPendingPaymentPools).map((pool) => (
-                      <PoolCard key={pool.id} pool={pool} isUserParticipating hasPendingPayment onClick={() => navigate(`/bolao/${pool.slug}`)} />
+                      <PoolCard key={pool.id} pool={pool} isUserParticipating hasPendingPayment onClick={() => navigate(`/bolao/${pool.slug}`)} {...getCommunityProps(pool)} />
                     ))}
                   </AlertSection>
                 )}
@@ -543,7 +593,7 @@ const Index = () => {
                     bgClass="bg-yellow-50 dark:bg-yellow-950/50 border-yellow-200 dark:border-yellow-800"
                   >
                     {filterPools(myAwaitingPixPools).map((pool) => (
-                      <PoolCard key={pool.id} pool={pool} isUserParticipating hasWonPrize onClick={() => navigate(`/bolao/${pool.slug}`)} />
+                      <PoolCard key={pool.id} pool={pool} isUserParticipating hasWonPrize onClick={() => navigate(`/bolao/${pool.slug}`)} {...getCommunityProps(pool)} />
                     ))}
                   </AlertSection>
                 )}
@@ -632,7 +682,7 @@ const Index = () => {
                       </div>
                     </div>
                     {filterPools(myAwaitingPaymentPools).map((pool) => (
-                      <PoolCard key={pool.id} pool={pool} isUserParticipating onClick={() => navigate(`/bolao/${pool.slug}`)} />
+                      <PoolCard key={pool.id} pool={pool} isUserParticipating onClick={() => navigate(`/bolao/${pool.slug}`)} {...getCommunityProps(pool)} />
                     ))}
                   </div>
                 )}
@@ -641,14 +691,14 @@ const Index = () => {
                 {myAwaitingApprovalPools.length > 0 && (
                   <div className="space-y-3">
                     {filterPools(myAwaitingApprovalPools).map((pool) => (
-                      <PoolCard key={pool.id} pool={pool} isUserParticipating hasAwaitingApproval onClick={() => navigate(`/bolao/${pool.slug}`)} />
+                      <PoolCard key={pool.id} pool={pool} isUserParticipating hasAwaitingApproval onClick={() => navigate(`/bolao/${pool.slug}`)} {...getCommunityProps(pool)} />
                     ))}
                   </div>
                 )}
                 {/* Active */}
                 <div className="space-y-3">
                   {filterPools(myParticipatingPools.filter(p => p.status === "active")).map((pool) => (
-                    <PoolCard key={pool.id} pool={pool} isUserParticipating onClick={() => navigate(`/bolao/${pool.slug}`)} />
+                    <PoolCard key={pool.id} pool={pool} isUserParticipating onClick={() => navigate(`/bolao/${pool.slug}`)} {...getCommunityProps(pool)} />
                   ))}
                 </div>
 
@@ -669,7 +719,7 @@ const Index = () => {
                     {showFinishedParticipating && (
                       <div className="space-y-3">
                         {filterPools(myParticipatingPools.filter(p => p.status === "finished")).map((pool) => (
-                          <PoolCard key={pool.id} pool={pool} isUserParticipating prizeReceived={participantPrizeStatus[pool.id] === 'prize_sent'} onClick={() => navigate(`/bolao/${pool.slug}`)} />
+                          <PoolCard key={pool.id} pool={pool} isUserParticipating prizeReceived={participantPrizeStatus[pool.id] === 'prize_sent'} onClick={() => navigate(`/bolao/${pool.slug}`)} {...getCommunityProps(pool)} />
                         ))}
                       </div>
                     )}
@@ -694,7 +744,7 @@ const Index = () => {
                       <div className="space-y-3">
                         {myFailedPools.map(({ pool, reason }) => (
                           <div key={pool.id} className="space-y-1">
-                            <PoolCard pool={pool} onClick={() => navigate(`/bolao/${pool.slug}`)} />
+                            <PoolCard pool={pool} onClick={() => navigate(`/bolao/${pool.slug}`)} {...getCommunityProps(pool)} />
                             <p className="text-xs text-destructive font-medium pl-2">
                               Motivo: {reason}
                             </p>
@@ -723,7 +773,7 @@ const Index = () => {
                 {/* Active */}
                 <div className="space-y-3">
                   {filterPools(myCreatedPools.filter(p => p.status === "active")).map((pool) => (
-                    <PoolCard key={pool.id} pool={pool} onClick={() => navigate(`/bolao/${pool.slug}`)} />
+                    <PoolCard key={pool.id} pool={pool} onClick={() => navigate(`/bolao/${pool.slug}`)} {...getCommunityProps(pool)} />
                   ))}
                 </div>
 
@@ -744,7 +794,7 @@ const Index = () => {
                     {showFinishedCreated && (
                       <div className="space-y-3">
                         {filterPools(myCreatedPools.filter(p => p.status === "finished")).map((pool) => (
-                          <PoolCard key={pool.id} pool={pool} onClick={() => navigate(`/bolao/${pool.slug}`)} />
+                          <PoolCard key={pool.id} pool={pool} onClick={() => navigate(`/bolao/${pool.slug}`)} {...getCommunityProps(pool)} />
                         ))}
                       </div>
                     )}

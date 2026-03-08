@@ -1,7 +1,7 @@
 import { cn } from "@/lib/utils";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Calendar, Trophy, Users, Clock } from "lucide-react";
+import { Calendar, Trophy, Users, Clock, MapPin } from "lucide-react";
 import { format, isPast } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
@@ -25,9 +25,11 @@ interface PoolCardProps {
   hasPendingPayment?: boolean;
   hasAwaitingApproval?: boolean;
   totalPrize?: number | null;
+  communityName?: string | null;
+  responsibleName?: string | null;
 }
 
-const PoolCard = ({ pool, onClick, isUserParticipating = false, hasWonPrize = false, prizeReceived = false, hasPendingPayment = false, hasAwaitingApproval = false, totalPrize }: PoolCardProps) => {
+const PoolCard = ({ pool, onClick, isUserParticipating = false, hasWonPrize = false, prizeReceived = false, hasPendingPayment = false, hasAwaitingApproval = false, totalPrize, communityName, responsibleName }: PoolCardProps) => {
   const isExpired = isPast(new Date(pool.deadline));
   const isInProgress = pool.status === "active" && isExpired && isUserParticipating;
 
@@ -140,6 +142,17 @@ const PoolCard = ({ pool, onClick, isUserParticipating = false, hasWonPrize = fa
           </div>
         </div>
         <CardDescription className="line-clamp-2 mt-3 text-base">{pool.description}</CardDescription>
+        {communityName && (
+          <div className="flex items-center gap-1.5 mt-2 text-xs text-muted-foreground">
+            <MapPin className="w-3.5 h-3.5 text-primary/60 flex-shrink-0" />
+            <span className="truncate">
+              <span className="font-medium text-foreground/70">{communityName}</span>
+              {responsibleName && (
+                <span> · por {responsibleName}</span>
+              )}
+            </span>
+          </div>
+        )}
       </CardHeader>
       <CardContent className="space-y-2 relative pt-0">
         {pool.status === "cancelled" ? (
