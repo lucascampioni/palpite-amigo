@@ -363,6 +363,8 @@ const CommunityDetail = () => {
                       onClick={() => navigate(`/bolao/${pool.slug}`)}
                       isUserParticipating={participantMap[pool.id]?.status === 'approved'}
                       totalPrize={totalPrize}
+                      communityName={community?.name}
+                      responsibleName={community?.display_responsible_name || responsibleFullName || "Organizador"}
                     />
                   );
                 })}
