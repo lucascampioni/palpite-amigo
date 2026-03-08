@@ -1151,7 +1151,37 @@ const FootballRanking = ({ poolId, pool, approvedParticipantsCount, isOwner }: F
           );
         })()}
 
-        {/* Current user position preview */}
+        {/* Estabelecimento prize display */}
+        {allMatchesFinished && pool?.prize_type === 'estabelecimento' && pool.estabelecimento_prize_description && (() => {
+          const topScore = ranking.length > 0 ? ranking[0].total_points : 0;
+          const tiedFirst = ranking.filter(r => r.total_points === topScore);
+          const hasTie = tiedFirst.length > 1;
+          
+          return (
+            <div className="mb-5 pb-4 border-b">
+              <div className="rounded-lg border border-amber-500/30 bg-amber-50/50 dark:bg-amber-950/20 p-3 space-y-2">
+                <div className="flex items-center gap-2">
+                  <span className="text-lg">🏪</span>
+                  <span className="font-semibold text-sm">Prêmio do Estabelecimento</span>
+                </div>
+                <p className="text-sm">{pool.estabelecimento_prize_description}</p>
+                {hasTie && (
+                  <div className="rounded-md bg-amber-500/10 p-2 mt-2">
+                    <p className="text-xs font-medium text-amber-700 dark:text-amber-400">
+                      ⚠️ Empate em 1º lugar! Será criado um novo bolão (sem custo adicional) apenas entre os {tiedFirst.length} empatados para definir o campeão e ganhador do prêmio.
+                    </p>
+                  </div>
+                )}
+                {!hasTie && tiedFirst.length === 1 && (
+                  <p className="text-xs text-green-600 dark:text-green-400 font-medium">
+                    🏆 Campeão: {tiedFirst[0].participant_name} — ganhador do prêmio!
+                  </p>
+                )}
+              </div>
+            </div>
+          );
+        })()}
+
         {currentUserParticipantId && ranking.some(p => p.id === currentUserParticipantId) && (() => {
           const userEntries = ranking.filter(p => p.id === currentUserParticipantId);
           if (userEntries.length === 0) return null;
