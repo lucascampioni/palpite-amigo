@@ -31,6 +31,7 @@ const Index = () => {
   const [participantPrizeStatus, setParticipantPrizeStatus] = useState<Record<string, string>>({});
   const [officialPools, setOfficialPools] = useState<any[]>([]);
   const [availablePools, setAvailablePools] = useState<any[]>([]);
+  const [communityByOwnerId, setCommunityByOwnerId] = useState<Record<string, { name: string; responsibleName: string }>>({});
   const [loading, setLoading] = useState(true);
   const [initialLoadDone, setInitialLoadDone] = useState(false);
   const [showFinishedCreated, setShowFinishedCreated] = useState(false);
