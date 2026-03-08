@@ -413,6 +413,11 @@ const Index = () => {
     return pools.filter(p => p.title?.toLowerCase().includes(q) || p.description?.toLowerCase().includes(q));
   };
 
+  const getCommunityProps = (pool: any) => ({
+    communityName: communityByOwnerId[pool.owner_id]?.name || null,
+    responsibleName: communityByOwnerId[pool.owner_id]?.responsibleName || null,
+  });
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
