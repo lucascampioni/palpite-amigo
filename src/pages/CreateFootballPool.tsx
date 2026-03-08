@@ -285,12 +285,13 @@ const CreateFootballPool = () => {
         max_participants: maxParticipants && maxParticipants !== "unlimited" ? parseInt(maxParticipants) : null,
         is_official: isOfficial,
         has_whatsapp_group: hasWhatsappGroup,
-        max_winners: maxWinners,
+        max_winners: prizeType === 'estabelecimento' ? 1 : maxWinners,
         prize_type: prizeType,
-        first_place_prize: firstPlacePrize ? parseFloat(firstPlacePrize) : null,
-        second_place_prize: maxWinners >= 2 && secondPlacePrize ? parseFloat(secondPlacePrize) : null,
-        third_place_prize: maxWinners >= 3 && thirdPlacePrize ? parseFloat(thirdPlacePrize) : null,
-      }])
+        first_place_prize: prizeType !== 'estabelecimento' && firstPlacePrize ? parseFloat(firstPlacePrize) : null,
+        second_place_prize: prizeType !== 'estabelecimento' && maxWinners >= 2 && secondPlacePrize ? parseFloat(secondPlacePrize) : null,
+        third_place_prize: prizeType !== 'estabelecimento' && maxWinners >= 3 && thirdPlacePrize ? parseFloat(thirdPlacePrize) : null,
+        estabelecimento_prize_description: prizeType === 'estabelecimento' ? estabelecimentoPrizeDescription.trim() : null,
+      } as any])
       .select()
       .single();
 
