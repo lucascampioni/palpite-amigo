@@ -107,7 +107,11 @@ const CreateFootballPool = () => {
   // Non-admin pool creators default to percentage prize type
   useEffect(() => {
     if (!isLoadingRole && userRole?.canCreatePools && !userRole?.isAdmin) {
-      setPrizeType('percentage');
+      if (userRole?.isEstabelecimento) {
+        setPrizeType('estabelecimento');
+      } else {
+        setPrizeType('percentage');
+      }
     }
   }, [isLoadingRole, userRole]);
   const [showGESelector, setShowGESelector] = useState(false);
