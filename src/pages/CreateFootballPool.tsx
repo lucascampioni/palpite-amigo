@@ -474,21 +474,41 @@ const CreateFootballPool = () => {
                         💰 Valor Fixo (R$)
                       </button>
                     )}
-                    <button
-                      type="button"
-                      onClick={() => setPrizeType('percentage')}
-                      className={`flex-1 py-2 px-4 rounded-lg border-2 font-semibold transition-colors text-sm ${
-                        prizeType === 'percentage'
-                          ? 'border-primary bg-primary/10 text-primary'
-                          : 'border-muted hover:border-primary/50'
-                      }`}
-                    >
-                      📊 % do Arrecadado
-                    </button>
+                    {!userRole?.isEstabelecimento && (
+                      <button
+                        type="button"
+                        onClick={() => setPrizeType('percentage')}
+                        className={`flex-1 py-2 px-4 rounded-lg border-2 font-semibold transition-colors text-sm ${
+                          prizeType === 'percentage'
+                            ? 'border-primary bg-primary/10 text-primary'
+                            : 'border-muted hover:border-primary/50'
+                        }`}
+                      >
+                        📊 % do Arrecadado
+                      </button>
+                    )}
+                    {userRole?.isEstabelecimento && (
+                      <button
+                        type="button"
+                        onClick={() => setPrizeType('estabelecimento')}
+                        className={`flex-1 py-2 px-4 rounded-lg border-2 font-semibold transition-colors text-sm ${
+                          prizeType === 'estabelecimento'
+                            ? 'border-primary bg-primary/10 text-primary'
+                            : 'border-muted hover:border-primary/50'
+                        }`}
+                      >
+                        🏪 Prêmios do Estabelecimento
+                      </button>
+                    )}
                   </div>
                   {prizeType === 'percentage' && (
                     <p className="text-xs text-muted-foreground">
                       O valor do prêmio será calculado automaticamente com base no total arrecadado (nº de participantes × valor de entrada).
+                    </p>
+                  )}
+                  {prizeType === 'estabelecimento' && (
+                    <p className="text-xs text-muted-foreground">
+                      Descreva o prêmio que o estabelecimento oferecerá ao vencedor (ex: corte de cabelo, balde de cerveja, etc).
                     </p>
                   )}
                 </div>
