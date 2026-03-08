@@ -794,7 +794,7 @@ const Index = () => {
                     {showFinishedCreated && (
                       <div className="space-y-3">
                         {filterPools(myCreatedPools.filter(p => p.status === "finished")).map((pool) => (
-                          <PoolCard key={pool.id} pool={pool} onClick={() => navigate(`/bolao/${pool.slug}`)} />
+                          <PoolCard key={pool.id} pool={pool} onClick={() => navigate(`/bolao/${pool.slug}`)} {...getCommunityProps(pool)} />
                         ))}
                       </div>
                     )}
