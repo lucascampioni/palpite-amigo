@@ -188,12 +188,17 @@ const CreateFootballPool = () => {
       footballPoolSchema.parse({ title, description, pixKey: pixKeyValue, entryFee, maxParticipants });
       
       // Additional validation for non-admin users
-      if (!userRole?.isAdmin) {
+      if (!userRole?.isAdmin && !userRole?.isEstabelecimento) {
         if (!entryFee || parseFloat(entryFee) <= 0) {
           throw new Error("Valor de entrada é obrigatório");
         }
         if (!pixKeyValue.trim()) {
           throw new Error("Chave PIX é obrigatória");
+        }
+      } else if (userRole?.isEstabelecimento) {
+        // Estabelecimento: no entry fee or PIX required, but prize description is required
+        if (prizeType === 'estabelecimento' && !estabelecimentoPrizeDescription.trim()) {
+          throw new Error("Descrição do prêmio é obrigatória");
         }
       } else {
         // Admin: PIX required only if entry fee is set
