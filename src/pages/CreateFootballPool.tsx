@@ -66,15 +66,39 @@ const CreateFootballPool = () => {
   const [maxWinners, setMaxWinners] = useState<number>(1);
   const [prizeType, setPrizeType] = useState<'fixed' | 'percentage' | 'estabelecimento'>('fixed');
   const [estabelecimentoPrizeDescription, setEstabelecimentoPrizeDescription] = useState("");
-  const [estabelecimentoPrizeAddress, setEstabelecimentoPrizeAddress] = useState("");
+  const [addressStreet, setAddressStreet] = useState("");
+  const [addressNumber, setAddressNumber] = useState("");
+  const [addressComplement, setAddressComplement] = useState("");
+  const [addressNeighborhood, setAddressNeighborhood] = useState("");
+  const [addressCity, setAddressCity] = useState("");
+  const [addressState, setAddressState] = useState("");
   const [saveAddress, setSaveAddress] = useState(false);
+
+  const buildFullAddress = () => {
+    const parts = [
+      addressStreet.trim(),
+      addressNumber.trim(),
+      addressComplement.trim() ? `(${addressComplement.trim()})` : '',
+      addressNeighborhood.trim() ? `${addressNeighborhood.trim()}` : '',
+      `${addressCity.trim()}/${addressState.trim()}`
+    ].filter(Boolean);
+    return parts.join(', ');
+  };
 
   // Load saved address from localStorage
   useEffect(() => {
     const saved = localStorage.getItem('estabelecimento_saved_address');
     if (saved) {
-      setEstabelecimentoPrizeAddress(saved);
-      setSaveAddress(true);
+      try {
+        const parsed = JSON.parse(saved);
+        setAddressStreet(parsed.street || '');
+        setAddressNumber(parsed.number || '');
+        setAddressComplement(parsed.complement || '');
+        setAddressNeighborhood(parsed.neighborhood || '');
+        setAddressCity(parsed.city || '');
+        setAddressState(parsed.state || '');
+        setSaveAddress(true);
+      } catch { /* ignore invalid data */ }
     }
   }, []);
   const [firstPlacePrize, setFirstPlacePrize] = useState("");
