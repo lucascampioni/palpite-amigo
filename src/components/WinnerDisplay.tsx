@@ -7,6 +7,8 @@ interface WinnerDisplayProps {
   winners: any[];
   resultValue?: string;
   measurementUnit?: string;
+  prizeType?: string;
+  estabelecimentoPrizeDescription?: string;
 }
 
 const WinnerDisplay = ({ winners, resultValue, measurementUnit }: WinnerDisplayProps) => {
