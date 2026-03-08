@@ -579,7 +579,7 @@ const Index = () => {
                     bgClass="bg-orange-50 dark:bg-orange-950/50 border-orange-200 dark:border-orange-800"
                   >
                     {filterPools(myPendingPaymentPools).map((pool) => (
-                      <PoolCard key={pool.id} pool={pool} isUserParticipating hasPendingPayment onClick={() => navigate(`/bolao/${pool.slug}`)} />
+                      <PoolCard key={pool.id} pool={pool} isUserParticipating hasPendingPayment onClick={() => navigate(`/bolao/${pool.slug}`)} {...getCommunityProps(pool)} />
                     ))}
                   </AlertSection>
                 )}
