@@ -218,11 +218,11 @@ const CreateFootballPool = () => {
     setLoading(true);
 
     const formData = new FormData(e.currentTarget);
-    const title = formData.get("title") as string;
-    const description = formData.get("description") as string;
+    const title = (formData.get("title") as string) || "";
+    const description = (formData.get("description") as string) || "";
     const pixKeyValue = pixKey;
-    const entryFee = formData.get("entry_fee") as string;
-    const maxParticipants = formData.get("max_participants") as string;
+    const entryFee = (formData.get("entry_fee") as string) || "";
+    const maxParticipants = (formData.get("max_participants") as string) || "";
 
     // Validate input
     try {
