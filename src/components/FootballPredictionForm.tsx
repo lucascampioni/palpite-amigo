@@ -510,6 +510,55 @@ const FootballPredictionForm = ({ poolId, userId, onSuccess, entryFee, pool, pix
         </CollapsibleContent>
       </Collapsible>
 
+      {/* Voucher input for estabelecimento pools - shown before predictions */}
+      {isEstabelecimento && (
+        <div className="space-y-3 p-4 rounded-xl border-2 border-amber-500/40 bg-amber-50/50 dark:bg-amber-950/20">
+          <div className="flex items-center gap-2">
+            <Ticket className="w-5 h-5 text-amber-600 flex-shrink-0" />
+            <div>
+              <p className="font-semibold text-sm">Voucher de Entrada</p>
+              <p className="text-xs text-muted-foreground">
+                Insira o código do voucher fornecido pelo estabelecimento.
+              </p>
+            </div>
+          </div>
+          <div className="flex gap-2">
+            <Input
+              value={voucherCode}
+              onChange={(e) => {
+                setVoucherCode(e.target.value.toUpperCase());
+                setVoucherValid(null);
+                setVoucherPredictionSets(null);
+              }}
+              placeholder="Ex: ABC123"
+              className="font-mono text-center tracking-widest uppercase text-lg"
+              maxLength={6}
+            />
+            <Button
+              variant={voucherValid ? "default" : "outline"}
+              onClick={handleCheckVoucher}
+              disabled={voucherChecking || !voucherCode.trim() || voucherValid === true}
+              className="shrink-0"
+            >
+              {voucherChecking ? "..." : voucherValid ? "✅" : "Validar"}
+            </Button>
+          </div>
+          {voucherValid === false && (
+            <p className="text-xs text-destructive font-medium">
+              ❌ Voucher inválido ou já utilizado. Verifique o código.
+            </p>
+          )}
+          {voucherValid === true && voucherPredictionSets && (
+            <p className="text-xs text-green-600 dark:text-green-400 font-medium">
+              ✅ Voucher válido! {voucherPredictionSets > 1 ? `${voucherPredictionSets} palpites liberados.` : '1 palpite liberado.'} Preencha abaixo.
+            </p>
+          )}
+        </div>
+      )}
+
+      {/* Hide predictions until voucher is validated for estabelecimento */}
+      {(!isEstabelecimento || voucherValid) && (
+      <>
       {/* Prediction set tabs */}
       <div ref={tabsRef} className="flex items-center gap-2 flex-wrap p-3 rounded-lg bg-muted/60 border border-border">
         {predictionSets.map((_, i) => (
