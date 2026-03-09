@@ -659,7 +659,7 @@ const FootballPredictionForm = ({ poolId, userId, onSuccess, entryFee, pool, pix
         )}
         <Button
           onClick={handleSubmitClick}
-          disabled={submitting || (isEstabelecimento && !voucherValid)}
+          disabled={submitting || (isEstabelecimento && !estabelecimentoReady)}
           className="w-full"
           size="lg"
         >
