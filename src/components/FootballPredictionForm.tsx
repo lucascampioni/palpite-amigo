@@ -171,13 +171,14 @@ const FootballPredictionForm = ({ poolId, userId, onSuccess, entryFee, pool, pix
 
     const { data, error } = await supabase
       .from("pool_vouchers")
-      .select("id, used_by")
+      .select("id, used_by, prediction_sets")
       .eq("pool_id", poolId)
       .eq("code", code)
       .maybeSingle();
 
     if (error || !data) {
       setVoucherValid(false);
+      setVoucherPredictionSets(null);
       toast({
         variant: "destructive",
         title: "Voucher inválido",
@@ -185,6 +186,7 @@ const FootballPredictionForm = ({ poolId, userId, onSuccess, entryFee, pool, pix
       });
     } else if (data.used_by) {
       setVoucherValid(false);
+      setVoucherPredictionSets(null);
       toast({
         variant: "destructive",
         title: "Voucher já utilizado",
@@ -192,9 +194,18 @@ const FootballPredictionForm = ({ poolId, userId, onSuccess, entryFee, pool, pix
       });
     } else {
       setVoucherValid(true);
+      const sets = (data as any).prediction_sets || 1;
+      setVoucherPredictionSets(sets);
+      // Initialize the exact number of prediction sets from the voucher
+      const newSets: PredictionSet[] = [];
+      for (let i = 0; i < sets; i++) {
+        newSets.push(matches.map(m => ({ matchId: m.id, homeScore: '', awayScore: '' })));
+      }
+      setPredictionSets(newSets);
+      setActiveSetIndex(0);
       toast({
         title: "Voucher válido! ✅",
-        description: "Você pode enviar seus palpites.",
+        description: `Liberado${sets > 1 ? `s ${sets} palpites` : ' 1 palpite'} para você.`,
       });
     }
     setVoucherChecking(false);
