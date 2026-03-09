@@ -217,19 +217,51 @@ const FootballRanking = ({ poolId, pool, approvedParticipantsCount, isOwner }: F
       });
       setParticipantSetCounts(setCounts);
 
-      // Fetch earliest prediction created_at per participant for tiebreaker
+      // Fetch all predictions with details for tiebreaker stats
       const { data: allPredictions } = await supabase
         .from("football_predictions")
-        .select("participant_id, created_at, prediction_set")
+        .select("participant_id, created_at, prediction_set, home_score_prediction, away_score_prediction, match_id")
         .in("participant_id", participantIds);
 
       const earliestPredMap: Record<string, string> = {};
+      const exactScoresMap: Record<string, number> = {};
+      const correctResultsMap: Record<string, number> = {};
+      
+      // Build match results map for tiebreaker calculation
+      const matchResultsMap: Record<string, { home_score: number; away_score: number }> = {};
+      const finishedMatches = countableMatches.filter(m => m.status === 'finished' && m.home_score !== null && m.away_score !== null);
+      for (const m of finishedMatches) {
+        matchResultsMap[m.id] = { home_score: m.home_score!, away_score: m.away_score! };
+      }
+
       allPredictions?.forEach((p: any) => {
         const key = `${p.participant_id}_${p.prediction_set || 1}`;
         if (!earliestPredMap[key] || new Date(p.created_at).getTime() < new Date(earliestPredMap[key]).getTime()) {
           earliestPredMap[key] = p.created_at;
         }
+        
+        // Calculate exact scores and correct results for tiebreaker
+        const matchResult = matchResultsMap[p.match_id];
+        if (matchResult) {
+          if (!exactScoresMap[key]) exactScoresMap[key] = 0;
+          if (!correctResultsMap[key]) correctResultsMap[key] = 0;
+          
+          if (p.home_score_prediction === matchResult.home_score && 
+              p.away_score_prediction === matchResult.away_score) {
+            exactScoresMap[key] = (exactScoresMap[key] || 0) + 1;
+          }
+          
+          const predResult = p.home_score_prediction > p.away_score_prediction ? 'home' : 
+                            p.home_score_prediction < p.away_score_prediction ? 'away' : 'draw';
+          const actualResult = matchResult.home_score > matchResult.away_score ? 'home' : 
+                              matchResult.home_score < matchResult.away_score ? 'away' : 'draw';
+          if (predResult === actualResult) {
+            correctResultsMap[key] = (correctResultsMap[key] || 0) + 1;
+          }
+        }
       });
+
+      const isEstabelecimento = pool?.prize_type === 'estabelecimento';
 
       let baseRanking: ParticipantScore[] = rpcData.map((r: any) => {
         const predSet = r.prediction_set || 1;
@@ -242,6 +274,8 @@ const FootballRanking = ({ poolId, pool, approvedParticipantsCount, isOwner }: F
           prize_status: prizeStatusMap[r.participant_id] || null,
           prediction_set: predSet,
           earliest_prediction_at: earliestPredMap[rankingKey] || null,
+          exact_scores: exactScoresMap[rankingKey] || 0,
+          correct_results: correctResultsMap[rankingKey] || 0,
         };
       });
 
@@ -281,6 +315,10 @@ const FootballRanking = ({ poolId, pool, approvedParticipantsCount, isOwner }: F
         // Re-sort after adding partial points
         baseRanking.sort((a, b) => {
           if (b.total_points !== a.total_points) return b.total_points - a.total_points;
+          if (isEstabelecimento) {
+            if ((b.exact_scores || 0) !== (a.exact_scores || 0)) return (b.exact_scores || 0) - (a.exact_scores || 0);
+            if ((b.correct_results || 0) !== (a.correct_results || 0)) return (b.correct_results || 0) - (a.correct_results || 0);
+          }
           // Tiebreaker by earliest prediction submission
           const aTime = a.earliest_prediction_at ? new Date(a.earliest_prediction_at).getTime() : Infinity;
           const bTime = b.earliest_prediction_at ? new Date(b.earliest_prediction_at).getTime() : Infinity;
@@ -289,10 +327,21 @@ const FootballRanking = ({ poolId, pool, approvedParticipantsCount, isOwner }: F
         });
       }
 
-      // Always sort by prediction time when all have 0 points
+      // Sort logic
       const allZero = baseRanking.every(r => r.total_points === 0);
       if (allZero) {
         baseRanking.sort((a, b) => {
+          const aTime = a.earliest_prediction_at ? new Date(a.earliest_prediction_at).getTime() : Infinity;
+          const bTime = b.earliest_prediction_at ? new Date(b.earliest_prediction_at).getTime() : Infinity;
+          if (aTime !== bTime) return aTime - bTime;
+          return a.participant_name.localeCompare(b.participant_name);
+        });
+      } else if (isEstabelecimento && !liveMatchesWithScores.length) {
+        // Re-sort with estabelecimento tiebreaker criteria
+        baseRanking.sort((a, b) => {
+          if (b.total_points !== a.total_points) return b.total_points - a.total_points;
+          if ((b.exact_scores || 0) !== (a.exact_scores || 0)) return (b.exact_scores || 0) - (a.exact_scores || 0);
+          if ((b.correct_results || 0) !== (a.correct_results || 0)) return (b.correct_results || 0) - (a.correct_results || 0);
           const aTime = a.earliest_prediction_at ? new Date(a.earliest_prediction_at).getTime() : Infinity;
           const bTime = b.earliest_prediction_at ? new Date(b.earliest_prediction_at).getTime() : Infinity;
           if (aTime !== bTime) return aTime - bTime;
