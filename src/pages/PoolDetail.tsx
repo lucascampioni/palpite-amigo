@@ -1853,7 +1853,11 @@ const PoolDetail = () => {
                         <p className="text-xs text-muted-foreground flex items-center gap-1">
                           ✅ <strong>Critério de empate:</strong>
                         </p>
-                        {pool?.max_winners === 1 ? (
+                        {pool?.prize_type === 'estabelecimento' ? (
+                          <p className="text-xs text-muted-foreground mt-1">
+                            Se houver empate na maior pontuação, um novo bolão gratuito será realizado apenas entre os empatados para definir o campeão.
+                          </p>
+                        ) : pool?.max_winners === 1 ? (
                           <p className="text-xs text-muted-foreground mt-1">
                             Se houver empate na maior pontuação, o prêmio do 1º lugar será dividido igualmente entre todos os empatados.
                           </p>
