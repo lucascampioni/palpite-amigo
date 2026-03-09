@@ -617,22 +617,24 @@ const FootballPredictionForm = ({ poolId, userId, onSuccess, entryFee, pool, pix
         );
       })}
 
-      {/* Add prediction set button + fee warning */}
-      <div className="space-y-2">
-        <Button
-          variant="outline"
-          onClick={addPredictionSet}
-          className="w-full border-dashed"
-        >
-          <Plus className="w-4 h-4 mr-2" />
-          Adicionar mais um palpite
-        </Button>
-        {hasEntryFee && (
-          <p className="text-xs text-center text-orange-600 dark:text-orange-400 font-medium">
-            ⚠️ Cada palpite adicional acrescenta <strong>R$ {feePerSet.toFixed(2).replace('.', ',')}</strong> ao valor da inscrição
-          </p>
-        )}
-      </div>
+      {/* Add prediction set button + fee warning (hide for estabelecimento) */}
+      {!isEstabelecimento && (
+        <div className="space-y-2">
+          <Button
+            variant="outline"
+            onClick={addPredictionSet}
+            className="w-full border-dashed"
+          >
+            <Plus className="w-4 h-4 mr-2" />
+            Adicionar mais um palpite
+          </Button>
+          {hasEntryFee && (
+            <p className="text-xs text-center text-orange-600 dark:text-orange-400 font-medium">
+              ⚠️ Cada palpite adicional acrescenta <strong>R$ {feePerSet.toFixed(2).replace('.', ',')}</strong> ao valor da inscrição
+            </p>
+          )}
+        </div>
+      )}
 
       <div className="p-3 rounded-lg bg-amber-50 dark:bg-amber-950/50 border border-amber-200 dark:border-amber-800 text-sm">
         <p className="font-medium text-amber-700 dark:text-amber-400">
