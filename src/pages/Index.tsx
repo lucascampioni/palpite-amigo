@@ -329,6 +329,45 @@ const Index = () => {
       }
     }
 
+    // Check for estabelecimento pools where user is approved but hasn't made predictions
+    let pendingPredictionPoolsData: any[] = [];
+    const approvedEstabelecimentoPoolIds = approvedRecords.map(r => r.pool_id);
+    if (approvedEstabelecimentoPoolIds.length > 0) {
+      // Get pools that are estabelecimento type and still active
+      const { data: estPools } = await supabase
+        .from("pools")
+        .select("*, participants(count)")
+        .in("id", approvedEstabelecimentoPoolIds)
+        .eq("prize_type", "estabelecimento")
+        .eq("status", "active")
+        .gt("deadline", now.toISOString());
+
+      if (estPools && estPools.length > 0) {
+        // For each, check if user has predictions
+        const { data: userParticipants } = await supabase
+          .from("participants")
+          .select("id, pool_id")
+          .eq("user_id", session.user.id)
+          .in("pool_id", estPools.map(p => p.id))
+          .eq("status", "approved");
+
+        if (userParticipants && userParticipants.length > 0) {
+          const participantIds = userParticipants.map(p => p.id);
+          const { data: predictions } = await supabase
+            .from("football_predictions")
+            .select("participant_id")
+            .in("participant_id", participantIds);
+
+          const predParticipantIds = new Set(predictions?.map(p => p.participant_id) || []);
+          const noPredictionPoolIds = userParticipants
+            .filter(p => !predParticipantIds.has(p.id))
+            .map(p => p.pool_id);
+
+          pendingPredictionPoolsData = estPools.filter(p => noPredictionPoolIds.includes(p.id));
+        }
+      }
+    }
+
     // Fetch community info for all pools
     const allPoolOwnerIds = [...new Set([
       ...(ownedPools || []).map(p => p.owner_id),
@@ -340,6 +379,7 @@ const Index = () => {
       ...officialPoolsData.map(p => p.owner_id),
       ...activePools.map(p => p.owner_id),
       ...failedPools.map(f => f.pool.owner_id),
+      ...pendingPredictionPoolsData.map(p => p.owner_id),
     ])];
 
     const communityMap: Record<string, { name: string; responsibleName: string }> = {};
@@ -379,6 +419,7 @@ const Index = () => {
     setMyAwaitingPaymentPools(awaitingPaymentPoolsData);
     setMyPendingPaymentPools(pendingPaymentPoolsData);
     setMyAwaitingApprovalPools(awaitingApprovalPoolsData);
+    setMyPendingPredictionPools(pendingPredictionPoolsData);
     setMyPoolsPendingApprovals(poolsPendingApprovals);
     setMyPoolsPendingPrizeSend(poolsPendingPrizeSend);
     setMyFailedPools(failedPools);
