@@ -162,52 +162,31 @@ const FootballPredictionForm = ({ poolId, userId, onSuccess, entryFee, pool, pix
     }
   };
 
-  const handleCheckVoucher = async () => {
-    if (!voucherCode.trim()) return;
-    setVoucherChecking(true);
-    const code = voucherCode.trim().toUpperCase();
+  // For estabelecimento pools, auto-detect user's voucher entry
+  useEffect(() => {
+    if (!isEstabelecimento || !matches.length) return;
+    const checkEstabelecimentoEntry = async () => {
+      const { data } = await supabase
+        .from("pool_vouchers")
+        .select("prediction_sets")
+        .eq("pool_id", poolId)
+        .eq("used_by", userId)
+        .maybeSingle();
 
-    const { data, error } = await supabase
-      .from("pool_vouchers")
-      .select("id, used_by, prediction_sets")
-      .eq("pool_id", poolId)
-      .eq("code", code)
-      .maybeSingle();
-
-    if (error || !data) {
-      setVoucherValid(false);
-      setVoucherPredictionSets(null);
-      toast({
-        variant: "destructive",
-        title: "Voucher inválido",
-        description: "Este código não existe ou não pertence a este bolão.",
-      });
-    } else if (data.used_by) {
-      setVoucherValid(false);
-      setVoucherPredictionSets(null);
-      toast({
-        variant: "destructive",
-        title: "Voucher já utilizado",
-        description: "Este voucher já foi usado por outro participante.",
-      });
-    } else {
-      setVoucherValid(true);
-      const sets = (data as any).prediction_sets || 1;
-      setVoucherPredictionSets(sets);
-      // Initialize the exact number of prediction sets from the voucher
-      const newSets: PredictionSet[] = [];
-      for (let i = 0; i < sets; i++) {
-        newSets.push(matches.map(m => ({ matchId: m.id, homeScore: '', awayScore: '' })));
+      if (data) {
+        const sets = (data as any).prediction_sets || 1;
+        setVoucherPredictionSets(sets);
+        const newSets: PredictionSet[] = [];
+        for (let i = 0; i < sets; i++) {
+          newSets.push(matches.map(m => ({ matchId: m.id, homeScore: '', awayScore: '' })));
+        }
+        setPredictionSets(newSets);
+        setActiveSetIndex(0);
+        setEstabelecimentoReady(true);
       }
-      setPredictionSets(newSets);
-      setActiveSetIndex(0);
-      toast({
-        title: "Voucher válido! ✅",
-        description: `Liberado${sets > 1 ? `s ${sets} palpites` : ' 1 palpite'} para você.`,
-      });
-    }
-    setVoucherChecking(false);
-  };
+    };
+    checkEstabelecimentoEntry();
+  }, [isEstabelecimento, matches, poolId, userId]);
 
   const handleSubmitClick = () => {
     // For estabelecimento pools, validate voucher
