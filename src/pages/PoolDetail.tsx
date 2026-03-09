@@ -1155,7 +1155,7 @@ const PoolDetail = () => {
                     </div>
                   )}
                   <p className="text-[0.65rem] text-muted-foreground text-center mt-2">
-                    ⚠️ Em caso de empate em 1º lugar, haverá um novo bolão (sem custo) entre os empatados para definir o campeão.
+                    ⚠️ Em caso de empate, o desempate segue a ordem: placares exatos → acertos totais → horário de envio → sorteio automático.
                   </p>
                 </div>
               )}
