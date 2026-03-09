@@ -25,6 +25,7 @@ const Index = () => {
   const [myAwaitingPaymentPools, setMyAwaitingPaymentPools] = useState<any[]>([]);
   const [myPendingPaymentPools, setMyPendingPaymentPools] = useState<any[]>([]);
   const [myAwaitingApprovalPools, setMyAwaitingApprovalPools] = useState<any[]>([]);
+  const [myPendingPredictionPools, setMyPendingPredictionPools] = useState<any[]>([]);
   const [myFailedPools, setMyFailedPools] = useState<{pool: any, reason: string}[]>([]);
   const [myPoolsPendingApprovals, setMyPoolsPendingApprovals] = useState<{pool: any, pendingCount: number}[]>([]);
   const [myPoolsPendingPrizeSend, setMyPoolsPendingPrizeSend] = useState<{pool: any, winnersCount: number}[]>([]);
