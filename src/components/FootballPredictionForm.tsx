@@ -478,54 +478,29 @@ const FootballPredictionForm = ({ poolId, userId, onSuccess, entryFee, pool, pix
         </CollapsibleContent>
       </Collapsible>
 
-      {/* Voucher input for estabelecimento pools - shown before predictions */}
-      {isEstabelecimento && (
-        <div className="space-y-3 p-4 rounded-xl border-2 border-amber-500/40 bg-amber-50/50 dark:bg-amber-950/20">
-          <div className="flex items-center gap-2">
-            <Ticket className="w-5 h-5 text-amber-600 flex-shrink-0" />
-            <div>
-              <p className="font-semibold text-sm">Voucher de Entrada</p>
-              <p className="text-xs text-muted-foreground">
-                Insira o código do voucher fornecido pelo estabelecimento.
-              </p>
-            </div>
-          </div>
-          <div className="flex gap-2">
-            <Input
-              value={voucherCode}
-              onChange={(e) => {
-                setVoucherCode(e.target.value.toUpperCase());
-                setVoucherValid(null);
-                setVoucherPredictionSets(null);
-              }}
-              placeholder="Ex: ABC123"
-              className="font-mono text-center tracking-widest uppercase text-lg"
-              maxLength={6}
-            />
-            <Button
-              variant={voucherValid ? "default" : "outline"}
-              onClick={handleCheckVoucher}
-              disabled={voucherChecking || !voucherCode.trim() || voucherValid === true}
-              className="shrink-0"
-            >
-              {voucherChecking ? "..." : voucherValid ? "✅" : "Validar"}
-            </Button>
-          </div>
-          {voucherValid === false && (
-            <p className="text-xs text-destructive font-medium">
-              ❌ Voucher inválido ou já utilizado. Verifique o código.
-            </p>
-          )}
-          {voucherValid === true && voucherPredictionSets && (
-            <p className="text-xs text-green-600 dark:text-green-400 font-medium">
-              ✅ Voucher válido! {voucherPredictionSets > 1 ? `${voucherPredictionSets} palpites liberados.` : '1 palpite liberado.'} Preencha abaixo.
-            </p>
-          )}
+      {/* Info message for estabelecimento pools */}
+      {isEstabelecimento && estabelecimentoReady && voucherPredictionSets && (
+        <div className="p-3 rounded-lg border-2 border-green-500/30 bg-green-50/50 dark:bg-green-950/20">
+          <p className="text-sm font-medium text-green-700 dark:text-green-400">
+            ✅ Você está inscrito! {voucherPredictionSets > 1 ? `${voucherPredictionSets} palpites liberados.` : '1 palpite liberado.'} Preencha abaixo.
+          </p>
         </div>
       )}
 
-      {/* Hide predictions until voucher is validated for estabelecimento */}
-      {(!isEstabelecimento || voucherValid) && (
+      {isEstabelecimento && !estabelecimentoReady && !loading && (
+        <div className="p-4 rounded-lg border-2 border-amber-500/30 bg-amber-50/50 dark:bg-amber-950/20 text-center">
+          <Info className="w-6 h-6 text-amber-600 mx-auto mb-2" />
+          <p className="text-sm font-medium text-amber-700 dark:text-amber-400">
+            Aguardando liberação
+          </p>
+          <p className="text-xs text-muted-foreground mt-1">
+            O dono do estabelecimento precisa cadastrar seu número de telefone para liberar sua entrada no bolão.
+          </p>
+        </div>
+      )}
+
+      {/* Hide predictions until ready for estabelecimento */}
+      {(!isEstabelecimento || estabelecimentoReady) && (
       <>
       {/* Prediction set tabs */}
       <div ref={tabsRef} className="flex items-center gap-2 flex-wrap p-3 rounded-lg bg-muted/60 border border-border">
