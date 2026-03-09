@@ -54,19 +54,7 @@ const WinnerDisplay = ({ winners, resultValue, measurementUnit, prizeType, estab
           </Alert>
         )}
 
-        {prizeType === 'estabelecimento' && isMultipleWinners && (
-          <Alert className="mt-4 border-amber-500/30 bg-amber-500/10">
-            <Clock className="h-4 w-4 text-amber-600" />
-            <AlertDescription className="text-sm">
-              <strong>Empate em 1º lugar!</strong> Será criado um novo bolão (sem custo adicional) apenas entre os empatados para definir o campeão e ganhador do prêmio.
-              {estabelecimentoPrizeDescription && (
-                <span className="block mt-1">🏪 Prêmio: <strong>{estabelecimentoPrizeDescription}</strong></span>
-              )}
-            </AlertDescription>
-          </Alert>
-        )}
-
-        {prizeType === 'estabelecimento' && !isMultipleWinners && estabelecimentoPrizeDescription && (
+        {prizeType === 'estabelecimento' && estabelecimentoPrizeDescription && (
           <Alert className="mt-4 border-green-500/30 bg-green-500/10">
             <Trophy className="h-4 w-4 text-green-600" />
             <AlertDescription className="text-sm">
@@ -74,6 +62,7 @@ const WinnerDisplay = ({ winners, resultValue, measurementUnit, prizeType, estab
             </AlertDescription>
           </Alert>
         )}
+
       </CardContent>
     </Card>
   );
