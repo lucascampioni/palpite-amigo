@@ -692,6 +692,19 @@ const Index = () => {
                     })}
                   </AlertSection>
                 )}
+
+                {myPendingPredictionPools.length > 0 && (
+                  <AlertSection
+                    icon="⚽"
+                    title="Palpites Pendentes"
+                    subtitle="Você foi convidado mas ainda não fez seus palpites"
+                    bgClass="bg-blue-50 dark:bg-blue-950/50 border-blue-200 dark:border-blue-800"
+                  >
+                    {filterPools(myPendingPredictionPools).map((pool) => (
+                      <PoolCard key={pool.id} pool={pool} isUserParticipating onClick={() => navigate(`/bolao/${pool.slug}`)} {...getCommunityProps(pool)} />
+                    ))}
+                  </AlertSection>
+                )}
               </div>
             ) : (
               <div className="text-center py-12 space-y-3">
