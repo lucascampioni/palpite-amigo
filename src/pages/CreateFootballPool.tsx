@@ -745,11 +745,6 @@ const CreateFootballPool = () => {
                         </Label>
                       </div>
                     </div>
-                    <div className="rounded-lg border border-amber-200 dark:border-amber-800 bg-amber-50/50 dark:bg-amber-950/20 p-3">
-                      <p className="text-xs text-muted-foreground">
-                        <strong>⚠️ Regra de desempate:</strong> Em caso de empate em primeiro lugar, será criado um novo bolão (sem custo adicional) apenas entre os empatados para definir o campeão e ganhador do prêmio.
-                      </p>
-                    </div>
                   </div>
                 )}
               </div>
