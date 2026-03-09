@@ -521,7 +521,7 @@ const FootballPredictionForm = ({ poolId, userId, onSuccess, entryFee, pool, pix
             className={`relative ${activeSetIndex === i ? 'ring-2 ring-primary/50 shadow-md' : ''}`}
           >
             🎯 Palpite {i + 1}
-            {predictionSets.length > 1 && (
+            {predictionSets.length > 1 && !isEstabelecimento && (
               <button
                 onClick={(e) => {
                   e.stopPropagation();
