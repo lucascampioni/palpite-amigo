@@ -1181,7 +1181,7 @@ const PoolDetail = () => {
                     );
                   })()}
                   <p className="text-[0.65rem] text-muted-foreground text-center mt-2">
-                    ⚠️ Em caso de empate na maior pontuação, um novo bolão gratuito será realizado apenas entre os empatados para definir o campeão.
+                    ⚠️ Em caso de empate, os critérios de desempate são: 1º Maior número de placares exatos · 2º Maior número total de acertos · 3º Horário do envio do palpite · 4º Sorteio automático
                   </p>
                 </div>
               )}
