@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { Ticket, Copy, Share2, Plus, Trash2, CheckCircle } from "lucide-react";
+import { Label } from "@/components/ui/label";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
@@ -14,6 +15,7 @@ interface Voucher {
   used_by: string | null;
   used_at: string | null;
   created_at: string;
+  prediction_sets: number;
 }
 
 interface VoucherManagerProps {
@@ -37,6 +39,7 @@ const VoucherManager = ({ poolId, poolTitle, poolSlug }: VoucherManagerProps) =>
   const [loading, setLoading] = useState(true);
   const [generating, setGenerating] = useState(false);
   const [usedByNames, setUsedByNames] = useState<Record<string, string>>({});
+  const [newVoucherSets, setNewVoucherSets] = useState(1);
 
   useEffect(() => {
     loadVouchers();
@@ -77,7 +80,7 @@ const VoucherManager = ({ poolId, poolTitle, poolSlug }: VoucherManagerProps) =>
 
     const { data, error } = await supabase
       .from("pool_vouchers")
-      .insert({ pool_id: poolId, code })
+      .insert({ pool_id: poolId, code, prediction_sets: newVoucherSets })
       .select()
       .single();
 
@@ -91,7 +94,7 @@ const VoucherManager = ({ poolId, poolTitle, poolSlug }: VoucherManagerProps) =>
       setVouchers(prev => [data as Voucher, ...prev]);
       toast({
         title: "Voucher gerado! 🎫",
-        description: `Código: ${code}`,
+        description: `Código: ${code} (${newVoucherSets} palpite${newVoucherSets > 1 ? 's' : ''})`,
       });
     }
     setGenerating(false);
@@ -107,9 +110,10 @@ const VoucherManager = ({ poolId, poolTitle, poolSlug }: VoucherManagerProps) =>
 
   const handleShareWhatsApp = (code: string) => {
     const poolUrl = `https://app-delfos.lovable.app/bolao/${poolSlug || poolId}`;
+    const setsLabel = newVoucherSets > 1 ? ` (${newVoucherSets} palpites)` : '';
     const message = encodeURIComponent(
       `🎫 *Voucher para o Bolão "${poolTitle}"*\n\n` +
-      `Seu código de entrada: *${code}*\n\n` +
+      `Seu código de entrada: *${code}*${setsLabel}\n\n` +
       `Para participar:\n` +
       `1️⃣ Acesse o bolão: ${poolUrl}\n` +
       `2️⃣ Insira o código do voucher\n` +
@@ -156,10 +160,38 @@ const VoucherManager = ({ poolId, poolTitle, poolSlug }: VoucherManagerProps) =>
           </div>
         </div>
         <p className="text-xs text-muted-foreground mt-1">
-          Gere vouchers para seus clientes. Cada voucher permite a entrada de 1 participante no bolão.
+          Gere vouchers para seus clientes. Cada voucher libera a quantidade de palpites definida.
         </p>
       </CardHeader>
       <CardContent className="space-y-3">
+        {/* Prediction sets selector */}
+        <div className="flex items-center gap-3 p-3 rounded-lg border bg-muted/30">
+          <Label className="text-sm font-medium whitespace-nowrap">Qtd. de palpites:</Label>
+          <div className="flex items-center gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              size="icon"
+              className="h-8 w-8"
+              onClick={() => setNewVoucherSets(Math.max(1, newVoucherSets - 1))}
+              disabled={newVoucherSets <= 1}
+            >
+              -
+            </Button>
+            <span className="font-bold text-lg w-8 text-center">{newVoucherSets}</span>
+            <Button
+              type="button"
+              variant="outline"
+              size="icon"
+              className="h-8 w-8"
+              onClick={() => setNewVoucherSets(newVoucherSets + 1)}
+              disabled={newVoucherSets >= 10}
+            >
+              +
+            </Button>
+          </div>
+        </div>
+
         <Button
           onClick={handleGenerateVoucher}
           disabled={generating}
@@ -167,7 +199,7 @@ const VoucherManager = ({ poolId, poolTitle, poolSlug }: VoucherManagerProps) =>
           size="sm"
         >
           <Plus className="w-4 h-4 mr-2" />
-          {generating ? "Gerando..." : "Gerar Novo Voucher"}
+          {generating ? "Gerando..." : `Gerar Voucher (${newVoucherSets} palpite${newVoucherSets > 1 ? 's' : ''})`}
         </Button>
 
         {loading ? (
@@ -204,6 +236,9 @@ const VoucherManager = ({ poolId, poolTitle, poolSlug }: VoucherManagerProps) =>
                         Disponível
                       </Badge>
                     )}
+                    <Badge variant="outline" className="text-[0.6rem] px-1.5 py-0">
+                      {voucher.prediction_sets} palpite{voucher.prediction_sets > 1 ? 's' : ''}
+                    </Badge>
                   </div>
                   {voucher.used_by && (
                     <p className="text-[0.6rem] text-muted-foreground mt-0.5">

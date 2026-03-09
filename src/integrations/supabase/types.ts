@@ -401,6 +401,7 @@ export type Database = {
           created_at: string
           id: string
           pool_id: string
+          prediction_sets: number
           used_at: string | null
           used_by: string | null
         }
@@ -409,6 +410,7 @@ export type Database = {
           created_at?: string
           id?: string
           pool_id: string
+          prediction_sets?: number
           used_at?: string | null
           used_by?: string | null
         }
@@ -417,6 +419,7 @@ export type Database = {
           created_at?: string
           id?: string
           pool_id?: string
+          prediction_sets?: number
           used_at?: string | null
           used_by?: string | null
         }

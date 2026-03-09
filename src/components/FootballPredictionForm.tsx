@@ -65,6 +65,7 @@ const FootballPredictionForm = ({ poolId, userId, onSuccess, entryFee, pool, pix
   const [voucherCode, setVoucherCode] = useState("");
   const [voucherValid, setVoucherValid] = useState<boolean | null>(null);
   const [voucherChecking, setVoucherChecking] = useState(false);
+  const [voucherPredictionSets, setVoucherPredictionSets] = useState<number | null>(null);
 
   const isEstabelecimento = pool?.prize_type === 'estabelecimento';
   const hasEntryFee = !isEstabelecimento && pool?.entry_fee && parseFloat(pool.entry_fee) > 0;
@@ -170,13 +171,14 @@ const FootballPredictionForm = ({ poolId, userId, onSuccess, entryFee, pool, pix
 
     const { data, error } = await supabase
       .from("pool_vouchers")
-      .select("id, used_by")
+      .select("id, used_by, prediction_sets")
       .eq("pool_id", poolId)
       .eq("code", code)
       .maybeSingle();
 
     if (error || !data) {
       setVoucherValid(false);
+      setVoucherPredictionSets(null);
       toast({
         variant: "destructive",
         title: "Voucher inválido",
@@ -184,6 +186,7 @@ const FootballPredictionForm = ({ poolId, userId, onSuccess, entryFee, pool, pix
       });
     } else if (data.used_by) {
       setVoucherValid(false);
+      setVoucherPredictionSets(null);
       toast({
         variant: "destructive",
         title: "Voucher já utilizado",
@@ -191,9 +194,18 @@ const FootballPredictionForm = ({ poolId, userId, onSuccess, entryFee, pool, pix
       });
     } else {
       setVoucherValid(true);
+      const sets = (data as any).prediction_sets || 1;
+      setVoucherPredictionSets(sets);
+      // Initialize the exact number of prediction sets from the voucher
+      const newSets: PredictionSet[] = [];
+      for (let i = 0; i < sets; i++) {
+        newSets.push(matches.map(m => ({ matchId: m.id, homeScore: '', awayScore: '' })));
+      }
+      setPredictionSets(newSets);
+      setActiveSetIndex(0);
       toast({
         title: "Voucher válido! ✅",
-        description: "Você pode enviar seus palpites.",
+        description: `Liberado${sets > 1 ? `s ${sets} palpites` : ' 1 palpite'} para você.`,
       });
     }
     setVoucherChecking(false);
@@ -498,6 +510,55 @@ const FootballPredictionForm = ({ poolId, userId, onSuccess, entryFee, pool, pix
         </CollapsibleContent>
       </Collapsible>
 
+      {/* Voucher input for estabelecimento pools - shown before predictions */}
+      {isEstabelecimento && (
+        <div className="space-y-3 p-4 rounded-xl border-2 border-amber-500/40 bg-amber-50/50 dark:bg-amber-950/20">
+          <div className="flex items-center gap-2">
+            <Ticket className="w-5 h-5 text-amber-600 flex-shrink-0" />
+            <div>
+              <p className="font-semibold text-sm">Voucher de Entrada</p>
+              <p className="text-xs text-muted-foreground">
+                Insira o código do voucher fornecido pelo estabelecimento.
+              </p>
+            </div>
+          </div>
+          <div className="flex gap-2">
+            <Input
+              value={voucherCode}
+              onChange={(e) => {
+                setVoucherCode(e.target.value.toUpperCase());
+                setVoucherValid(null);
+                setVoucherPredictionSets(null);
+              }}
+              placeholder="Ex: ABC123"
+              className="font-mono text-center tracking-widest uppercase text-lg"
+              maxLength={6}
+            />
+            <Button
+              variant={voucherValid ? "default" : "outline"}
+              onClick={handleCheckVoucher}
+              disabled={voucherChecking || !voucherCode.trim() || voucherValid === true}
+              className="shrink-0"
+            >
+              {voucherChecking ? "..." : voucherValid ? "✅" : "Validar"}
+            </Button>
+          </div>
+          {voucherValid === false && (
+            <p className="text-xs text-destructive font-medium">
+              ❌ Voucher inválido ou já utilizado. Verifique o código.
+            </p>
+          )}
+          {voucherValid === true && voucherPredictionSets && (
+            <p className="text-xs text-green-600 dark:text-green-400 font-medium">
+              ✅ Voucher válido! {voucherPredictionSets > 1 ? `${voucherPredictionSets} palpites liberados.` : '1 palpite liberado.'} Preencha abaixo.
+            </p>
+          )}
+        </div>
+      )}
+
+      {/* Hide predictions until voucher is validated for estabelecimento */}
+      {(!isEstabelecimento || voucherValid) && (
+      <>
       {/* Prediction set tabs */}
       <div ref={tabsRef} className="flex items-center gap-2 flex-wrap p-3 rounded-lg bg-muted/60 border border-border">
         {predictionSets.map((_, i) => (
@@ -509,7 +570,7 @@ const FootballPredictionForm = ({ poolId, userId, onSuccess, entryFee, pool, pix
             className={`relative ${activeSetIndex === i ? 'ring-2 ring-primary/50 shadow-md' : ''}`}
           >
             🎯 Palpite {i + 1}
-            {predictionSets.length > 1 && (
+            {predictionSets.length > 1 && !isEstabelecimento && (
               <button
                 onClick={(e) => {
                   e.stopPropagation();
@@ -605,22 +666,24 @@ const FootballPredictionForm = ({ poolId, userId, onSuccess, entryFee, pool, pix
         );
       })}
 
-      {/* Add prediction set button + fee warning */}
-      <div className="space-y-2">
-        <Button
-          variant="outline"
-          onClick={addPredictionSet}
-          className="w-full border-dashed"
-        >
-          <Plus className="w-4 h-4 mr-2" />
-          Adicionar mais um palpite
-        </Button>
-        {hasEntryFee && (
-          <p className="text-xs text-center text-orange-600 dark:text-orange-400 font-medium">
-            ⚠️ Cada palpite adicional acrescenta <strong>R$ {feePerSet.toFixed(2).replace('.', ',')}</strong> ao valor da inscrição
-          </p>
-        )}
-      </div>
+      {/* Add prediction set button + fee warning (hide for estabelecimento) */}
+      {!isEstabelecimento && (
+        <div className="space-y-2">
+          <Button
+            variant="outline"
+            onClick={addPredictionSet}
+            className="w-full border-dashed"
+          >
+            <Plus className="w-4 h-4 mr-2" />
+            Adicionar mais um palpite
+          </Button>
+          {hasEntryFee && (
+            <p className="text-xs text-center text-orange-600 dark:text-orange-400 font-medium">
+              ⚠️ Cada palpite adicional acrescenta <strong>R$ {feePerSet.toFixed(2).replace('.', ',')}</strong> ao valor da inscrição
+            </p>
+          )}
+        </div>
+      )}
 
       <div className="p-3 rounded-lg bg-amber-50 dark:bg-amber-950/50 border border-amber-200 dark:border-amber-800 text-sm">
         <p className="font-medium text-amber-700 dark:text-amber-400">
@@ -631,50 +694,7 @@ const FootballPredictionForm = ({ poolId, userId, onSuccess, entryFee, pool, pix
         </p>
       </div>
 
-
-      {/* Voucher input for estabelecimento pools */}
-      {isEstabelecimento && (
-        <div className="space-y-3 p-4 rounded-xl border-2 border-amber-500/40 bg-amber-50/50 dark:bg-amber-950/20">
-          <div className="flex items-center gap-2">
-            <Ticket className="w-5 h-5 text-amber-600 flex-shrink-0" />
-            <div>
-              <p className="font-semibold text-sm">Voucher de Entrada</p>
-              <p className="text-xs text-muted-foreground">
-                Insira o código do voucher fornecido pelo estabelecimento.
-              </p>
-            </div>
-          </div>
-          <div className="flex gap-2">
-            <Input
-              value={voucherCode}
-              onChange={(e) => {
-                setVoucherCode(e.target.value.toUpperCase());
-                setVoucherValid(null);
-              }}
-              placeholder="Ex: ABC123"
-              className="font-mono text-center tracking-widest uppercase text-lg"
-              maxLength={6}
-            />
-            <Button
-              variant={voucherValid ? "default" : "outline"}
-              onClick={handleCheckVoucher}
-              disabled={voucherChecking || !voucherCode.trim() || voucherValid === true}
-              className="shrink-0"
-            >
-              {voucherChecking ? "..." : voucherValid ? "✅" : "Validar"}
-            </Button>
-          </div>
-          {voucherValid === false && (
-            <p className="text-xs text-destructive font-medium">
-              ❌ Voucher inválido ou já utilizado. Verifique o código.
-            </p>
-          )}
-          {voucherValid === true && (
-            <p className="text-xs text-green-600 dark:text-green-400 font-medium">
-              ✅ Voucher válido! Envie seus palpites abaixo.
-            </p>
-          )}
-        </div>
+      </>
       )}
 
       {/* Submit area with summary */}
