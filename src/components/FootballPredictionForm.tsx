@@ -236,6 +236,55 @@ const FootballPredictionForm = ({ poolId, userId, onSuccess, entryFee, pool, pix
       .eq("user_id", userId)
       .maybeSingle();
 
+    // For estabelecimento pools, the participant was already created by the owner
+    if (isEstabelecimento && existingParticipant && existingParticipant.status === 'approved') {
+      // Use existing participant for predictions
+      const participant = existingParticipant;
+
+      // Update guess_value
+      await supabase
+        .from("participants")
+        .update({ guess_value: `${predictionSets.length} palpite${predictionSets.length > 1 ? 's' : ''}` })
+        .eq("id", participant.id);
+
+      // Create predictions for all sets
+      const allPredictions = predictionSets.flatMap((set, setIndex) =>
+        set.filter(p => {
+          const match = matches.find(m => m.id === p.matchId);
+          const isPostponed = (match as any)?.status === 'postponed' || (match as any)?.status === 'cancelled' || (match as any)?.status === 'abandoned';
+          return !isPostponed;
+        }).map(p => ({
+          participant_id: participant.id,
+          match_id: p.matchId,
+          home_score_prediction: parseInt(p.homeScore),
+          away_score_prediction: parseInt(p.awayScore),
+          prediction_set: setIndex + 1,
+        }))
+      );
+
+      const { error: predictionsError } = await supabase
+        .from("football_predictions")
+        .insert(allPredictions);
+
+      if (predictionsError) {
+        toast({
+          variant: "destructive",
+          title: "Erro",
+          description: predictionsError.message,
+        });
+      } else {
+        toast({
+          title: "🎉 Palpites enviados!",
+          description: `${predictionSets.length} palpite${predictionSets.length > 1 ? 's' : ''} salvo${predictionSets.length > 1 ? 's' : ''}. Boa sorte! 🍀`,
+          duration: 5000,
+        });
+        setSubmitted(true);
+        onSuccess();
+      }
+      setSubmitting(false);
+      return;
+    }
+
     if (existingParticipant && existingParticipant.status !== 'rejected') {
       toast({
         variant: "destructive",
