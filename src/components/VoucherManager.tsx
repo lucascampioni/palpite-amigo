@@ -22,6 +22,7 @@ interface VoucherManagerProps {
   poolId: string;
   poolTitle: string;
   poolSlug?: string;
+  deadline?: string;
 }
 
 const generateVoucherCode = (): string => {
@@ -33,13 +34,17 @@ const generateVoucherCode = (): string => {
   return code;
 };
 
-const VoucherManager = ({ poolId, poolTitle, poolSlug }: VoucherManagerProps) => {
+const VoucherManager = ({ poolId, poolTitle, poolSlug, deadline }: VoucherManagerProps) => {
   const { toast } = useToast();
   const [vouchers, setVouchers] = useState<Voucher[]>([]);
   const [loading, setLoading] = useState(true);
   const [generating, setGenerating] = useState(false);
   const [usedByNames, setUsedByNames] = useState<Record<string, string>>({});
   const [newVoucherSets, setNewVoucherSets] = useState(1);
+
+  // Voucher generation cutoff: 30 minutes before deadline
+  const cutoffTime = deadline ? new Date(new Date(deadline).getTime() - 30 * 60 * 1000) : null;
+  const isPastCutoff = cutoffTime ? new Date() >= cutoffTime : false;
 
   useEffect(() => {
     loadVouchers();
@@ -194,13 +199,23 @@ const VoucherManager = ({ poolId, poolTitle, poolSlug }: VoucherManagerProps) =>
 
         <Button
           onClick={handleGenerateVoucher}
-          disabled={generating}
+          disabled={generating || isPastCutoff}
           className="w-full"
           size="sm"
         >
           <Plus className="w-4 h-4 mr-2" />
           {generating ? "Gerando..." : `Gerar Voucher (${newVoucherSets} palpite${newVoucherSets > 1 ? 's' : ''})`}
         </Button>
+
+        {isPastCutoff ? (
+          <p className="text-xs text-center text-destructive font-medium">
+            ⏰ O prazo para gerar vouchers encerrou (30 min antes do prazo de palpites).
+          </p>
+        ) : cutoffTime && (
+          <p className="text-xs text-center text-muted-foreground">
+            ⏰ Você pode gerar vouchers até <strong>{format(cutoffTime, "dd/MM 'às' HH:mm", { locale: ptBR })}</strong> (30 min antes do prazo de palpites)
+          </p>
+        )}
 
         {loading ? (
           <p className="text-sm text-muted-foreground text-center py-2">Carregando...</p>

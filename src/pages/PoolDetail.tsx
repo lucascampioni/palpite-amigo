@@ -1302,6 +1302,7 @@ const PoolDetail = () => {
                   poolId={pool.id}
                   poolTitle={pool.title}
                   poolSlug={pool.slug}
+                  deadline={pool.deadline}
                 />
               </>
             )}
