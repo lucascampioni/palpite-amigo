@@ -400,6 +400,7 @@ export type Database = {
           code: string
           created_at: string
           id: string
+          phone: string | null
           pool_id: string
           prediction_sets: number
           used_at: string | null
@@ -409,6 +410,7 @@ export type Database = {
           code: string
           created_at?: string
           id?: string
+          phone?: string | null
           pool_id: string
           prediction_sets?: number
           used_at?: string | null
@@ -418,6 +420,7 @@ export type Database = {
           code?: string
           created_at?: string
           id?: string
+          phone?: string | null
           pool_id?: string
           prediction_sets?: number
           used_at?: string | null
