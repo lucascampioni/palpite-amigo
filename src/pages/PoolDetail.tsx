@@ -1294,6 +1294,18 @@ const PoolDetail = () => {
               />
             )}
 
+            {/* Voucher Manager for Estabelecimento pools */}
+            {isOwner && pool.prize_type === 'estabelecimento' && pool.status === 'active' && (
+              <>
+                <Separator />
+                <VoucherManager
+                  poolId={pool.id}
+                  poolTitle={pool.title}
+                  poolSlug={pool.slug}
+                />
+              </>
+            )}
+
             {isOwner && pool.status === "active" && (
               <>
                 <Separator />
