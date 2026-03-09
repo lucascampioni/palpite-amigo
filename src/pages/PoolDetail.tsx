@@ -1854,9 +1854,12 @@ const PoolDetail = () => {
                           ✅ <strong>Critério de empate:</strong>
                         </p>
                         {pool?.prize_type === 'estabelecimento' ? (
-                          <p className="text-xs text-muted-foreground mt-1">
-                            Se houver empate na maior pontuação, um novo bolão gratuito será realizado apenas entre os empatados para definir o campeão.
-                          </p>
+                          <ul className="list-decimal list-inside space-y-0.5 text-muted-foreground text-xs mt-1">
+                            <li>Maior número de placares exatos</li>
+                            <li>Maior número total de acertos</li>
+                            <li>Horário do envio do palpite (quem enviou primeiro)</li>
+                            <li>Sorteio automático</li>
+                          </ul>
                         ) : pool?.max_winners === 1 ? (
                           <p className="text-xs text-muted-foreground mt-1">
                             Se houver empate na maior pontuação, o prêmio do 1º lugar será dividido igualmente entre todos os empatados.
