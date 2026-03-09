@@ -236,6 +236,9 @@ const VoucherManager = ({ poolId, poolTitle, poolSlug }: VoucherManagerProps) =>
                         Disponível
                       </Badge>
                     )}
+                    <Badge variant="outline" className="text-[0.6rem] px-1.5 py-0">
+                      {voucher.prediction_sets} palpite{voucher.prediction_sets > 1 ? 's' : ''}
+                    </Badge>
                   </div>
                   {voucher.used_by && (
                     <p className="text-[0.6rem] text-muted-foreground mt-0.5">

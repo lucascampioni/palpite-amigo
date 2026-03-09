@@ -65,6 +65,7 @@ const FootballPredictionForm = ({ poolId, userId, onSuccess, entryFee, pool, pix
   const [voucherCode, setVoucherCode] = useState("");
   const [voucherValid, setVoucherValid] = useState<boolean | null>(null);
   const [voucherChecking, setVoucherChecking] = useState(false);
+  const [voucherPredictionSets, setVoucherPredictionSets] = useState<number | null>(null);
 
   const isEstabelecimento = pool?.prize_type === 'estabelecimento';
   const hasEntryFee = !isEstabelecimento && pool?.entry_fee && parseFloat(pool.entry_fee) > 0;
