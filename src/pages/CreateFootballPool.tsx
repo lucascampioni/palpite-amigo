@@ -85,22 +85,24 @@ const CreateFootballPool = () => {
     return parts.join(', ');
   };
 
-  // Load saved address from localStorage
+  // Load saved address from localStorage when user is Estabelecimento
   useEffect(() => {
-    const saved = localStorage.getItem('estabelecimento_saved_address');
-    if (saved) {
-      try {
-        const parsed = JSON.parse(saved);
-        setAddressStreet(parsed.street || '');
-        setAddressNumber(parsed.number || '');
-        setAddressComplement(parsed.complement || '');
-        setAddressNeighborhood(parsed.neighborhood || '');
-        setAddressCity(parsed.city || '');
-        setAddressState(parsed.state || '');
-        setSaveAddress(true);
-      } catch { /* ignore invalid data */ }
+    if (!isLoadingRole && userRole?.isEstabelecimento) {
+      const saved = localStorage.getItem('estabelecimento_saved_address');
+      if (saved) {
+        try {
+          const parsed = JSON.parse(saved);
+          setAddressStreet(parsed.street || '');
+          setAddressNumber(parsed.number || '');
+          setAddressComplement(parsed.complement || '');
+          setAddressNeighborhood(parsed.neighborhood || '');
+          setAddressCity(parsed.city || '');
+          setAddressState(parsed.state || '');
+          setSaveAddress(true);
+        } catch { /* ignore invalid data */ }
+      }
     }
-  }, []);
+  }, [isLoadingRole, userRole?.isEstabelecimento]);
   const [firstPlacePrize, setFirstPlacePrize] = useState("");
   const [secondPlacePrize, setSecondPlacePrize] = useState("");
   const [thirdPlacePrize, setThirdPlacePrize] = useState("");
