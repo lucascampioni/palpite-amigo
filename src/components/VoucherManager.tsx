@@ -22,6 +22,7 @@ interface VoucherManagerProps {
   poolId: string;
   poolTitle: string;
   poolSlug?: string;
+  deadline?: string;
 }
 
 const generateVoucherCode = (): string => {
