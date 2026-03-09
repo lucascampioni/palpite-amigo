@@ -34,13 +34,17 @@ const generateVoucherCode = (): string => {
   return code;
 };
 
-const VoucherManager = ({ poolId, poolTitle, poolSlug }: VoucherManagerProps) => {
+const VoucherManager = ({ poolId, poolTitle, poolSlug, deadline }: VoucherManagerProps) => {
   const { toast } = useToast();
   const [vouchers, setVouchers] = useState<Voucher[]>([]);
   const [loading, setLoading] = useState(true);
   const [generating, setGenerating] = useState(false);
   const [usedByNames, setUsedByNames] = useState<Record<string, string>>({});
   const [newVoucherSets, setNewVoucherSets] = useState(1);
+
+  // Voucher generation cutoff: 30 minutes before deadline
+  const cutoffTime = deadline ? new Date(new Date(deadline).getTime() - 30 * 60 * 1000) : null;
+  const isPastCutoff = cutoffTime ? new Date() >= cutoffTime : false;
 
   useEffect(() => {
     loadVouchers();
