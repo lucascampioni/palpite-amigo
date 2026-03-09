@@ -1362,7 +1362,7 @@ const PoolDetail = () => {
 
             {!isOwner && pool.status === "active" && !isPastDeadline && (
               <>
-                {hasJoined && !(pool.prize_type === 'estabelecimento' && currentUserParticipant?.status === 'approved' && !participantsPoints[currentUserParticipant?.id]) ? (
+                {hasJoined && !(pool.prize_type === 'estabelecimento' && currentUserParticipant?.status === 'approved' && !currentUserParticipant?._hasPredictions) ? (
                   <>
                     {currentUserParticipant?.status === 'rejected' ? (
                       <>
