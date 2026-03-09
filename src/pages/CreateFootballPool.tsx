@@ -66,6 +66,7 @@ const CreateFootballPool = () => {
   const [maxWinners, setMaxWinners] = useState<number>(1);
   const [prizeType, setPrizeType] = useState<'fixed' | 'percentage' | 'estabelecimento'>('fixed');
   const [estabelecimentoPrizeDescription, setEstabelecimentoPrizeDescription] = useState("");
+  const [addressName, setAddressName] = useState("");
   const [addressStreet, setAddressStreet] = useState("");
   const [addressNumber, setAddressNumber] = useState("");
   const [addressComplement, setAddressComplement] = useState("");
@@ -75,14 +76,15 @@ const CreateFootballPool = () => {
   const [saveAddress, setSaveAddress] = useState(false);
 
   const buildFullAddress = () => {
-    const parts = [
+    const addressParts = [
       addressStreet.trim(),
       addressNumber.trim(),
       addressComplement.trim() ? `(${addressComplement.trim()})` : '',
       addressNeighborhood.trim() ? `${addressNeighborhood.trim()}` : '',
       `${addressCity.trim()}/${addressState.trim()}`
     ].filter(Boolean);
-    return parts.join(', ');
+    const address = addressParts.join(', ');
+    return addressName.trim() ? `${addressName.trim()}\n${address}` : address;
   };
 
   // Load saved address from localStorage when user is Estabelecimento
