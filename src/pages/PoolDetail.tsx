@@ -1148,12 +1148,12 @@ const PoolDetail = () => {
 
               {/* Estabelecimento prize display */}
               {pool.prize_type === 'estabelecimento' && pool.estabelecimento_prize_description && (
-                <div className="rounded-xl bg-gradient-to-r from-amber-500/10 via-primary/5 to-orange-500/10 border-2 border-amber-500/40 px-4 py-3">
-                  <div className="flex items-center justify-center gap-2 mb-1.5">
-                    <Trophy className="w-4 h-4 text-amber-600 flex-shrink-0" />
-                    <span className="font-semibold text-amber-600">🏪 Prêmio do Estabelecimento</span>
+                <div className="rounded-xl bg-gradient-to-r from-amber-500/10 via-primary/5 to-orange-500/10 border-2 border-amber-500/40 px-4 py-4">
+                  {/* Prize name - MAIN highlight */}
+                  <div className="text-center mb-3">
+                    <p className="text-xs font-medium text-amber-600 mb-1">🏆 Prêmio</p>
+                    <p className="text-xl sm:text-2xl font-extrabold text-foreground leading-tight">{pool.estabelecimento_prize_description}</p>
                   </div>
-                  <p className="text-sm text-center font-medium">{pool.estabelecimento_prize_description}</p>
                   {pool.estabelecimento_prize_address && (() => {
                     const addressParts = pool.estabelecimento_prize_address.split('\n');
                     const hasName = addressParts.length > 1;
@@ -1161,9 +1161,9 @@ const PoolDetail = () => {
                     const addressLine = hasName ? addressParts.slice(1).join(', ') : addressParts[0];
                     return (
                       <div className="mt-2 p-2.5 rounded-lg bg-background/80 border border-amber-300/50 dark:border-amber-700/50">
-                        <p className="text-xs font-semibold text-center text-amber-700 dark:text-amber-400 mb-1">📍 Local para resgate do prêmio</p>
+                        <p className="text-[0.65rem] font-medium text-center text-muted-foreground mb-0.5">📍 Local para resgate</p>
                         {placeName && (
-                          <p className="text-base text-center font-bold">{placeName}</p>
+                          <p className="text-sm text-center font-semibold">{placeName}</p>
                         )}
                         <p className="text-xs text-center text-muted-foreground mt-0.5">{addressLine}</p>
                         <button
@@ -1181,7 +1181,7 @@ const PoolDetail = () => {
                     );
                   })()}
                   <p className="text-[0.65rem] text-muted-foreground text-center mt-2">
-                    ⚠️ Em caso de empate, o desempate segue a ordem: placares exatos → acertos totais → horário de envio → sorteio automático.
+                    ⚠️ Em caso de empate na maior pontuação, um novo bolão gratuito será realizado apenas entre os empatados para definir o campeão.
                   </p>
                 </div>
               )}
@@ -1853,7 +1853,11 @@ const PoolDetail = () => {
                         <p className="text-xs text-muted-foreground flex items-center gap-1">
                           ✅ <strong>Critério de empate:</strong>
                         </p>
-                        {pool?.max_winners === 1 ? (
+                        {pool?.prize_type === 'estabelecimento' ? (
+                          <p className="text-xs text-muted-foreground mt-1">
+                            Se houver empate na maior pontuação, um novo bolão gratuito será realizado apenas entre os empatados para definir o campeão.
+                          </p>
+                        ) : pool?.max_winners === 1 ? (
                           <p className="text-xs text-muted-foreground mt-1">
                             Se houver empate na maior pontuação, o prêmio do 1º lugar será dividido igualmente entre todos os empatados.
                           </p>

@@ -257,6 +257,91 @@ serve(async (req) => {
       console.log(`✅ Finished notifications sent for pool "${pool.title}"`);
     }
 
+    // ═══════════════════════════════════════════════════════════════
+    // 4. VOUCHER REMINDER - notify invited participants who haven't made predictions
+    //    3h30 before deadline (estabelecimento pools)
+    // ═══════════════════════════════════════════════════════════════
+
+    const now = new Date();
+    const reminderWindowMs = 3.5 * 60 * 60 * 1000; // 3h30min
+
+    // Find active estabelecimento pools whose deadline is 3h30 from now (±5 min window)
+    const { data: estabelecimentoPools } = await supabase
+      .from('pools')
+      .select('id, title, slug, deadline, prize_type')
+      .eq('status', 'active')
+      .eq('prize_type', 'estabelecimento');
+
+    for (const pool of estabelecimentoPools || []) {
+      const deadlineTime = new Date(pool.deadline).getTime();
+      const timeUntilDeadline = deadlineTime - now.getTime();
+      
+      // Only send if within 3h30 ± 5min window
+      if (timeUntilDeadline > reminderWindowMs + 5 * 60 * 1000 || timeUntilDeadline < reminderWindowMs - 5 * 60 * 1000) {
+        continue;
+      }
+
+      console.log(`⏰ Sending voucher reminders for estabelecimento pool "${pool.title}"`);
+      const poolLink = `https://delfos.app.br/bolao/${pool.slug || pool.id}`;
+
+      // Get vouchers with linked users (used_by not null)
+      const { data: vouchers } = await supabase
+        .from('pool_vouchers')
+        .select('id, phone, used_by, prediction_sets')
+        .eq('pool_id', pool.id);
+
+      if (!vouchers || vouchers.length === 0) continue;
+
+      for (const voucher of vouchers) {
+        let needsReminder = false;
+        let recipientPhone = voucher.phone;
+
+        if (!voucher.used_by) {
+          // User hasn't even registered yet
+          needsReminder = true;
+        } else {
+          // User registered - check if they made predictions
+          const { data: participant } = await supabase
+            .from('participants')
+            .select('id')
+            .eq('pool_id', pool.id)
+            .eq('user_id', voucher.used_by)
+            .eq('status', 'approved')
+            .maybeSingle();
+
+          if (participant) {
+            const { count } = await supabase
+              .from('football_predictions')
+              .select('id', { count: 'exact', head: true })
+              .eq('participant_id', participant.id);
+
+            if (!count || count === 0) {
+              needsReminder = true;
+            }
+          } else {
+            needsReminder = true;
+          }
+        }
+
+        if (!needsReminder || !recipientPhone) continue;
+
+        const deadlineFormatted = new Date(pool.deadline).toLocaleString('pt-BR', { 
+          day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit', timeZone: 'America/Sao_Paulo' 
+        });
+
+        const message = voucher.used_by
+          ? `⏰ *Delfos - Lembrete!*\n\nVocê foi inscrito no bolão *"${pool.title}"*, mas ainda não fez seus palpites!\n\nO prazo encerra em *${deadlineFormatted}*.\n\n👉 Faça seus palpites agora:\n${poolLink}\n\nNão perca! 🍀`
+          : `⏰ *Delfos - Lembrete!*\n\nVocê foi convidado para o bolão *"${pool.title}"*, mas ainda não se cadastrou!\n\nO prazo encerra em *${deadlineFormatted}*.\n\n📲 Crie sua conta e faça seus palpites:\n${poolLink}\n\nNão perca! 🍀`;
+
+        const sendResult = await sendWhatsApp(ZAPI_INSTANCE_ID, ZAPI_TOKEN, ZAPI_CLIENT_TOKEN, recipientPhone, message);
+        results.push({ type: 'voucher_reminder', pool: pool.title, phone: recipientPhone, ...sendResult });
+
+        await new Promise(resolve => setTimeout(resolve, 1000));
+      }
+
+      console.log(`✅ Voucher reminders sent for pool "${pool.title}"`);
+    }
+
     const sent = results.filter(r => r.success).length;
     console.log(`📨 Pool event notifications: ${sent}/${results.length} sent`);
 
