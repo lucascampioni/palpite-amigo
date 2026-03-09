@@ -440,15 +440,31 @@ const CreateFootballPool = () => {
               <CollapsibleContent>
                 <div className="bg-muted/50 px-4 pb-3 pt-2 rounded-b-lg text-sm -mt-1">
                   <ul className="list-disc list-inside space-y-1 text-muted-foreground">
-                    <li>Prazo para palpites: <strong>3 horas</strong> antes do primeiro jogo</li>
-                    <li>Prazo para comprovante de pagamento: <strong>2h30</strong> antes do primeiro jogo</li>
-                    <li>Participantes sem comprovante até o prazo serão <strong>rejeitados automaticamente</strong></li>
-                    <li>Comprovantes pendentes de aprovação serão <strong>aprovados automaticamente</strong> no início do jogo</li>
-                    <li>Jogos são atualizados em tempo real</li>
-                    <li>Resultados sincronizados direto da fonte oficial</li>
-                    <li>Pontuação calculada conforme os resultados dos jogos</li>
-                    <li>Vencedor definido ao final de todos os jogos</li>
-                    <li>Em caso de <strong>0 pontos para todos</strong>, o desempate será pela <strong>ordem de envio dos palpites</strong> (quem enviou primeiro)</li>
+                    {userRole?.isEstabelecimento ? (
+                      <>
+                        <li>Gere <strong>vouchers</strong> para seus clientes — cada voucher libera a entrada de um participante</li>
+                        <li>Sem necessidade de PIX ou aprovação manual — o voucher é a entrada</li>
+                        <li>Prazo para palpites: <strong>3 horas</strong> antes do primeiro jogo</li>
+                        <li>Jogos são atualizados em tempo real</li>
+                        <li>Resultados sincronizados direto da fonte oficial</li>
+                        <li>Sistema de pontuação: <strong>Placar exato (10 pts)</strong>, Resultado + saldo de gols (7 pts), Resultado + um placar correto (5 pts), Resultado correto (3 pts)</li>
+                        <li><strong>Desempate automático:</strong> 1º Placares exatos → 2º Acertos totais → 3º Horário de envio → 4º Sorteio</li>
+                        <li>Prêmio definido pelo estabelecimento (produto, serviço, etc.)</li>
+                        <li>Apenas <strong>1 vencedor</strong> por bolão</li>
+                      </>
+                    ) : (
+                      <>
+                        <li>Prazo para palpites: <strong>3 horas</strong> antes do primeiro jogo</li>
+                        <li>Prazo para comprovante de pagamento: <strong>2h30</strong> antes do primeiro jogo</li>
+                        <li>Participantes sem comprovante até o prazo serão <strong>rejeitados automaticamente</strong></li>
+                        <li>Comprovantes pendentes de aprovação serão <strong>aprovados automaticamente</strong> no início do jogo</li>
+                        <li>Jogos são atualizados em tempo real</li>
+                        <li>Resultados sincronizados direto da fonte oficial</li>
+                        <li>Pontuação calculada conforme os resultados dos jogos</li>
+                        <li>Vencedor definido ao final de todos os jogos</li>
+                        <li>Em caso de <strong>0 pontos para todos</strong>, o desempate será pela <strong>ordem de envio dos palpites</strong> (quem enviou primeiro)</li>
+                      </>
+                    )}
                   </ul>
                 </div>
               </CollapsibleContent>
