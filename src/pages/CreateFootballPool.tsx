@@ -66,6 +66,7 @@ const CreateFootballPool = () => {
   const [maxWinners, setMaxWinners] = useState<number>(1);
   const [prizeType, setPrizeType] = useState<'fixed' | 'percentage' | 'estabelecimento'>('fixed');
   const [estabelecimentoPrizeDescription, setEstabelecimentoPrizeDescription] = useState("");
+  const [addressName, setAddressName] = useState("");
   const [addressStreet, setAddressStreet] = useState("");
   const [addressNumber, setAddressNumber] = useState("");
   const [addressComplement, setAddressComplement] = useState("");
@@ -75,14 +76,15 @@ const CreateFootballPool = () => {
   const [saveAddress, setSaveAddress] = useState(false);
 
   const buildFullAddress = () => {
-    const parts = [
+    const addressParts = [
       addressStreet.trim(),
       addressNumber.trim(),
       addressComplement.trim() ? `(${addressComplement.trim()})` : '',
       addressNeighborhood.trim() ? `${addressNeighborhood.trim()}` : '',
       `${addressCity.trim()}/${addressState.trim()}`
     ].filter(Boolean);
-    return parts.join(', ');
+    const address = addressParts.join(', ');
+    return addressName.trim() ? `${addressName.trim()}\n${address}` : address;
   };
 
   // Load saved address from localStorage when user is Estabelecimento
@@ -92,6 +94,7 @@ const CreateFootballPool = () => {
       if (saved) {
         try {
           const parsed = JSON.parse(saved);
+          setAddressName(parsed.name || '');
           setAddressStreet(parsed.street || '');
           setAddressNumber(parsed.number || '');
           setAddressComplement(parsed.complement || '');
@@ -699,7 +702,11 @@ const CreateFootballPool = () => {
                       />
                     </div>
                     <div className="space-y-3">
-                      <Label className="text-sm font-medium">📍 Endereço para Resgate do Prêmio *</Label>
+                      <Label className="text-sm font-medium">📍 Local para Resgate do Prêmio *</Label>
+                      <div className="space-y-1">
+                        <Label htmlFor="address_name" className="text-xs text-muted-foreground">Nome do Estabelecimento</Label>
+                        <Input id="address_name" value={addressName} onChange={(e) => setAddressName(e.target.value)} placeholder="Ex: Barbearia do João" required />
+                      </div>
                       <div className="grid grid-cols-3 gap-3">
                         <div className="col-span-2 space-y-1">
                           <Label htmlFor="address_street" className="text-xs text-muted-foreground">Rua / Avenida</Label>
@@ -748,7 +755,7 @@ const CreateFootballPool = () => {
                           onCheckedChange={(checked) => {
                             setSaveAddress(!!checked);
                             if (checked) {
-                              const addrData = JSON.stringify({ street: addressStreet, number: addressNumber, complement: addressComplement, neighborhood: addressNeighborhood, city: addressCity, state: addressState });
+                              const addrData = JSON.stringify({ name: addressName, street: addressStreet, number: addressNumber, complement: addressComplement, neighborhood: addressNeighborhood, city: addressCity, state: addressState });
                               localStorage.setItem('estabelecimento_saved_address', addrData);
                             } else {
                               localStorage.removeItem('estabelecimento_saved_address');
