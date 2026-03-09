@@ -9,7 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { Copy, Upload, AlertTriangle, Plus, Trash2 } from "lucide-react";
+import { Copy, Upload, AlertTriangle, Plus, Trash2, Ticket } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { PaymentProofSubmission } from "@/components/PaymentProofSubmission";
 import { Checkbox } from "@/components/ui/checkbox";
