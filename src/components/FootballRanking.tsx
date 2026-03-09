@@ -19,6 +19,7 @@ interface FootballRankingProps {
     prize_type?: string;
     entry_fee?: number;
     estabelecimento_prize_description?: string;
+    tiebreaker_method?: string | null;
   };
   approvedParticipantsCount?: number;
   isOwner?: boolean;
@@ -33,6 +34,8 @@ interface ParticipantScore {
   prize_status?: string | null;
   prediction_set: number;
   earliest_prediction_at?: string | null;
+  exact_scores?: number;
+  correct_results?: number;
 }
 
 interface MatchPrediction {
