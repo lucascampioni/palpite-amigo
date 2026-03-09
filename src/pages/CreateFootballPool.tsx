@@ -144,6 +144,7 @@ const CreateFootballPool = () => {
     if (!isLoadingRole && userRole?.canCreatePools && !userRole?.isAdmin) {
       if (userRole?.isEstabelecimento) {
         setPrizeType('estabelecimento');
+        setScoringSystem('standard');
       } else {
         setPrizeType('percentage');
       }
@@ -735,53 +736,10 @@ const CreateFootballPool = () => {
                 )}
               </div>
 
-              <div className="space-y-4 rounded-lg border p-4 bg-muted/30">
-                <Label className="text-lg">⚡ Sistema de Pontuação</Label>
-                <p className="text-sm text-muted-foreground">
-                  Escolha como os pontos serão calculados nos palpites
-                </p>
-                <div className="space-y-3">
-                  <div 
-                    className={`flex items-start gap-3 p-3 rounded-lg border-2 cursor-pointer transition-colors ${
-                      scoringSystem === 'exact_only' 
-                        ? 'border-primary bg-primary/5' 
-                        : 'border-muted hover:border-primary/50'
-                    }`}
-                    onClick={() => setScoringSystem('exact_only')}
-                  >
-                    <input
-                      type="radio"
-                      name="scoring_system"
-                      value="exact_only"
-                      checked={scoringSystem === 'exact_only'}
-                      onChange={() => setScoringSystem('exact_only')}
-                      className="mt-1"
-                    />
-                    <div className="flex-1">
-                      <div className="font-semibold mb-1">Sistema Simplificado</div>
-                      <ul className="text-sm text-muted-foreground space-y-1">
-                        <li>• Placar exato: <strong>1 ponto</strong></li>
-                        <li>• Qualquer outro resultado: <strong>0 pontos</strong></li>
-                      </ul>
-                    </div>
-                  </div>
-                  
-                  <div 
-                    className={`flex items-start gap-3 p-3 rounded-lg border-2 cursor-pointer transition-colors ${
-                      scoringSystem === 'standard' 
-                        ? 'border-primary bg-primary/5' 
-                        : 'border-muted hover:border-primary/50'
-                    }`}
-                    onClick={() => setScoringSystem('standard')}
-                  >
-                    <input
-                      type="radio"
-                      name="scoring_system"
-                      value="standard"
-                      checked={scoringSystem === 'standard'}
-                      onChange={() => setScoringSystem('standard')}
-                      className="mt-1"
-                    />
+              {userRole?.isEstabelecimento ? (
+                <div className="space-y-4 rounded-lg border p-4 bg-muted/30">
+                  <Label className="text-lg">⚡ Sistema de Pontuação</Label>
+                  <div className="flex items-start gap-3 p-3 rounded-lg border-2 border-primary bg-primary/5">
                     <div className="flex-1">
                       <div className="font-semibold mb-1">Sistema Completo</div>
                       <ul className="text-sm text-muted-foreground space-y-1">
@@ -792,7 +750,66 @@ const CreateFootballPool = () => {
                     </div>
                   </div>
                 </div>
-              </div>
+              ) : (
+                <div className="space-y-4 rounded-lg border p-4 bg-muted/30">
+                  <Label className="text-lg">⚡ Sistema de Pontuação</Label>
+                  <p className="text-sm text-muted-foreground">
+                    Escolha como os pontos serão calculados nos palpites
+                  </p>
+                  <div className="space-y-3">
+                    <div 
+                      className={`flex items-start gap-3 p-3 rounded-lg border-2 cursor-pointer transition-colors ${
+                        scoringSystem === 'exact_only' 
+                          ? 'border-primary bg-primary/5' 
+                          : 'border-muted hover:border-primary/50'
+                      }`}
+                      onClick={() => setScoringSystem('exact_only')}
+                    >
+                      <input
+                        type="radio"
+                        name="scoring_system"
+                        value="exact_only"
+                        checked={scoringSystem === 'exact_only'}
+                        onChange={() => setScoringSystem('exact_only')}
+                        className="mt-1"
+                      />
+                      <div className="flex-1">
+                        <div className="font-semibold mb-1">Sistema Simplificado</div>
+                        <ul className="text-sm text-muted-foreground space-y-1">
+                          <li>• Placar exato: <strong>1 ponto</strong></li>
+                          <li>• Qualquer outro resultado: <strong>0 pontos</strong></li>
+                        </ul>
+                      </div>
+                    </div>
+                    
+                    <div 
+                      className={`flex items-start gap-3 p-3 rounded-lg border-2 cursor-pointer transition-colors ${
+                        scoringSystem === 'standard' 
+                          ? 'border-primary bg-primary/5' 
+                          : 'border-muted hover:border-primary/50'
+                      }`}
+                      onClick={() => setScoringSystem('standard')}
+                    >
+                      <input
+                        type="radio"
+                        name="scoring_system"
+                        value="standard"
+                        checked={scoringSystem === 'standard'}
+                        onChange={() => setScoringSystem('standard')}
+                        className="mt-1"
+                      />
+                      <div className="flex-1">
+                        <div className="font-semibold mb-1">Sistema Completo</div>
+                        <ul className="text-sm text-muted-foreground space-y-1">
+                          <li>• Placar exato: <strong>5 pontos</strong></li>
+                          <li>• Acertar o vencedor ou empate: <strong>3 pontos</strong></li>
+                          <li>• Acertar a diferença de gols (caso acerte o vencedor ou empate): <strong>+1 ponto</strong></li>
+                        </ul>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
 
               <div className="space-y-3">
                 <div className="flex items-start gap-2">
