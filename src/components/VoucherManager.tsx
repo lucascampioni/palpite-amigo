@@ -199,13 +199,23 @@ const VoucherManager = ({ poolId, poolTitle, poolSlug, deadline }: VoucherManage
 
         <Button
           onClick={handleGenerateVoucher}
-          disabled={generating}
+          disabled={generating || isPastCutoff}
           className="w-full"
           size="sm"
         >
           <Plus className="w-4 h-4 mr-2" />
           {generating ? "Gerando..." : `Gerar Voucher (${newVoucherSets} palpite${newVoucherSets > 1 ? 's' : ''})`}
         </Button>
+
+        {isPastCutoff ? (
+          <p className="text-xs text-center text-destructive font-medium">
+            ⏰ O prazo para gerar vouchers encerrou (30 min antes do prazo de palpites).
+          </p>
+        ) : cutoffTime && (
+          <p className="text-xs text-center text-muted-foreground">
+            ⏰ Você pode gerar vouchers até <strong>{format(cutoffTime, "dd/MM 'às' HH:mm", { locale: ptBR })}</strong> (30 min antes do prazo de palpites)
+          </p>
+        )}
 
         {loading ? (
           <p className="text-sm text-muted-foreground text-center py-2">Carregando...</p>
