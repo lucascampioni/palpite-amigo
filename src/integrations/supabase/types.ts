@@ -426,6 +426,7 @@ export type Database = {
           slug: string | null
           status: Database["public"]["Enums"]["pool_status"]
           third_place_prize: number | null
+          tiebreaker_method: string | null
           title: string
           updated_at: string
           winner_id: string | null
@@ -460,6 +461,7 @@ export type Database = {
           slug?: string | null
           status?: Database["public"]["Enums"]["pool_status"]
           third_place_prize?: number | null
+          tiebreaker_method?: string | null
           title: string
           updated_at?: string
           winner_id?: string | null
@@ -494,6 +496,7 @@ export type Database = {
           slug?: string | null
           status?: Database["public"]["Enums"]["pool_status"]
           third_place_prize?: number | null
+          tiebreaker_method?: string | null
           title?: string
           updated_at?: string
           winner_id?: string | null
