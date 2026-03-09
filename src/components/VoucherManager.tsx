@@ -159,10 +159,38 @@ const VoucherManager = ({ poolId, poolTitle, poolSlug }: VoucherManagerProps) =>
           </div>
         </div>
         <p className="text-xs text-muted-foreground mt-1">
-          Gere vouchers para seus clientes. Cada voucher permite a entrada de 1 participante no bolão.
+          Gere vouchers para seus clientes. Cada voucher libera a quantidade de palpites definida.
         </p>
       </CardHeader>
       <CardContent className="space-y-3">
+        {/* Prediction sets selector */}
+        <div className="flex items-center gap-3 p-3 rounded-lg border bg-muted/30">
+          <Label className="text-sm font-medium whitespace-nowrap">Qtd. de palpites:</Label>
+          <div className="flex items-center gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              size="icon"
+              className="h-8 w-8"
+              onClick={() => setNewVoucherSets(Math.max(1, newVoucherSets - 1))}
+              disabled={newVoucherSets <= 1}
+            >
+              -
+            </Button>
+            <span className="font-bold text-lg w-8 text-center">{newVoucherSets}</span>
+            <Button
+              type="button"
+              variant="outline"
+              size="icon"
+              className="h-8 w-8"
+              onClick={() => setNewVoucherSets(newVoucherSets + 1)}
+              disabled={newVoucherSets >= 10}
+            >
+              +
+            </Button>
+          </div>
+        </div>
+
         <Button
           onClick={handleGenerateVoucher}
           disabled={generating}
@@ -170,7 +198,7 @@ const VoucherManager = ({ poolId, poolTitle, poolSlug }: VoucherManagerProps) =>
           size="sm"
         >
           <Plus className="w-4 h-4 mr-2" />
-          {generating ? "Gerando..." : "Gerar Novo Voucher"}
+          {generating ? "Gerando..." : `Gerar Voucher (${newVoucherSets} palpite${newVoucherSets > 1 ? 's' : ''})`}
         </Button>
 
         {loading ? (
