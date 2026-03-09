@@ -38,6 +38,7 @@ const VoucherManager = ({ poolId, poolTitle, poolSlug }: VoucherManagerProps) =>
   const [loading, setLoading] = useState(true);
   const [generating, setGenerating] = useState(false);
   const [usedByNames, setUsedByNames] = useState<Record<string, string>>({});
+  const [newVoucherSets, setNewVoucherSets] = useState(1);
 
   useEffect(() => {
     loadVouchers();
@@ -78,7 +79,7 @@ const VoucherManager = ({ poolId, poolTitle, poolSlug }: VoucherManagerProps) =>
 
     const { data, error } = await supabase
       .from("pool_vouchers")
-      .insert({ pool_id: poolId, code })
+      .insert({ pool_id: poolId, code, prediction_sets: newVoucherSets })
       .select()
       .single();
 
@@ -92,7 +93,7 @@ const VoucherManager = ({ poolId, poolTitle, poolSlug }: VoucherManagerProps) =>
       setVouchers(prev => [data as Voucher, ...prev]);
       toast({
         title: "Voucher gerado! 🎫",
-        description: `Código: ${code}`,
+        description: `Código: ${code} (${newVoucherSets} palpite${newVoucherSets > 1 ? 's' : ''})`,
       });
     }
     setGenerating(false);
