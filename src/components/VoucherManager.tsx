@@ -14,6 +14,7 @@ interface Voucher {
   used_by: string | null;
   used_at: string | null;
   created_at: string;
+  prediction_sets: number;
 }
 
 interface VoucherManagerProps {
