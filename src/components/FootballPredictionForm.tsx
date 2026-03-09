@@ -163,7 +163,53 @@ const FootballPredictionForm = ({ poolId, userId, onSuccess, entryFee, pool, pix
     }
   };
 
+  const handleCheckVoucher = async () => {
+    if (!voucherCode.trim()) return;
+    setVoucherChecking(true);
+    const code = voucherCode.trim().toUpperCase();
+
+    const { data, error } = await supabase
+      .from("pool_vouchers")
+      .select("id, used_by")
+      .eq("pool_id", poolId)
+      .eq("code", code)
+      .maybeSingle();
+
+    if (error || !data) {
+      setVoucherValid(false);
+      toast({
+        variant: "destructive",
+        title: "Voucher inválido",
+        description: "Este código não existe ou não pertence a este bolão.",
+      });
+    } else if (data.used_by) {
+      setVoucherValid(false);
+      toast({
+        variant: "destructive",
+        title: "Voucher já utilizado",
+        description: "Este voucher já foi usado por outro participante.",
+      });
+    } else {
+      setVoucherValid(true);
+      toast({
+        title: "Voucher válido! ✅",
+        description: "Você pode enviar seus palpites.",
+      });
+    }
+    setVoucherChecking(false);
+  };
+
   const handleSubmitClick = () => {
+    // For estabelecimento pools, validate voucher
+    if (isEstabelecimento && !voucherValid) {
+      toast({
+        variant: "destructive",
+        title: "Voucher obrigatório",
+        description: "Insira e valide um voucher de entrada para participar.",
+      });
+      return;
+    }
+
     // Validate all predictions in all sets are filled (skip postponed matches)
     for (let i = 0; i < predictionSets.length; i++) {
       const hasEmpty = predictionSets[i].some(p => {
@@ -190,7 +236,8 @@ const FootballPredictionForm = ({ poolId, userId, onSuccess, entryFee, pool, pix
     setShowDisclaimerDialog(false);
     setSubmitting(true);
 
-    const initialStatus = hasEntryFee ? "pending" : "approved";
+    // For estabelecimento pools with voucher, always approve
+    const initialStatus = isEstabelecimento ? "approved" : (hasEntryFee ? "pending" : "approved");
 
     // Check if user already has a non-rejected participant record in this pool
     const { data: existingParticipant } = await supabase
