@@ -94,6 +94,7 @@ const CreateFootballPool = () => {
       if (saved) {
         try {
           const parsed = JSON.parse(saved);
+          setAddressName(parsed.name || '');
           setAddressStreet(parsed.street || '');
           setAddressNumber(parsed.number || '');
           setAddressComplement(parsed.complement || '');
