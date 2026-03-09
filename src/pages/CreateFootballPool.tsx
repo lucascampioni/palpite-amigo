@@ -492,36 +492,51 @@ const CreateFootballPool = () => {
                 />
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {userRole?.isEstabelecimento ? (
                 <div className="space-y-2">
-                  <Label htmlFor="entry_fee">Valor de Entrada {(userRole?.isAdmin || userRole?.isEstabelecimento) ? '(opcional)' : '*'}</Label>
+                  <Label htmlFor="entry_fee">Valor de Entrada *</Label>
                   <Input
                     id="entry_fee"
                     name="entry_fee"
                     type="number"
                     step="0.01"
-                    min="0"
+                    min="0.01"
                     placeholder="Ex: 10.00"
-                    required={!userRole?.isAdmin && !userRole?.isEstabelecimento}
+                    required
                   />
                 </div>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="entry_fee">Valor de Entrada {userRole?.isAdmin ? '(opcional)' : '*'}</Label>
+                    <Input
+                      id="entry_fee"
+                      name="entry_fee"
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      placeholder="Ex: 10.00"
+                      required={!userRole?.isAdmin}
+                    />
+                  </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="max_participants">Máx. de Participantes</Label>
-                  <select
-                    id="max_participants"
-                    name="max_participants"
-                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                  >
-                    <option value="unlimited">Ilimitado</option>
-                    <option value="5">5 participantes</option>
-                    <option value="10">10 participantes</option>
-                    <option value="20">20 participantes</option>
-                    <option value="50">50 participantes</option>
-                    <option value="100">100 participantes</option>
-                  </select>
+                  <div className="space-y-2">
+                    <Label htmlFor="max_participants">Máx. de Participantes</Label>
+                    <select
+                      id="max_participants"
+                      name="max_participants"
+                      className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                    >
+                      <option value="unlimited">Ilimitado</option>
+                      <option value="5">5 participantes</option>
+                      <option value="10">10 participantes</option>
+                      <option value="20">20 participantes</option>
+                      <option value="50">50 participantes</option>
+                      <option value="100">100 participantes</option>
+                    </select>
+                  </div>
                 </div>
-              </div>
+              )}
 
               <div className="space-y-4">
                 <Label className="text-lg">🏆 Premiação (opcional)</Label>
