@@ -1622,7 +1622,16 @@ const FootballRanking = ({ poolId, pool, approvedParticipantsCount, isOwner }: F
                     <CollapsibleContent>
                       <div className="px-3 pb-3 pt-0">
                         <div className="border-t border-muted pt-3 space-y-2">
-                          {allZeroPoints && allMatchesFinished && participant.earliest_prediction_at && (
+                          {pool?.prize_type === 'estabelecimento' && allMatchesFinished && (
+                            <div className="rounded-md bg-muted/50 border border-border/50 p-2 text-xs space-y-0.5">
+                              <p>🎯 Placares exatos: <strong>{participant.exact_scores || 0}</strong></p>
+                              <p>✅ Acertos totais: <strong>{participant.correct_results || 0}</strong></p>
+                              {participant.earliest_prediction_at && (
+                                <p>⏱️ Enviado em: <strong>{format(new Date(participant.earliest_prediction_at), "dd/MM/yyyy 'às' HH:mm:ss", { locale: ptBR })}</strong></p>
+                              )}
+                            </div>
+                          )}
+                          {allZeroPoints && allMatchesFinished && participant.earliest_prediction_at && pool?.prize_type !== 'estabelecimento' && (
                             <div className="rounded-md bg-amber-500/10 border border-amber-500/30 p-2 text-xs">
                               ⏱️ Palpites enviados em: <strong>{format(new Date(participant.earliest_prediction_at), "dd/MM/yyyy 'às' HH:mm:ss", { locale: ptBR })}</strong>
                             </div>
