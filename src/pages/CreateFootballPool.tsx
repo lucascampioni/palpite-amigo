@@ -144,6 +144,7 @@ const CreateFootballPool = () => {
     if (!isLoadingRole && userRole?.canCreatePools && !userRole?.isAdmin) {
       if (userRole?.isEstabelecimento) {
         setPrizeType('estabelecimento');
+        setScoringSystem('standard');
       } else {
         setPrizeType('percentage');
       }
