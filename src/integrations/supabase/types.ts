@@ -468,6 +468,8 @@ export type Database = {
           owner_id: string
           pool_type: Database["public"]["Enums"]["pool_type"]
           prize_type: string
+          reminder_30min_sent: boolean
+          reminder_3h_sent: boolean
           result_value: string | null
           scoring_system: string
           second_place_prize: number | null
@@ -503,6 +505,8 @@ export type Database = {
           owner_id: string
           pool_type?: Database["public"]["Enums"]["pool_type"]
           prize_type?: string
+          reminder_30min_sent?: boolean
+          reminder_3h_sent?: boolean
           result_value?: string | null
           scoring_system?: string
           second_place_prize?: number | null
@@ -538,6 +542,8 @@ export type Database = {
           owner_id?: string
           pool_type?: Database["public"]["Enums"]["pool_type"]
           prize_type?: string
+          reminder_30min_sent?: boolean
+          reminder_3h_sent?: boolean
           result_value?: string | null
           scoring_system?: string
           second_place_prize?: number | null
