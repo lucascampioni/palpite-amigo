@@ -9,7 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { Copy, Upload, AlertTriangle, Plus, Trash2 } from "lucide-react";
+import { Copy, Upload, AlertTriangle, Plus, Trash2, Ticket } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { PaymentProofSubmission } from "@/components/PaymentProofSubmission";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -62,8 +62,12 @@ const FootballPredictionForm = ({ poolId, userId, onSuccess, entryFee, pool, pix
   const [disclaimerAccepted, setDisclaimerAccepted] = useState(false);
   const [createdParticipantId, setCreatedParticipantId] = useState<string | null>(null);
   const [activeSetIndex, setActiveSetIndex] = useState(0);
+  const [voucherCode, setVoucherCode] = useState("");
+  const [voucherValid, setVoucherValid] = useState<boolean | null>(null);
+  const [voucherChecking, setVoucherChecking] = useState(false);
 
-  const hasEntryFee = pool?.entry_fee && parseFloat(pool.entry_fee) > 0;
+  const isEstabelecimento = pool?.prize_type === 'estabelecimento';
+  const hasEntryFee = !isEstabelecimento && pool?.entry_fee && parseFloat(pool.entry_fee) > 0;
   const feePerSet = hasEntryFee ? parseFloat(pool.entry_fee) : 0;
   const totalFee = feePerSet * predictionSets.length;
 
@@ -159,7 +163,53 @@ const FootballPredictionForm = ({ poolId, userId, onSuccess, entryFee, pool, pix
     }
   };
 
+  const handleCheckVoucher = async () => {
+    if (!voucherCode.trim()) return;
+    setVoucherChecking(true);
+    const code = voucherCode.trim().toUpperCase();
+
+    const { data, error } = await supabase
+      .from("pool_vouchers")
+      .select("id, used_by")
+      .eq("pool_id", poolId)
+      .eq("code", code)
+      .maybeSingle();
+
+    if (error || !data) {
+      setVoucherValid(false);
+      toast({
+        variant: "destructive",
+        title: "Voucher inválido",
+        description: "Este código não existe ou não pertence a este bolão.",
+      });
+    } else if (data.used_by) {
+      setVoucherValid(false);
+      toast({
+        variant: "destructive",
+        title: "Voucher já utilizado",
+        description: "Este voucher já foi usado por outro participante.",
+      });
+    } else {
+      setVoucherValid(true);
+      toast({
+        title: "Voucher válido! ✅",
+        description: "Você pode enviar seus palpites.",
+      });
+    }
+    setVoucherChecking(false);
+  };
+
   const handleSubmitClick = () => {
+    // For estabelecimento pools, validate voucher
+    if (isEstabelecimento && !voucherValid) {
+      toast({
+        variant: "destructive",
+        title: "Voucher obrigatório",
+        description: "Insira e valide um voucher de entrada para participar.",
+      });
+      return;
+    }
+
     // Validate all predictions in all sets are filled (skip postponed matches)
     for (let i = 0; i < predictionSets.length; i++) {
       const hasEmpty = predictionSets[i].some(p => {
@@ -186,7 +236,8 @@ const FootballPredictionForm = ({ poolId, userId, onSuccess, entryFee, pool, pix
     setShowDisclaimerDialog(false);
     setSubmitting(true);
 
-    const initialStatus = hasEntryFee ? "pending" : "approved";
+    // For estabelecimento pools with voucher, always approve
+    const initialStatus = isEstabelecimento ? "approved" : (hasEntryFee ? "pending" : "approved");
 
     // Check if user already has a non-rejected participant record in this pool
     const { data: existingParticipant } = await supabase
@@ -269,6 +320,17 @@ const FootballPredictionForm = ({ poolId, userId, onSuccess, entryFee, pool, pix
       });
       await supabase.from("participants").delete().eq("id", participant.id);
     } else {
+      // Mark voucher as used for estabelecimento pools
+      if (isEstabelecimento && voucherCode.trim()) {
+        const code = voucherCode.trim().toUpperCase();
+        await supabase
+          .from("pool_vouchers")
+          .update({ used_by: userId, used_at: new Date().toISOString() })
+          .eq("pool_id", poolId)
+          .eq("code", code)
+          .is("used_by", null);
+      }
+
       if (hasEntryFee) {
         setCreatedParticipantId(participant.id);
         setShowPaymentDialog(true);
@@ -570,6 +632,51 @@ const FootballPredictionForm = ({ poolId, userId, onSuccess, entryFee, pool, pix
       </div>
 
 
+      {/* Voucher input for estabelecimento pools */}
+      {isEstabelecimento && (
+        <div className="space-y-3 p-4 rounded-xl border-2 border-amber-500/40 bg-amber-50/50 dark:bg-amber-950/20">
+          <div className="flex items-center gap-2">
+            <Ticket className="w-5 h-5 text-amber-600 flex-shrink-0" />
+            <div>
+              <p className="font-semibold text-sm">Voucher de Entrada</p>
+              <p className="text-xs text-muted-foreground">
+                Insira o código do voucher fornecido pelo estabelecimento.
+              </p>
+            </div>
+          </div>
+          <div className="flex gap-2">
+            <Input
+              value={voucherCode}
+              onChange={(e) => {
+                setVoucherCode(e.target.value.toUpperCase());
+                setVoucherValid(null);
+              }}
+              placeholder="Ex: ABC123"
+              className="font-mono text-center tracking-widest uppercase text-lg"
+              maxLength={6}
+            />
+            <Button
+              variant={voucherValid ? "default" : "outline"}
+              onClick={handleCheckVoucher}
+              disabled={voucherChecking || !voucherCode.trim() || voucherValid === true}
+              className="shrink-0"
+            >
+              {voucherChecking ? "..." : voucherValid ? "✅" : "Validar"}
+            </Button>
+          </div>
+          {voucherValid === false && (
+            <p className="text-xs text-destructive font-medium">
+              ❌ Voucher inválido ou já utilizado. Verifique o código.
+            </p>
+          )}
+          {voucherValid === true && (
+            <p className="text-xs text-green-600 dark:text-green-400 font-medium">
+              ✅ Voucher válido! Envie seus palpites abaixo.
+            </p>
+          )}
+        </div>
+      )}
+
       {/* Submit area with summary */}
       <div className="space-y-2">
         {(predictionSets.length > 1 || hasEntryFee) && (
@@ -587,7 +694,12 @@ const FootballPredictionForm = ({ poolId, userId, onSuccess, entryFee, pool, pix
             )}
           </div>
         )}
-        <Button onClick={handleSubmitClick} disabled={submitting} className="w-full" size="lg">
+        <Button
+          onClick={handleSubmitClick}
+          disabled={submitting || (isEstabelecimento && !voucherValid)}
+          className="w-full"
+          size="lg"
+        >
           {submitting ? "Enviando..." : predictionSets.length > 1
             ? `Enviar ${predictionSets.length} Palpites e Participar`
             : "Enviar Palpites e Participar"}

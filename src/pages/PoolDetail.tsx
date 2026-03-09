@@ -27,6 +27,7 @@ import { AdminParticipantsManager } from "@/components/AdminParticipantsManager"
 import { useUserRole } from "@/hooks/useUserRole";
 import WhatsAppMessagePanel from "@/components/WhatsAppMessagePanel";
 import VipGroupInviteModal from "@/components/VipGroupInviteModal";
+import VoucherManager from "@/components/VoucherManager";
 
 const PoolDetail = () => {
   const { slug } = useParams();
@@ -1154,7 +1155,7 @@ const PoolDetail = () => {
                     </div>
                   )}
                   <p className="text-[0.65rem] text-muted-foreground text-center mt-2">
-                    ⚠️ Em caso de empate em 1º lugar, haverá um novo bolão (sem custo) entre os empatados para definir o campeão.
+                    ⚠️ Em caso de empate, o desempate segue a ordem: placares exatos → acertos totais → horário de envio → sorteio automático.
                   </p>
                 </div>
               )}
@@ -1253,7 +1254,7 @@ const PoolDetail = () => {
             </div>
 
             {/* Auto-approve warning for creators */}
-            {isOwner && pool.entry_fee && parseFloat(pool.entry_fee) > 0 && firstMatchDate && pool.status === 'active' && (
+            {isOwner && pool.entry_fee && parseFloat(pool.entry_fee) > 0 && pool.prize_type !== 'estabelecimento' && firstMatchDate && pool.status === 'active' && (
               <Collapsible>
                 <CollapsibleTrigger className="w-full p-3 rounded-xl bg-yellow-50 dark:bg-yellow-950/30 border-2 border-yellow-300 dark:border-yellow-700 flex items-center justify-between">
                   <span className="font-bold text-xs sm:text-sm text-yellow-700 dark:text-yellow-400 flex items-center gap-1.5">
@@ -1291,6 +1292,18 @@ const PoolDetail = () => {
                   setCurrentUserParticipant((prev: any) => prev?.id === id ? { ...prev, ...changes } : prev);
                 }}
               />
+            )}
+
+            {/* Voucher Manager for Estabelecimento pools */}
+            {isOwner && pool.prize_type === 'estabelecimento' && pool.status === 'active' && (
+              <>
+                <Separator />
+                <VoucherManager
+                  poolId={pool.id}
+                  poolTitle={pool.title}
+                  poolSlug={pool.slug}
+                />
+              </>
             )}
 
             {isOwner && pool.status === "active" && (
