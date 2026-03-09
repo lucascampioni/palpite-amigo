@@ -259,29 +259,43 @@ serve(async (req) => {
 
     // ═══════════════════════════════════════════════════════════════
     // 4. VOUCHER REMINDER - notify invited participants who haven't made predictions
-    //    3h30 before deadline (estabelecimento pools)
+    //    3h before deadline AND 30min before deadline (estabelecimento pools)
     // ═══════════════════════════════════════════════════════════════
 
     const now = new Date();
-    const reminderWindowMs = 3.5 * 60 * 60 * 1000; // 3h30min
+    const REMINDER_3H_MS = 3 * 60 * 60 * 1000;
+    const REMINDER_30M_MS = 30 * 60 * 1000;
 
-    // Find active estabelecimento pools whose deadline is 3h30 from now (±5 min window)
+    // Find active estabelecimento pools that still have reminders to send
     const { data: estabelecimentoPools } = await supabase
       .from('pools')
-      .select('id, title, slug, deadline, prize_type')
+      .select('id, title, slug, deadline, prize_type, reminder_3h_sent, reminder_30min_sent')
       .eq('status', 'active')
       .eq('prize_type', 'estabelecimento');
 
     for (const pool of estabelecimentoPools || []) {
+      // Skip if both reminders already sent
+      if (pool.reminder_3h_sent && pool.reminder_30min_sent) continue;
+
       const deadlineTime = new Date(pool.deadline).getTime();
       const timeUntilDeadline = deadlineTime - now.getTime();
-      
-      // Only send if within 3h30 ± 5min window
-      if (timeUntilDeadline > reminderWindowMs + 5 * 60 * 1000 || timeUntilDeadline < reminderWindowMs - 5 * 60 * 1000) {
-        continue;
+
+      // Determine which reminder to send
+      let reminderType: '3h' | '30min' | null = null;
+
+      if (!pool.reminder_3h_sent && timeUntilDeadline <= REMINDER_3H_MS && timeUntilDeadline > REMINDER_30M_MS) {
+        reminderType = '3h';
+      } else if (!pool.reminder_30min_sent && timeUntilDeadline <= REMINDER_30M_MS && timeUntilDeadline > 0) {
+        reminderType = '30min';
+      } else if (!pool.reminder_3h_sent && timeUntilDeadline <= REMINDER_30M_MS && timeUntilDeadline > 0) {
+        // If we missed the 3h window, mark it as sent and send the 30min one
+        await supabase.from('pools').update({ reminder_3h_sent: true }).eq('id', pool.id);
+        if (!pool.reminder_30min_sent) reminderType = '30min';
       }
 
-      console.log(`⏰ Sending voucher reminders for estabelecimento pool "${pool.title}"`);
+      if (!reminderType) continue;
+
+      console.log(`⏰ Sending ${reminderType} voucher reminder for pool "${pool.title}"`);
       const poolLink = `https://delfos.app.br/bolao/${pool.slug || pool.id}`;
 
       // Get vouchers with linked users (used_by not null)
@@ -290,17 +304,20 @@ serve(async (req) => {
         .select('id, phone, used_by, prediction_sets')
         .eq('pool_id', pool.id);
 
-      if (!vouchers || vouchers.length === 0) continue;
+      if (!vouchers || vouchers.length === 0) {
+        // Mark as sent even with no vouchers
+        const updateCol = reminderType === '3h' ? { reminder_3h_sent: true } : { reminder_30min_sent: true };
+        await supabase.from('pools').update(updateCol).eq('id', pool.id);
+        continue;
+      }
 
       for (const voucher of vouchers) {
         let needsReminder = false;
         let recipientPhone = voucher.phone;
 
         if (!voucher.used_by) {
-          // User hasn't even registered yet
           needsReminder = true;
         } else {
-          // User registered - check if they made predictions
           const { data: participant } = await supabase
             .from('participants')
             .select('id')
@@ -329,17 +346,23 @@ serve(async (req) => {
           day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit', timeZone: 'America/Sao_Paulo' 
         });
 
+        const urgency = reminderType === '30min' ? '⚠️ *ÚLTIMO AVISO!*\n\n' : '';
+        const timeLeft = reminderType === '30min' ? 'Faltam apenas *30 minutos*!' : `O prazo encerra em *${deadlineFormatted}*.`;
+
         const message = voucher.used_by
-          ? `⏰ *Delfos - Lembrete!*\n\nVocê foi inscrito no bolão *"${pool.title}"*, mas ainda não fez seus palpites!\n\nO prazo encerra em *${deadlineFormatted}*.\n\n👉 Faça seus palpites agora:\n${poolLink}\n\nNão perca! 🍀`
-          : `⏰ *Delfos - Lembrete!*\n\nVocê foi convidado para o bolão *"${pool.title}"*, mas ainda não se cadastrou!\n\nO prazo encerra em *${deadlineFormatted}*.\n\n📲 Crie sua conta e faça seus palpites:\n${poolLink}\n\nNão perca! 🍀`;
+          ? `${urgency}🎯 *Delfos - Lembrete!*\n\nVocê foi inscrito no bolão *"${pool.title}"*, mas ainda não fez seus palpites!\n\n${timeLeft}\n\n👉 Faça seus palpites agora:\n${poolLink}\n\nNão perca! 🍀`
+          : `${urgency}🎯 *Delfos - Lembrete!*\n\nVocê foi convidado para o bolão *"${pool.title}"*, mas ainda não se cadastrou!\n\n${timeLeft}\n\n📲 Crie sua conta e faça seus palpites:\n${poolLink}\n\nNão perca! 🍀`;
 
         const sendResult = await sendWhatsApp(ZAPI_INSTANCE_ID, ZAPI_TOKEN, ZAPI_CLIENT_TOKEN, recipientPhone, message);
-        results.push({ type: 'voucher_reminder', pool: pool.title, phone: recipientPhone, ...sendResult });
+        results.push({ type: `voucher_reminder_${reminderType}`, pool: pool.title, phone: recipientPhone, ...sendResult });
 
         await new Promise(resolve => setTimeout(resolve, 1000));
       }
 
-      console.log(`✅ Voucher reminders sent for pool "${pool.title}"`);
+      // Mark this reminder as sent
+      const updateCol = reminderType === '3h' ? { reminder_3h_sent: true } : { reminder_30min_sent: true };
+      await supabase.from('pools').update(updateCol).eq('id', pool.id);
+      console.log(`✅ ${reminderType} voucher reminders sent for pool "${pool.title}"`);
     }
 
     const sent = results.filter(r => r.success).length;
