@@ -189,12 +189,12 @@ const FootballPredictionForm = ({ poolId, userId, onSuccess, entryFee, pool, pix
   }, [isEstabelecimento, matches, poolId, userId]);
 
   const handleSubmitClick = () => {
-    // For estabelecimento pools, validate voucher
-    if (isEstabelecimento && !voucherValid) {
+    // For estabelecimento pools, check that user was registered
+    if (isEstabelecimento && !estabelecimentoReady) {
       toast({
         variant: "destructive",
-        title: "Voucher obrigatório",
-        description: "Insira e valide um voucher de entrada para participar.",
+        title: "Acesso não liberado",
+        description: "O dono do estabelecimento precisa cadastrar seu número para liberar a entrada.",
       });
       return;
     }
