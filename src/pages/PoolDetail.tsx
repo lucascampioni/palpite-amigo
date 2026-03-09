@@ -500,7 +500,16 @@ const PoolDetail = () => {
     setParticipantsPoints(pointsMap);
 
     const myParticipant = participantsData?.find(p => p.user_id === user?.id) || null;
-    setCurrentUserParticipant(myParticipant);
+    // Check if estabelecimento participant has predictions
+    let hasPredictions = true;
+    if (myParticipant && poolData.prize_type === 'estabelecimento') {
+      const { count } = await supabase
+        .from("football_predictions")
+        .select("id", { count: 'exact', head: true })
+        .eq("participant_id", myParticipant.id);
+      hasPredictions = (count || 0) > 0;
+    }
+    setCurrentUserParticipant(myParticipant ? { ...myParticipant, _hasPredictions: hasPredictions } : null);
     setHasJoined(!!myParticipant);
     
     // Detect if this pool has football matches (even if pool_type is not set)
