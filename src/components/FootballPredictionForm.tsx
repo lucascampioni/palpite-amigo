@@ -694,7 +694,8 @@ const FootballPredictionForm = ({ poolId, userId, onSuccess, entryFee, pool, pix
         </p>
       </div>
 
-
+      </>
+      )}
 
       {/* Submit area with summary */}
       <div className="space-y-2">
