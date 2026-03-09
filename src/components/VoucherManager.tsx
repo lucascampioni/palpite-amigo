@@ -91,51 +91,63 @@ const VoucherManager = ({ poolId, poolTitle, poolSlug, deadline }: VoucherManage
 
     setAdding(true);
 
-    // Find user by phone
-    const { data: profile, error: profileError } = await supabase
+    // Check if phone already has a voucher for this pool
+    const { data: existingVoucher } = await supabase
+      .from("pool_vouchers")
+      .select("id")
+      .eq("pool_id", poolId)
+      .eq("phone", digits)
+      .maybeSingle();
+
+    if (existingVoucher) {
+      toast({
+        variant: "destructive",
+        title: "Já adicionado",
+        description: "Este número já foi adicionado a este bolão.",
+      });
+      setAdding(false);
+      return;
+    }
+
+    // Try to find user by phone
+    const { data: profile } = await supabase
       .from("profiles")
       .select("id, full_name, phone")
       .eq("phone", digits)
       .maybeSingle();
 
-    if (profileError || !profile) {
-      toast({
-        variant: "destructive",
-        title: "Usuário não encontrado",
-        description: "Nenhuma conta cadastrada com este número. A pessoa precisa criar uma conta no Delfos primeiro.",
-      });
-      setAdding(false);
-      return;
+    const hasAccount = !!profile;
+
+    // If user exists, check if already a participant
+    if (hasAccount) {
+      const { data: existingParticipant } = await supabase
+        .from("participants")
+        .select("id")
+        .eq("pool_id", poolId)
+        .eq("user_id", profile.id)
+        .maybeSingle();
+
+      if (existingParticipant) {
+        toast({
+          variant: "destructive",
+          title: "Já cadastrado",
+          description: `${profile.full_name} já está inscrito neste bolão.`,
+        });
+        setAdding(false);
+        return;
+      }
     }
 
-    // Check if already registered in this pool
-    const { data: existingParticipant } = await supabase
-      .from("participants")
-      .select("id")
-      .eq("pool_id", poolId)
-      .eq("user_id", profile.id)
-      .maybeSingle();
-
-    if (existingParticipant) {
-      toast({
-        variant: "destructive",
-        title: "Já cadastrado",
-        description: `${profile.full_name} já está inscrito neste bolão.`,
-      });
-      setAdding(false);
-      return;
-    }
-
-    // Create voucher entry (to track prediction_sets)
+    // Create voucher entry
     const { data: voucherData, error: voucherError } = await supabase
       .from("pool_vouchers")
       .insert({
         pool_id: poolId,
-        code: `PHONE-${Date.now()}`, // Internal reference, not shown
+        code: `PHONE-${Date.now()}`,
         phone: digits,
         prediction_sets: predictionSets,
-        used_by: profile.id,
-        used_at: new Date().toISOString(),
+        used_by: hasAccount ? profile.id : null,
+        used_at: hasAccount ? new Date().toISOString() : null,
       })
       .select()
       .single();
@@ -150,36 +162,42 @@ const VoucherManager = ({ poolId, poolTitle, poolSlug, deadline }: VoucherManage
       return;
     }
 
-    // Create approved participant
-    const { error: participantError } = await supabase
-      .from("participants")
-      .insert({
-        pool_id: poolId,
-        user_id: profile.id,
-        participant_name: profile.full_name,
-        guess_value: "voucher",
-        status: "approved",
-      });
+    // If user has account, create approved participant immediately
+    if (hasAccount) {
+      const { error: participantError } = await supabase
+        .from("participants")
+        .insert({
+          pool_id: poolId,
+          user_id: profile.id,
+          participant_name: profile.full_name,
+          guess_value: "voucher",
+          status: "approved",
+        });
 
-    if (participantError) {
-      // Rollback voucher
-      await supabase.from("pool_vouchers").delete().eq("id", voucherData.id);
-      toast({
-        variant: "destructive",
-        title: "Erro",
-        description: "Erro ao adicionar participante. Tente novamente.",
-      });
-      setAdding(false);
-      return;
+      if (participantError) {
+        await supabase.from("pool_vouchers").delete().eq("id", voucherData.id);
+        toast({
+          variant: "destructive",
+          title: "Erro",
+          description: "Erro ao adicionar participante. Tente novamente.",
+        });
+        setAdding(false);
+        return;
+      }
     }
 
     // Send WhatsApp notification
     const poolUrl = `https://app-delfos.lovable.app/bolao/${poolSlug || poolId}`;
     const setsLabel = predictionSets > 1 ? `${predictionSets} palpites` : '1 palpite';
-    const message = `🎉 *Delfos - Você está no bolão!*\n\n` +
-      `Você foi inscrito no bolão *"${poolTitle}"* com *${setsLabel}*.\n\n` +
-      `👉 Acesse agora e faça seus palpites:\n${poolUrl}\n\n` +
-      `Boa sorte! 🍀`;
+    const message = hasAccount
+      ? `🎉 *Delfos - Você está no bolão!*\n\n` +
+        `Você foi inscrito no bolão *"${poolTitle}"* com *${setsLabel}*.\n\n` +
+        `👉 Acesse agora e faça seus palpites:\n${poolUrl}\n\n` +
+        `Boa sorte! 🍀`
+      : `🎉 *Delfos - Você foi inscrito em um bolão!*\n\n` +
+        `Você foi adicionado ao bolão *"${poolTitle}"* com *${setsLabel}*.\n\n` +
+        `📲 Crie sua conta no Delfos para fazer seus palpites:\n${poolUrl}\n\n` +
+        `Ao se cadastrar com este número, você já estará automaticamente no bolão! 🍀`;
 
     try {
       await supabase.functions.invoke("send-whatsapp", {
@@ -187,18 +205,21 @@ const VoucherManager = ({ poolId, poolTitle, poolSlug, deadline }: VoucherManage
       });
     } catch (err) {
       console.error("WhatsApp notification failed:", err);
-      // Don't fail the whole operation if WhatsApp fails
     }
 
     // Update local state
     setEntries(prev => [voucherData as VoucherEntry, ...prev]);
-    setUserNames(prev => ({ ...prev, [profile.id]: profile.full_name }));
+    if (hasAccount) {
+      setUserNames(prev => ({ ...prev, [profile.id]: profile.full_name }));
+    }
     setPhone("");
     setPredictionSets(1);
 
     toast({
-      title: "Participante adicionado! ✅",
-      description: `${profile.full_name} foi inscrito com ${setsLabel} e notificado via WhatsApp.`,
+      title: hasAccount ? "Participante adicionado! ✅" : "Convite enviado! 📲",
+      description: hasAccount
+        ? `${profile.full_name} foi inscrito com ${setsLabel} e notificado via WhatsApp.`
+        : `WhatsApp enviado para ${formatPhone(digits)}. Ao se cadastrar, a pessoa entrará automaticamente no bolão com ${setsLabel}.`,
     });
     setAdding(false);
   };
