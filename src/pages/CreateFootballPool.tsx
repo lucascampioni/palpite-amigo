@@ -702,7 +702,11 @@ const CreateFootballPool = () => {
                       />
                     </div>
                     <div className="space-y-3">
-                      <Label className="text-sm font-medium">📍 Endereço para Resgate do Prêmio *</Label>
+                      <Label className="text-sm font-medium">📍 Local para Resgate do Prêmio *</Label>
+                      <div className="space-y-1">
+                        <Label htmlFor="address_name" className="text-xs text-muted-foreground">Nome do Estabelecimento</Label>
+                        <Input id="address_name" value={addressName} onChange={(e) => setAddressName(e.target.value)} placeholder="Ex: Barbearia do João" required />
+                      </div>
                       <div className="grid grid-cols-3 gap-3">
                         <div className="col-span-2 space-y-1">
                           <Label htmlFor="address_street" className="text-xs text-muted-foreground">Rua / Avenida</Label>
