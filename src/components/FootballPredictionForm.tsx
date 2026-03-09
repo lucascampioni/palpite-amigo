@@ -320,6 +320,17 @@ const FootballPredictionForm = ({ poolId, userId, onSuccess, entryFee, pool, pix
       });
       await supabase.from("participants").delete().eq("id", participant.id);
     } else {
+      // Mark voucher as used for estabelecimento pools
+      if (isEstabelecimento && voucherCode.trim()) {
+        const code = voucherCode.trim().toUpperCase();
+        await supabase
+          .from("pool_vouchers")
+          .update({ used_by: userId, used_at: new Date().toISOString() })
+          .eq("pool_id", poolId)
+          .eq("code", code)
+          .is("used_by", null);
+      }
+
       if (hasEntryFee) {
         setCreatedParticipantId(participant.id);
         setShowPaymentDialog(true);
