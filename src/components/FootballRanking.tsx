@@ -1205,9 +1205,25 @@ const FootballRanking = ({ poolId, pool, approvedParticipantsCount, isOwner }: F
 
         {/* Estabelecimento prize display */}
         {allMatchesFinished && pool?.prize_type === 'estabelecimento' && pool.estabelecimento_prize_description && (() => {
-          const topScore = ranking.length > 0 ? ranking[0].total_points : 0;
-          const tiedFirst = ranking.filter(r => r.total_points === topScore);
-          const hasTie = tiedFirst.length > 1;
+          const tiebreakerMethod = pool.tiebreaker_method;
+          const winner = ranking.length > 0 ? ranking[0] : null;
+          
+          const getTiebreakerLabel = (method: string | null | undefined): string => {
+            switch (method) {
+              case 'exact_scores':
+                return 'Desempate por número de placares exatos';
+              case 'total_correct_results':
+                return 'Desempate por número total de acertos';
+              case 'prediction_time':
+                return 'Desempate por horário de envio dos palpites';
+              case 'random_draw':
+                return 'Desempate por sorteio entre participantes empatados';
+              default:
+                return '';
+            }
+          };
+
+          const tiebreakerLabel = getTiebreakerLabel(tiebreakerMethod);
           
           return (
             <div className="mb-5 pb-4 border-b">
@@ -1217,17 +1233,37 @@ const FootballRanking = ({ poolId, pool, approvedParticipantsCount, isOwner }: F
                   <span className="font-semibold text-sm">Prêmio do Estabelecimento</span>
                 </div>
                 <p className="text-sm">{pool.estabelecimento_prize_description}</p>
-                {hasTie && (
-                  <div className="rounded-md bg-amber-500/10 p-2 mt-2">
-                    <p className="text-xs font-medium text-amber-700 dark:text-amber-400">
-                      ⚠️ Empate em 1º lugar! Será criado um novo bolão (sem custo adicional) apenas entre os {tiedFirst.length} empatados para definir o campeão e ganhador do prêmio.
-                    </p>
-                  </div>
-                )}
-                {!hasTie && tiedFirst.length === 1 && (
+                {winner && (
                   <p className="text-xs text-green-600 dark:text-green-400 font-medium">
-                    🏆 Campeão: {tiedFirst[0].participant_name} — ganhador do prêmio!
+                    🏆 Campeão: {winner.participant_name} — ganhador do prêmio!
                   </p>
+                )}
+                {tiebreakerLabel && (
+                  <div className="rounded-md bg-amber-500/10 p-2 mt-2 space-y-1">
+                    <p className="text-xs font-medium text-amber-700 dark:text-amber-400">
+                      🏅 {tiebreakerLabel}
+                    </p>
+                    {tiebreakerMethod === 'exact_scores' && winner && (
+                      <p className="text-xs text-muted-foreground">
+                        O vencedor acertou {winner.exact_scores || 0} placar(es) exato(s).
+                      </p>
+                    )}
+                    {tiebreakerMethod === 'total_correct_results' && winner && (
+                      <p className="text-xs text-muted-foreground">
+                        O vencedor acertou {winner.correct_results || 0} resultado(s) no total.
+                      </p>
+                    )}
+                    {tiebreakerMethod === 'prediction_time' && winner?.earliest_prediction_at && (
+                      <p className="text-xs text-muted-foreground">
+                        Palpites enviados em: {format(new Date(winner.earliest_prediction_at), "dd/MM/yyyy 'às' HH:mm:ss", { locale: ptBR })}
+                      </p>
+                    )}
+                    {tiebreakerMethod === 'random_draw' && (
+                      <p className="text-xs text-muted-foreground">
+                        Todos os critérios resultaram em empate. O vencedor foi definido por sorteio automático.
+                      </p>
+                    )}
+                  </div>
                 )}
               </div>
             </div>
