@@ -443,7 +443,7 @@ const CreateFootballPool = () => {
                     {userRole?.isEstabelecimento ? (
                       <>
                         <li>Gere <strong>vouchers</strong> para seus clientes — cada voucher libera a entrada de um participante</li>
-                        <li>Sem necessidade de PIX ou aprovação manual — o voucher é a entrada</li>
+                        
                         <li>Prazo para palpites: <strong>3 horas</strong> antes do primeiro jogo</li>
                         <li>Jogos são atualizados em tempo real</li>
                         <li>Resultados sincronizados direto da fonte oficial</li>
