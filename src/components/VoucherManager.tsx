@@ -340,39 +340,51 @@ const VoucherManager = ({ poolId, poolTitle, poolSlug, deadline }: VoucherManage
           </p>
         ) : (
           <div className="space-y-2 max-h-[400px] overflow-y-auto">
-            {entries.map(entry => (
-              <div
-                key={entry.id}
-                className="flex items-center justify-between gap-2 p-2.5 rounded-lg border bg-primary/5 border-primary/20"
-              >
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2">
-                    <CheckCircle className="w-4 h-4 text-green-600 flex-shrink-0" />
-                    <span className="font-medium text-sm truncate">
-                      {entry.used_by && userNames[entry.used_by] ? userNames[entry.used_by] : entry.phone}
-                    </span>
-                    <Badge variant="outline" className="text-[0.6rem] px-1.5 py-0">
-                      {entry.prediction_sets} palpite{entry.prediction_sets > 1 ? 's' : ''}
-                    </Badge>
+            {entries.map(entry => {
+              const isLinked = !!entry.used_by;
+              return (
+                <div
+                  key={entry.id}
+                  className={`flex items-center justify-between gap-2 p-2.5 rounded-lg border ${
+                    isLinked ? "bg-primary/5 border-primary/20" : "bg-muted/50 border-dashed border-muted-foreground/30"
+                  }`}
+                >
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2">
+                      {isLinked ? (
+                        <CheckCircle className="w-4 h-4 text-green-600 flex-shrink-0" />
+                      ) : (
+                        <AlertCircle className="w-4 h-4 text-amber-500 flex-shrink-0" />
+                      )}
+                      <span className="font-medium text-sm truncate">
+                        {isLinked && userNames[entry.used_by!] ? userNames[entry.used_by!] : formatPhone(entry.phone || '')}
+                      </span>
+                      <Badge variant="outline" className="text-[0.6rem] px-1.5 py-0">
+                        {entry.prediction_sets} palpite{entry.prediction_sets > 1 ? 's' : ''}
+                      </Badge>
+                    </div>
+                    <p className="text-[0.6rem] text-muted-foreground mt-0.5">
+                      {isLinked
+                        ? `📱 ${formatPhone(entry.phone || '')} · ${format(new Date(entry.created_at), "dd/MM 'às' HH:mm", { locale: ptBR })}`
+                        : `⏳ Aguardando cadastro · ${format(new Date(entry.created_at), "dd/MM 'às' HH:mm", { locale: ptBR })}`
+                      }
+                    </p>
                   </div>
-                  <p className="text-[0.6rem] text-muted-foreground mt-0.5">
-                    {entry.phone ? `📱 ${formatPhone(entry.phone)}` : ''} · {format(new Date(entry.created_at), "dd/MM 'às' HH:mm", { locale: ptBR })}
-                  </p>
-                </div>
 
-                <div className="flex items-center gap-1 flex-shrink-0">
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-8 w-8 text-destructive hover:text-destructive"
-                    onClick={() => handleDeleteEntry(entry)}
-                    title="Remover participante"
-                  >
-                    <Trash2 className="w-3.5 h-3.5" />
-                  </Button>
+                  <div className="flex items-center gap-1 flex-shrink-0">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8 text-destructive hover:text-destructive"
+                      onClick={() => handleDeleteEntry(entry)}
+                      title="Remover participante"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </Button>
+                  </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </CardContent>
