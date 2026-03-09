@@ -1145,15 +1145,32 @@ const PoolDetail = () => {
                     <span className="font-semibold text-amber-600">🏪 Prêmio do Estabelecimento</span>
                   </div>
                   <p className="text-sm text-center font-medium">{pool.estabelecimento_prize_description}</p>
-                  {pool.estabelecimento_prize_address && (
-                    <div className="mt-2 p-2.5 rounded-lg bg-background/80 border border-amber-300/50 dark:border-amber-700/50">
-                      <p className="text-xs font-semibold text-center text-amber-700 dark:text-amber-400 mb-0.5">📍 Local para resgate do prêmio</p>
-                      <p className="text-sm text-center font-medium">{pool.estabelecimento_prize_address}</p>
-                      <p className="text-[0.6rem] text-muted-foreground text-center mt-1">
-                        O ganhador deve comparecer a este endereço para retirar o prêmio.
-                      </p>
-                    </div>
-                  )}
+                  {pool.estabelecimento_prize_address && (() => {
+                    const addressParts = pool.estabelecimento_prize_address.split('\n');
+                    const hasName = addressParts.length > 1;
+                    const placeName = hasName ? addressParts[0] : null;
+                    const addressLine = hasName ? addressParts.slice(1).join(', ') : addressParts[0];
+                    return (
+                      <div className="mt-2 p-2.5 rounded-lg bg-background/80 border border-amber-300/50 dark:border-amber-700/50">
+                        <p className="text-xs font-semibold text-center text-amber-700 dark:text-amber-400 mb-1">📍 Local para resgate do prêmio</p>
+                        {placeName && (
+                          <p className="text-base text-center font-bold">{placeName}</p>
+                        )}
+                        <p className="text-xs text-center text-muted-foreground mt-0.5">{addressLine}</p>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const fullText = placeName ? `${placeName} - ${addressLine}` : addressLine;
+                            navigator.clipboard.writeText(fullText);
+                          }}
+                          className="mt-2 w-full flex items-center justify-center gap-1.5 text-xs text-primary font-medium py-1.5 rounded-md border border-primary/20 bg-primary/5 hover:bg-primary/10 transition-colors"
+                        >
+                          <Copy className="w-3 h-3" />
+                          Copiar endereço
+                        </button>
+                      </div>
+                    );
+                  })()}
                   <p className="text-[0.65rem] text-muted-foreground text-center mt-2">
                     ⚠️ Em caso de empate, o desempate segue a ordem: placares exatos → acertos totais → horário de envio → sorteio automático.
                   </p>

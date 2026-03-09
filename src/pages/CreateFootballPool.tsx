@@ -755,7 +755,7 @@ const CreateFootballPool = () => {
                           onCheckedChange={(checked) => {
                             setSaveAddress(!!checked);
                             if (checked) {
-                              const addrData = JSON.stringify({ street: addressStreet, number: addressNumber, complement: addressComplement, neighborhood: addressNeighborhood, city: addressCity, state: addressState });
+                              const addrData = JSON.stringify({ name: addressName, street: addressStreet, number: addressNumber, complement: addressComplement, neighborhood: addressNeighborhood, city: addressCity, state: addressState });
                               localStorage.setItem('estabelecimento_saved_address', addrData);
                             } else {
                               localStorage.removeItem('estabelecimento_saved_address');
