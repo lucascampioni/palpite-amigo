@@ -109,9 +109,10 @@ const VoucherManager = ({ poolId, poolTitle, poolSlug }: VoucherManagerProps) =>
 
   const handleShareWhatsApp = (code: string) => {
     const poolUrl = `https://app-delfos.lovable.app/bolao/${poolSlug || poolId}`;
+    const setsLabel = newVoucherSets > 1 ? ` (${newVoucherSets} palpites)` : '';
     const message = encodeURIComponent(
       `🎫 *Voucher para o Bolão "${poolTitle}"*\n\n` +
-      `Seu código de entrada: *${code}*\n\n` +
+      `Seu código de entrada: *${code}*${setsLabel}\n\n` +
       `Para participar:\n` +
       `1️⃣ Acesse o bolão: ${poolUrl}\n` +
       `2️⃣ Insira o código do voucher\n` +
