@@ -422,17 +422,66 @@ const Auth = () => {
                 <CardDescription>Entre com sua conta para continuar</CardDescription>
               </CardHeader>
               <CardContent>
+                <div className="flex gap-2 mb-4">
+                  <Button
+                    type="button"
+                    variant={loginMethod === 'email' ? 'default' : 'outline'}
+                    size="sm"
+                    className="flex-1"
+                    onClick={() => setLoginMethod('email')}
+                  >
+                    Email
+                  </Button>
+                  <Button
+                    type="button"
+                    variant={loginMethod === 'phone' ? 'default' : 'outline'}
+                    size="sm"
+                    className="flex-1"
+                    onClick={() => setLoginMethod('phone')}
+                  >
+                    Celular
+                  </Button>
+                </div>
                 <form onSubmit={handleSignIn} className="space-y-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="login-email">Email</Label>
-                    <Input
-                      id="login-email"
-                      name="login-email"
-                      type="email"
-                      placeholder="seu@email.com"
-                      required
-                    />
-                  </div>
+                  {loginMethod === 'email' ? (
+                    <div className="space-y-2">
+                      <Label htmlFor="login-email">Email</Label>
+                      <Input
+                        id="login-email"
+                        name="login-email"
+                        type="email"
+                        placeholder="seu@email.com"
+                        required
+                      />
+                    </div>
+                  ) : (
+                    <div className="space-y-2">
+                      <Label htmlFor="login-phone">Celular</Label>
+                      <Input
+                        id="login-phone"
+                        name="login-phone"
+                        type="text"
+                        placeholder="(00) 00000-0000"
+                        required
+                        maxLength={15}
+                        value={loginPhone}
+                        onChange={(e) => {
+                          let raw = e.target.value.replace(/\D/g, "");
+                          let value = raw;
+                          if (raw.length <= 2) {
+                            // no formatting
+                          } else if (raw.length <= 6) {
+                            value = raw.replace(/(\d{2})(\d{1,4})/, "($1) $2");
+                          } else if (raw.length <= 10) {
+                            value = raw.replace(/(\d{2})(\d{4})(\d{1,4})/, "($1) $2-$3");
+                          } else {
+                            value = raw.replace(/(\d{2})(\d{5})(\d{1,4})/, "($1) $2-$3");
+                          }
+                          setLoginPhone(value);
+                        }}
+                      />
+                    </div>
+                  )}
                   <div className="space-y-2">
                     <Label htmlFor="login-password">Senha</Label>
                     <PasswordInput
