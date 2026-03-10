@@ -88,6 +88,8 @@ const Auth = () => {
   const [forgotPasswordOpen, setForgotPasswordOpen] = useState(false);
   const [resetEmail, setResetEmail] = useState("");
   const [resetLoading, setResetLoading] = useState(false);
+  const [loginMethod, setLoginMethod] = useState<'email' | 'phone'>('email');
+  const [loginPhone, setLoginPhone] = useState("");
   
   const redirectUrl = searchParams.get('redirect') || '/';
   
