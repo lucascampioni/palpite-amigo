@@ -263,21 +263,35 @@ const FootballRanking = ({ poolId, pool, approvedParticipantsCount, isOwner }: F
 
       const isEstabelecimento = pool?.prize_type === 'estabelecimento';
 
-      let baseRanking: ParticipantScore[] = rpcData.map((r: any) => {
-        const predSet = r.prediction_set || 1;
-        const rankingKey = `${r.participant_id}_${predSet}`;
-        return {
-          id: r.participant_id,
-          ranking_key: rankingKey,
-          participant_name: r.participant_name,
-          total_points: r.total_points ?? 0,
-          prize_status: prizeStatusMap[r.participant_id] || null,
-          prediction_set: predSet,
-          earliest_prediction_at: earliestPredMap[rankingKey] || null,
-          exact_scores: exactScoresMap[rankingKey] || 0,
-          correct_results: correctResultsMap[rankingKey] || 0,
-        };
+      // Build set of participant IDs that actually have predictions
+      const participantsWithPredictions = new Set<string>();
+      allPredictions?.forEach((p: any) => {
+        participantsWithPredictions.add(p.participant_id);
       });
+
+      let baseRanking: ParticipantScore[] = rpcData
+        .filter((r: any) => {
+          // For estabelecimento pools, exclude participants without predictions
+          if (isEstabelecimento && !participantsWithPredictions.has(r.participant_id)) {
+            return false;
+          }
+          return true;
+        })
+        .map((r: any) => {
+          const predSet = r.prediction_set || 1;
+          const rankingKey = `${r.participant_id}_${predSet}`;
+          return {
+            id: r.participant_id,
+            ranking_key: rankingKey,
+            participant_name: r.participant_name,
+            total_points: r.total_points ?? 0,
+            prize_status: prizeStatusMap[r.participant_id] || null,
+            prediction_set: predSet,
+            earliest_prediction_at: earliestPredMap[rankingKey] || null,
+            exact_scores: exactScoresMap[rankingKey] || 0,
+            correct_results: correctResultsMap[rankingKey] || 0,
+          };
+        });
 
       // If there are live matches, calculate partial points and add to totals
       if (liveMatchesWithScores.length > 0) {
