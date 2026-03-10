@@ -398,7 +398,11 @@ const FootballRanking = ({ poolId, pool, approvedParticipantsCount, isOwner }: F
       });
 
       const sets = Object.keys(setGroups).map(Number);
-      if (sets.length === 0) sets.push(1);
+      // For estabelecimento pools, skip participants without predictions
+      if (sets.length === 0) {
+        if (pool?.prize_type === 'estabelecimento') continue;
+        sets.push(1);
+      }
 
       // Track set counts
       const counts: Record<string, number> = { ...participantSetCounts };
