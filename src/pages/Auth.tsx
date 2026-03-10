@@ -288,8 +288,11 @@ const Auth = () => {
         description: errorMessage,
       });
     } else {
-      // Redireciona para a confirmação de e-mail
-      navigate(`/email-confirmation?email=${encodeURIComponent(email)}`);
+      toast({
+        title: "Conta criada com sucesso!",
+        description: "Você já pode fazer login.",
+      });
+      // Auto-confirm is enabled, user will be logged in automatically via onAuthStateChange
     }
 
     setLoading(false);
