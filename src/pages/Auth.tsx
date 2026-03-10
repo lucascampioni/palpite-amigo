@@ -65,8 +65,13 @@ const signUpSchema = z.object({
   phone: phoneSchema,
 });
 
-const signInSchema = z.object({
-  email: z.string().email("Email inválido").max(255, "Email muito longo"),
+const signInEmailSchema = z.object({
+  identifier: z.string().email("Email inválido").max(255, "Email muito longo"),
+  password: z.string().min(1, "Senha é obrigatória").max(128, "Senha muito longa"),
+});
+
+const signInPhoneSchema = z.object({
+  identifier: z.string().regex(/^\d{10,11}$/, "Telefone deve conter 10 ou 11 dígitos"),
   password: z.string().min(1, "Senha é obrigatória").max(128, "Senha muito longa"),
 });
 
@@ -83,6 +88,8 @@ const Auth = () => {
   const [forgotPasswordOpen, setForgotPasswordOpen] = useState(false);
   const [resetEmail, setResetEmail] = useState("");
   const [resetLoading, setResetLoading] = useState(false);
+  const [loginMethod, setLoginMethod] = useState<'email' | 'phone'>('email');
+  const [loginPhone, setLoginPhone] = useState("");
   
   const redirectUrl = searchParams.get('redirect') || '/';
   
@@ -281,8 +288,11 @@ const Auth = () => {
         description: errorMessage,
       });
     } else {
-      // Redireciona para a confirmação de e-mail
-      navigate(`/email-confirmation?email=${encodeURIComponent(email)}`);
+      toast({
+        title: "Conta criada com sucesso!",
+        description: "Você já pode fazer login.",
+      });
+      // Auto-confirm is enabled, user will be logged in automatically via onAuthStateChange
     }
 
     setLoading(false);
@@ -293,47 +303,65 @@ const Auth = () => {
     setLoading(true);
 
     const formData = new FormData(e.currentTarget);
-    const email = formData.get("login-email") as string;
     const password = formData.get("login-password") as string;
-
-    // Validate input
-    try {
-      signInSchema.parse({ email, password });
-    } catch (error) {
-      if (error instanceof z.ZodError) {
-        toast({
-          variant: "destructive",
-          title: "Erro de validação",
-          description: error.errors[0].message,
+    
+    let email = '';
+    
+    if (loginMethod === 'phone') {
+      const phoneDigits = loginPhone.replace(/\D/g, '');
+      // Validate phone
+      try {
+        signInPhoneSchema.parse({ identifier: phoneDigits, password });
+      } catch (error) {
+        if (error instanceof z.ZodError) {
+          toast({ variant: "destructive", title: "Erro de validação", description: error.errors[0].message });
+          setLoading(false);
+          return;
+        }
+      }
+      // Look up email by phone using edge function
+      try {
+        const { data, error: fnError } = await supabase.functions.invoke("check-phone-exists", {
+          body: { phone: phoneDigits, return_email: true },
         });
+        if (fnError || !data?.email) {
+          toast({ variant: "destructive", title: "Erro ao fazer login", description: "Telefone não encontrado. Verifique o número ou faça login com email." });
+          setLoading(false);
+          return;
+        }
+        email = data.email;
+      } catch {
+        toast({ variant: "destructive", title: "Erro", description: "Não foi possível verificar o telefone." });
         setLoading(false);
         return;
       }
+    } else {
+      email = formData.get("login-email") as string;
+      try {
+        signInEmailSchema.parse({ identifier: email, password });
+      } catch (error) {
+        if (error instanceof z.ZodError) {
+          toast({ variant: "destructive", title: "Erro de validação", description: error.errors[0].message });
+          setLoading(false);
+          return;
+        }
+      }
     }
 
-    const { error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
+    const { error } = await supabase.auth.signInWithPassword({ email, password });
 
     if (error) {
       const errorMap: Record<string, string> = {
-        'Invalid login credentials': 'Email ou senha incorretos. Verifique e tente novamente.',
-        'Email not confirmed': 'Email ainda não confirmado. Verifique sua caixa de entrada.',
+        'Invalid login credentials': 'Credenciais incorretas. Verifique e tente novamente.',
         'Too many requests': 'Muitas tentativas. Aguarde alguns minutos e tente novamente.',
         'User not found': 'Usuário não encontrado.',
-        'Invalid email or password': 'Email ou senha incorretos.',
+        'Invalid email or password': 'Credenciais incorretas.',
       };
       const translatedMessage = errorMap[error.message] || 
-        (/invalid.*credentials/i.test(error.message) ? 'Email ou senha incorretos. Verifique e tente novamente.' :
-        /not confirmed/i.test(error.message) ? 'Email ainda não confirmado. Verifique sua caixa de entrada.' :
+        (/invalid.*credentials/i.test(error.message) ? 'Credenciais incorretas. Verifique e tente novamente.' :
         /rate limit|too many/i.test(error.message) ? 'Muitas tentativas. Aguarde alguns minutos.' :
         error.message);
-      toast({
-        variant: "destructive",
-        title: "Erro ao fazer login",
-        description: translatedMessage,
-      });
+      toast({ variant: "destructive", title: "Erro ao fazer login", description: translatedMessage });
     }
 
     setLoading(false);
@@ -394,17 +422,66 @@ const Auth = () => {
                 <CardDescription>Entre com sua conta para continuar</CardDescription>
               </CardHeader>
               <CardContent>
+                <div className="flex gap-2 mb-4">
+                  <Button
+                    type="button"
+                    variant={loginMethod === 'email' ? 'default' : 'outline'}
+                    size="sm"
+                    className="flex-1"
+                    onClick={() => setLoginMethod('email')}
+                  >
+                    Email
+                  </Button>
+                  <Button
+                    type="button"
+                    variant={loginMethod === 'phone' ? 'default' : 'outline'}
+                    size="sm"
+                    className="flex-1"
+                    onClick={() => setLoginMethod('phone')}
+                  >
+                    Celular
+                  </Button>
+                </div>
                 <form onSubmit={handleSignIn} className="space-y-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="login-email">Email</Label>
-                    <Input
-                      id="login-email"
-                      name="login-email"
-                      type="email"
-                      placeholder="seu@email.com"
-                      required
-                    />
-                  </div>
+                  {loginMethod === 'email' ? (
+                    <div className="space-y-2">
+                      <Label htmlFor="login-email">Email</Label>
+                      <Input
+                        id="login-email"
+                        name="login-email"
+                        type="email"
+                        placeholder="seu@email.com"
+                        required
+                      />
+                    </div>
+                  ) : (
+                    <div className="space-y-2">
+                      <Label htmlFor="login-phone">Celular</Label>
+                      <Input
+                        id="login-phone"
+                        name="login-phone"
+                        type="text"
+                        placeholder="(00) 00000-0000"
+                        required
+                        maxLength={15}
+                        value={loginPhone}
+                        onChange={(e) => {
+                          let raw = e.target.value.replace(/\D/g, "");
+                          let value = raw;
+                          if (raw.length <= 2) {
+                            // no formatting
+                          } else if (raw.length <= 6) {
+                            value = raw.replace(/(\d{2})(\d{1,4})/, "($1) $2");
+                          } else if (raw.length <= 10) {
+                            value = raw.replace(/(\d{2})(\d{4})(\d{1,4})/, "($1) $2-$3");
+                          } else {
+                            value = raw.replace(/(\d{2})(\d{5})(\d{1,4})/, "($1) $2-$3");
+                          }
+                          setLoginPhone(value);
+                        }}
+                      />
+                    </div>
+                  )}
                   <div className="space-y-2">
                     <Label htmlFor="login-password">Senha</Label>
                     <PasswordInput

@@ -12,7 +12,7 @@ serve(async (req) => {
   }
 
   try {
-    const { phone } = await req.json();
+    const { phone, return_email } = await req.json();
     if (!phone || !/^\d{10,11}$/.test(phone)) {
       return new Response(JSON.stringify({ error: "Telefone inválido" }), {
         status: 400,
@@ -36,6 +36,21 @@ serve(async (req) => {
       console.error("Error checking phone:", error);
       return new Response(JSON.stringify({ error: "Erro ao verificar telefone" }), {
         status: 500,
+        headers: { "Content-Type": "application/json", ...corsHeaders },
+      });
+    }
+
+    // If return_email is requested and profile exists, look up the user's email
+    if (return_email && data?.id) {
+      const { data: userData, error: userError } = await supabase.auth.admin.getUserById(data.id);
+      if (userError || !userData?.user?.email) {
+        return new Response(JSON.stringify({ exists: true, email: null }), {
+          status: 200,
+          headers: { "Content-Type": "application/json", ...corsHeaders },
+        });
+      }
+      return new Response(JSON.stringify({ exists: true, email: userData.user.email }), {
+        status: 200,
         headers: { "Content-Type": "application/json", ...corsHeaders },
       });
     }
