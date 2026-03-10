@@ -65,8 +65,13 @@ const signUpSchema = z.object({
   phone: phoneSchema,
 });
 
-const signInSchema = z.object({
-  email: z.string().email("Email inválido").max(255, "Email muito longo"),
+const signInEmailSchema = z.object({
+  identifier: z.string().email("Email inválido").max(255, "Email muito longo"),
+  password: z.string().min(1, "Senha é obrigatória").max(128, "Senha muito longa"),
+});
+
+const signInPhoneSchema = z.object({
+  identifier: z.string().regex(/^\d{10,11}$/, "Telefone deve conter 10 ou 11 dígitos"),
   password: z.string().min(1, "Senha é obrigatória").max(128, "Senha muito longa"),
 });
 
