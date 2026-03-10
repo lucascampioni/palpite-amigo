@@ -142,7 +142,11 @@ serve(async (req) => {
     });
 
     // Sort participants by points, then by tiebreaker criteria
+    // For estabelecimento pools, exclude participants without predictions
+    const participantsWithPredictions = new Set(predictions?.map(p => p.participant_id) || []);
+    
     const participantsWithPoints = participants
+      .filter(p => !isEstabelecimento || participantsWithPredictions.has(p.id))
       .map(p => ({
         ...p,
         total_points: pointsMap[p.id] || 0,
