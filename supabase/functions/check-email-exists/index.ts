@@ -20,48 +20,19 @@ serve(async (req) => {
       });
     }
 
-    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-    const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+    const supabase = createClient(
+      Deno.env.get("SUPABASE_URL")!,
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
+      { auth: { persistSession: false } }
+    );
 
-    // Use the GoTrue admin API to check if user exists by email
-    const response = await fetch(`${supabaseUrl}/auth/v1/admin/users?page=1&per_page=1`, {
-      method: "GET",
-      headers: {
-        "Authorization": `Bearer ${serviceKey}`,
-        "apikey": serviceKey,
-      },
+    const { data, error } = await supabase.rpc("check_email_exists", {
+      _email: email.trim().toLowerCase(),
     });
 
-    // Alternative: use the admin client to list and filter
-    const supabase = createClient(supabaseUrl, serviceKey, {
-      auth: { persistSession: false },
-    });
-
-    const normalizedEmail = email.trim().toLowerCase();
-
-    // Query via SQL using service role - most efficient
-    const { data, error } = await supabase.rpc('check_email_exists_fn' as any, { _email: normalizedEmail });
-    
-    // If the RPC doesn't exist, fall back to listing users
     if (error) {
-      // Fallback: use admin API
-      const { data: listData, error: listError } = await supabase.auth.admin.listUsers({
-        page: 1,
-        perPage: 50,
-      });
-
-      if (listError) {
-        console.error("Error listing users:", listError);
-        return new Response(JSON.stringify({ exists: false }), {
-          status: 200,
-          headers: { "Content-Type": "application/json", ...corsHeaders },
-        });
-      }
-
-      // Check all pages if needed - but for now check first batch
-      const exists = listData.users.some(u => u.email?.toLowerCase() === normalizedEmail);
-      
-      return new Response(JSON.stringify({ exists }), {
+      console.error("Error checking email:", error);
+      return new Response(JSON.stringify({ exists: false }), {
         status: 200,
         headers: { "Content-Type": "application/json", ...corsHeaders },
       });
