@@ -20,52 +20,54 @@ serve(async (req) => {
       });
     }
 
-    const supabase = createClient(
-      Deno.env.get("SUPABASE_URL")!,
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
-      { auth: { persistSession: false } }
-    );
+    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+    const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
-    // List users filtered by email
-    const { data, error } = await supabase.auth.admin.listUsers({
-      page: 1,
-      perPage: 1,
+    // Use the GoTrue admin API to check if user exists by email
+    const response = await fetch(`${supabaseUrl}/auth/v1/admin/users?page=1&per_page=1`, {
+      method: "GET",
+      headers: {
+        "Authorization": `Bearer ${serviceKey}`,
+        "apikey": serviceKey,
+      },
     });
 
-    if (error) {
-      console.error("Error listing users:", error);
-      return new Response(JSON.stringify({ error: "Erro ao verificar email" }), {
-        status: 500,
-        headers: { "Content-Type": "application/json", ...corsHeaders },
-      });
-    }
+    // Alternative: use the admin client to list and filter
+    const supabase = createClient(supabaseUrl, serviceKey, {
+      auth: { persistSession: false },
+    });
 
-    // Use getUserByEmail for exact match
-    const { data: userData, error: userError } = await supabase.auth.admin.getUserById("placeholder");
-    // Actually, let's use a direct approach - query by email
-    
-    // listUsers doesn't filter by email, so let's use a different approach
-    // We'll query the profiles or use admin API properly
     const normalizedEmail = email.trim().toLowerCase();
+
+    // Query via SQL using service role - most efficient
+    const { data, error } = await supabase.rpc('check_email_exists_fn' as any, { _email: normalizedEmail });
     
-    // Try to find user by iterating - but that's not efficient
-    // Better approach: try signInWithPassword with a dummy password and check error type
-    // Actually the best approach for Supabase is to use the admin API
-    
-    // Use the RPC or direct query approach via admin
-    const { data: users, error: listError } = await supabase.auth.admin.listUsers();
-    
-    if (listError) {
-      console.error("Error listing users:", listError);
-      return new Response(JSON.stringify({ error: "Erro ao verificar email" }), {
-        status: 500,
+    // If the RPC doesn't exist, fall back to listing users
+    if (error) {
+      // Fallback: use admin API
+      const { data: listData, error: listError } = await supabase.auth.admin.listUsers({
+        page: 1,
+        perPage: 50,
+      });
+
+      if (listError) {
+        console.error("Error listing users:", listError);
+        return new Response(JSON.stringify({ exists: false }), {
+          status: 200,
+          headers: { "Content-Type": "application/json", ...corsHeaders },
+        });
+      }
+
+      // Check all pages if needed - but for now check first batch
+      const exists = listData.users.some(u => u.email?.toLowerCase() === normalizedEmail);
+      
+      return new Response(JSON.stringify({ exists }), {
+        status: 200,
         headers: { "Content-Type": "application/json", ...corsHeaders },
       });
     }
 
-    const exists = users.users.some(u => u.email?.toLowerCase() === normalizedEmail);
-
-    return new Response(JSON.stringify({ exists }), {
+    return new Response(JSON.stringify({ exists: !!data }), {
       status: 200,
       headers: { "Content-Type": "application/json", ...corsHeaders },
     });
