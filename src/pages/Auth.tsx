@@ -90,6 +90,7 @@ const Auth = () => {
   const [resetLoading, setResetLoading] = useState(false);
   const [loginMethod, setLoginMethod] = useState<'email' | 'phone'>('email');
   const [loginPhone, setLoginPhone] = useState("");
+  const [activeTab, setActiveTab] = useState("login");
   
   const redirectUrl = searchParams.get('redirect') || '/';
   
@@ -324,8 +325,17 @@ const Auth = () => {
         const { data, error: fnError } = await supabase.functions.invoke("check-phone-exists", {
           body: { phone: phoneDigits, return_email: true },
         });
-        if (fnError || !data?.email) {
-          toast({ variant: "destructive", title: "Erro ao fazer login", description: "Telefone não encontrado. Verifique o número ou faça login com email." });
+        if (fnError || !data?.exists) {
+          toast({
+            title: "Telefone não cadastrado",
+            description: "Esse número não está cadastrado. Redirecionando para o cadastro...",
+          });
+          setTimeout(() => setActiveTab("signup"), 1500);
+          setLoading(false);
+          return;
+        }
+        if (!data?.email) {
+          toast({ variant: "destructive", title: "Erro ao fazer login", description: "Não foi possível recuperar o email vinculado a este telefone." });
           setLoading(false);
           return;
         }
@@ -345,6 +355,23 @@ const Auth = () => {
           setLoading(false);
           return;
         }
+      }
+      // Check if email exists before attempting login
+      try {
+        const { data, error: fnError } = await supabase.functions.invoke("check-email-exists", {
+          body: { email },
+        });
+        if (!fnError && data && !data.exists) {
+          toast({
+            title: "Email não cadastrado",
+            description: "Esse email não está cadastrado. Redirecionando para o cadastro...",
+          });
+          setTimeout(() => setActiveTab("signup"), 1500);
+          setLoading(false);
+          return;
+        }
+      } catch {
+        // If check fails, proceed with login attempt anyway
       }
     }
 
@@ -409,7 +436,7 @@ const Auth = () => {
           <div className="h-1 w-20 mx-auto rounded-full bg-gradient-to-r from-primary via-secondary to-accent" />
         </div>
 
-        <Tabs defaultValue="login" className="w-full">
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
           <TabsList className="grid w-full grid-cols-2">
             <TabsTrigger value="login">Entrar</TabsTrigger>
             <TabsTrigger value="signup">Criar Conta</TabsTrigger>
