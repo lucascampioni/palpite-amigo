@@ -190,6 +190,11 @@ const FootballPredictionForm = ({ poolId, userId, onSuccess, entryFee, pool, pix
     checkEstabelecimentoEntry();
   }, [isEstabelecimento, matches, poolId, userId]);
 
+  const proceedToDisclaimer = () => {
+    setDisclaimerAccepted(false);
+    setShowDisclaimerDialog(true);
+  };
+
   const handleSubmitClick = () => {
     // For estabelecimento pools, check that user was registered
     if (isEstabelecimento && !estabelecimentoReady) {
@@ -206,7 +211,7 @@ const FootballPredictionForm = ({ poolId, userId, onSuccess, entryFee, pool, pix
       const hasEmpty = predictionSets[i].some(p => {
         const match = matches.find(m => m.id === p.matchId);
         const isPostponed = (match as any)?.status === 'postponed' || (match as any)?.status === 'cancelled' || (match as any)?.status === 'abandoned';
-        if (isPostponed) return false; // Skip validation for postponed matches
+        if (isPostponed) return false;
         return p.homeScore === '' || p.awayScore === '';
       });
       if (hasEmpty) {
@@ -219,8 +224,29 @@ const FootballPredictionForm = ({ poolId, userId, onSuccess, entryFee, pool, pix
         return;
       }
     }
-    setDisclaimerAccepted(false);
-    setShowDisclaimerDialog(true);
+
+    // Check for unusually high scores (2+ digits, i.e. >= 10)
+    const unusualPredictions: { match: Match; homeScore: string; awayScore: string; setIndex: number }[] = [];
+    for (let i = 0; i < predictionSets.length; i++) {
+      for (const p of predictionSets[i]) {
+        const home = parseInt(p.homeScore);
+        const away = parseInt(p.awayScore);
+        if (home >= 10 || away >= 10) {
+          const match = matches.find(m => m.id === p.matchId);
+          if (match) {
+            unusualPredictions.push({ match, homeScore: p.homeScore, awayScore: p.awayScore, setIndex: i });
+          }
+        }
+      }
+    }
+
+    if (unusualPredictions.length > 0) {
+      setHighScoreMatches(unusualPredictions);
+      setShowHighScoreWarning(true);
+      return;
+    }
+
+    proceedToDisclaimer();
   };
 
   const handleConfirmSubmit = async () => {
