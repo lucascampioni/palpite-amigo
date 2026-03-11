@@ -277,7 +277,82 @@ serve(async (req) => {
       }
     }
 
-    // 7. Check if any pools are now complete
+    // 7. Fallback: check for "scheduled" matches whose kickoff was >3h ago (missed entirely)
+    const threeHoursAgo = new Date(Date.now() - 3 * 60 * 60 * 1000).toISOString();
+    const { data: missedScheduled } = await supabase
+      .from('football_matches')
+      .select('id, external_id, pool_id, home_team, away_team, status, match_date, home_score, away_score')
+      .eq('status', 'scheduled')
+      .lt('match_date', threeHoursAgo)
+      .not('external_id', 'is', null);
+
+    if (missedScheduled && missedScheduled.length > 0) {
+      console.log(`🕐 Found ${missedScheduled.length} scheduled matches past kickoff+3h. Fetching results...`);
+
+      for (const missed of missedScheduled) {
+        if (dailyCount >= DAILY_LIMIT) break;
+
+        const apifbId = missed.external_id?.replace('apifb_', '');
+        if (!apifbId || !missed.external_id?.startsWith('apifb_')) continue;
+
+        try {
+          const fbResp = await fetch(`${API_FOOTBALL_BASE}/fixtures?id=${apifbId}`, {
+            headers: { 'x-apisports-key': API_FOOTBALL_KEY! },
+          });
+          dailyCount++;
+
+          if (fbResp.ok) {
+            const fbData = await fbResp.json();
+            const fbFixture = fbData.response?.[0];
+
+            if (fbFixture) {
+              const fbStatus = mapApiStatus(fbFixture.fixture?.status?.short);
+              const fbHome = fbFixture.goals?.home ?? null;
+              const fbAway = fbFixture.goals?.away ?? null;
+
+              if (fbStatus !== 'scheduled' && fbHome !== null && fbAway !== null) {
+                const { data: poolData } = await supabase
+                  .from('pools')
+                  .select('scoring_system')
+                  .eq('id', missed.pool_id)
+                  .single();
+
+                await supabase
+                  .from('football_matches')
+                  .update({
+                    home_score: fbHome,
+                    away_score: fbAway,
+                    status: fbStatus,
+                    last_sync_at: new Date().toISOString(),
+                  })
+                  .eq('id', missed.id);
+
+                updatedCount++;
+                console.log(`✅ Missed match recovered: ${missed.home_team} ${fbHome} x ${fbAway} ${missed.away_team} [${fbStatus}]`);
+
+                if (fbStatus === 'finished') {
+                  finishedPoolIds.add(missed.pool_id);
+                  const matchWithPool = { ...missed, pools: { scoring_system: poolData?.scoring_system || 'standard' } };
+                  await calculateMatchPoints(supabase, matchWithPool, fbHome, fbAway);
+                }
+              }
+            }
+          }
+        } catch (fbError) {
+          console.error(`❌ Missed match fetch error for fixture ${apifbId}:`, fbError);
+        }
+      }
+
+      // Update daily count after missed matches
+      if (controlRow) {
+        await supabase
+          .from('api_sync_control')
+          .update({ daily_request_count: dailyCount, request_count_date: today })
+          .eq('id', controlRow.id);
+      }
+    }
+
+    // 8. Check if any pools are now complete
     for (const poolId of finishedPoolIds) {
       await checkPoolCompletion(supabase, poolId);
     }
