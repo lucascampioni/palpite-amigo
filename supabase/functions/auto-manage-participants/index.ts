@@ -172,6 +172,64 @@ serve(async (req) => {
       }
     }
 
+    // === ESTABELECIMENTO POOLS: reject approved participants without predictions after deadline ===
+    const { data: estabPools, error: estabError } = await supabase
+      .from('pools')
+      .select('id, title, deadline')
+      .eq('status', 'active')
+      .eq('prize_type', 'estabelecimento');
+
+    if (!estabError && estabPools && estabPools.length > 0) {
+      for (const pool of estabPools) {
+        const deadlineTime = new Date(pool.deadline);
+        if (now <= deadlineTime) continue; // deadline not passed yet
+
+        // Find approved participants without predictions
+        const { data: approvedParticipants, error: apErr } = await supabase
+          .from('participants')
+          .select('id, participant_name, user_id')
+          .eq('pool_id', pool.id)
+          .eq('status', 'approved');
+
+        if (apErr || !approvedParticipants || approvedParticipants.length === 0) continue;
+
+        const participantIds = approvedParticipants.map(p => p.id);
+        const { data: predictions } = await supabase
+          .from('football_predictions')
+          .select('participant_id')
+          .in('participant_id', participantIds);
+
+        const withPredictions = new Set(predictions?.map(p => p.participant_id) || []);
+        const noPredictions = approvedParticipants.filter(p => !withPredictions.has(p.id));
+
+        if (noPredictions.length > 0) {
+          const ids = noPredictions.map(p => p.id);
+          const { error: updateErr } = await supabase
+            .from('participants')
+            .update({
+              status: 'rejected',
+              rejection_reason: 'Palpite não enviado',
+              rejection_details: 'Você foi removido do bolão por não ter enviado seus palpites antes do prazo.',
+            })
+            .in('id', ids);
+
+          noPredictions.forEach(p => {
+            results.push({
+              action: 'estab_reject_no_predictions',
+              pool: pool.title,
+              participant: p.participant_name,
+              success: !updateErr,
+              error: updateErr?.message,
+            });
+          });
+
+          if (!updateErr) {
+            console.log(`Estabelecimento: rejected ${ids.length} participants without predictions in "${pool.title}"`);
+          }
+        }
+      }
+    }
+
     console.log(`Auto-manage completed: ${results.length} actions`);
 
     return new Response(
