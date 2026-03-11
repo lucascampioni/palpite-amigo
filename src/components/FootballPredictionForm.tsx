@@ -64,6 +64,8 @@ const FootballPredictionForm = ({ poolId, userId, onSuccess, entryFee, pool, pix
   const [activeSetIndex, setActiveSetIndex] = useState(0);
   const [voucherPredictionSets, setVoucherPredictionSets] = useState<number | null>(null);
   const [estabelecimentoReady, setEstabelecimentoReady] = useState(false);
+  const [showHighScoreWarning, setShowHighScoreWarning] = useState(false);
+  const [highScoreMatches, setHighScoreMatches] = useState<{ match: Match; homeScore: string; awayScore: string; setIndex: number }[]>([]);
 
   const isEstabelecimento = pool?.prize_type === 'estabelecimento';
   const hasEntryFee = !isEstabelecimento && pool?.entry_fee && parseFloat(pool.entry_fee) > 0;
@@ -188,6 +190,11 @@ const FootballPredictionForm = ({ poolId, userId, onSuccess, entryFee, pool, pix
     checkEstabelecimentoEntry();
   }, [isEstabelecimento, matches, poolId, userId]);
 
+  const proceedToDisclaimer = () => {
+    setDisclaimerAccepted(false);
+    setShowDisclaimerDialog(true);
+  };
+
   const handleSubmitClick = () => {
     // For estabelecimento pools, check that user was registered
     if (isEstabelecimento && !estabelecimentoReady) {
@@ -204,7 +211,7 @@ const FootballPredictionForm = ({ poolId, userId, onSuccess, entryFee, pool, pix
       const hasEmpty = predictionSets[i].some(p => {
         const match = matches.find(m => m.id === p.matchId);
         const isPostponed = (match as any)?.status === 'postponed' || (match as any)?.status === 'cancelled' || (match as any)?.status === 'abandoned';
-        if (isPostponed) return false; // Skip validation for postponed matches
+        if (isPostponed) return false;
         return p.homeScore === '' || p.awayScore === '';
       });
       if (hasEmpty) {
@@ -217,8 +224,29 @@ const FootballPredictionForm = ({ poolId, userId, onSuccess, entryFee, pool, pix
         return;
       }
     }
-    setDisclaimerAccepted(false);
-    setShowDisclaimerDialog(true);
+
+    // Check for unusually high scores (2+ digits, i.e. >= 10)
+    const unusualPredictions: { match: Match; homeScore: string; awayScore: string; setIndex: number }[] = [];
+    for (let i = 0; i < predictionSets.length; i++) {
+      for (const p of predictionSets[i]) {
+        const home = parseInt(p.homeScore);
+        const away = parseInt(p.awayScore);
+        if (home >= 10 || away >= 10) {
+          const match = matches.find(m => m.id === p.matchId);
+          if (match) {
+            unusualPredictions.push({ match, homeScore: p.homeScore, awayScore: p.awayScore, setIndex: i });
+          }
+        }
+      }
+    }
+
+    if (unusualPredictions.length > 0) {
+      setHighScoreMatches(unusualPredictions);
+      setShowHighScoreWarning(true);
+      return;
+    }
+
+    proceedToDisclaimer();
   };
 
   const handleConfirmSubmit = async () => {
@@ -717,6 +745,45 @@ const FootballPredictionForm = ({ poolId, userId, onSuccess, entryFee, pool, pix
             : "Enviar Palpites e Participar"}
         </Button>
       </div>
+
+      {/* High Score Warning Dialog */}
+      <Dialog open={showHighScoreWarning} onOpenChange={setShowHighScoreWarning}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-amber-600">
+              <AlertTriangle className="w-5 h-5" />
+              Placar incomum detectado
+            </DialogTitle>
+            <DialogDescription>
+              Você colocou placares com valores altos, o que é incomum em jogos de futebol. Tem certeza que os placares abaixo estão corretos?
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-2 my-2">
+            {highScoreMatches.map((item, idx) => (
+              <div key={idx} className="flex items-center justify-between p-3 rounded-lg bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800">
+                <span className="text-sm font-medium">
+                  {predictionSets.length > 1 && <span className="text-muted-foreground mr-1">Palpite {item.setIndex + 1}:</span>}
+                  {item.match.home_team} <span className="font-bold text-amber-700 dark:text-amber-400">{item.homeScore}</span> x <span className="font-bold text-amber-700 dark:text-amber-400">{item.awayScore}</span> {item.match.away_team}
+                </span>
+              </div>
+            ))}
+          </div>
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button variant="outline" onClick={() => setShowHighScoreWarning(false)}>
+              Corrigir palpites
+            </Button>
+            <Button
+              className="bg-amber-600 hover:bg-amber-700 text-white"
+              onClick={() => {
+                setShowHighScoreWarning(false);
+                proceedToDisclaimer();
+              }}
+            >
+              Confirmar placares
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Disclaimer Dialog */}
       <Dialog open={showDisclaimerDialog} onOpenChange={setShowDisclaimerDialog}>
