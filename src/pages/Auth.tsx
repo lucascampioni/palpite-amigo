@@ -436,7 +436,7 @@ const Auth = () => {
           <div className="h-1 w-20 mx-auto rounded-full bg-gradient-to-r from-primary via-secondary to-accent" />
         </div>
 
-        <Tabs defaultValue="login" className="w-full">
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
           <TabsList className="grid w-full grid-cols-2">
             <TabsTrigger value="login">Entrar</TabsTrigger>
             <TabsTrigger value="signup">Criar Conta</TabsTrigger>
