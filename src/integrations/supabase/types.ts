@@ -734,6 +734,7 @@ export type Database = {
         Returns: number
       }
       can_create_pools: { Args: never; Returns: boolean }
+      check_email_exists: { Args: { _email: string }; Returns: boolean }
       cleanup_expired_otp: { Args: never; Returns: undefined }
       generate_slug: { Args: { title: string }; Returns: string }
       get_football_pool_ranking: {
