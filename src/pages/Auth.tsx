@@ -90,6 +90,7 @@ const Auth = () => {
   const [resetLoading, setResetLoading] = useState(false);
   const [loginMethod, setLoginMethod] = useState<'email' | 'phone'>('email');
   const [loginPhone, setLoginPhone] = useState("");
+  const [activeTab, setActiveTab] = useState("login");
   
   const redirectUrl = searchParams.get('redirect') || '/';
   
