@@ -13,7 +13,7 @@ import Privacy from "./pages/Privacy";
 import EmailConfirmation from "./pages/EmailConfirmation";
 import ResetPassword from "./pages/ResetPassword";
 import WhatsAppRequests from "./pages/WhatsAppRequests";
-import WhatsAppVerification from "./pages/WhatsAppVerification";
+import SmsVerification from "./pages/SmsVerification";
 import NotFound from "./pages/NotFound";
 import Communities from "./pages/Communities";
 import CommunityDetail from "./pages/CommunityDetail";
