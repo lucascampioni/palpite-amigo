@@ -37,7 +37,8 @@ const App = () => (
           <Route path="/perfil" element={<Profile />} />
           <Route path="/privacidade" element={<Privacy />} />
           <Route path="/solicitacoes-whatsapp" element={<WhatsAppRequests />} />
-          <Route path="/verificacao-whatsapp" element={<WhatsAppVerification />} />
+          <Route path="/verificacao-sms" element={<SmsVerification />} />
+          <Route path="/verificacao-whatsapp" element={<SmsVerification />} />
           <Route path="/comunidades" element={<Communities />} />
           <Route path="/comunidade/:slug" element={<CommunityDetail />} />
           {/* Backward compatibility redirects for old URLs */}

@@ -69,7 +69,7 @@ const Index = () => {
 
         // Only redirect to verification if user HAS a phone number but it's not verified yet
         if (profile && profile.phone !== null && profile.phone !== '' && !profile.phone_verified) {
-          navigate("/verificacao-whatsapp");
+          navigate("/verificacao-sms");
           return;
         }
 
