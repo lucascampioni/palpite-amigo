@@ -13,7 +13,7 @@ import Privacy from "./pages/Privacy";
 import EmailConfirmation from "./pages/EmailConfirmation";
 import ResetPassword from "./pages/ResetPassword";
 import WhatsAppRequests from "./pages/WhatsAppRequests";
-import WhatsAppVerification from "./pages/WhatsAppVerification";
+import SmsVerification from "./pages/SmsVerification";
 import NotFound from "./pages/NotFound";
 import Communities from "./pages/Communities";
 import CommunityDetail from "./pages/CommunityDetail";
@@ -37,7 +37,8 @@ const App = () => (
           <Route path="/perfil" element={<Profile />} />
           <Route path="/privacidade" element={<Privacy />} />
           <Route path="/solicitacoes-whatsapp" element={<WhatsAppRequests />} />
-          <Route path="/verificacao-whatsapp" element={<WhatsAppVerification />} />
+          <Route path="/verificacao-sms" element={<SmsVerification />} />
+          <Route path="/verificacao-whatsapp" element={<SmsVerification />} />
           <Route path="/comunidades" element={<Communities />} />
           <Route path="/comunidade/:slug" element={<CommunityDetail />} />
           {/* Backward compatibility redirects for old URLs */}

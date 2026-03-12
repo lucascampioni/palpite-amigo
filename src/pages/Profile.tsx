@@ -167,8 +167,8 @@ const Profile = () => {
 
       setProfile((prev: any) => ({ ...prev, phone: cleanPhone, phone_verified: false }));
       setEditingPhone(false);
-      toast({ title: "Telefone atualizado", description: "Você precisa verificar o novo número via WhatsApp." });
-      navigate("/verificacao-whatsapp");
+      toast({ title: "Telefone atualizado", description: "Você precisa verificar o novo número via SMS." });
+      navigate("/verificacao-sms");
     } catch (error: any) {
       toast({ title: "Erro", description: error.message, variant: "destructive" });
     } finally {
