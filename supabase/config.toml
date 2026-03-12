@@ -48,5 +48,9 @@ verify_jwt = false
 [functions.auto-manage-participants]
 verify_jwt = false
 
+
+[functions.send-sms-otp]
+verify_jwt = false
+
 [functions.notify-pool-events]
 verify_jwt = false
