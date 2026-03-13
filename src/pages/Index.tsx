@@ -60,19 +60,6 @@ const Index = () => {
       if (!session) {
         navigate("/entrar");
       } else {
-        // Check if phone is verified
-        const { data: profile } = await supabase
-          .from("profiles")
-          .select("phone, phone_verified")
-          .eq("id", session.user.id)
-          .single();
-
-        // Only redirect to verification if user HAS a phone number but it's not verified yet
-        if (profile && profile.phone !== null && profile.phone !== '' && !profile.phone_verified) {
-          navigate("/verificacao-sms");
-          return;
-        }
-
         NotificationService.requestPermissions();
         NotificationService.setupRealtimeNotifications(session.user.id);
         window.scrollTo(0, 0);
