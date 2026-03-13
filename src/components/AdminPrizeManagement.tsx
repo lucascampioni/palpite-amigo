@@ -220,12 +220,6 @@ export const AdminPrizeManagement = ({ participant, poolId, poolTitle, participa
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-3 pt-0">
-          <div className="flex items-start gap-2 p-3 rounded-lg bg-yellow-100/50 dark:bg-yellow-900/30 border border-yellow-200 dark:border-yellow-700">
-            <AlertCircle className="w-4 h-4 text-yellow-600 dark:text-yellow-400 mt-0.5 shrink-0" />
-            <p className="text-xs text-yellow-700 dark:text-yellow-300">
-              Uma mensagem automática já foi enviada informando que o bolão finalizou. Use o botão abaixo apenas se necessário para evitar múltiplas mensagens.
-            </p>
-          </div>
           {participantPhone ? (
             <Button
               variant="outline"
