@@ -27,6 +27,7 @@ interface AdminPrizeManagementProps {
 export const AdminPrizeManagement = ({ participant, poolId, poolTitle, participantPhone, prizeAmount, onSuccess }: AdminPrizeManagementProps) => {
   const [proofFile, setProofFile] = useState<File | null>(null);
   const [isUploading, setIsUploading] = useState(false);
+  const [isMarkingPaidDirectly, setIsMarkingPaidDirectly] = useState(false);
   const [showFullKey, setShowFullKey] = useState(false);
   const [copied, setCopied] = useState(false);
   const [viewUrl, setViewUrl] = useState<string | null>(null);
@@ -165,6 +166,29 @@ export const AdminPrizeManagement = ({ participant, poolId, poolTitle, participa
     );
   }
 
+  const handleMarkPaidDirectly = async () => {
+    setIsMarkingPaidDirectly(true);
+    try {
+      const { error } = await supabase
+        .from("participants")
+        .update({
+          prize_status: "prize_sent",
+          prize_sent_at: new Date().toISOString(),
+        })
+        .eq("id", participant.id);
+
+      if (error) throw error;
+
+      toast.success("Prêmio marcado como pago!");
+      onSuccess?.();
+    } catch (error) {
+      console.error("Error marking prize as paid:", error);
+      toast.error("Erro ao marcar como pago. Tente novamente.");
+    } finally {
+      setIsMarkingPaidDirectly(false);
+    }
+  };
+
   const handleSendPixRequest = () => {
     if (!participantPhone) {
       toast.error("Este ganhador não tem telefone cadastrado");
@@ -217,6 +241,22 @@ export const AdminPrizeManagement = ({ participant, poolId, poolTitle, participa
               Ganhador sem telefone cadastrado — não é possível enviar mensagem.
             </p>
           )}
+          
+          <div className="border-t border-yellow-200 dark:border-yellow-700 pt-3">
+            <p className="text-xs text-muted-foreground mb-2">
+              Já combinou o pagamento por fora? Marque como pago diretamente:
+            </p>
+            <Button
+              variant="secondary"
+              size="sm"
+              className="w-full text-xs"
+              disabled={isMarkingPaidDirectly}
+              onClick={handleMarkPaidDirectly}
+            >
+              <CheckCircle className="w-4 h-4 mr-1" />
+              {isMarkingPaidDirectly ? "Marcando..." : "Já paguei este prêmio"}
+            </Button>
+          </div>
         </CardContent>
       </Card>
     );
