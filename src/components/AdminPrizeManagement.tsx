@@ -241,6 +241,22 @@ export const AdminPrizeManagement = ({ participant, poolId, poolTitle, participa
               Ganhador sem telefone cadastrado — não é possível enviar mensagem.
             </p>
           )}
+          
+          <div className="border-t border-yellow-200 dark:border-yellow-700 pt-3">
+            <p className="text-xs text-muted-foreground mb-2">
+              Já combinou o pagamento por fora? Marque como pago diretamente:
+            </p>
+            <Button
+              variant="secondary"
+              size="sm"
+              className="w-full text-xs"
+              disabled={isMarkingPaidDirectly}
+              onClick={handleMarkPaidDirectly}
+            >
+              <CheckCircle className="w-4 h-4 mr-1" />
+              {isMarkingPaidDirectly ? "Marcando..." : "Já paguei este prêmio"}
+            </Button>
+          </div>
         </CardContent>
       </Card>
     );
