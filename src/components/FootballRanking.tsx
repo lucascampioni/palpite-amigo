@@ -1059,9 +1059,10 @@ const FootballRanking = ({ poolId, pool, approvedParticipantsCount, isOwner }: F
             });
             const winners = ranking.filter(r => (r.prize_amount ?? 0) > 0);
             winners.forEach((w, i) => {
+              const percentLabel = isPercentage && rawPrizes[i] ? ` (${rawPrizes[i]}%)` : '';
               items.push({
                 icon: '',
-                text: `${positionLabels[i]}: ${w.participant_name} → R$ ${(w.prize_amount || 0).toFixed(2).replace('.', ',')}`,
+                text: `${positionLabels[i]}: ${w.participant_name} → R$ ${(w.prize_amount || 0).toFixed(2).replace('.', ',')}${percentLabel}`,
                 indent: true,
               });
             });
