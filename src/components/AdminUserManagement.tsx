@@ -8,7 +8,8 @@ import { Separator } from "@/components/ui/separator";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { toast } from "@/hooks/use-toast";
-import { Search, Trash2, Shield, ShieldOff, Loader2, ChevronLeft, ChevronRight } from "lucide-react";
+import { Search, Trash2, Shield, ShieldOff, Loader2, ChevronLeft, ChevronRight, LogIn } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 
 interface UserItem {
   id: string;
