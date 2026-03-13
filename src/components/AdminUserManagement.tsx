@@ -93,6 +93,41 @@ const AdminUserManagement = () => {
     }
   };
 
+  const impersonateUser = async (userId: string, userName: string) => {
+    setActionLoading(`impersonate-${userId}`);
+    try {
+      // Save admin session info before switching
+      const { data: { session: currentSession } } = await supabase.auth.getSession();
+      if (currentSession) {
+        localStorage.setItem("admin_impersonating", JSON.stringify({
+          adminUserId: currentSession.user.id,
+          adminEmail: currentSession.user.email,
+          targetUserName: userName,
+        }));
+      }
+
+      const { data, error } = await supabase.functions.invoke("admin-actions", {
+        body: { action: "impersonate_user", user_id: userId },
+      });
+      if (error) throw error;
+
+      // Use the token_hash to verify OTP and get a session
+      const { error: otpError } = await supabase.auth.verifyOtp({
+        type: "magiclink",
+        token_hash: data.token_hash,
+      });
+      if (otpError) throw otpError;
+
+      toast({ title: "Sucesso", description: `Logado como ${userName}` });
+      navigate("/");
+    } catch (e: any) {
+      localStorage.removeItem("admin_impersonating");
+      toast({ title: "Erro", description: e.message, variant: "destructive" });
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
   const totalPages = Math.ceil(total / limit);
 
   const getRoleBadge = (role: string) => {
