@@ -1,0 +1,1 @@
+UPDATE profiles SET phone_verified = true WHERE phone IS NOT NULL AND phone_verified = false AND id IN (SELECT DISTINCT user_id FROM participants WHERE status = 'approved')
