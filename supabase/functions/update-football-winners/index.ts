@@ -88,20 +88,14 @@ serve(async (req) => {
       );
     }
 
-    // Calculate points for each participant
+    // Calculate points for each participant, grouped by prediction_set
     const participantIds = participants.map(p => p.id);
     const { data: predictions, error: predictionsError } = await supabaseClient
       .from('football_predictions')
-      .select('participant_id, points_earned, created_at, home_score_prediction, away_score_prediction, match_id')
+      .select('participant_id, points_earned, created_at, home_score_prediction, away_score_prediction, match_id, prediction_set')
       .in('participant_id', participantIds);
 
     if (predictionsError) throw predictionsError;
-
-    // Aggregate points, exact scores, correct results, and earliest prediction time per participant
-    const pointsMap: Record<string, number> = {};
-    const exactScoresMap: Record<string, number> = {};
-    const correctResultsMap: Record<string, number> = {};
-    const earliestPredictionMap: Record<string, string> = {};
 
     // Build a map of match results for detailed tiebreaker calculation
     const matchResultsMap: Record<string, { home_score: number; away_score: number }> = {};
@@ -111,35 +105,89 @@ serve(async (req) => {
       }
     }
 
+    // Aggregate per participant+prediction_set (each set is scored independently)
+    const setStatsMap: Record<string, { points: number; exactScores: number; correctResults: number; earliest: string }> = {};
+
     predictions?.forEach(pred => {
       const pid = pred.participant_id;
-      pointsMap[pid] = (pointsMap[pid] || 0) + (pred.points_earned || 0);
-      
-      // Track earliest prediction submission time
-      if (!earliestPredictionMap[pid] || 
-          new Date(pred.created_at).getTime() < new Date(earliestPredictionMap[pid]).getTime()) {
-        earliestPredictionMap[pid] = pred.created_at;
+      const ps = pred.prediction_set || 1;
+      const key = `${pid}_${ps}`;
+
+      if (!setStatsMap[key]) {
+        setStatsMap[key] = { points: 0, exactScores: 0, correctResults: 0, earliest: pred.created_at };
+      }
+
+      setStatsMap[key].points += (pred.points_earned || 0);
+
+      // Track earliest prediction submission time for this set
+      if (new Date(pred.created_at).getTime() < new Date(setStatsMap[key].earliest).getTime()) {
+        setStatsMap[key].earliest = pred.created_at;
       }
 
       // Count exact scores and correct results for tiebreaker
       const matchResult = matchResultsMap[pred.match_id];
       if (matchResult) {
-        // Exact score
         if (pred.home_score_prediction === matchResult.home_score && 
             pred.away_score_prediction === matchResult.away_score) {
-          exactScoresMap[pid] = (exactScoresMap[pid] || 0) + 1;
+          setStatsMap[key].exactScores += 1;
         }
 
-        // Correct result (win/draw/loss)
         const predResult = pred.home_score_prediction > pred.away_score_prediction ? 'home' : 
                           pred.home_score_prediction < pred.away_score_prediction ? 'away' : 'draw';
         const actualResult = matchResult.home_score > matchResult.away_score ? 'home' : 
                             matchResult.home_score < matchResult.away_score ? 'away' : 'draw';
         if (predResult === actualResult) {
-          correctResultsMap[pid] = (correctResultsMap[pid] || 0) + 1;
+          setStatsMap[key].correctResults += 1;
         }
       }
     });
+
+    // For each participant, pick the best prediction set (highest points, then tiebreakers)
+    const pointsMap: Record<string, number> = {};
+    const exactScoresMap: Record<string, number> = {};
+    const correctResultsMap: Record<string, number> = {};
+    const earliestPredictionMap: Record<string, string> = {};
+
+    for (const p of participants) {
+      let bestStats: { points: number; exactScores: number; correctResults: number; earliest: string } | null = null;
+
+      for (const key of Object.keys(setStatsMap)) {
+        if (!key.startsWith(`${p.id}_`)) continue;
+        const stats = setStatsMap[key];
+
+        if (!bestStats) {
+          bestStats = stats;
+          continue;
+        }
+
+        // Pick set with more points
+        if (stats.points > bestStats.points) {
+          bestStats = stats;
+        } else if (stats.points === bestStats.points) {
+          // Tiebreak: more exact scores
+          if (stats.exactScores > bestStats.exactScores) {
+            bestStats = stats;
+          } else if (stats.exactScores === bestStats.exactScores) {
+            // Tiebreak: more correct results
+            if (stats.correctResults > bestStats.correctResults) {
+              bestStats = stats;
+            } else if (stats.correctResults === bestStats.correctResults) {
+              // Tiebreak: earlier prediction
+              if (new Date(stats.earliest).getTime() < new Date(bestStats.earliest).getTime()) {
+                bestStats = stats;
+              }
+            }
+          }
+        }
+      }
+
+      if (bestStats) {
+        pointsMap[p.id] = bestStats.points;
+        exactScoresMap[p.id] = bestStats.exactScores;
+        correctResultsMap[p.id] = bestStats.correctResults;
+        earliestPredictionMap[p.id] = bestStats.earliest;
+      }
+    }
 
     // Sort participants by points, then by tiebreaker criteria
     // For estabelecimento pools, exclude participants without predictions
