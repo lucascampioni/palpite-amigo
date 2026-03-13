@@ -212,7 +212,7 @@ const VoucherManager = ({ poolId, poolTitle, poolSlug, deadline }: VoucherManage
     }
 
     // Send WhatsApp notification
-    const poolUrl = `https://app-delfos.lovable.app/bolao/${poolSlug || poolId}`;
+    const poolUrl = `https://delfos.app.br/bolao/${poolSlug || poolId}`;
     const setsLabel = predictionSets > 1 ? `${predictionSets} palpites` : '1 palpite';
     const message = hasAccount
       ? `🎉 *Delfos - Você está no bolão!*\n\n` +
