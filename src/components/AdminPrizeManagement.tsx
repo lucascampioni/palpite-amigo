@@ -27,6 +27,7 @@ interface AdminPrizeManagementProps {
 export const AdminPrizeManagement = ({ participant, poolId, poolTitle, participantPhone, prizeAmount, onSuccess }: AdminPrizeManagementProps) => {
   const [proofFile, setProofFile] = useState<File | null>(null);
   const [isUploading, setIsUploading] = useState(false);
+  const [isMarkingPaidDirectly, setIsMarkingPaidDirectly] = useState(false);
   const [showFullKey, setShowFullKey] = useState(false);
   const [copied, setCopied] = useState(false);
   const [viewUrl, setViewUrl] = useState<string | null>(null);
