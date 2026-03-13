@@ -166,6 +166,29 @@ export const AdminPrizeManagement = ({ participant, poolId, poolTitle, participa
     );
   }
 
+  const handleMarkPaidDirectly = async () => {
+    setIsMarkingPaidDirectly(true);
+    try {
+      const { error } = await supabase
+        .from("participants")
+        .update({
+          prize_status: "prize_sent",
+          prize_sent_at: new Date().toISOString(),
+        })
+        .eq("id", participant.id);
+
+      if (error) throw error;
+
+      toast.success("Prêmio marcado como pago!");
+      onSuccess?.();
+    } catch (error) {
+      console.error("Error marking prize as paid:", error);
+      toast.error("Erro ao marcar como pago. Tente novamente.");
+    } finally {
+      setIsMarkingPaidDirectly(false);
+    }
+  };
+
   const handleSendPixRequest = () => {
     if (!participantPhone) {
       toast.error("Este ganhador não tem telefone cadastrado");
