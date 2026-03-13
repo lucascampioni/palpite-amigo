@@ -239,6 +239,21 @@ const AdminUserManagement = () => {
                     {user.roles.includes("estabelecimento") ? "Remover Estabelecimento" : "Tornar Estabelecimento"}
                   </Button>
 
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => impersonateUser(user.id, user.full_name)}
+                    disabled={actionLoading === `impersonate-${user.id}`}
+                    className="text-xs border-primary/50 text-primary hover:bg-primary/10"
+                  >
+                    {actionLoading === `impersonate-${user.id}` ? (
+                      <Loader2 className="w-3 h-3 animate-spin mr-1" />
+                    ) : (
+                      <LogIn className="w-3 h-3 mr-1" />
+                    )}
+                    Entrar como
+                  </Button>
+
                   <AlertDialog>
                     <AlertDialogTrigger asChild>
                       <Button
