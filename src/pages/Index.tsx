@@ -471,8 +471,37 @@ const Index = () => {
     );
   }
 
+  const impersonationInfo = (() => {
+    try {
+      const raw = localStorage.getItem("admin_impersonating");
+      return raw ? JSON.parse(raw) : null;
+    } catch { return null; }
+  })();
+
+  const exitImpersonation = async () => {
+    localStorage.removeItem("admin_impersonating");
+    await supabase.auth.signOut();
+    navigate("/entrar");
+  };
+
   return (
     <div className="min-h-screen bg-background flex flex-col">
+      {/* Impersonation banner */}
+      {impersonationInfo && (
+        <div className="sticky top-0 z-50 bg-destructive text-destructive-foreground px-4 py-2 flex items-center justify-between text-sm">
+          <span className="font-medium">
+            👁️ Simulando login como: <strong>{impersonationInfo.targetUserName}</strong>
+          </span>
+          <Button
+            size="sm"
+            variant="outline"
+            className="h-7 text-xs border-destructive-foreground/30 text-destructive-foreground hover:bg-destructive-foreground/10"
+            onClick={exitImpersonation}
+          >
+            Sair da simulação
+          </Button>
+        </div>
+      )}
       {/* Header with gradient accent */}
       <header className="sticky top-0 z-20 bg-card/95 backdrop-blur-lg border-b border-border/50 shadow-md">
         <div className="max-w-3xl mx-auto px-3 py-2 flex items-center justify-between">
