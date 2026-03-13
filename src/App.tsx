@@ -3,6 +3,7 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
+import ProtectedRoute from "@/components/ProtectedRoute";
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
 import CreateFootballPool from "./pages/CreateFootballPool";
@@ -27,27 +28,31 @@ const App = () => (
       <Sonner />
       <BrowserRouter>
         <Routes>
-          <Route path="/" element={<Index />} />
+          {/* Public routes */}
           <Route path="/entrar" element={<Auth />} />
           <Route path="/confirmar-email" element={<EmailConfirmation />} />
           <Route path="/redefinir-senha" element={<ResetPassword />} />
-          <Route path="/criar-bolao" element={<CreateFootballPool />} />
-          <Route path="/editar-bolao/:id" element={<EditFootballPool />} />
-          <Route path="/bolao/:slug" element={<PoolDetail />} />
-          <Route path="/perfil" element={<Profile />} />
           <Route path="/privacidade" element={<Privacy />} />
-          <Route path="/solicitacoes-whatsapp" element={<WhatsAppRequests />} />
           <Route path="/verificacao-sms" element={<SmsVerification />} />
           <Route path="/verificacao-whatsapp" element={<SmsVerification />} />
-          <Route path="/comunidades" element={<Communities />} />
-          <Route path="/comunidade/:slug" element={<CommunityDetail />} />
+
+          {/* Protected routes */}
+          <Route path="/" element={<ProtectedRoute><Index /></ProtectedRoute>} />
+          <Route path="/criar-bolao" element={<ProtectedRoute><CreateFootballPool /></ProtectedRoute>} />
+          <Route path="/editar-bolao/:id" element={<ProtectedRoute><EditFootballPool /></ProtectedRoute>} />
+          <Route path="/bolao/:slug" element={<ProtectedRoute><PoolDetail /></ProtectedRoute>} />
+          <Route path="/perfil" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
+          <Route path="/solicitacoes-whatsapp" element={<ProtectedRoute><WhatsAppRequests /></ProtectedRoute>} />
+          <Route path="/comunidades" element={<ProtectedRoute><Communities /></ProtectedRoute>} />
+          <Route path="/comunidade/:slug" element={<ProtectedRoute><CommunityDetail /></ProtectedRoute>} />
+
           {/* Backward compatibility redirects for old URLs */}
           <Route path="/auth" element={<Auth />} />
-          <Route path="/pool/:slug" element={<PoolDetail />} />
-          <Route path="/edit-pool/:id" element={<EditFootballPool />} />
-          <Route path="/profile" element={<Profile />} />
+          <Route path="/pool/:slug" element={<ProtectedRoute><PoolDetail /></ProtectedRoute>} />
+          <Route path="/edit-pool/:id" element={<ProtectedRoute><EditFootballPool /></ProtectedRoute>} />
+          <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
           <Route path="/privacy" element={<Privacy />} />
-          <Route path="/create-football" element={<CreateFootballPool />} />
+          <Route path="/create-football" element={<ProtectedRoute><CreateFootballPool /></ProtectedRoute>} />
           <Route path="/email-confirmation" element={<EmailConfirmation />} />
           <Route path="/reset-password" element={<ResetPassword />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
