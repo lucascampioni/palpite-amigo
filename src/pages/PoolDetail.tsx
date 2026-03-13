@@ -164,6 +164,7 @@ const PoolDetail = () => {
       if (!pool || !hasFootballMatches) return;
       if (pool.status !== 'active' && pool.status !== 'finished') return;
       if (participants.length === 0) return;
+      if (Object.keys(participantsPoints).length === 0) return;
 
       // Check if all matches are finished
       const { data: matches } = await supabase
@@ -483,18 +484,33 @@ const PoolDetail = () => {
 
     setParticipants(participantsData || []);
 
-    // Aggregate points per participant for ranking/prize calculation
+    // Aggregate points per participant using the BEST prediction set (do not sum sets)
     const participantIds = (participantsData || []).map((p: any) => p.id);
     let pointsMap: Record<string, number> = {};
     if (participantIds.length > 0) {
       const { data: preds } = await supabase
         .from("football_predictions")
-        .select("participant_id, points_earned")
+        .select("participant_id, prediction_set, points_earned")
         .in("participant_id", participantIds);
+
       if (preds) {
+        const setTotals: Record<string, number> = {};
+
         for (const row of preds as any[]) {
-          pointsMap[row.participant_id] = (pointsMap[row.participant_id] || 0) + (row.points_earned || 0);
+          const set = row.prediction_set || 1;
+          const setKey = `${row.participant_id}_${set}`;
+          setTotals[setKey] = (setTotals[setKey] || 0) + (row.points_earned || 0);
         }
+
+        for (const [setKey, total] of Object.entries(setTotals)) {
+          const participantId = setKey.split("_")[0];
+          pointsMap[participantId] = Math.max(pointsMap[participantId] ?? Number.NEGATIVE_INFINITY, total);
+        }
+
+        // Keep 0 for participants that only have zero-point sets
+        Object.keys(pointsMap).forEach((pid) => {
+          if (pointsMap[pid] === Number.NEGATIVE_INFINITY) pointsMap[pid] = 0;
+        });
       }
     }
     setParticipantsPoints(pointsMap);
