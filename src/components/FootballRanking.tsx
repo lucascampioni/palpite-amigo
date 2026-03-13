@@ -1059,9 +1059,10 @@ const FootballRanking = ({ poolId, pool, approvedParticipantsCount, isOwner }: F
             });
             const winners = ranking.filter(r => (r.prize_amount ?? 0) > 0);
             winners.forEach((w, i) => {
+              const percentLabel = isPercentage && rawPrizes[i] ? ` (${rawPrizes[i]}%)` : '';
               items.push({
                 icon: '',
-                text: `${positionLabels[i]}: ${w.participant_name} → R$ ${(w.prize_amount || 0).toFixed(2).replace('.', ',')}`,
+                text: `${positionLabels[i]}: ${w.participant_name} → R$ ${(w.prize_amount || 0).toFixed(2).replace('.', ',')}${percentLabel}`,
                 indent: true,
               });
             });
@@ -1168,9 +1169,10 @@ const FootballRanking = ({ poolId, pool, approvedParticipantsCount, isOwner }: F
               } else if (groupSize === 1 && pos < maxW) {
                 const prizeVal = ranking[pos].prize_amount || 0;
                 if (prizeVal > 0) {
+                  const percentLabel = isPercentage && rawPrizes[pos] ? ` (${rawPrizes[pos]}%)` : '';
                   items.push({
                     icon: pos === 0 ? '🥇' : pos === 1 ? '🥈' : '🥉',
-                    text: `${positionLabels[pos]}: ${ranking[pos].participant_name} (${score} pts) → R$ ${prizeVal.toFixed(2).replace('.', ',')}`,
+                    text: `${positionLabels[pos]}: ${ranking[pos].participant_name} (${score} pts) → R$ ${prizeVal.toFixed(2).replace('.', ',')}${percentLabel}`,
                   });
                 }
               }
