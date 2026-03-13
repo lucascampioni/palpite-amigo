@@ -172,7 +172,7 @@ export const AdminPrizeManagement = ({ participant, poolId, poolTitle, participa
     }
     const digits = participantPhone.replace(/\D/g, '');
     const phoneWithCountry = digits.startsWith('55') ? digits : `55${digits}`;
-    const poolLink = `https://delfos.app.br/bolao/${poolSlug || poolId}`;
+    const poolLink = `https://delfos.app.br/bolao/${poolId}`;
     const message = `Olá, ${participant.participant_name}! 🎉\n\nParabéns! Você foi um dos ganhadores do bolão *${poolTitle || ''}*! 🏆\n\nPara que eu possa enviar o seu prêmio, preciso da sua chave PIX. Por favor, acesse o bolão pelo link abaixo e informe sua chave:\n\n${poolLink}\n\nQualquer dúvida, é só responder aqui!`;
     const encoded = encodeURIComponent(message);
     window.open(`https://wa.me/${phoneWithCountry}?text=${encoded}`, '_blank');
