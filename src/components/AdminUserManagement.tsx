@@ -8,7 +8,8 @@ import { Separator } from "@/components/ui/separator";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { toast } from "@/hooks/use-toast";
-import { Search, Trash2, Shield, ShieldOff, Loader2, ChevronLeft, ChevronRight } from "lucide-react";
+import { Search, Trash2, Shield, ShieldOff, Loader2, ChevronLeft, ChevronRight, LogIn } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 
 interface UserItem {
   id: string;
@@ -21,6 +22,7 @@ interface UserItem {
 }
 
 const AdminUserManagement = () => {
+  const navigate = useNavigate();
   const [users, setUsers] = useState<UserItem[]>([]);
   const [loading, setLoading] = useState(false);
   const [search, setSearch] = useState("");
@@ -85,6 +87,41 @@ const AdminUserManagement = () => {
       toast({ title: "Sucesso", description: "Usuário excluído!" });
       loadUsers();
     } catch (e: any) {
+      toast({ title: "Erro", description: e.message, variant: "destructive" });
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
+  const impersonateUser = async (userId: string, userName: string) => {
+    setActionLoading(`impersonate-${userId}`);
+    try {
+      // Save admin session info before switching
+      const { data: { session: currentSession } } = await supabase.auth.getSession();
+      if (currentSession) {
+        localStorage.setItem("admin_impersonating", JSON.stringify({
+          adminUserId: currentSession.user.id,
+          adminEmail: currentSession.user.email,
+          targetUserName: userName,
+        }));
+      }
+
+      const { data, error } = await supabase.functions.invoke("admin-actions", {
+        body: { action: "impersonate_user", user_id: userId },
+      });
+      if (error) throw error;
+
+      // Use the token_hash to verify OTP and get a session
+      const { error: otpError } = await supabase.auth.verifyOtp({
+        type: "magiclink",
+        token_hash: data.token_hash,
+      });
+      if (otpError) throw otpError;
+
+      toast({ title: "Sucesso", description: `Logado como ${userName}` });
+      navigate("/");
+    } catch (e: any) {
+      localStorage.removeItem("admin_impersonating");
       toast({ title: "Erro", description: e.message, variant: "destructive" });
     } finally {
       setActionLoading(null);
@@ -200,6 +237,21 @@ const AdminUserManagement = () => {
                       <Shield className="w-3 h-3 mr-1" />
                     )}
                     {user.roles.includes("estabelecimento") ? "Remover Estabelecimento" : "Tornar Estabelecimento"}
+                  </Button>
+
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => impersonateUser(user.id, user.full_name)}
+                    disabled={actionLoading === `impersonate-${user.id}`}
+                    className="text-xs border-primary/50 text-primary hover:bg-primary/10"
+                  >
+                    {actionLoading === `impersonate-${user.id}` ? (
+                      <Loader2 className="w-3 h-3 animate-spin mr-1" />
+                    ) : (
+                      <LogIn className="w-3 h-3 mr-1" />
+                    )}
+                    Entrar como
                   </Button>
 
                   <AlertDialog>

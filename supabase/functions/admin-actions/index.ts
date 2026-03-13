@@ -307,6 +307,49 @@ serve(async (req) => {
         });
       }
 
+      case "impersonate_user": {
+        const { user_id } = body;
+        if (!user_id) throw new Error("user_id é obrigatório");
+
+        // Don't allow impersonating yourself
+        if (user_id === caller.id) {
+          return new Response(JSON.stringify({ error: "Não é possível simular login na sua própria conta" }), {
+            status: 400,
+            headers: { "Content-Type": "application/json", ...corsHeaders },
+          });
+        }
+
+        // Get the target user's email
+        const { data: targetAuth } = await adminClient.auth.admin.getUserById(user_id);
+        if (!targetAuth?.user?.email) {
+          return new Response(JSON.stringify({ error: "Usuário não encontrado" }), {
+            status: 404,
+            headers: { "Content-Type": "application/json", ...corsHeaders },
+          });
+        }
+
+        // Generate a magic link for the target user
+        const { data: linkData, error: linkError } = await adminClient.auth.admin.generateLink({
+          type: "magiclink",
+          email: targetAuth.user.email,
+        });
+
+        if (linkError) throw linkError;
+
+        // Extract the token from the link properties
+        const token_hash = linkData?.properties?.hashed_token;
+        if (!token_hash) throw new Error("Não foi possível gerar o link de acesso");
+
+        return new Response(JSON.stringify({ 
+          success: true, 
+          token_hash,
+          email: targetAuth.user.email,
+        }), {
+          status: 200,
+          headers: { "Content-Type": "application/json", ...corsHeaders },
+        });
+      }
+
       default:
         return new Response(JSON.stringify({ error: "Ação desconhecida" }), {
           status: 400,
