@@ -570,6 +570,10 @@ const PoolDetail = () => {
     const hasResults = matchesData?.some(m => m.home_score !== null && m.away_score !== null) ?? false;
     setHasAnyMatchResult(hasResults);
 
+    // Check if any match has started (for hiding predictions)
+    const startedStatuses = ['1H', '2H', 'HT', 'ET', 'P', 'finished', 'suspended'];
+    setAnyMatchStarted(matchesData?.some(m => startedStatuses.includes(m.status)) ?? false);
+
     // Load participant phones for WhatsApp panel (admin/owner only)
     const userIds = (participantsData || []).map((p: any) => p.user_id);
     if (userIds.length > 0) {
