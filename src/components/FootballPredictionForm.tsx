@@ -255,6 +255,65 @@ const FootballPredictionForm = ({ poolId, userId, onSuccess, entryFee, pool, pix
     setShowDisclaimerDialog(false);
     setSubmitting(true);
 
+    // "Add more" mode: append predictions to existing participant
+    if (existingParticipantId && existingSetCount !== undefined) {
+      const allPredictions = predictionSets.flatMap((set, setIndex) =>
+        set.filter(p => {
+          const match = matches.find(m => m.id === p.matchId);
+          return !['postponed', 'cancelled', 'abandoned'].includes(match?.status || '');
+        }).map(p => ({
+          participant_id: existingParticipantId,
+          match_id: p.matchId,
+          home_score_prediction: parseInt(p.homeScore),
+          away_score_prediction: parseInt(p.awayScore),
+          prediction_set: existingSetCount + setIndex + 1,
+        }))
+      );
+
+      const { error: predictionsError } = await supabase
+        .from("football_predictions")
+        .insert(allPredictions);
+
+      if (predictionsError) {
+        toast({ variant: "destructive", title: "Erro", description: predictionsError.message });
+        setSubmitting(false);
+        return;
+      }
+
+      const newTotal = existingSetCount + predictionSets.length;
+      const updateData: Record<string, any> = {
+        guess_value: `${newTotal} palpite${newTotal > 1 ? 's' : ''}`,
+      };
+
+      // For paid pools, set back to pending for additional payment
+      if (hasEntryFee) {
+        updateData.status = 'pending';
+        updateData.payment_proof = null;
+        updateData.rejection_reason = null;
+        updateData.rejection_details = null;
+      }
+
+      await supabase
+        .from("participants")
+        .update(updateData)
+        .eq("id", existingParticipantId);
+
+      if (hasEntryFee) {
+        setCreatedParticipantId(existingParticipantId);
+        setShowPaymentDialog(true);
+      } else {
+        toast({
+          title: "🎉 Palpites adicionados!",
+          description: `${predictionSets.length} novo${predictionSets.length > 1 ? 's' : ''} palpite${predictionSets.length > 1 ? 's' : ''} adicionado${predictionSets.length > 1 ? 's' : ''}. Boa sorte! 🍀`,
+          duration: 5000,
+        });
+      }
+      setSubmitted(true);
+      onSuccess();
+      setSubmitting(false);
+      return;
+    }
+
     // For estabelecimento pools with voucher, always approve
     const initialStatus = isEstabelecimento ? "approved" : (hasEntryFee ? "pending" : "approved");
 
