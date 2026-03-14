@@ -1566,7 +1566,7 @@ const PoolDetail = () => {
                             }}
                           >
                             <Edit className="w-4 h-4 mr-2" />
-                            Editar palpites
+                            Refazer do zero
                           </Button>
                           <Button
                             variant="destructive"
