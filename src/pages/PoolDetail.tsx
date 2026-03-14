@@ -1959,29 +1959,72 @@ const PoolDetail = () => {
               </>
             )}
 
-            {((pool.status === "active" || pool.status === "finished") && (pool.pool_type === "football" || hasFootballMatches) && (isOwner || currentUserParticipant?.status === 'approved' || isFinishedCommunityPool)) && (
-              pool.prize_type === 'estabelecimento' && !isOwner && currentUserParticipant && !currentUserParticipant._hasPredictions ? (
-                <>
-                  <Separator />
-                  <Card className="border-2 border-amber-500/20 bg-gradient-to-br from-amber-500/5 to-amber-500/10">
-                    <CardContent className="p-6 text-center space-y-2">
-                      <Lock className="w-8 h-8 mx-auto text-amber-500" />
-                      <p className="text-lg font-semibold text-amber-600 dark:text-amber-400">
-                        Ranking bloqueado
-                      </p>
-                      <p className="text-sm text-muted-foreground">
-                        Você precisa enviar seus palpites para poder ver o ranking dos outros participantes.
-                      </p>
-                    </CardContent>
-                  </Card>
-                </>
-              ) : (
-                <>
-                  <Separator />
-                  <FootballRanking poolId={pool.id} pool={pool} approvedParticipantsCount={participants.filter(p => p.status === 'approved').length} isOwner={isOwner} />
-                </>
-              )
-            )}
+            {((pool.status === "active" || pool.status === "finished") && (pool.pool_type === "football" || hasFootballMatches)) && (() => {
+              const isApproved = currentUserParticipant?.status === 'approved';
+              const isEstabBlocked = pool.prize_type === 'estabelecimento' && !isOwner && currentUserParticipant && !currentUserParticipant._hasPredictions;
+
+              // Owner and finished community pools always see ranking
+              if (isOwner || isFinishedCommunityPool) {
+                return (
+                  <>
+                    <Separator />
+                    <FootballRanking poolId={pool.id} pool={pool} approvedParticipantsCount={participants.filter(p => p.status === 'approved').length} isOwner={isOwner} />
+                  </>
+                );
+              }
+
+              // Approved but first match hasn't started yet
+              if (isApproved && !anyMatchStarted) {
+                return (
+                  <>
+                    <Separator />
+                    <Card className="border-2 border-amber-500/20 bg-gradient-to-br from-amber-500/5 to-amber-500/10">
+                      <CardContent className="p-6 text-center space-y-2">
+                        <Lock className="w-8 h-8 mx-auto text-amber-500" />
+                        <p className="text-lg font-semibold text-amber-600 dark:text-amber-400">
+                          Ranking disponível em breve
+                        </p>
+                        <p className="text-sm text-muted-foreground">
+                          O ranking e os palpites dos outros participantes serão liberados quando o primeiro jogo começar.
+                        </p>
+                      </CardContent>
+                    </Card>
+                  </>
+                );
+              }
+
+              // Estabelecimento without predictions
+              if (isApproved && anyMatchStarted && isEstabBlocked) {
+                return (
+                  <>
+                    <Separator />
+                    <Card className="border-2 border-amber-500/20 bg-gradient-to-br from-amber-500/5 to-amber-500/10">
+                      <CardContent className="p-6 text-center space-y-2">
+                        <Lock className="w-8 h-8 mx-auto text-amber-500" />
+                        <p className="text-lg font-semibold text-amber-600 dark:text-amber-400">
+                          Ranking bloqueado
+                        </p>
+                        <p className="text-sm text-muted-foreground">
+                          Você precisa enviar seus palpites para poder ver o ranking dos outros participantes.
+                        </p>
+                      </CardContent>
+                    </Card>
+                  </>
+                );
+              }
+
+              // Approved and match started — show ranking
+              if (isApproved && anyMatchStarted) {
+                return (
+                  <>
+                    <Separator />
+                    <FootballRanking poolId={pool.id} pool={pool} approvedParticipantsCount={participants.filter(p => p.status === 'approved').length} isOwner={isOwner} />
+                  </>
+                );
+              }
+
+              return null;
+            })()}
 
             {/* Admin Prize Management Section */}
             {isOwner && pool.status === "finished" && (
