@@ -530,6 +530,22 @@ const PoolDetail = () => {
     }
     setCurrentUserParticipant(myParticipant ? { ...myParticipant, _hasPredictions: hasPredictions } : null);
     setHasJoined(!!myParticipant);
+
+    // Load user's existing prediction set count
+    if (myParticipant) {
+      const { data: userPreds } = await supabase
+        .from("football_predictions")
+        .select("prediction_set")
+        .eq("participant_id", myParticipant.id);
+      if (userPreds && userPreds.length > 0) {
+        const maxSet = Math.max(...userPreds.map((p: any) => p.prediction_set || 1));
+        setUserExistingSetCount(maxSet);
+      } else {
+        setUserExistingSetCount(0);
+      }
+    } else {
+      setUserExistingSetCount(0);
+    }
     
     // Detect if this pool has football matches (even if pool_type is not set)
     const { data: matchesData } = await supabase
