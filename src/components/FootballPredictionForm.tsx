@@ -801,9 +801,13 @@ const FootballPredictionForm = ({ poolId, userId, onSuccess, entryFee, pool, pix
           className="w-full"
           size="lg"
         >
-          {submitting ? "Enviando..." : predictionSets.length > 1
-            ? `Enviar ${predictionSets.length} Palpites e Participar`
-            : "Enviar Palpites e Participar"}
+        {submitting ? "Enviando..." : existingParticipantId
+            ? (predictionSets.length > 1
+              ? `Adicionar ${predictionSets.length} Palpites`
+              : "Adicionar Palpite")
+            : (predictionSets.length > 1
+              ? `Enviar ${predictionSets.length} Palpites e Participar`
+              : "Enviar Palpites e Participar")}
         </Button>
       </div>
 
