@@ -1505,13 +1505,42 @@ const PoolDetail = () => {
                           />
                         )}
 
-                        {/* Edit / Cancel buttons for pending participants (only if no proof sent) */}
+                        {/* Edit / Cancel / Add more buttons for pending participants (only if no proof sent) */}
                         {!currentUserParticipant.payment_proof && <>
+                          <UserPredictionsSummary poolId={pool.id} participantId={currentUserParticipant.id} />
                           <div className="p-3 rounded-lg bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800/50 mt-2">
                             <p className="text-xs text-amber-800 dark:text-amber-300 leading-relaxed">
-                              💡 Quer fazer mais palpites? Toque em <strong>Editar palpites</strong> e adicione novos conjuntos. Após o pagamento, não será possível adicionar novos palpites.
+                              💡 Quer fazer mais palpites? Toque em <strong>Adicionar palpites</strong>. Ou toque em <strong>Refazer do zero</strong> para apagar tudo e recomeçar. Após o pagamento, não será possível alterar.
                             </p>
                           </div>
+                          {!showAddMoreForm ? (
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="w-full h-9 text-xs sm:text-sm mt-2"
+                              onClick={() => setShowAddMoreForm(true)}
+                            >
+                              <Plus className="w-4 h-4 mr-2" />
+                              Adicionar mais palpites
+                            </Button>
+                          ) : (
+                            <div className="mt-2">
+                              <FootballPredictionForm
+                                poolId={pool.id}
+                                userId={userId!}
+                                onSuccess={() => {
+                                  setShowAddMoreForm(false);
+                                  loadPoolData();
+                                }}
+                                pool={pool}
+                                pixKey={pool.pix_key}
+                                firstMatchDate={firstMatchDate}
+                                ownerName={ownerName || undefined}
+                                existingParticipantId={currentUserParticipant.id}
+                                existingSetCount={userExistingSetCount}
+                              />
+                            </div>
+                          )}
                           <div className="flex flex-col sm:flex-row gap-2 mt-2">
                           <Button
                             variant="outline"
