@@ -17,6 +17,7 @@ import DeclareResultDialog from "@/components/DeclareResultDialog";
 import WinnerDisplay from "@/components/WinnerDisplay";
 import FootballPredictionForm from "@/components/FootballPredictionForm";
 import FootballRanking from "@/components/FootballRanking";
+import UserPredictionsSummary from "@/components/UserPredictionsSummary";
 
 import { PrizePixSubmission } from "@/components/PrizePixSubmission";
 import { AdminPrizeManagement } from "@/components/AdminPrizeManagement";
