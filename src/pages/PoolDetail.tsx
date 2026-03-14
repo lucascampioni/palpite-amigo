@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
-import { ArrowLeft, Calendar, Trophy, Users, Share2, Award, Copy, Lock, Unlock, CheckCircle, Edit, ChevronDown, ChevronUp, Info, Trash2, X, MessageCircle, Send } from "lucide-react";
+import { ArrowLeft, Calendar, Trophy, Users, Share2, Award, Copy, Lock, Unlock, CheckCircle, Edit, ChevronDown, ChevronUp, Info, Trash2, X, MessageCircle, Send, Plus } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { Input } from "@/components/ui/input";
@@ -17,6 +17,7 @@ import DeclareResultDialog from "@/components/DeclareResultDialog";
 import WinnerDisplay from "@/components/WinnerDisplay";
 import FootballPredictionForm from "@/components/FootballPredictionForm";
 import FootballRanking from "@/components/FootballRanking";
+import UserPredictionsSummary from "@/components/UserPredictionsSummary";
 
 import { PrizePixSubmission } from "@/components/PrizePixSubmission";
 import { AdminPrizeManagement } from "@/components/AdminPrizeManagement";
@@ -54,6 +55,9 @@ const PoolDetail = () => {
   const [userPrizeInfo, setUserPrizeInfo] = useState<{ amount: number; placement: number; isTied: boolean; tiedWithCount: number } | null>(null);
   const [participantsPoints, setParticipantsPoints] = useState<Record<string, number>>({});
   const [hasAnyMatchResult, setHasAnyMatchResult] = useState(false);
+  const [anyMatchStarted, setAnyMatchStarted] = useState(false);
+  const [showAddMoreForm, setShowAddMoreForm] = useState(false);
+  const [userExistingSetCount, setUserExistingSetCount] = useState(0);
   const [participantPhones, setParticipantPhones] = useState<Record<string, string>>({});
   const [rankingData, setRankingData] = useState<{ participant_id: string; participant_name: string; total_points: number }[]>([]);
   const [allUsersWithPhone, setAllUsersWithPhone] = useState<{ id: string; full_name: string; phone: string; notify_pool_updates?: boolean; notify_new_pools?: boolean }[]>([]);
@@ -527,6 +531,22 @@ const PoolDetail = () => {
     }
     setCurrentUserParticipant(myParticipant ? { ...myParticipant, _hasPredictions: hasPredictions } : null);
     setHasJoined(!!myParticipant);
+
+    // Load user's existing prediction set count
+    if (myParticipant) {
+      const { data: userPreds } = await supabase
+        .from("football_predictions")
+        .select("prediction_set")
+        .eq("participant_id", myParticipant.id);
+      if (userPreds && userPreds.length > 0) {
+        const maxSet = Math.max(...userPreds.map((p: any) => p.prediction_set || 1));
+        setUserExistingSetCount(maxSet);
+      } else {
+        setUserExistingSetCount(0);
+      }
+    } else {
+      setUserExistingSetCount(0);
+    }
     
     // Detect if this pool has football matches (even if pool_type is not set)
     const { data: matchesData } = await supabase
@@ -550,6 +570,10 @@ const PoolDetail = () => {
     // Check if any match has results
     const hasResults = matchesData?.some(m => m.home_score !== null && m.away_score !== null) ?? false;
     setHasAnyMatchResult(hasResults);
+
+    // Check if any match has started (for hiding predictions)
+    const startedStatuses = ['1H', '2H', 'HT', 'ET', 'P', 'finished', 'suspended'];
+    setAnyMatchStarted(matchesData?.some(m => startedStatuses.includes(m.status)) ?? false);
 
     // Load participant phones for WhatsApp panel (admin/owner only)
     const userIds = (participantsData || []).map((p: any) => p.user_id);
@@ -1481,13 +1505,42 @@ const PoolDetail = () => {
                           />
                         )}
 
-                        {/* Edit / Cancel buttons for pending participants (only if no proof sent) */}
+                        {/* Edit / Cancel / Add more buttons for pending participants (only if no proof sent) */}
                         {!currentUserParticipant.payment_proof && <>
+                          <UserPredictionsSummary poolId={pool.id} participantId={currentUserParticipant.id} />
                           <div className="p-3 rounded-lg bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800/50 mt-2">
                             <p className="text-xs text-amber-800 dark:text-amber-300 leading-relaxed">
-                              💡 Quer fazer mais palpites? Toque em <strong>Editar palpites</strong> e adicione novos conjuntos. Após o pagamento, não será possível adicionar novos palpites.
+                              💡 Quer fazer mais palpites? Toque em <strong>Adicionar palpites</strong>. Ou toque em <strong>Refazer do zero</strong> para apagar tudo e recomeçar. Após o pagamento, não será possível alterar.
                             </p>
                           </div>
+                          {!showAddMoreForm ? (
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="w-full h-9 text-xs sm:text-sm mt-2"
+                              onClick={() => setShowAddMoreForm(true)}
+                            >
+                              <Plus className="w-4 h-4 mr-2" />
+                              Adicionar mais palpites
+                            </Button>
+                          ) : (
+                            <div className="mt-2">
+                              <FootballPredictionForm
+                                poolId={pool.id}
+                                userId={userId!}
+                                onSuccess={() => {
+                                  setShowAddMoreForm(false);
+                                  loadPoolData();
+                                }}
+                                pool={pool}
+                                pixKey={pool.pix_key}
+                                firstMatchDate={firstMatchDate}
+                                ownerName={ownerName || undefined}
+                                existingParticipantId={currentUserParticipant.id}
+                                existingSetCount={userExistingSetCount}
+                              />
+                            </div>
+                          )}
                           <div className="flex flex-col sm:flex-row gap-2 mt-2">
                           <Button
                             variant="outline"
@@ -1513,7 +1566,7 @@ const PoolDetail = () => {
                             }}
                           >
                             <Edit className="w-4 h-4 mr-2" />
-                            Editar palpites
+                            Refazer do zero
                           </Button>
                           <Button
                             variant="destructive"
@@ -1545,18 +1598,53 @@ const PoolDetail = () => {
                         </>}
                       </>
                     ) : (
-                      <div className="p-6 rounded-lg bg-green-50 dark:bg-green-950 border-2 border-green-200 dark:border-green-800 text-center space-y-3">
-                        <p className="text-lg font-semibold text-green-700 dark:text-green-300 mb-2">
-                          ✓ Você já está participando deste bolão!
-                        </p>
-                        <p className="text-sm text-muted-foreground">
-                          Boa sorte! Seus palpites foram salvos. Agora é só esperar a conclusão dos jogos.
-                        </p>
+                      <div className="space-y-4">
+                        <div className="p-4 rounded-lg bg-green-50 dark:bg-green-950 border-2 border-green-200 dark:border-green-800 text-center space-y-2">
+                          <p className="text-lg font-semibold text-green-700 dark:text-green-300">
+                            ✓ Você está participando!
+                          </p>
+                          <p className="text-sm text-muted-foreground">
+                            {userExistingSetCount > 1
+                              ? `Você tem ${userExistingSetCount} palpites registrados. Boa sorte! 🍀`
+                              : 'Seu palpite foi registrado com sucesso. Boa sorte! 🍀'}
+                          </p>
+                        </div>
+
+                        <UserPredictionsSummary poolId={pool.id} participantId={currentUserParticipant.id} />
+
+                        {!isPastDeadline && !showAddMoreForm && (
+                          <Button
+                            variant="outline"
+                            onClick={() => setShowAddMoreForm(true)}
+                            className="w-full"
+                          >
+                            <Plus className="w-4 h-4 mr-2" />
+                            Fazer mais palpites
+                          </Button>
+                        )}
+
+                        {showAddMoreForm && (
+                          <FootballPredictionForm
+                            poolId={pool.id}
+                            userId={userId!}
+                            onSuccess={() => {
+                              setShowAddMoreForm(false);
+                              loadPoolData();
+                            }}
+                            pool={pool}
+                            pixKey={pool.pix_key}
+                            firstMatchDate={firstMatchDate}
+                            ownerName={ownerName || undefined}
+                            existingParticipantId={currentUserParticipant.id}
+                            existingSetCount={userExistingSetCount}
+                          />
+                        )}
+
                         {pool.has_whatsapp_group && ownerPhone && (
                           <Button
                             variant="outline"
                             size="sm"
-                            className="w-full mt-2"
+                            className="w-full"
                             onClick={() => {
                               const phone = ownerPhone.replace(/\D/g, '');
                               const message = encodeURIComponent(
@@ -1900,29 +1988,72 @@ const PoolDetail = () => {
               </>
             )}
 
-            {((pool.status === "active" || pool.status === "finished") && (pool.pool_type === "football" || hasFootballMatches) && (isOwner || currentUserParticipant?.status === 'approved' || isFinishedCommunityPool)) && (
-              pool.prize_type === 'estabelecimento' && !isOwner && currentUserParticipant && !currentUserParticipant._hasPredictions ? (
-                <>
-                  <Separator />
-                  <Card className="border-2 border-amber-500/20 bg-gradient-to-br from-amber-500/5 to-amber-500/10">
-                    <CardContent className="p-6 text-center space-y-2">
-                      <Lock className="w-8 h-8 mx-auto text-amber-500" />
-                      <p className="text-lg font-semibold text-amber-600 dark:text-amber-400">
-                        Ranking bloqueado
-                      </p>
-                      <p className="text-sm text-muted-foreground">
-                        Você precisa enviar seus palpites para poder ver o ranking dos outros participantes.
-                      </p>
-                    </CardContent>
-                  </Card>
-                </>
-              ) : (
-                <>
-                  <Separator />
-                  <FootballRanking poolId={pool.id} pool={pool} approvedParticipantsCount={participants.filter(p => p.status === 'approved').length} isOwner={isOwner} />
-                </>
-              )
-            )}
+            {((pool.status === "active" || pool.status === "finished") && (pool.pool_type === "football" || hasFootballMatches)) && (() => {
+              const isApproved = currentUserParticipant?.status === 'approved';
+              const isEstabBlocked = pool.prize_type === 'estabelecimento' && !isOwner && currentUserParticipant && !currentUserParticipant._hasPredictions;
+
+              // Owner and finished community pools always see ranking
+              if (isOwner || isFinishedCommunityPool) {
+                return (
+                  <>
+                    <Separator />
+                    <FootballRanking poolId={pool.id} pool={pool} approvedParticipantsCount={participants.filter(p => p.status === 'approved').length} isOwner={isOwner} />
+                  </>
+                );
+              }
+
+              // Approved but first match hasn't started yet
+              if (isApproved && !anyMatchStarted) {
+                return (
+                  <>
+                    <Separator />
+                    <Card className="border-2 border-amber-500/20 bg-gradient-to-br from-amber-500/5 to-amber-500/10">
+                      <CardContent className="p-6 text-center space-y-2">
+                        <Lock className="w-8 h-8 mx-auto text-amber-500" />
+                        <p className="text-lg font-semibold text-amber-600 dark:text-amber-400">
+                          Ranking disponível em breve
+                        </p>
+                        <p className="text-sm text-muted-foreground">
+                          O ranking e os palpites dos outros participantes serão liberados quando o primeiro jogo começar.
+                        </p>
+                      </CardContent>
+                    </Card>
+                  </>
+                );
+              }
+
+              // Estabelecimento without predictions
+              if (isApproved && anyMatchStarted && isEstabBlocked) {
+                return (
+                  <>
+                    <Separator />
+                    <Card className="border-2 border-amber-500/20 bg-gradient-to-br from-amber-500/5 to-amber-500/10">
+                      <CardContent className="p-6 text-center space-y-2">
+                        <Lock className="w-8 h-8 mx-auto text-amber-500" />
+                        <p className="text-lg font-semibold text-amber-600 dark:text-amber-400">
+                          Ranking bloqueado
+                        </p>
+                        <p className="text-sm text-muted-foreground">
+                          Você precisa enviar seus palpites para poder ver o ranking dos outros participantes.
+                        </p>
+                      </CardContent>
+                    </Card>
+                  </>
+                );
+              }
+
+              // Approved and match started — show ranking
+              if (isApproved && anyMatchStarted) {
+                return (
+                  <>
+                    <Separator />
+                    <FootballRanking poolId={pool.id} pool={pool} approvedParticipantsCount={participants.filter(p => p.status === 'approved').length} isOwner={isOwner} />
+                  </>
+                );
+              }
+
+              return null;
+            })()}
 
             {/* Admin Prize Management Section */}
             {isOwner && pool.status === "finished" && (

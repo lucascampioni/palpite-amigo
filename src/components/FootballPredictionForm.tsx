@@ -25,6 +25,8 @@ interface FootballPredictionFormProps {
   pixKey?: string;
   firstMatchDate?: Date | null;
   ownerName?: string;
+  existingParticipantId?: string;
+  existingSetCount?: number;
 }
 
 interface Match {
@@ -48,7 +50,7 @@ interface Prediction {
 
 type PredictionSet = Prediction[];
 
-const FootballPredictionForm = ({ poolId, userId, onSuccess, entryFee, pool, pixKey, firstMatchDate, ownerName }: FootballPredictionFormProps) => {
+const FootballPredictionForm = ({ poolId, userId, onSuccess, entryFee, pool, pixKey, firstMatchDate, ownerName, existingParticipantId, existingSetCount }: FootballPredictionFormProps) => {
   const { toast } = useToast();
   const formTopRef = useRef<HTMLDivElement>(null);
   const tabsRef = useRef<HTMLDivElement>(null);
@@ -252,6 +254,65 @@ const FootballPredictionForm = ({ poolId, userId, onSuccess, entryFee, pool, pix
   const handleConfirmSubmit = async () => {
     setShowDisclaimerDialog(false);
     setSubmitting(true);
+
+    // "Add more" mode: append predictions to existing participant
+    if (existingParticipantId && existingSetCount !== undefined) {
+      const allPredictions = predictionSets.flatMap((set, setIndex) =>
+        set.filter(p => {
+          const match = matches.find(m => m.id === p.matchId);
+          return !['postponed', 'cancelled', 'abandoned'].includes(match?.status || '');
+        }).map(p => ({
+          participant_id: existingParticipantId,
+          match_id: p.matchId,
+          home_score_prediction: parseInt(p.homeScore),
+          away_score_prediction: parseInt(p.awayScore),
+          prediction_set: existingSetCount + setIndex + 1,
+        }))
+      );
+
+      const { error: predictionsError } = await supabase
+        .from("football_predictions")
+        .insert(allPredictions);
+
+      if (predictionsError) {
+        toast({ variant: "destructive", title: "Erro", description: predictionsError.message });
+        setSubmitting(false);
+        return;
+      }
+
+      const newTotal = existingSetCount + predictionSets.length;
+      const updateData: Record<string, any> = {
+        guess_value: `${newTotal} palpite${newTotal > 1 ? 's' : ''}`,
+      };
+
+      // For paid pools, set back to pending for additional payment
+      if (hasEntryFee) {
+        updateData.status = 'pending';
+        updateData.payment_proof = null;
+        updateData.rejection_reason = null;
+        updateData.rejection_details = null;
+      }
+
+      await supabase
+        .from("participants")
+        .update(updateData)
+        .eq("id", existingParticipantId);
+
+      if (hasEntryFee) {
+        setCreatedParticipantId(existingParticipantId);
+        setShowPaymentDialog(true);
+      } else {
+        toast({
+          title: "🎉 Palpites adicionados!",
+          description: `${predictionSets.length} novo${predictionSets.length > 1 ? 's' : ''} palpite${predictionSets.length > 1 ? 's' : ''} adicionado${predictionSets.length > 1 ? 's' : ''}. Boa sorte! 🍀`,
+          duration: 5000,
+        });
+      }
+      setSubmitted(true);
+      onSuccess();
+      setSubmitting(false);
+      return;
+    }
 
     // For estabelecimento pools with voucher, always approve
     const initialStatus = isEstabelecimento ? "approved" : (hasEntryFee ? "pending" : "approved");
@@ -740,9 +801,13 @@ const FootballPredictionForm = ({ poolId, userId, onSuccess, entryFee, pool, pix
           className="w-full"
           size="lg"
         >
-          {submitting ? "Enviando..." : predictionSets.length > 1
-            ? `Enviar ${predictionSets.length} Palpites e Participar`
-            : "Enviar Palpites e Participar"}
+        {submitting ? "Enviando..." : existingParticipantId
+            ? (predictionSets.length > 1
+              ? `Adicionar ${predictionSets.length} Palpites`
+              : "Adicionar Palpite")
+            : (predictionSets.length > 1
+              ? `Enviar ${predictionSets.length} Palpites e Participar`
+              : "Enviar Palpites e Participar")}
         </Button>
       </div>
 
