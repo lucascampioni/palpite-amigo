@@ -1569,18 +1569,53 @@ const PoolDetail = () => {
                         </>}
                       </>
                     ) : (
-                      <div className="p-6 rounded-lg bg-green-50 dark:bg-green-950 border-2 border-green-200 dark:border-green-800 text-center space-y-3">
-                        <p className="text-lg font-semibold text-green-700 dark:text-green-300 mb-2">
-                          ✓ Você já está participando deste bolão!
-                        </p>
-                        <p className="text-sm text-muted-foreground">
-                          Boa sorte! Seus palpites foram salvos. Agora é só esperar a conclusão dos jogos.
-                        </p>
+                      <div className="space-y-4">
+                        <div className="p-4 rounded-lg bg-green-50 dark:bg-green-950 border-2 border-green-200 dark:border-green-800 text-center space-y-2">
+                          <p className="text-lg font-semibold text-green-700 dark:text-green-300">
+                            ✓ Você está participando!
+                          </p>
+                          <p className="text-sm text-muted-foreground">
+                            {userExistingSetCount > 1
+                              ? `Você tem ${userExistingSetCount} palpites registrados. Boa sorte! 🍀`
+                              : 'Seu palpite foi registrado com sucesso. Boa sorte! 🍀'}
+                          </p>
+                        </div>
+
+                        <UserPredictionsSummary poolId={pool.id} participantId={currentUserParticipant.id} />
+
+                        {!isPastDeadline && !showAddMoreForm && (
+                          <Button
+                            variant="outline"
+                            onClick={() => setShowAddMoreForm(true)}
+                            className="w-full"
+                          >
+                            <Plus className="w-4 h-4 mr-2" />
+                            Fazer mais palpites
+                          </Button>
+                        )}
+
+                        {showAddMoreForm && (
+                          <FootballPredictionForm
+                            poolId={pool.id}
+                            userId={userId!}
+                            onSuccess={() => {
+                              setShowAddMoreForm(false);
+                              loadPoolData();
+                            }}
+                            pool={pool}
+                            pixKey={pool.pix_key}
+                            firstMatchDate={firstMatchDate}
+                            ownerName={ownerName || undefined}
+                            existingParticipantId={currentUserParticipant.id}
+                            existingSetCount={userExistingSetCount}
+                          />
+                        )}
+
                         {pool.has_whatsapp_group && ownerPhone && (
                           <Button
                             variant="outline"
                             size="sm"
-                            className="w-full mt-2"
+                            className="w-full"
                             onClick={() => {
                               const phone = ownerPhone.replace(/\D/g, '');
                               const message = encodeURIComponent(
