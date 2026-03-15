@@ -1557,7 +1557,7 @@ const FootballRanking = ({ poolId, pool, approvedParticipantsCount, isOwner }: F
               const actualPosition = getActualPosition(index, participant);
               const isExpanded = expandedParticipants.has(participant.ranking_key);
               const predictions = participantPredictions[participant.ranking_key] || [];
-              const isCurrentUser = participant.id === currentUserParticipantId;
+              const isCurrentUser = currentUserParticipantIds.includes(participant.id);
               
               return (
                 <Collapsible
