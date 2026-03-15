@@ -1610,7 +1610,7 @@ const FootballRanking = ({ poolId, pool, approvedParticipantsCount, isOwner }: F
                                   R$ {participant.prize_amount.toFixed(2).replace('.', ',')}
                                 </Badge>
                               )}
-                              {allMatchesFinished && getPrizeStatusBadge(participant.prize_status, participant.prize_amount, participant.id === currentUserParticipantId, participant.id)}
+                              {allMatchesFinished && getPrizeStatusBadge(participant.prize_status, participant.prize_amount, currentUserParticipantIds.includes(participant.id), participant.id)}
                             </div>
                             {isExpanded ? (
                               <ChevronUp className="h-4 w-4 sm:h-5 sm:w-5 text-muted-foreground flex-shrink-0" />
