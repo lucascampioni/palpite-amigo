@@ -849,19 +849,11 @@ const PoolDetail = () => {
 
   if (!pool) return null;
 
-  const isPendingPayment = !isOwner && currentUserParticipant?.status === 'pending' && !currentUserParticipant?.payment_proof;
-  const isAwaitingApproval = !isOwner && currentUserParticipant?.status === 'pending' && !!currentUserParticipant?.payment_proof;
-  const isRejected = !isOwner && currentUserParticipant?.status === 'rejected';
+  // Determine user status from entries (for banners)
+  const hasAnyPending = !isOwner && userEntries.some(e => e.status === 'pending');
+  const hasAnyRejected = !isOwner && userEntries.some(e => e.status === 'rejected');
+  const hasAnyApproved = userEntries.some(e => e.status === 'approved');
   const isFinishedCommunityPool = pool.status === 'finished' && !!ownerCommunityName;
-
-  // Calculate total entry fee considering multiple prediction sets
-  const predictionSetsCount = (() => {
-    const gv = currentUserParticipant?.guess_value || '';
-    const match = gv.match(/^(\d+)\s+palpite/);
-    return match ? parseInt(match[1]) : 1;
-  })();
-  const singleEntryFee = pool.entry_fee ? parseFloat(pool.entry_fee) : 0;
-  const totalEntryFee = singleEntryFee * predictionSetsCount;
 
   const getStatusColor = (status: string) => {
     if (status === "cancelled") return "bg-destructive text-destructive-foreground";
