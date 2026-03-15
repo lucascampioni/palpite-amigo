@@ -25,8 +25,6 @@ interface FootballPredictionFormProps {
   pixKey?: string;
   firstMatchDate?: Date | null;
   ownerName?: string;
-  existingParticipantId?: string;
-  existingSetCount?: number;
 }
 
 interface Match {
