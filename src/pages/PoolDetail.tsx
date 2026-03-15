@@ -518,34 +518,26 @@ const PoolDetail = () => {
     }
     setParticipantsPoints(pointsMap);
 
-    const myParticipant = participantsData?.find(p => p.user_id === user?.id) || null;
-    // Check if estabelecimento participant has predictions
-    let hasPredictions = true;
-    if (myParticipant && poolData.prize_type === 'estabelecimento') {
-      const { count } = await supabase
-        .from("football_predictions")
-        .select("id", { count: 'exact', head: true })
-        .eq("participant_id", myParticipant.id);
-      hasPredictions = (count || 0) > 0;
-    }
-    setCurrentUserParticipant(myParticipant ? { ...myParticipant, _hasPredictions: hasPredictions } : null);
-    setHasJoined(!!myParticipant);
-
-    // Load user's existing prediction set count
-    if (myParticipant) {
-      const { data: userPreds } = await supabase
-        .from("football_predictions")
-        .select("prediction_set")
-        .eq("participant_id", myParticipant.id);
-      if (userPreds && userPreds.length > 0) {
-        const maxSet = Math.max(...userPreds.map((p: any) => p.prediction_set || 1));
-        setUserExistingSetCount(maxSet);
-      } else {
-        setUserExistingSetCount(0);
+    // Load ALL user entries (multiple independent participants)
+    const myEntries = participantsData?.filter(p => p.user_id === user?.id) || [];
+    
+    // For estabelecimento: check which entries have predictions
+    if (poolData.prize_type === 'estabelecimento' && myEntries.length > 0) {
+      for (const entry of myEntries) {
+        const { count } = await supabase
+          .from("football_predictions")
+          .select("id", { count: 'exact', head: true })
+          .eq("participant_id", entry.id);
+        entry._hasPredictions = (count || 0) > 0;
       }
-    } else {
-      setUserExistingSetCount(0);
     }
+    
+    setUserEntries(myEntries);
+    setHasJoined(myEntries.length > 0);
+    
+    // Set currentUserParticipant as the best approved entry (for prize logic)
+    const approvedEntry = myEntries.find(e => e.status === 'approved');
+    setCurrentUserParticipant(approvedEntry || myEntries[0] || null);
     
     // Detect if this pool has football matches (even if pool_type is not set)
     const { data: matchesData } = await supabase
