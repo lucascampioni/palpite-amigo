@@ -90,16 +90,15 @@ const FootballRanking = ({ poolId, pool, approvedParticipantsCount, isOwner }: F
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
 
-    const { data: participant } = await supabase
+    const { data: participants } = await supabase
       .from("participants")
       .select("id")
       .eq("pool_id", poolId)
       .eq("user_id", user.id)
-      .eq("status", "approved")
-      .maybeSingle();
+      .eq("status", "approved");
 
-    if (participant) {
-      setCurrentUserParticipantId(participant.id);
+    if (participants && participants.length > 0) {
+      setCurrentUserParticipantIds(participants.map(p => p.id));
     }
   };
 
