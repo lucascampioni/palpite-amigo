@@ -857,10 +857,10 @@ const PoolDetail = () => {
 
   const getStatusColor = (status: string) => {
     if (status === "cancelled") return "bg-destructive text-destructive-foreground";
-    if (status === "finished") return "bg-gray-500 text-white";
-    if (isRejected) return "bg-destructive text-destructive-foreground";
-    if (isAwaitingApproval) return "bg-yellow-500 text-white";
-    if (isPendingPayment) return "bg-orange-500 text-white";
+    if (status === "finished") return "bg-muted text-muted-foreground";
+    if (hasAnyApproved) return "bg-green-500 text-white";
+    if (hasAnyPending) return "bg-orange-500 text-white";
+    if (hasAnyRejected) return "bg-destructive text-destructive-foreground";
     if (hasJoined) return "bg-blue-500 text-white";
     return "bg-green-500 text-white";
   };
@@ -868,9 +868,9 @@ const PoolDetail = () => {
   const getStatusText = (status: string) => {
     if (status === "cancelled") return "🚫 Cancelado";
     if (status === "finished") return "Finalizado";
-    if (isRejected) return "❌ Participação Reprovada";
-    if (isAwaitingApproval) return "⏳ Pendente Aprovação";
-    if (isPendingPayment) return "⚠️ Pagamento Pendente";
+    if (hasAnyApproved) return "Participando";
+    if (hasAnyPending) return "⏳ Pendente";
+    if (hasAnyRejected) return "❌ Reprovado";
     if (hasJoined) return "Participando";
     return "Disponível";
   };
