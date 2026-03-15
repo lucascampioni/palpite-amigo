@@ -1632,7 +1632,7 @@ const FootballRanking = ({ poolId, pool, approvedParticipantsCount, isOwner }: F
                               R$ {participant.prize_amount.toFixed(2).replace('.', ',')}
                             </Badge>
                           )}
-                          {allMatchesFinished && getPrizeStatusBadge(participant.prize_status, participant.prize_amount, participant.id === currentUserParticipantId, participant.id)}
+                          {allMatchesFinished && getPrizeStatusBadge(participant.prize_status, participant.prize_amount, currentUserParticipantIds.includes(participant.id), participant.id)}
                         </div>
                         
                       </div>
