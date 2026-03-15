@@ -982,7 +982,7 @@ const PoolDetail = () => {
           </CardHeader>
           <CardContent className="space-y-6">
             {/* Winner Display - hidden from rejected participants */}
-            {pool.status === "finished" && winners.length > 0 && pool.pool_type !== "football" && !isRejected && (
+            {pool.status === "finished" && winners.length > 0 && pool.pool_type !== "football" && !hasAnyRejected && (
               <>
                 <WinnerDisplay 
                   winners={winners} 
