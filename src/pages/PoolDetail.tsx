@@ -50,14 +50,13 @@ const PoolDetail = () => {
   const [hasFootballMatches, setHasFootballMatches] = useState(false);
   const [footballMatches, setFootballMatches] = useState<any[]>([]);
   const [currentUserParticipant, setCurrentUserParticipant] = useState<any>(null);
+  const [userEntries, setUserEntries] = useState<any[]>([]);
   const [paidPrizesOpen, setPaidPrizesOpen] = useState(false);
   const [signedProofUrl, setSignedProofUrl] = useState<string | null>(null);
   const [userPrizeInfo, setUserPrizeInfo] = useState<{ amount: number; placement: number; isTied: boolean; tiedWithCount: number } | null>(null);
   const [participantsPoints, setParticipantsPoints] = useState<Record<string, number>>({});
   const [hasAnyMatchResult, setHasAnyMatchResult] = useState(false);
   const [anyMatchStarted, setAnyMatchStarted] = useState(false);
-  const [showAddMoreForm, setShowAddMoreForm] = useState(false);
-  const [userExistingSetCount, setUserExistingSetCount] = useState(0);
   const [participantPhones, setParticipantPhones] = useState<Record<string, string>>({});
   const [rankingData, setRankingData] = useState<{ participant_id: string; participant_name: string; total_points: number }[]>([]);
   const [allUsersWithPhone, setAllUsersWithPhone] = useState<{ id: string; full_name: string; phone: string; notify_pool_updates?: boolean; notify_new_pools?: boolean }[]>([]);
