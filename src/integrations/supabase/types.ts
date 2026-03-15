@@ -744,6 +744,7 @@ export type Database = {
           participant_name: string
           prediction_set: number
           total_points: number
+          user_id: string
         }[]
       }
       get_pool_owner_name: { Args: { pool_uuid: string }; Returns: string }

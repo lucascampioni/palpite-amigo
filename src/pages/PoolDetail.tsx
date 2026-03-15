@@ -17,7 +17,7 @@ import DeclareResultDialog from "@/components/DeclareResultDialog";
 import WinnerDisplay from "@/components/WinnerDisplay";
 import FootballPredictionForm from "@/components/FootballPredictionForm";
 import FootballRanking from "@/components/FootballRanking";
-import UserPredictionsSummary from "@/components/UserPredictionsSummary";
+import UserPoolEntries from "@/components/UserPoolEntries";
 
 import { PrizePixSubmission } from "@/components/PrizePixSubmission";
 import { AdminPrizeManagement } from "@/components/AdminPrizeManagement";
@@ -50,14 +50,13 @@ const PoolDetail = () => {
   const [hasFootballMatches, setHasFootballMatches] = useState(false);
   const [footballMatches, setFootballMatches] = useState<any[]>([]);
   const [currentUserParticipant, setCurrentUserParticipant] = useState<any>(null);
+  const [userEntries, setUserEntries] = useState<any[]>([]);
   const [paidPrizesOpen, setPaidPrizesOpen] = useState(false);
   const [signedProofUrl, setSignedProofUrl] = useState<string | null>(null);
   const [userPrizeInfo, setUserPrizeInfo] = useState<{ amount: number; placement: number; isTied: boolean; tiedWithCount: number } | null>(null);
   const [participantsPoints, setParticipantsPoints] = useState<Record<string, number>>({});
   const [hasAnyMatchResult, setHasAnyMatchResult] = useState(false);
   const [anyMatchStarted, setAnyMatchStarted] = useState(false);
-  const [showAddMoreForm, setShowAddMoreForm] = useState(false);
-  const [userExistingSetCount, setUserExistingSetCount] = useState(0);
   const [participantPhones, setParticipantPhones] = useState<Record<string, string>>({});
   const [rankingData, setRankingData] = useState<{ participant_id: string; participant_name: string; total_points: number }[]>([]);
   const [allUsersWithPhone, setAllUsersWithPhone] = useState<{ id: string; full_name: string; phone: string; notify_pool_updates?: boolean; notify_new_pools?: boolean }[]>([]);
@@ -519,34 +518,26 @@ const PoolDetail = () => {
     }
     setParticipantsPoints(pointsMap);
 
-    const myParticipant = participantsData?.find(p => p.user_id === user?.id) || null;
-    // Check if estabelecimento participant has predictions
-    let hasPredictions = true;
-    if (myParticipant && poolData.prize_type === 'estabelecimento') {
-      const { count } = await supabase
-        .from("football_predictions")
-        .select("id", { count: 'exact', head: true })
-        .eq("participant_id", myParticipant.id);
-      hasPredictions = (count || 0) > 0;
-    }
-    setCurrentUserParticipant(myParticipant ? { ...myParticipant, _hasPredictions: hasPredictions } : null);
-    setHasJoined(!!myParticipant);
-
-    // Load user's existing prediction set count
-    if (myParticipant) {
-      const { data: userPreds } = await supabase
-        .from("football_predictions")
-        .select("prediction_set")
-        .eq("participant_id", myParticipant.id);
-      if (userPreds && userPreds.length > 0) {
-        const maxSet = Math.max(...userPreds.map((p: any) => p.prediction_set || 1));
-        setUserExistingSetCount(maxSet);
-      } else {
-        setUserExistingSetCount(0);
+    // Load ALL user entries (multiple independent participants)
+    const myEntries = participantsData?.filter(p => p.user_id === user?.id) || [];
+    
+    // For estabelecimento: check which entries have predictions
+    if (poolData.prize_type === 'estabelecimento' && myEntries.length > 0) {
+      for (const entry of myEntries) {
+        const { count } = await supabase
+          .from("football_predictions")
+          .select("id", { count: 'exact', head: true })
+          .eq("participant_id", entry.id);
+        (entry as any)._hasPredictions = (count || 0) > 0;
       }
-    } else {
-      setUserExistingSetCount(0);
     }
+    
+    setUserEntries(myEntries);
+    setHasJoined(myEntries.length > 0);
+    
+    // Set currentUserParticipant as the best approved entry (for prize logic)
+    const approvedEntry = myEntries.find(e => e.status === 'approved');
+    setCurrentUserParticipant(approvedEntry || myEntries[0] || null);
     
     // Detect if this pool has football matches (even if pool_type is not set)
     const { data: matchesData } = await supabase
@@ -858,26 +849,18 @@ const PoolDetail = () => {
 
   if (!pool) return null;
 
-  const isPendingPayment = !isOwner && currentUserParticipant?.status === 'pending' && !currentUserParticipant?.payment_proof;
-  const isAwaitingApproval = !isOwner && currentUserParticipant?.status === 'pending' && !!currentUserParticipant?.payment_proof;
-  const isRejected = !isOwner && currentUserParticipant?.status === 'rejected';
+  // Determine user status from entries (for banners)
+  const hasAnyPending = !isOwner && userEntries.some(e => e.status === 'pending');
+  const hasAnyRejected = !isOwner && userEntries.some(e => e.status === 'rejected');
+  const hasAnyApproved = userEntries.some(e => e.status === 'approved');
   const isFinishedCommunityPool = pool.status === 'finished' && !!ownerCommunityName;
-
-  // Calculate total entry fee considering multiple prediction sets
-  const predictionSetsCount = (() => {
-    const gv = currentUserParticipant?.guess_value || '';
-    const match = gv.match(/^(\d+)\s+palpite/);
-    return match ? parseInt(match[1]) : 1;
-  })();
-  const singleEntryFee = pool.entry_fee ? parseFloat(pool.entry_fee) : 0;
-  const totalEntryFee = singleEntryFee * predictionSetsCount;
 
   const getStatusColor = (status: string) => {
     if (status === "cancelled") return "bg-destructive text-destructive-foreground";
-    if (status === "finished") return "bg-gray-500 text-white";
-    if (isRejected) return "bg-destructive text-destructive-foreground";
-    if (isAwaitingApproval) return "bg-yellow-500 text-white";
-    if (isPendingPayment) return "bg-orange-500 text-white";
+    if (status === "finished") return "bg-muted text-muted-foreground";
+    if (hasAnyApproved) return "bg-green-500 text-white";
+    if (hasAnyPending) return "bg-orange-500 text-white";
+    if (hasAnyRejected) return "bg-destructive text-destructive-foreground";
     if (hasJoined) return "bg-blue-500 text-white";
     return "bg-green-500 text-white";
   };
@@ -885,9 +868,9 @@ const PoolDetail = () => {
   const getStatusText = (status: string) => {
     if (status === "cancelled") return "🚫 Cancelado";
     if (status === "finished") return "Finalizado";
-    if (isRejected) return "❌ Participação Reprovada";
-    if (isAwaitingApproval) return "⏳ Pendente Aprovação";
-    if (isPendingPayment) return "⚠️ Pagamento Pendente";
+    if (hasAnyApproved) return "Participando";
+    if (hasAnyPending) return "⏳ Pendente";
+    if (hasAnyRejected) return "❌ Reprovado";
     if (hasJoined) return "Participando";
     return "Disponível";
   };
@@ -914,91 +897,7 @@ const PoolDetail = () => {
           </Button>
         </div>
 
-        {/* Pending Payment Banner */}
-        {isPendingPayment && (
-          <div className="p-4 rounded-xl bg-gradient-to-r from-orange-500 to-orange-600 text-white shadow-lg animate-pulse">
-            <div className="flex items-center gap-3">
-              <span className="text-2xl">⚠️</span>
-              <div>
-                <p className="font-bold text-lg">
-                  {currentUserParticipant?.rejection_reason ? 'Comprovante Recusado' : 'Pagamento Pendente'}
-                </p>
-                {currentUserParticipant?.rejection_reason ? (
-                  <>
-                    <p className="text-sm text-orange-100">
-                      <strong>Motivo:</strong> {currentUserParticipant.rejection_reason}
-                    </p>
-                    {currentUserParticipant.rejection_details && (
-                      <p className="text-sm text-orange-100 mt-1">
-                        <strong>Detalhes:</strong> {currentUserParticipant.rejection_details}
-                      </p>
-                    )}
-                    <p className="text-sm text-orange-100 mt-1">Envie um novo comprovante abaixo.</p>
-                  </>
-                ) : (
-                  <>
-                    <p className="text-sm text-orange-100">Envie o comprovante de pagamento abaixo para confirmar sua participação.</p>
-                    {predictionSetsCount > 1 && singleEntryFee > 0 && (
-                      <p className="text-sm text-orange-100 mt-1 font-semibold">
-                        💰 Valor total: R$ {totalEntryFee.toFixed(2).replace('.', ',')} ({predictionSetsCount} palpites × R$ {singleEntryFee.toFixed(2).replace('.', ',')})
-                      </p>
-                    )}
-                  </>
-                )}
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Awaiting Approval Banner */}
-        {isAwaitingApproval && (
-          <div className="p-4 rounded-xl bg-gradient-to-r from-yellow-500 to-yellow-600 text-white shadow-lg">
-            <div className="flex items-center gap-3">
-              <span className="text-2xl">⏳</span>
-              <div>
-                <p className="font-bold text-lg">Pendente Aprovação</p>
-                <p className="text-sm text-yellow-100">Seu comprovante foi enviado. Aguarde a aprovação do organizador.</p>
-                <p className="text-sm text-yellow-100 mt-1">🔒 Fique tranquilo! Caso o criador não aprove ou recuse até o horário do primeiro jogo, sua participação será aprovada automaticamente.</p>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Rejected Banner */}
-        {isRejected && (
-          <div className="p-4 rounded-xl bg-gradient-to-r from-destructive to-destructive/80 text-destructive-foreground shadow-lg">
-        <div className="flex items-center gap-3">
-              <span className="text-2xl">❌</span>
-              <div className="flex-1">
-                <p className="font-bold text-lg">Participação Reprovada</p>
-                <p className="text-sm opacity-90">
-                  <strong>Motivo:</strong> {currentUserParticipant?.rejection_reason || 'Não informado'}
-                </p>
-                {currentUserParticipant?.rejection_details && (
-                  <p className="text-sm opacity-80 mt-1">
-                    <strong>Detalhes:</strong> {currentUserParticipant.rejection_details}
-                  </p>
-                )}
-              </div>
-            </div>
-            {ownerPhone && (
-              <Button
-                variant="outline"
-                size="sm"
-                className="mt-3 w-full bg-white/10 border-white/20 hover:bg-white/20 text-white"
-                onClick={() => {
-                  const phone = ownerPhone.replace(/\D/g, '');
-                  const message = encodeURIComponent(
-                    `Olá ${ownerName || ''}! Minha participação no bolão "${pool.title}" foi reprovada. Motivo: ${currentUserParticipant?.rejection_reason || 'Não informado'}. Podemos resolver?`
-                  );
-                  window.open(`https://wa.me/55${phone}?text=${message}`, '_blank');
-                }}
-              >
-                📱 Falar com o organizador no WhatsApp
-              </Button>
-            )}
-          </div>
-        )}
+        {/* Status banners are now handled per-entry inside UserPoolEntries */}
 
         {/* Cancelled Banner */}
         {pool.status === "cancelled" && (
@@ -1083,7 +982,7 @@ const PoolDetail = () => {
           </CardHeader>
           <CardContent className="space-y-6">
             {/* Winner Display - hidden from rejected participants */}
-            {pool.status === "finished" && winners.length > 0 && pool.pool_type !== "football" && !isRejected && (
+            {pool.status === "finished" && winners.length > 0 && pool.pool_type !== "football" && !hasAnyRejected && (
               <>
                 <WinnerDisplay 
                   winners={winners} 
@@ -1097,7 +996,7 @@ const PoolDetail = () => {
             )}
 
             {/* No winner message - hidden from rejected participants */}
-            {pool.status === "finished" && winners.length === 0 && pool.result_value && !isRejected && (
+            {pool.status === "finished" && winners.length === 0 && pool.result_value && !hasAnyRejected && (
               <>
                 <Card className="border-2 border-muted">
                   <CardContent className="p-6 text-center">
@@ -1400,265 +1299,24 @@ const PoolDetail = () => {
               </>
             )}
 
-            {!isOwner && pool.status === "active" && !isPastDeadline && (
+            {!isOwner && pool.status === "active" && (
               <>
-                {hasJoined && !(pool.prize_type === 'estabelecimento' && currentUserParticipant?.status === 'approved' && !currentUserParticipant?._hasPredictions) ? (
+                {hasJoined ? (
                   <>
-                    {currentUserParticipant?.status === 'rejected' ? (
-                      <>
-                        <Separator />
-                        <Card className="border-2 border-destructive/20 bg-gradient-to-br from-destructive/5 to-destructive/10">
-                          <CardContent className="p-6 text-center space-y-3">
-                            <div className="w-12 h-12 mx-auto rounded-full bg-destructive/10 flex items-center justify-center">
-                              <X className="w-6 h-6 text-destructive" />
-                            </div>
-                            <p className="text-lg font-semibold text-destructive">
-                              Participação Reprovada
-                            </p>
-                            <div className="text-sm text-muted-foreground space-y-1">
-                              <p><strong>Motivo:</strong> {currentUserParticipant?.rejection_reason || 'Não informado'}</p>
-                              {currentUserParticipant?.rejection_details && (
-                                <p><strong>Detalhes:</strong> {currentUserParticipant.rejection_details}</p>
-                              )}
-                            </div>
-                            <Button
-                              variant="outline"
-                              onClick={async () => {
-                                // Delete football predictions first (if any)
-                                await supabase
-                                  .from("football_predictions")
-                                  .delete()
-                                  .eq("participant_id", currentUserParticipant.id);
-
-                                // Delete the participant record entirely so user starts fresh
-                                const { error } = await supabase
-                                  .from("participants")
-                                  .delete()
-                                  .eq("id", currentUserParticipant.id);
-
-                                if (!error) {
-                                  toast({
-                                    title: "Pronto!",
-                                    description: "Faça seu palpite novamente do início.",
-                                  });
-                                  // Reset local state so the prediction form appears immediately
-                                  setCurrentUserParticipant(null);
-                                  setHasJoined(false);
-                                  setParticipants(prev => prev.filter(p => p.id !== currentUserParticipant.id));
-                                } else {
-                                  toast({
-                                    variant: "destructive",
-                                    title: "Erro",
-                                    description: error.message,
-                                  });
-                                }
-                              }}
-                              className="w-full"
-                            >
-                              🔄 Tentar novamente com novo palpite
-                            </Button>
-                            {ownerPhone && (
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => {
-                                  const phone = ownerPhone.replace(/\D/g, '');
-                                  const message = encodeURIComponent(
-                                    `Olá ${ownerName || ''}! Minha participação no bolão "${pool.title}" foi reprovada. Motivo: ${currentUserParticipant?.rejection_reason || 'Não informado'}. Podemos resolver?`
-                                  );
-                                  window.open(`https://wa.me/55${phone}?text=${message}`, '_blank');
-                                }}
-                                className="w-full"
-                              >
-                                📱 Falar com o organizador no WhatsApp
-                              </Button>
-                            )}
-                          </CardContent>
-                        </Card>
-                      </>
-                    ) : currentUserParticipant?.status === 'pending' ? (
-                      <>
-                        <Separator />
-                        {currentUserParticipant?.payment_proof ? (
-                          <Card className="border-2 border-orange-500/20 bg-gradient-to-br from-orange-500/5 to-orange-500/10">
-                            <CardContent className="p-6 text-center space-y-2">
-                              <div className="w-12 h-12 mx-auto rounded-full bg-orange-100 dark:bg-orange-900/30 flex items-center justify-center">
-                                <CheckCircle className="w-6 h-6 text-orange-500" />
-                              </div>
-                              <p className="text-lg font-semibold text-orange-600 dark:text-orange-400">
-                                Aguardando aprovação
-                              </p>
-                              <p className="text-sm text-muted-foreground">
-                                Seu comprovante foi enviado com sucesso. O organizador irá analisar e aprovar sua participação.
-                              </p>
-                            </CardContent>
-                          </Card>
-                        ) : (
-                          <PaymentProofSubmission
-                            participantId={currentUserParticipant.id}
-                            poolId={pool.id}
-                            poolTitle={pool.title}
-                            entryFee={totalEntryFee}
-                            pixKey={pool.pix_key}
-                            firstMatchDate={firstMatchDate}
-                            onSuccess={loadPoolData}
-                          />
-                        )}
-
-                        {/* Edit / Cancel / Add more buttons for pending participants (only if no proof sent) */}
-                        {!currentUserParticipant.payment_proof && <>
-                          <UserPredictionsSummary poolId={pool.id} participantId={currentUserParticipant.id} />
-                          <div className="p-3 rounded-lg bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800/50 mt-2">
-                            <p className="text-xs text-amber-800 dark:text-amber-300 leading-relaxed">
-                              💡 Quer fazer mais palpites? Toque em <strong>Adicionar palpites</strong>. Ou toque em <strong>Refazer do zero</strong> para apagar tudo e recomeçar. Após o pagamento, não será possível alterar.
-                            </p>
-                          </div>
-                          {!showAddMoreForm ? (
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              className="w-full h-9 text-xs sm:text-sm mt-2"
-                              onClick={() => setShowAddMoreForm(true)}
-                            >
-                              <Plus className="w-4 h-4 mr-2" />
-                              Adicionar mais palpites
-                            </Button>
-                          ) : (
-                            <div className="mt-2">
-                              <FootballPredictionForm
-                                poolId={pool.id}
-                                userId={userId!}
-                                onSuccess={() => {
-                                  setShowAddMoreForm(false);
-                                  loadPoolData();
-                                }}
-                                pool={pool}
-                                pixKey={pool.pix_key}
-                                firstMatchDate={firstMatchDate}
-                                ownerName={ownerName || undefined}
-                                existingParticipantId={currentUserParticipant.id}
-                                existingSetCount={userExistingSetCount}
-                              />
-                            </div>
-                          )}
-                          <div className="flex flex-col sm:flex-row gap-2 mt-2">
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            className="flex-1 h-9 text-xs sm:text-sm"
-                            onClick={async () => {
-                              if (!confirm("Deseja editar seus palpites? Seus palpites atuais serão apagados e você poderá refazer a inscrição do zero.")) return;
-                              await supabase
-                                .from("football_predictions")
-                                .delete()
-                                .eq("participant_id", currentUserParticipant.id);
-                              await supabase
-                                .from("participants")
-                                .delete()
-                                .eq("id", currentUserParticipant.id);
-                              toast({
-                                title: "Palpites removidos",
-                                description: "Refaça sua inscrição com novos palpites.",
-                              });
-                              setCurrentUserParticipant(null);
-                              setHasJoined(false);
-                              setParticipants(prev => prev.filter(p => p.id !== currentUserParticipant.id));
-                            }}
-                          >
-                            <Edit className="w-4 h-4 mr-2" />
-                            Refazer do zero
-                          </Button>
-                          <Button
-                            variant="destructive"
-                            size="sm"
-                            className="flex-1 h-9 text-xs sm:text-sm"
-                            onClick={async () => {
-                              if (!confirm("Tem certeza que deseja cancelar sua participação? Todos os seus dados serão excluídos deste bolão.")) return;
-                              await supabase
-                                .from("football_predictions")
-                                .delete()
-                                .eq("participant_id", currentUserParticipant.id);
-                              await supabase
-                                .from("participants")
-                                .delete()
-                                .eq("id", currentUserParticipant.id);
-                              toast({
-                                title: "Participação cancelada",
-                                description: "Você saiu do bolão.",
-                              });
-                              setCurrentUserParticipant(null);
-                              setHasJoined(false);
-                              setParticipants(prev => prev.filter(p => p.id !== currentUserParticipant.id));
-                            }}
-                          >
-                            <X className="w-4 h-4 mr-2" />
-                            Cancelar participação
-                          </Button>
-                         </div>
-                        </>}
-                      </>
-                    ) : (
-                      <div className="space-y-4">
-                        <div className="p-4 rounded-lg bg-green-50 dark:bg-green-950 border-2 border-green-200 dark:border-green-800 text-center space-y-2">
-                          <p className="text-lg font-semibold text-green-700 dark:text-green-300">
-                            ✓ Você está participando!
-                          </p>
-                          <p className="text-sm text-muted-foreground">
-                            {userExistingSetCount > 1
-                              ? `Você tem ${userExistingSetCount} palpites registrados. Boa sorte! 🍀`
-                              : 'Seu palpite foi registrado com sucesso. Boa sorte! 🍀'}
-                          </p>
-                        </div>
-
-                        <UserPredictionsSummary poolId={pool.id} participantId={currentUserParticipant.id} />
-
-                        {!isPastDeadline && !showAddMoreForm && (
-                          <Button
-                            variant="outline"
-                            onClick={() => setShowAddMoreForm(true)}
-                            className="w-full"
-                          >
-                            <Plus className="w-4 h-4 mr-2" />
-                            Fazer mais palpites
-                          </Button>
-                        )}
-
-                        {showAddMoreForm && (
-                          <FootballPredictionForm
-                            poolId={pool.id}
-                            userId={userId!}
-                            onSuccess={() => {
-                              setShowAddMoreForm(false);
-                              loadPoolData();
-                            }}
-                            pool={pool}
-                            pixKey={pool.pix_key}
-                            firstMatchDate={firstMatchDate}
-                            ownerName={ownerName || undefined}
-                            existingParticipantId={currentUserParticipant.id}
-                            existingSetCount={userExistingSetCount}
-                          />
-                        )}
-
-                        {pool.has_whatsapp_group && ownerPhone && (
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            className="w-full"
-                            onClick={() => {
-                              const phone = ownerPhone.replace(/\D/g, '');
-                              const message = encodeURIComponent(
-                                `Olá ${ownerName || ''}! Estou participando do bolão "${pool.title}" e gostaria de entrar no grupo do WhatsApp. Pode me adicionar?`
-                              );
-                              window.open(`https://wa.me/55${phone}?text=${message}`, '_blank');
-                            }}
-                          >
-                            <MessageCircle className="w-4 h-4" />
-                            Entrar no grupo do WhatsApp
-                          </Button>
-                        )}
-                      </div>
-                    )}
+                    <Separator />
+                    <UserPoolEntries
+                      entries={userEntries}
+                      pool={pool}
+                      poolId={pool.id}
+                      userId={userId!}
+                      isPastDeadline={isPastDeadline}
+                      firstMatchDate={firstMatchDate}
+                      ownerName={ownerName}
+                      ownerPhone={ownerPhone}
+                      pixKey={pool.pix_key}
+                      onReload={loadPoolData}
+                      hasFootballMatches={hasFootballMatches}
+                    />
                   </>
                 ) : pool.max_participants && approvedParticipants.length >= pool.max_participants ? (
                   <div className="p-4 rounded-lg bg-destructive/10 border border-destructive/20">

@@ -66,7 +66,7 @@ const FootballRanking = ({ poolId, pool, approvedParticipantsCount, isOwner }: F
   const [ownerPhone, setOwnerPhone] = useState<string | null>(null);
   const [hasLiveMatches, setHasLiveMatches] = useState(false);
   const [scoringSystem, setScoringSystem] = useState<string>('standard');
-  const [currentUserParticipantId, setCurrentUserParticipantId] = useState<string | null>(null);
+  const [currentUserParticipantIds, setCurrentUserParticipantIds] = useState<string[]>([]);
   const [myPositionExpanded, setMyPositionExpanded] = useState(false);
   const [lastSyncAt, setLastSyncAt] = useState<string | null>(null);
   const [lastFrontendRefresh, setLastFrontendRefresh] = useState<Date>(new Date());
@@ -90,16 +90,15 @@ const FootballRanking = ({ poolId, pool, approvedParticipantsCount, isOwner }: F
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
 
-    const { data: participant } = await supabase
+    const { data: participants } = await supabase
       .from("participants")
       .select("id")
       .eq("pool_id", poolId)
       .eq("user_id", user.id)
-      .eq("status", "approved")
-      .maybeSingle();
+      .eq("status", "approved");
 
-    if (participant) {
-      setCurrentUserParticipantId(participant.id);
+    if (participants && participants.length > 0) {
+      setCurrentUserParticipantIds(participants.map(p => p.id));
     }
   };
 
@@ -1290,8 +1289,8 @@ const FootballRanking = ({ poolId, pool, approvedParticipantsCount, isOwner }: F
           );
         })()}
 
-        {currentUserParticipantId && ranking.some(p => p.id === currentUserParticipantId) && (() => {
-          const userEntries = ranking.filter(p => p.id === currentUserParticipantId);
+        {currentUserParticipantIds.length > 0 && ranking.some(p => currentUserParticipantIds.includes(p.id)) && (() => {
+          const userEntries = ranking.filter(p => currentUserParticipantIds.includes(p.id));
           if (userEntries.length === 0) return null;
 
           return (
@@ -1558,7 +1557,7 @@ const FootballRanking = ({ poolId, pool, approvedParticipantsCount, isOwner }: F
               const actualPosition = getActualPosition(index, participant);
               const isExpanded = expandedParticipants.has(participant.ranking_key);
               const predictions = participantPredictions[participant.ranking_key] || [];
-              const isCurrentUser = participant.id === currentUserParticipantId;
+              const isCurrentUser = currentUserParticipantIds.includes(participant.id);
               
               return (
                 <Collapsible
@@ -1611,7 +1610,7 @@ const FootballRanking = ({ poolId, pool, approvedParticipantsCount, isOwner }: F
                                   R$ {participant.prize_amount.toFixed(2).replace('.', ',')}
                                 </Badge>
                               )}
-                              {allMatchesFinished && getPrizeStatusBadge(participant.prize_status, participant.prize_amount, participant.id === currentUserParticipantId, participant.id)}
+                              {allMatchesFinished && getPrizeStatusBadge(participant.prize_status, participant.prize_amount, currentUserParticipantIds.includes(participant.id), participant.id)}
                             </div>
                             {isExpanded ? (
                               <ChevronUp className="h-4 w-4 sm:h-5 sm:w-5 text-muted-foreground flex-shrink-0" />
@@ -1633,7 +1632,7 @@ const FootballRanking = ({ poolId, pool, approvedParticipantsCount, isOwner }: F
                               R$ {participant.prize_amount.toFixed(2).replace('.', ',')}
                             </Badge>
                           )}
-                          {allMatchesFinished && getPrizeStatusBadge(participant.prize_status, participant.prize_amount, participant.id === currentUserParticipantId, participant.id)}
+                          {allMatchesFinished && getPrizeStatusBadge(participant.prize_status, participant.prize_amount, currentUserParticipantIds.includes(participant.id), participant.id)}
                         </div>
                         
                       </div>
