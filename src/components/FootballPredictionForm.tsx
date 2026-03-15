@@ -48,7 +48,7 @@ interface Prediction {
 
 type PredictionSet = Prediction[];
 
-const FootballPredictionForm = ({ poolId, userId, onSuccess, entryFee, pool, pixKey, firstMatchDate, ownerName, existingParticipantId, existingSetCount }: FootballPredictionFormProps) => {
+const FootballPredictionForm = ({ poolId, userId, onSuccess, entryFee, pool, pixKey, firstMatchDate, ownerName }: FootballPredictionFormProps) => {
   const { toast } = useToast();
   const formTopRef = useRef<HTMLDivElement>(null);
   const tabsRef = useRef<HTMLDivElement>(null);
