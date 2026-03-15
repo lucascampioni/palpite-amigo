@@ -253,145 +253,57 @@ const FootballPredictionForm = ({ poolId, userId, onSuccess, entryFee, pool, pix
     setShowDisclaimerDialog(false);
     setSubmitting(true);
 
-    // "Add more" mode: append predictions to existing participant
-    if (existingParticipantId && existingSetCount !== undefined) {
-      const allPredictions = predictionSets.flatMap((set, setIndex) =>
-        set.filter(p => {
-          const match = matches.find(m => m.id === p.matchId);
-          return !['postponed', 'cancelled', 'abandoned'].includes(match?.status || '');
-        }).map(p => ({
-          participant_id: existingParticipantId,
-          match_id: p.matchId,
-          home_score_prediction: parseInt(p.homeScore),
-          away_score_prediction: parseInt(p.awayScore),
-          prediction_set: existingSetCount + setIndex + 1,
-        }))
-      );
-
-      const { error: predictionsError } = await supabase
-        .from("football_predictions")
-        .insert(allPredictions);
-
-      if (predictionsError) {
-        toast({ variant: "destructive", title: "Erro", description: predictionsError.message });
-        setSubmitting(false);
-        return;
-      }
-
-      const newTotal = existingSetCount + predictionSets.length;
-      const updateData: Record<string, any> = {
-        guess_value: `${newTotal} palpite${newTotal > 1 ? 's' : ''}`,
-      };
-
-      // For paid pools, set back to pending for additional payment
-      if (hasEntryFee) {
-        updateData.status = 'pending';
-        updateData.payment_proof = null;
-        updateData.rejection_reason = null;
-        updateData.rejection_details = null;
-      }
-
-      await supabase
-        .from("participants")
-        .update(updateData)
-        .eq("id", existingParticipantId);
-
-      if (hasEntryFee) {
-        setCreatedParticipantId(existingParticipantId);
-        setShowPaymentDialog(true);
-      } else {
-        toast({
-          title: "🎉 Palpites adicionados!",
-          description: `${predictionSets.length} novo${predictionSets.length > 1 ? 's' : ''} palpite${predictionSets.length > 1 ? 's' : ''} adicionado${predictionSets.length > 1 ? 's' : ''}. Boa sorte! 🍀`,
-          duration: 5000,
-        });
-      }
-      setSubmitted(true);
-      onSuccess();
-      setSubmitting(false);
-      return;
-    }
-
     // For estabelecimento pools with voucher, always approve
     const initialStatus = isEstabelecimento ? "approved" : (hasEntryFee ? "pending" : "approved");
 
-    // Check if user already has a non-rejected participant record in this pool
-    const { data: existingParticipant } = await supabase
-      .from("participants")
-      .select("id, status")
-      .eq("pool_id", poolId)
-      .eq("user_id", userId)
-      .maybeSingle();
-
-    // For estabelecimento pools, the participant was already created by the owner
-    if (isEstabelecimento && existingParticipant && existingParticipant.status === 'approved') {
-      // Use existing participant for predictions
-      const participant = existingParticipant;
-
-      // Update guess_value
-      await supabase
+    // For estabelecimento pools, find existing approved participant created by the owner
+    if (isEstabelecimento) {
+      const { data: existingParticipant } = await supabase
         .from("participants")
-        .update({ guess_value: `${predictionSets.length} palpite${predictionSets.length > 1 ? 's' : ''}` })
-        .eq("id", participant.id);
+        .select("id, status")
+        .eq("pool_id", poolId)
+        .eq("user_id", userId)
+        .eq("status", "approved")
+        .maybeSingle();
 
-      // Create predictions for all sets
-      const allPredictions = predictionSets.flatMap((set, setIndex) =>
-        set.filter(p => {
-          const match = matches.find(m => m.id === p.matchId);
-          const isPostponed = (match as any)?.status === 'postponed' || (match as any)?.status === 'cancelled' || (match as any)?.status === 'abandoned';
-          return !isPostponed;
-        }).map(p => ({
-          participant_id: participant.id,
-          match_id: p.matchId,
-          home_score_prediction: parseInt(p.homeScore),
-          away_score_prediction: parseInt(p.awayScore),
-          prediction_set: setIndex + 1,
-        }))
-      );
+      if (existingParticipant) {
+        // Use existing participant for predictions
+        await supabase
+          .from("participants")
+          .update({ guess_value: `${predictionSets.length} palpite${predictionSets.length > 1 ? 's' : ''}` })
+          .eq("id", existingParticipant.id);
 
-      const { error: predictionsError } = await supabase
-        .from("football_predictions")
-        .insert(allPredictions);
+        const allPredictions = predictionSets.flatMap((set, setIndex) =>
+          set.filter(p => {
+            const match = matches.find(m => m.id === p.matchId);
+            return !['postponed', 'cancelled', 'abandoned'].includes(match?.status || '');
+          }).map(p => ({
+            participant_id: existingParticipant.id,
+            match_id: p.matchId,
+            home_score_prediction: parseInt(p.homeScore),
+            away_score_prediction: parseInt(p.awayScore),
+            prediction_set: setIndex + 1,
+          }))
+        );
 
-      if (predictionsError) {
-        toast({
-          variant: "destructive",
-          title: "Erro",
-          description: predictionsError.message,
-        });
-      } else {
-        toast({
-          title: "🎉 Palpites enviados!",
-          description: `${predictionSets.length} palpite${predictionSets.length > 1 ? 's' : ''} salvo${predictionSets.length > 1 ? 's' : ''}. Boa sorte! 🍀`,
-          duration: 5000,
-        });
-        setSubmitted(true);
-        onSuccess();
+        const { error: predictionsError } = await supabase
+          .from("football_predictions")
+          .insert(allPredictions);
+
+        if (predictionsError) {
+          toast({ variant: "destructive", title: "Erro", description: predictionsError.message });
+        } else {
+          toast({
+            title: "🎉 Palpites enviados!",
+            description: `${predictionSets.length} palpite${predictionSets.length > 1 ? 's' : ''} salvo${predictionSets.length > 1 ? 's' : ''}. Boa sorte! 🍀`,
+            duration: 5000,
+          });
+          setSubmitted(true);
+          onSuccess();
+        }
+        setSubmitting(false);
+        return;
       }
-      setSubmitting(false);
-      return;
-    }
-
-    if (existingParticipant && existingParticipant.status !== 'rejected') {
-      toast({
-        variant: "destructive",
-        title: "Erro",
-        description: "Você já está participando deste bolão. Não é possível enviar novos palpites.",
-      });
-      setSubmitting(false);
-      return;
-    }
-
-    // If there's a rejected record, delete it and its predictions first
-    if (existingParticipant && existingParticipant.status === 'rejected') {
-      await supabase
-        .from("football_predictions")
-        .delete()
-        .eq("participant_id", existingParticipant.id);
-      await supabase
-        .from("participants")
-        .delete()
-        .eq("id", existingParticipant.id);
     }
 
     const { data: profile } = await supabase

@@ -1289,8 +1289,8 @@ const FootballRanking = ({ poolId, pool, approvedParticipantsCount, isOwner }: F
           );
         })()}
 
-        {currentUserParticipantId && ranking.some(p => p.id === currentUserParticipantId) && (() => {
-          const userEntries = ranking.filter(p => p.id === currentUserParticipantId);
+        {currentUserParticipantIds.length > 0 && ranking.some(p => currentUserParticipantIds.includes(p.id)) && (() => {
+          const userEntries = ranking.filter(p => currentUserParticipantIds.includes(p.id));
           if (userEntries.length === 0) return null;
 
           return (
