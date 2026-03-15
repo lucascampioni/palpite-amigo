@@ -996,7 +996,7 @@ const PoolDetail = () => {
             )}
 
             {/* No winner message - hidden from rejected participants */}
-            {pool.status === "finished" && winners.length === 0 && pool.result_value && !isRejected && (
+            {pool.status === "finished" && winners.length === 0 && pool.result_value && !hasAnyRejected && (
               <>
                 <Card className="border-2 border-muted">
                   <CardContent className="p-6 text-center">
