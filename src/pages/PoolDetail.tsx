@@ -528,7 +528,7 @@ const PoolDetail = () => {
           .from("football_predictions")
           .select("id", { count: 'exact', head: true })
           .eq("participant_id", entry.id);
-        entry._hasPredictions = (count || 0) > 0;
+        (entry as any)._hasPredictions = (count || 0) > 0;
       }
     }
     
