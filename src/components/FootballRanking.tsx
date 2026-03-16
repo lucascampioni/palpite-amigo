@@ -543,25 +543,42 @@ const FootballRanking = ({ poolId, pool, approvedParticipantsCount, isOwner }: F
     const hasPrizes = prizes.some(p => p > 0);
     if (!hasPrizes) return ranking;
 
+    // Deduplicate ranking by user_id: keep only the best entry per user for prize calculation
+    // This ensures a user with multiple entries only occupies one podium spot
+    const bestEntryByUser: ParticipantScore[] = [];
+    const seenUserIds = new Set<string>();
+    // ranking is already sorted by points desc
+    for (const entry of ranking) {
+      const uid = entry.user_id || entry.id; // fallback to participant id if no user_id
+      if (!seenUserIds.has(uid)) {
+        seenUserIds.add(uid);
+        bestEntryByUser.push(entry);
+      }
+    }
+
     const result = [...ranking];
+    // Reset all prizes
+    result.forEach(r => { r.prize_amount = undefined; });
 
     // When all participants have 0 points and tiebreaker by time was applied,
     // positions are sequential — prizes go strictly to top N by position, no splitting.
-    const allZero = result.every(r => r.total_points === 0);
+    const allZero = bestEntryByUser.every(r => r.total_points === 0);
     if (allZero) {
-      for (let i = 0; i < Math.min(maxW, result.length); i++) {
-        result[i].prize_amount = prizes[i] || 0;
+      for (let i = 0; i < Math.min(maxW, bestEntryByUser.length); i++) {
+        const winner = bestEntryByUser[i];
+        const idx = result.findIndex(r => r.ranking_key === winner.ranking_key);
+        if (idx !== -1) result[idx].prize_amount = prizes[i] || 0;
       }
       return result;
     }
 
     let currentPosition = 0;
 
-    while (currentPosition < result.length) {
-      const currentScore = result[currentPosition].total_points;
+    while (currentPosition < bestEntryByUser.length) {
+      const currentScore = bestEntryByUser[currentPosition].total_points;
       
       let tieGroupEnd = currentPosition;
-      while (tieGroupEnd < result.length && result[tieGroupEnd].total_points === currentScore) {
+      while (tieGroupEnd < bestEntryByUser.length && bestEntryByUser[tieGroupEnd].total_points === currentScore) {
         tieGroupEnd++;
       }
       
@@ -577,8 +594,11 @@ const FootballRanking = ({ poolId, pool, approvedParticipantsCount, isOwner }: F
 
       const prizePerParticipant = tieGroupSize > 0 ? prizeSum / tieGroupSize : 0;
 
+      // Assign prize to the best entry of each user in the tie group
       for (let i = currentPosition; i < tieGroupEnd; i++) {
-        result[i].prize_amount = prizePerParticipant;
+        const winner = bestEntryByUser[i];
+        const idx = result.findIndex(r => r.ranking_key === winner.ranking_key);
+        if (idx !== -1) result[idx].prize_amount = prizePerParticipant;
       }
 
       currentPosition = tieGroupEnd;
