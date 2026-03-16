@@ -112,17 +112,17 @@ const PoolDetail = () => {
 
       const userPoints = participantsPoints[currentUserParticipant.id] || 0;
 
-      // Find user's index in sorted list
-      const userIndex = participantsWithPoints.findIndex(p => p.id === currentUserParticipant.id);
+      // Find user's best entry index in deduplicated list
+      const userIndex = bestByUser.findIndex(p => p.user_id === currentUserParticipant.user_id);
       if (userIndex === -1) return;
 
       // Determine the full tie group boundaries for this score
       let groupStart = userIndex;
       let groupEnd = userIndex;
-      while (groupStart > 0 && participantsWithPoints[groupStart - 1].total_points === userPoints) {
+      while (groupStart > 0 && bestByUser[groupStart - 1].total_points === userPoints) {
         groupStart--;
       }
-      while (groupEnd < participantsWithPoints.length - 1 && participantsWithPoints[groupEnd + 1].total_points === userPoints) {
+      while (groupEnd < bestByUser.length - 1 && bestByUser[groupEnd + 1].total_points === userPoints) {
         groupEnd++;
       }
 
