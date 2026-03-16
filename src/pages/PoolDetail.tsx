@@ -421,12 +421,13 @@ const PoolDetail = () => {
     setIsOwner(ownerCheck);
 
     // Check if user is a participant
-    const { data: userParticipantCheck } = await supabase
+    const { data: userParticipantCheckArr } = await supabase
       .from("participants")
       .select("id")
       .eq("pool_id", poolData.id)
       .eq("user_id", user?.id || '')
-      .maybeSingle();
+      .limit(1);
+    const userParticipantCheck = userParticipantCheckArr && userParticipantCheckArr.length > 0 ? userParticipantCheckArr[0] : null;
 
     // Check if pool belongs to a community (allows public access for finished pools)
     const { data: poolCommunity } = await supabase
