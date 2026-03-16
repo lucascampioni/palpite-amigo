@@ -373,7 +373,7 @@ const FootballRanking = ({ poolId, pool, approvedParticipantsCount, isOwner }: F
     // Fallback: legacy secured reads (for owners/approved participants)
     const { data: participants, error: participantsError } = await supabase
       .from("participants")
-      .select("id, participant_name, prize_status")
+      .select("id, participant_name, prize_status, user_id")
       .eq("pool_id", poolId)
       .eq("status", "approved");
 
