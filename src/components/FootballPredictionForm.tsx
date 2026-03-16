@@ -676,14 +676,6 @@ const FootballPredictionForm = ({ poolId, userId, onSuccess, entryFee, pool, pix
         </div>
       )}
 
-      <div className="p-3 rounded-lg bg-amber-50 dark:bg-amber-950/50 border border-amber-200 dark:border-amber-800 text-sm">
-        <p className="font-medium text-amber-700 dark:text-amber-400">
-          ⚠️ Atenção: você só pode fazer seus palpites agora!
-        </p>
-        <p className="text-xs text-muted-foreground mt-1">
-          Após enviar, não será possível editar, excluir ou adicionar novos palpites.
-        </p>
-      </div>
 
       </>
       )}
