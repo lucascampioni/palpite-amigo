@@ -100,6 +100,16 @@ const PoolDetail = () => {
         }))
         .sort((a, b) => b.total_points - a.total_points);
 
+      // Deduplicate by user_id: only the best entry per user competes for prizes
+      const bestByUser: typeof participantsWithPoints = [];
+      const seenUsers = new Set<string>();
+      for (const entry of participantsWithPoints) {
+        if (!seenUsers.has(entry.user_id)) {
+          seenUsers.add(entry.user_id);
+          bestByUser.push(entry);
+        }
+      }
+
       const userPoints = participantsPoints[currentUserParticipant.id] || 0;
 
       // Find user's index in sorted list
