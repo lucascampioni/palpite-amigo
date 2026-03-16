@@ -203,35 +203,45 @@ const PoolDetail = () => {
           return new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
         });
 
+      // Deduplicate by user_id: only best entry per user competes for prizes
+      const bestByUser: typeof participantsWithPoints = [];
+      const seenUsers = new Set<string>();
+      for (const entry of participantsWithPoints) {
+        if (!seenUsers.has(entry.user_id)) {
+          seenUsers.add(entry.user_id);
+          bestByUser.push(entry);
+        }
+      }
+
       const maxWinners = pool.max_winners || 3;
       const winnersToUpdate: string[] = [];
       
-      const allZeroPoints = participantsWithPoints.every((p: any) => p.total_points === 0);
+      const allZeroPoints = bestByUser.every((p: any) => p.total_points === 0);
 
       if (allZeroPoints) {
         // When nobody scored, winners are determined by earliest join time
-        const topN = Math.min(maxWinners, participantsWithPoints.length);
+        const topN = Math.min(maxWinners, bestByUser.length);
         for (let i = 0; i < topN; i++) {
-          winnersToUpdate.push(participantsWithPoints[i].id);
+          winnersToUpdate.push(bestByUser[i].id);
         }
       } else {
         let currentPosition = 0;
-        while (currentPosition < participantsWithPoints.length && currentPosition < maxWinners) {
-          const currentScore = participantsWithPoints[currentPosition].total_points;
+        while (currentPosition < bestByUser.length && currentPosition < maxWinners) {
+          const currentScore = bestByUser[currentPosition].total_points;
           if (currentScore === 0) break;
 
           let tieGroupEnd = currentPosition;
           while (
-            tieGroupEnd < participantsWithPoints.length &&
-            participantsWithPoints[tieGroupEnd].total_points === currentScore
+            tieGroupEnd < bestByUser.length &&
+            bestByUser[tieGroupEnd].total_points === currentScore
           ) {
             tieGroupEnd++;
           }
 
           if (currentPosition < maxWinners) {
             for (let i = currentPosition; i < tieGroupEnd; i++) {
-              if (participantsWithPoints[i].total_points > 0) {
-                winnersToUpdate.push(participantsWithPoints[i].id);
+              if (bestByUser[i].total_points > 0) {
+                winnersToUpdate.push(bestByUser[i].id);
               }
             }
           }
