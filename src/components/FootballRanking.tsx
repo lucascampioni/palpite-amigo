@@ -290,6 +290,7 @@ const FootballRanking = ({ poolId, pool, approvedParticipantsCount, isOwner }: F
             earliest_prediction_at: earliestPredMap[rankingKey] || null,
             exact_scores: exactScoresMap[rankingKey] || 0,
             correct_results: correctResultsMap[rankingKey] || 0,
+            user_id: r.user_id || null,
           };
         });
 
