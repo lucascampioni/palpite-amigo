@@ -299,12 +299,22 @@ const PoolDetail = () => {
         return new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
       });
 
+    // Deduplicate by user_id: only the best entry per user competes for prizes
+    const bestByUser: typeof sorted = [];
+    const seenUsers = new Set<string>();
+    for (const entry of sorted) {
+      if (!seenUsers.has(entry.user_id)) {
+        seenUsers.add(entry.user_id);
+        bestByUser.push(entry);
+      }
+    }
+
     const amounts: Record<string, number> = {};
     let pos = 0;
-    while (pos < sorted.length) {
-      const score = sorted[pos].total_points;
+    while (pos < bestByUser.length) {
+      const score = bestByUser[pos].total_points;
       let groupEnd = pos;
-      while (groupEnd < sorted.length - 1 && sorted[groupEnd + 1].total_points === score) {
+      while (groupEnd < bestByUser.length - 1 && bestByUser[groupEnd + 1].total_points === score) {
         groupEnd++;
       }
       const groupSize = groupEnd - pos + 1;
@@ -318,7 +328,7 @@ const PoolDetail = () => {
         const perPerson = prizeSum / groupSize;
         if (perPerson > 0) {
           for (let i = pos; i <= groupEnd; i++) {
-            amounts[sorted[i].id] = perPerson;
+            amounts[bestByUser[i].id] = perPerson;
           }
         }
       }
