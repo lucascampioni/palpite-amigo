@@ -432,8 +432,9 @@ const FootballRanking = ({ poolId, pool, approvedParticipantsCount, isOwner }: F
           ranking_key: `${participant.id}_${setNum}`,
           participant_name: participant.participant_name,
           total_points,
-          prize_status: participant.prize_status,
+          prize_status: (participant as any).prize_status,
           prediction_set: setNum,
+          user_id: (participant as any).user_id,
         });
       }
     }
