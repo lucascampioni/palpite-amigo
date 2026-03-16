@@ -36,6 +36,7 @@ interface ParticipantScore {
   earliest_prediction_at?: string | null;
   exact_scores?: number;
   correct_results?: number;
+  user_id?: string;
 }
 
 interface MatchPrediction {
