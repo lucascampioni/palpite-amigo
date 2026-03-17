@@ -728,6 +728,16 @@ const PoolDetail = () => {
       .eq("id", userId)
       .single();
 
+    if (!profile?.full_name || profile.full_name === "Usuário") {
+      toast({
+        variant: "destructive",
+        title: "Nome não encontrado",
+        description: "Atualize seu nome completo no perfil antes de participar.",
+      });
+      setSubmitting(false);
+      return;
+    }
+
     // Determine status based on entry fee
     const hasEntryFee = pool.entry_fee && parseFloat(pool.entry_fee) > 0;
     const initialStatus = hasEntryFee ? "pending" : "approved";
@@ -737,7 +747,7 @@ const PoolDetail = () => {
       .insert({
         pool_id: poolId!,
         user_id: userId,
-        participant_name: profile?.full_name || "Usuário",
+        participant_name: profile.full_name,
         guess_value: guessValue,
         status: initialStatus,
       });
