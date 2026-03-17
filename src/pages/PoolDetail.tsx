@@ -1624,15 +1624,10 @@ const PoolDetail = () => {
                       </p>
                       <div className="mt-2 pt-2 border-t border-secondary/20">
                         <p className="text-xs text-muted-foreground font-medium">📊 Sistema de Pontuação:</p>
-                        {pool?.scoring_system === 'exact_only' ? (
+                        {(pool?.scoring_system === 'exact_only' || pool?.scoring_system === 'simplified') ? (
                           <ul className="list-disc list-inside space-y-0.5 text-muted-foreground text-xs mt-1">
                             <li><strong>1 ponto</strong>: Placar exato</li>
                             <li><strong>0 pontos</strong>: Qualquer outro resultado</li>
-                          </ul>
-                        ) : pool?.scoring_system === 'simplified' ? (
-                          <ul className="list-disc list-inside space-y-0.5 text-muted-foreground text-xs mt-1">
-                            <li><strong>3 pontos</strong>: Placar exato</li>
-                            <li><strong>1 ponto</strong>: Acertar o vencedor ou empate</li>
                           </ul>
                         ) : (
                           <ul className="list-disc list-inside space-y-0.5 text-muted-foreground text-xs mt-1">
