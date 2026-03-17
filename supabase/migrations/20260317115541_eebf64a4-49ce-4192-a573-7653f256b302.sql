@@ -1,0 +1,1 @@
+UPDATE pools SET scoring_system = 'simplified' WHERE id = 'bab0f50f-972c-486b-b8fc-1d8bb75b6676';
