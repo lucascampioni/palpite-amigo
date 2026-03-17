@@ -312,12 +312,22 @@ const FootballPredictionForm = ({ poolId, userId, onSuccess, entryFee, pool, pix
       .eq("id", userId)
       .single();
 
+    if (!profile?.full_name || profile.full_name === "Usuário") {
+      toast({
+        variant: "destructive",
+        title: "Nome não encontrado",
+        description: "Atualize seu nome completo no perfil antes de participar.",
+      });
+      setSubmitting(false);
+      return;
+    }
+
     const { data: participant, error: participantError } = await supabase
       .from("participants")
       .insert({
         pool_id: poolId,
         user_id: userId,
-        participant_name: profile?.full_name || "Usuário",
+        participant_name: profile.full_name,
         guess_value: `${predictionSets.length} palpite${predictionSets.length > 1 ? 's' : ''}`,
         status: initialStatus,
       })
