@@ -1,0 +1,1 @@
+UPDATE participants SET participant_name = 'MARCOS EL SAMAN' WHERE id = '055d0b17-5450-4619-891c-419bc265912f';
