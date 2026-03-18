@@ -60,6 +60,7 @@ const REJECTION_REASONS = [
 
 export const AdminParticipantsManager = ({
   poolId,
+  poolTitle,
   participants,
   onParticipantUpdate,
   onSuccess,
