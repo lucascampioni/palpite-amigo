@@ -4,7 +4,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
-import { Check, X, Eye, ChevronDown, ChevronUp, Users } from "lucide-react";
+import { Check, X, Eye, ChevronDown, ChevronUp, Users, MessageCircle } from "lucide-react";
 import {
   Collapsible,
   CollapsibleContent,
@@ -37,10 +37,12 @@ interface Participant {
   guess_value?: string;
   rejection_reason?: string | null;
   rejection_details?: string | null;
+  user_id?: string;
 }
 
 interface AdminParticipantsManagerProps {
   poolId: string;
+  poolTitle?: string;
   participants: Participant[];
   onParticipantUpdate: (id: string, changes: Partial<Participant>) => void;
   onSuccess?: () => void;
@@ -58,6 +60,7 @@ const REJECTION_REASONS = [
 
 export const AdminParticipantsManager = ({
   poolId,
+  poolTitle,
   participants,
   onParticipantUpdate,
   onSuccess,
@@ -78,6 +81,7 @@ export const AdminParticipantsManager = ({
   const [approveWarningOpen, setApproveWarningOpen] = useState(false);
   const [approvingParticipantId, setApprovingParticipantId] = useState<string | null>(null);
   const [predictionCounts, setPredictionCounts] = useState<Record<string, number>>({});
+  const [participantPhones, setParticipantPhones] = useState<Record<string, string>>({});
 
   const approved = participants.filter(p => p.status === "approved");
   const pending = participants.filter(p => p.status === "pending");
@@ -114,7 +118,42 @@ export const AdminParticipantsManager = ({
     loadPredictionCounts();
   }, [participants]);
 
-  // Auto-reject participants without proof once first match starts
+  // Load participant phones from profiles
+  useEffect(() => {
+    const loadPhones = async () => {
+      const userIds = participants.map(p => p.user_id).filter(Boolean) as string[];
+      if (userIds.length === 0) return;
+      const { data } = await supabase
+        .from("profiles")
+        .select("id, phone")
+        .in("id", userIds);
+      if (data) {
+        const phones: Record<string, string> = {};
+        data.forEach((profile: any) => {
+          if (profile.phone) phones[profile.id] = profile.phone;
+        });
+        setParticipantPhones(phones);
+      }
+    };
+    loadPhones();
+  }, [participants]);
+
+  const openWhatsApp = (participant: Participant, hasProof: boolean) => {
+    const phone = participant.user_id ? participantPhones[participant.user_id] : null;
+    if (!phone) {
+      toast({ variant: "destructive", title: "Telefone não encontrado", description: "Este participante não tem telefone cadastrado." });
+      return;
+    }
+    const digits = phone.replace(/\D/g, "");
+    const phoneWithCountry = digits.startsWith("55") ? digits : `55${digits}`;
+    const bolaoName = poolTitle || "o bolão";
+    const message = hasProof
+      ? `Olá ${participant.participant_name}! Vi que você enviou o comprovante para o bolão "${bolaoName}", mas mesmo assim não identifiquei o pagamento. Poderia me enviar novamente?`
+      : `Olá ${participant.participant_name}! Não encontrei seu comprovante de pagamento para o bolão "${bolaoName}". Poderia me enviar?`;
+    window.open(`https://wa.me/${phoneWithCountry}?text=${encodeURIComponent(message)}`, "_blank");
+  };
+
+
   useEffect(() => {
     const autoReject = async () => {
       if (!firstMatchStarted || definitelyRejected.length === 0) return;
@@ -306,6 +345,17 @@ export const AdminParticipantsManager = ({
                           )}
                         </div>
                         <div className="flex items-center gap-1 shrink-0">
+                          {p.user_id && participantPhones[p.user_id] && (
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => openWhatsApp(p, !!p.payment_proof)}
+                              className="h-7 w-7 text-green-600 hover:text-green-700 hover:bg-green-50"
+                              title={p.payment_proof ? "Cobrar comprovante novamente" : "Cobrar comprovante"}
+                            >
+                              <MessageCircle className="w-4 h-4" />
+                            </Button>
+                          )}
                           {p.payment_proof && (
                             <Button
                               variant="ghost"
