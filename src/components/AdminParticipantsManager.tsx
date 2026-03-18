@@ -37,6 +37,7 @@ interface Participant {
   guess_value?: string;
   rejection_reason?: string | null;
   rejection_details?: string | null;
+  user_id?: string;
 }
 
 interface AdminParticipantsManagerProps {
