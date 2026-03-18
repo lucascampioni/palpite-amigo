@@ -118,7 +118,42 @@ export const AdminParticipantsManager = ({
     loadPredictionCounts();
   }, [participants]);
 
-  // Auto-reject participants without proof once first match starts
+  // Load participant phones from profiles
+  useEffect(() => {
+    const loadPhones = async () => {
+      const userIds = participants.map(p => p.user_id).filter(Boolean) as string[];
+      if (userIds.length === 0) return;
+      const { data } = await supabase
+        .from("profiles")
+        .select("id, phone")
+        .in("id", userIds);
+      if (data) {
+        const phones: Record<string, string> = {};
+        data.forEach((profile: any) => {
+          if (profile.phone) phones[profile.id] = profile.phone;
+        });
+        setParticipantPhones(phones);
+      }
+    };
+    loadPhones();
+  }, [participants]);
+
+  const openWhatsApp = (participant: Participant, hasProof: boolean) => {
+    const phone = participant.user_id ? participantPhones[participant.user_id] : null;
+    if (!phone) {
+      toast({ variant: "destructive", title: "Telefone não encontrado", description: "Este participante não tem telefone cadastrado." });
+      return;
+    }
+    const digits = phone.replace(/\D/g, "");
+    const phoneWithCountry = digits.startsWith("55") ? digits : `55${digits}`;
+    const bolaoName = poolTitle || "o bolão";
+    const message = hasProof
+      ? `Olá ${participant.participant_name}! Vi que você enviou o comprovante para o bolão "${bolaoName}", mas mesmo assim não identifiquei o pagamento. Poderia me enviar novamente?`
+      : `Olá ${participant.participant_name}! Não encontrei seu comprovante de pagamento para o bolão "${bolaoName}". Poderia me enviar?`;
+    window.open(`https://wa.me/${phoneWithCountry}?text=${encodeURIComponent(message)}`, "_blank");
+  };
+
+
   useEffect(() => {
     const autoReject = async () => {
       if (!firstMatchStarted || definitelyRejected.length === 0) return;
