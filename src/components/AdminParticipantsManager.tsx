@@ -42,6 +42,7 @@ interface Participant {
 
 interface AdminParticipantsManagerProps {
   poolId: string;
+  poolTitle?: string;
   participants: Participant[];
   onParticipantUpdate: (id: string, changes: Partial<Participant>) => void;
   onSuccess?: () => void;
