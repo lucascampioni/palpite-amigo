@@ -4,7 +4,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
-import { Check, X, Eye, ChevronDown, ChevronUp, Users } from "lucide-react";
+import { Check, X, Eye, ChevronDown, ChevronUp, Users, MessageCircle } from "lucide-react";
 import {
   Collapsible,
   CollapsibleContent,
