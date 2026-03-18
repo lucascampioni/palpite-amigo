@@ -1290,6 +1290,7 @@ const PoolDetail = () => {
             {(userRole?.isAdmin || isOwner) && (
               <AdminParticipantsManager
                 poolId={pool.id}
+                poolTitle={pool.title}
                 participants={participants}
                 entryFee={pool.entry_fee}
                 firstMatchDate={firstMatchDate}
