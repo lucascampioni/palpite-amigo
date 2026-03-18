@@ -345,6 +345,17 @@ export const AdminParticipantsManager = ({
                           )}
                         </div>
                         <div className="flex items-center gap-1 shrink-0">
+                          {p.user_id && participantPhones[p.user_id] && (
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => openWhatsApp(p, !!p.payment_proof)}
+                              className="h-7 w-7 text-green-600 hover:text-green-700 hover:bg-green-50"
+                              title={p.payment_proof ? "Cobrar comprovante novamente" : "Cobrar comprovante"}
+                            >
+                              <MessageCircle className="w-4 h-4" />
+                            </Button>
+                          )}
                           {p.payment_proof && (
                             <Button
                               variant="ghost"
