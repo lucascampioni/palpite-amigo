@@ -79,6 +79,7 @@ export const AdminParticipantsManager = ({
   const [approveWarningOpen, setApproveWarningOpen] = useState(false);
   const [approvingParticipantId, setApprovingParticipantId] = useState<string | null>(null);
   const [predictionCounts, setPredictionCounts] = useState<Record<string, number>>({});
+  const [participantPhones, setParticipantPhones] = useState<Record<string, string>>({});
 
   const approved = participants.filter(p => p.status === "approved");
   const pending = participants.filter(p => p.status === "pending");
