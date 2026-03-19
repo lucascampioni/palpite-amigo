@@ -242,11 +242,11 @@ serve(async (req) => {
             console.error(`❌ Fallback error for fixture ${apifbId}:`, fbError);
           }
 
-          // Safety net: mark as finished if >2.5h since kickoff and has scores
+          // Safety net: mark as finished if >2h since kickoff and has scores
           const kickoff = new Date(missed.match_date).getTime();
           const hoursSinceKickoff = (Date.now() - kickoff) / (1000 * 60 * 60);
 
-          if (hoursSinceKickoff >= 2.5 && missed.home_score !== null && missed.away_score !== null) {
+          if (hoursSinceKickoff >= 2.0 && missed.home_score !== null && missed.away_score !== null) {
             console.log(`⏰ Safety net: ${missed.home_team} vs ${missed.away_team} (${hoursSinceKickoff.toFixed(1)}h), marking finished`);
 
             const { data: poolData } = await supabase
