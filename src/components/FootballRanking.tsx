@@ -1711,7 +1711,7 @@ const FootballRanking = ({ poolId, pool, approvedParticipantsCount, isOwner }: F
                                                  )}
                                                </div>
                                                <Badge className={`text-[0.55rem] px-1 py-0 flex-shrink-0 ${getMatchStatusLabel(pred.status)?.className || ''}`}>
-                                                 🏁 Encerrado
+                                                 🏁 {pred.home_score ?? 0}-{pred.away_score ?? 0}
                                                </Badge>
                                              </div>
                                              <div className="flex items-center gap-1 flex-shrink-0">
