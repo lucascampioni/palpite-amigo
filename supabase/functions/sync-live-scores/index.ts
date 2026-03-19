@@ -209,33 +209,40 @@ serve(async (req) => {
                 const fbHome = fbFixture.goals?.home ?? null;
                 const fbAway = fbFixture.goals?.away ?? null;
 
-                if (fbHome !== null && fbAway !== null) {
-                  const { data: poolData } = await supabase
-                    .from('pools')
-                    .select('scoring_system')
-                    .eq('id', missed.pool_id)
-                    .single();
+                const statusChanged = missed.status !== fbStatus;
+                const scoreChanged = missed.home_score !== fbHome || missed.away_score !== fbAway;
+
+                if (statusChanged || scoreChanged) {
+                  const updateData: any = {
+                    status: fbStatus,
+                    last_sync_at: new Date().toISOString(),
+                  };
+                  // Always update scores if available (including 0)
+                  if (fbHome !== null) updateData.home_score = fbHome;
+                  if (fbAway !== null) updateData.away_score = fbAway;
 
                   await supabase
                     .from('football_matches')
-                    .update({
-                      home_score: fbHome,
-                      away_score: fbAway,
-                      status: fbStatus,
-                      last_sync_at: new Date().toISOString(),
-                    })
+                    .update(updateData)
                     .eq('id', missed.id);
 
                   updatedCount++;
-                  console.log(`✅ Individual fallback: ${missed.home_team} ${fbHome} x ${fbAway} ${missed.away_team} [${fbStatus}]`);
+                  console.log(`✅ Fallback update: ${missed.home_team} ${fbHome} x ${fbAway} ${missed.away_team} [${missed.status} → ${fbStatus}]`);
 
-                  if (fbStatus === 'finished') {
+                  if (fbStatus === 'finished' && fbHome !== null && fbAway !== null) {
                     finishedPoolIds.add(missed.pool_id);
+                    const { data: poolData } = await supabase
+                      .from('pools')
+                      .select('scoring_system')
+                      .eq('id', missed.pool_id)
+                      .single();
                     const matchWithPool = { ...missed, pools: { scoring_system: poolData?.scoring_system || 'standard' } };
                     await calculateMatchPoints(supabase, matchWithPool, fbHome, fbAway);
                   }
-                  continue;
+                } else {
+                  console.log(`⏸️ No change for: ${missed.home_team} vs ${missed.away_team} [${fbStatus}]`);
                 }
+                continue;
               }
             }
           } catch (fbError) {
@@ -311,28 +318,32 @@ serve(async (req) => {
               const fbHome = fbFixture.goals?.home ?? null;
               const fbAway = fbFixture.goals?.away ?? null;
 
-              if (fbStatus !== 'scheduled' && fbHome !== null && fbAway !== null) {
-                const { data: poolData } = await supabase
-                  .from('pools')
-                  .select('scoring_system')
-                  .eq('id', missed.pool_id)
-                  .single();
+              const statusChanged = fbStatus !== 'scheduled' && fbStatus !== missed.status;
+              const scoreChanged = (fbHome !== null && fbHome !== missed.home_score) || (fbAway !== null && fbAway !== missed.away_score);
+
+              if (statusChanged || scoreChanged) {
+                const updateData: any = {
+                  status: fbStatus,
+                  last_sync_at: new Date().toISOString(),
+                };
+                if (fbHome !== null) updateData.home_score = fbHome;
+                if (fbAway !== null) updateData.away_score = fbAway;
 
                 await supabase
                   .from('football_matches')
-                  .update({
-                    home_score: fbHome,
-                    away_score: fbAway,
-                    status: fbStatus,
-                    last_sync_at: new Date().toISOString(),
-                  })
+                  .update(updateData)
                   .eq('id', missed.id);
 
                 updatedCount++;
-                console.log(`✅ Missed match recovered: ${missed.home_team} ${fbHome} x ${fbAway} ${missed.away_team} [${fbStatus}]`);
+                console.log(`✅ Missed match recovered: ${missed.home_team} ${fbHome} x ${fbAway} ${missed.away_team} [${missed.status} → ${fbStatus}]`);
 
-                if (fbStatus === 'finished') {
+                if (fbStatus === 'finished' && fbHome !== null && fbAway !== null) {
                   finishedPoolIds.add(missed.pool_id);
+                  const { data: poolData } = await supabase
+                    .from('pools')
+                    .select('scoring_system')
+                    .eq('id', missed.pool_id)
+                    .single();
                   const matchWithPool = { ...missed, pools: { scoring_system: poolData?.scoring_system || 'standard' } };
                   await calculateMatchPoints(supabase, matchWithPool, fbHome, fbAway);
                 }
