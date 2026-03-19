@@ -217,11 +217,27 @@ const FootballRanking = ({ poolId, pool, approvedParticipantsCount, isOwner }: F
       });
       setParticipantSetCounts(setCounts);
 
-      // Fetch all predictions with details for tiebreaker stats
-      const { data: allPredictions } = await supabase
-        .from("football_predictions")
-        .select("participant_id, created_at, prediction_set, home_score_prediction, away_score_prediction, match_id")
-        .in("participant_id", participantIds);
+      // Fetch all predictions with details for tiebreaker stats (paginated to avoid 1000-row limit)
+      let allPredictions: any[] = [];
+      {
+        let from = 0;
+        const PAGE_SIZE = 1000;
+        let hasMore = true;
+        while (hasMore) {
+          const { data: batch } = await supabase
+            .from("football_predictions")
+            .select("participant_id, created_at, prediction_set, home_score_prediction, away_score_prediction, match_id")
+            .in("participant_id", participantIds)
+            .range(from, from + PAGE_SIZE - 1);
+          if (!batch || batch.length === 0) {
+            hasMore = false;
+          } else {
+            allPredictions = allPredictions.concat(batch);
+            hasMore = batch.length === PAGE_SIZE;
+            from += PAGE_SIZE;
+          }
+        }
+      }
 
       const earliestPredMap: Record<string, string> = {};
       const exactScoresMap: Record<string, number> = {};
