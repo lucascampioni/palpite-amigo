@@ -418,6 +418,16 @@ function normalizeTeamName(name: string): string {
     .replace(/[^a-z0-9]/g, '');
 }
 
+function isLikelySameTeam(apiName: string, targetName: string): boolean {
+  if (!apiName || !targetName) return false;
+  if (apiName === targetName) return true;
+  return apiName.includes(targetName) || targetName.includes(apiName);
+}
+
+function formatApiDate(date: Date): string {
+  return date.toISOString().split('T')[0];
+}
+
 async function fetchFixtureWithFallback(match: any): Promise<{ fixture: any | null; requestsMade: number }> {
   const fixtureId = extractApiFixtureId(match.external_id);
   if (!fixtureId) {
@@ -443,34 +453,43 @@ async function fetchFixtureWithFallback(match: any): Promise<{ fixture: any | nu
     console.warn(`⚠️ fixtures?id=${fixtureId} returned ${byIdResp.status}. Trying date fallback...`);
   }
 
-  const dateParam = new Date(match.match_date).toISOString().split('T')[0];
-  const byDateResp = await fetch(`${API_FOOTBALL_BASE}/fixtures?date=${dateParam}`, {
-    headers: { 'x-apisports-key': API_FOOTBALL_KEY! },
-  });
-  requestsMade++;
+  const baseDate = new Date(match.match_date);
+  const dateCandidates = [
+    formatApiDate(baseDate),
+    formatApiDate(new Date(baseDate.getTime() - 24 * 60 * 60 * 1000)),
+    formatApiDate(new Date(baseDate.getTime() + 24 * 60 * 60 * 1000)),
+  ];
 
-  if (!byDateResp.ok) {
-    console.warn(`⚠️ fixtures?date=${dateParam} returned ${byDateResp.status} for match ${match.id}`);
-    return { fixture: null, requestsMade };
-  }
-
-  const byDateData = await byDateResp.json();
+  const uniqueDates = [...new Set(dateCandidates)];
   const targetHome = normalizeTeamName(match.home_team || '');
   const targetAway = normalizeTeamName(match.away_team || '');
 
-  const matchedByTeams = (byDateData.response || []).find((fixture: any) => {
-    const apiHome = normalizeTeamName(fixture.teams?.home?.name || '');
-    const apiAway = normalizeTeamName(fixture.teams?.away?.name || '');
-    return apiHome === targetHome && apiAway === targetAway;
-  });
+  for (const dateParam of uniqueDates) {
+    const byDateResp = await fetch(`${API_FOOTBALL_BASE}/fixtures?date=${dateParam}`, {
+      headers: { 'x-apisports-key': API_FOOTBALL_KEY! },
+    });
+    requestsMade++;
 
-  if (!matchedByTeams) {
-    console.warn(`⚠️ Date fallback could not match teams for ${match.home_team} vs ${match.away_team}`);
-    return { fixture: null, requestsMade };
+    if (!byDateResp.ok) {
+      console.warn(`⚠️ fixtures?date=${dateParam} returned ${byDateResp.status} for match ${match.id}`);
+      continue;
+    }
+
+    const byDateData = await byDateResp.json();
+    const matchedByTeams = (byDateData.response || []).find((fixture: any) => {
+      const apiHome = normalizeTeamName(fixture.teams?.home?.name || '');
+      const apiAway = normalizeTeamName(fixture.teams?.away?.name || '');
+      return isLikelySameTeam(apiHome, targetHome) && isLikelySameTeam(apiAway, targetAway);
+    });
+
+    if (matchedByTeams) {
+      console.log(`🔁 Matched fixture by date/teams for ${match.home_team} vs ${match.away_team} (id ${matchedByTeams.fixture?.id})`);
+      return { fixture: matchedByTeams, requestsMade };
+    }
   }
 
-  console.log(`🔁 Matched fixture by date/teams for ${match.home_team} vs ${match.away_team} (id ${matchedByTeams.fixture?.id})`);
-  return { fixture: matchedByTeams, requestsMade };
+  console.warn(`⚠️ Date fallback could not match teams for ${match.home_team} vs ${match.away_team}`);
+  return { fixture: null, requestsMade };
 }
 
 
