@@ -277,13 +277,14 @@ serve(async (req) => {
       }
     }
 
-    // 7. Fallback: check for "scheduled" matches whose kickoff was >3h ago (missed entirely)
-    const threeHoursAgo = new Date(Date.now() - 3 * 60 * 60 * 1000).toISOString();
+    // 7. Proactive check: fetch matches whose kickoff was 5+ min ago but still "scheduled" in DB
+    //    This catches matches that started but weren't in the live feed when we checked
+    const fiveMinAgo = new Date(Date.now() - 5 * 60 * 1000).toISOString();
     const { data: missedScheduled } = await supabase
       .from('football_matches')
       .select('id, external_id, pool_id, home_team, away_team, status, match_date, home_score, away_score')
       .eq('status', 'scheduled')
-      .lt('match_date', threeHoursAgo)
+      .lt('match_date', fiveMinAgo)
       .not('external_id', 'is', null);
 
     if (missedScheduled && missedScheduled.length > 0) {
