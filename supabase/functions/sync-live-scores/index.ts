@@ -288,7 +288,7 @@ serve(async (req) => {
       .not('external_id', 'is', null);
 
     if (missedScheduled && missedScheduled.length > 0) {
-      console.log(`🕐 Found ${missedScheduled.length} scheduled matches past kickoff+3h. Fetching results...`);
+      console.log(`🕐 Found ${missedScheduled.length} scheduled matches past kickoff. Fetching results...`);
 
       for (const missed of missedScheduled) {
         if (dailyCount >= DAILY_LIMIT) break;
