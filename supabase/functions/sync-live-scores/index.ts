@@ -122,35 +122,44 @@ serve(async (req) => {
       const apiFixtureId = String(fixture.fixture?.id);
       const externalId = `apifb_${apiFixtureId}`;
 
-      // Find matching match in our DB
-      const { data: dbMatch } = await supabase
+      // 1) Try exact external_id match
+      let { data: dbMatch } = await supabase
         .from('football_matches')
         .select('*, pools!inner(scoring_system)')
         .eq('external_id', externalId)
         .maybeSingle();
 
+      // 2) If external_id is stale/wrong, reconcile by team names + kickoff proximity
+      if (!dbMatch) {
+        dbMatch = await findDbMatchForLiveFixture(supabase, fixture);
+      }
+
       if (!dbMatch) continue;
 
       const apiStatus = fixture.fixture?.status?.short; // NS, 1H, HT, 2H, FT, etc.
+      const mappedStatus = mapApiStatus(apiStatus);
       const homeGoals = fixture.goals?.home ?? null;
       const awayGoals = fixture.goals?.away ?? null;
 
-      const statusChanged = dbMatch.status !== mapApiStatus(apiStatus);
-      const scoreChanged = dbMatch.home_score !== homeGoals || dbMatch.away_score !== awayGoals;
+      const statusChanged = dbMatch.status !== mappedStatus;
+      const homeScoreChanged = homeGoals !== null && dbMatch.home_score !== homeGoals;
+      const awayScoreChanged = awayGoals !== null && dbMatch.away_score !== awayGoals;
+      const scoreChanged = homeScoreChanged || awayScoreChanged;
+      const externalIdChanged = dbMatch.external_id !== externalId;
 
-      if (!statusChanged && !scoreChanged) continue;
+      if (!statusChanged && !scoreChanged && !externalIdChanged) continue;
 
-      const mappedStatus = mapApiStatus(apiStatus);
+      const updateData: any = {
+        status: mappedStatus,
+        last_sync_at: new Date().toISOString(),
+      };
+      if (homeGoals !== null) updateData.home_score = homeGoals;
+      if (awayGoals !== null) updateData.away_score = awayGoals;
+      if (externalIdChanged) updateData.external_id = externalId;
 
-      // Update match
       const { error: updateError } = await supabase
         .from('football_matches')
-        .update({
-          home_score: homeGoals,
-          away_score: awayGoals,
-          status: mappedStatus,
-          last_sync_at: new Date().toISOString(),
-        })
+        .update(updateData)
         .eq('id', dbMatch.id);
 
       if (updateError) {
@@ -159,7 +168,7 @@ serve(async (req) => {
       }
 
       updatedCount++;
-      console.log(`✅ Updated: ${dbMatch.home_team} ${homeGoals} x ${awayGoals} ${dbMatch.away_team} [${mappedStatus}]`);
+      console.log(`✅ Updated: ${dbMatch.home_team} ${homeGoals ?? '-'} x ${awayGoals ?? '-'} ${dbMatch.away_team} [${dbMatch.status} → ${mappedStatus}]`);
 
       // If match finished, calculate points
       if (mappedStatus === 'finished' && homeGoals !== null && awayGoals !== null) {
