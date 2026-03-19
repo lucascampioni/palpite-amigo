@@ -169,7 +169,7 @@ serve(async (req) => {
     }
 
     // 6. Fallback: check matches stuck as live in DB but missing from live feed
-    //    This means the match likely finished. Fetch each one individually by fixture ID.
+    //    If API lookup by fixture ID fails, fallback to date + team matching and self-heal external_id.
     const liveDbStatuses = ['1H', '2H', 'HT', 'ET', 'P'];
     const { data: stillLiveInDb } = await supabase
       .from('football_matches')
@@ -191,62 +191,57 @@ serve(async (req) => {
         for (const missed of missedMatches) {
           if (dailyCount >= DAILY_LIMIT) break;
 
-          const apifbId = missed.external_id?.replace('apifb_', '');
-          if (!apifbId) continue;
-
           try {
-            const fbResp = await fetch(`${API_FOOTBALL_BASE}/fixtures?id=${apifbId}`, {
-              headers: { 'x-apisports-key': API_FOOTBALL_KEY },
-            });
-            dailyCount++;
+            const { fixture: fbFixture, requestsMade } = await fetchFixtureWithFallback(missed);
+            dailyCount += requestsMade;
 
-            if (fbResp.ok) {
-              const fbData = await fbResp.json();
-              const fbFixture = fbData.response?.[0];
+            if (fbFixture) {
+              const fbStatus = mapApiStatus(fbFixture.fixture?.status?.short);
+              const fbHome = fbFixture.goals?.home ?? null;
+              const fbAway = fbFixture.goals?.away ?? null;
+              const resolvedExternalId = `apifb_${fbFixture.fixture?.id}`;
 
-              if (fbFixture) {
-                const fbStatus = mapApiStatus(fbFixture.fixture?.status?.short);
-                const fbHome = fbFixture.goals?.home ?? null;
-                const fbAway = fbFixture.goals?.away ?? null;
+              const statusChanged = missed.status !== fbStatus;
+              const scoreChanged = missed.home_score !== fbHome || missed.away_score !== fbAway;
+              const externalIdChanged = missed.external_id !== resolvedExternalId;
 
-                const statusChanged = missed.status !== fbStatus;
-                const scoreChanged = missed.home_score !== fbHome || missed.away_score !== fbAway;
+              if (statusChanged || scoreChanged || externalIdChanged) {
+                const updateData: any = {
+                  status: fbStatus,
+                  last_sync_at: new Date().toISOString(),
+                };
 
-                if (statusChanged || scoreChanged) {
-                  const updateData: any = {
-                    status: fbStatus,
-                    last_sync_at: new Date().toISOString(),
-                  };
-                  // Always update scores if available (including 0)
-                  if (fbHome !== null) updateData.home_score = fbHome;
-                  if (fbAway !== null) updateData.away_score = fbAway;
+                // Always update scores if available (including 0)
+                if (fbHome !== null) updateData.home_score = fbHome;
+                if (fbAway !== null) updateData.away_score = fbAway;
+                if (externalIdChanged) updateData.external_id = resolvedExternalId;
 
-                  await supabase
-                    .from('football_matches')
-                    .update(updateData)
-                    .eq('id', missed.id);
+                await supabase
+                  .from('football_matches')
+                  .update(updateData)
+                  .eq('id', missed.id);
 
-                  updatedCount++;
-                  console.log(`✅ Fallback update: ${missed.home_team} ${fbHome} x ${fbAway} ${missed.away_team} [${missed.status} → ${fbStatus}]`);
+                updatedCount++;
+                console.log(`✅ Fallback update: ${missed.home_team} ${fbHome} x ${fbAway} ${missed.away_team} [${missed.status} → ${fbStatus}]`);
 
-                  if (fbStatus === 'finished' && fbHome !== null && fbAway !== null) {
-                    finishedPoolIds.add(missed.pool_id);
-                    const { data: poolData } = await supabase
-                      .from('pools')
-                      .select('scoring_system')
-                      .eq('id', missed.pool_id)
-                      .single();
-                    const matchWithPool = { ...missed, pools: { scoring_system: poolData?.scoring_system || 'standard' } };
-                    await calculateMatchPoints(supabase, matchWithPool, fbHome, fbAway);
-                  }
-                } else {
-                  console.log(`⏸️ No change for: ${missed.home_team} vs ${missed.away_team} [${fbStatus}]`);
+                if (fbStatus === 'finished' && fbHome !== null && fbAway !== null) {
+                  finishedPoolIds.add(missed.pool_id);
+                  const { data: poolData } = await supabase
+                    .from('pools')
+                    .select('scoring_system')
+                    .eq('id', missed.pool_id)
+                    .single();
+                  const matchWithPool = { ...missed, pools: { scoring_system: poolData?.scoring_system || 'standard' } };
+                  await calculateMatchPoints(supabase, matchWithPool, fbHome, fbAway);
                 }
-                continue;
+              } else {
+                console.log(`⏸️ No change for: ${missed.home_team} vs ${missed.away_team} [${fbStatus}]`);
               }
+
+              continue;
             }
           } catch (fbError) {
-            console.error(`❌ Fallback error for fixture ${apifbId}:`, fbError);
+            console.error(`❌ Fallback lookup error for match ${missed.id}:`, fbError);
           }
 
           // Safety net: mark as finished if >2h since kickoff and has scores
@@ -300,58 +295,51 @@ serve(async (req) => {
       for (const missed of missedScheduled) {
         if (dailyCount >= DAILY_LIMIT) break;
 
-        const apifbId = missed.external_id?.replace('apifb_', '');
-        if (!apifbId || !missed.external_id?.startsWith('apifb_')) continue;
-
         try {
-          const fbResp = await fetch(`${API_FOOTBALL_BASE}/fixtures?id=${apifbId}`, {
-            headers: { 'x-apisports-key': API_FOOTBALL_KEY! },
-          });
-          dailyCount++;
+          const { fixture: fbFixture, requestsMade } = await fetchFixtureWithFallback(missed);
+          dailyCount += requestsMade;
 
-          if (fbResp.ok) {
-            const fbData = await fbResp.json();
-            const fbFixture = fbData.response?.[0];
+          if (!fbFixture) continue;
 
-            if (fbFixture) {
-              const fbStatus = mapApiStatus(fbFixture.fixture?.status?.short);
-              const fbHome = fbFixture.goals?.home ?? null;
-              const fbAway = fbFixture.goals?.away ?? null;
+          const fbStatus = mapApiStatus(fbFixture.fixture?.status?.short);
+          const fbHome = fbFixture.goals?.home ?? null;
+          const fbAway = fbFixture.goals?.away ?? null;
+          const resolvedExternalId = `apifb_${fbFixture.fixture?.id}`;
 
-              const statusChanged = fbStatus !== 'scheduled' && fbStatus !== missed.status;
-              const scoreChanged = (fbHome !== null && fbHome !== missed.home_score) || (fbAway !== null && fbAway !== missed.away_score);
+          const statusChanged = fbStatus !== missed.status;
+          const scoreChanged = (fbHome !== null && fbHome !== missed.home_score) || (fbAway !== null && fbAway !== missed.away_score);
+          const externalIdChanged = missed.external_id !== resolvedExternalId;
 
-              if (statusChanged || scoreChanged) {
-                const updateData: any = {
-                  status: fbStatus,
-                  last_sync_at: new Date().toISOString(),
-                };
-                if (fbHome !== null) updateData.home_score = fbHome;
-                if (fbAway !== null) updateData.away_score = fbAway;
+          if (statusChanged || scoreChanged || externalIdChanged) {
+            const updateData: any = {
+              status: fbStatus,
+              last_sync_at: new Date().toISOString(),
+            };
+            if (fbHome !== null) updateData.home_score = fbHome;
+            if (fbAway !== null) updateData.away_score = fbAway;
+            if (externalIdChanged) updateData.external_id = resolvedExternalId;
 
-                await supabase
-                  .from('football_matches')
-                  .update(updateData)
-                  .eq('id', missed.id);
+            await supabase
+              .from('football_matches')
+              .update(updateData)
+              .eq('id', missed.id);
 
-                updatedCount++;
-                console.log(`✅ Missed match recovered: ${missed.home_team} ${fbHome} x ${fbAway} ${missed.away_team} [${missed.status} → ${fbStatus}]`);
+            updatedCount++;
+            console.log(`✅ Missed match recovered: ${missed.home_team} ${fbHome} x ${fbAway} ${missed.away_team} [${missed.status} → ${fbStatus}]`);
 
-                if (fbStatus === 'finished' && fbHome !== null && fbAway !== null) {
-                  finishedPoolIds.add(missed.pool_id);
-                  const { data: poolData } = await supabase
-                    .from('pools')
-                    .select('scoring_system')
-                    .eq('id', missed.pool_id)
-                    .single();
-                  const matchWithPool = { ...missed, pools: { scoring_system: poolData?.scoring_system || 'standard' } };
-                  await calculateMatchPoints(supabase, matchWithPool, fbHome, fbAway);
-                }
-              }
+            if (fbStatus === 'finished' && fbHome !== null && fbAway !== null) {
+              finishedPoolIds.add(missed.pool_id);
+              const { data: poolData } = await supabase
+                .from('pools')
+                .select('scoring_system')
+                .eq('id', missed.pool_id)
+                .single();
+              const matchWithPool = { ...missed, pools: { scoring_system: poolData?.scoring_system || 'standard' } };
+              await calculateMatchPoints(supabase, matchWithPool, fbHome, fbAway);
             }
           }
         } catch (fbError) {
-          console.error(`❌ Missed match fetch error for fixture ${apifbId}:`, fbError);
+          console.error(`❌ Missed match fetch error for match ${missed.id}:`, fbError);
         }
       }
 
@@ -398,7 +386,7 @@ function mapApiStatus(apiStatus: string): string {
     '1H': '1H',          // First Half
     'HT': 'HT',          // Half Time
     '2H': '2H',          // Second Half
-    'ET': 'ET',           // Extra Time
+    'ET': 'ET',          // Extra Time
     'P': 'P',            // Penalty
     'FT': 'finished',    // Full Time
     'AET': 'finished',   // After Extra Time
@@ -414,6 +402,75 @@ function mapApiStatus(apiStatus: string): string {
     'LIVE': '1H',        // Live (generic)
   };
   return statusMap[apiStatus] || 'scheduled';
+}
+
+function extractApiFixtureId(externalId: string | null | undefined): string | null {
+  if (!externalId) return null;
+  const candidate = externalId.startsWith('apifb_') ? externalId.slice(6) : externalId;
+  return /^\d+$/.test(candidate) ? candidate : null;
+}
+
+function normalizeTeamName(name: string): string {
+  return name
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]/g, '');
+}
+
+async function fetchFixtureWithFallback(match: any): Promise<{ fixture: any | null; requestsMade: number }> {
+  const fixtureId = extractApiFixtureId(match.external_id);
+  if (!fixtureId) {
+    console.warn(`⚠️ Invalid external_id for match ${match.id}: ${match.external_id}`);
+    return { fixture: null, requestsMade: 0 };
+  }
+
+  let requestsMade = 0;
+
+  const byIdResp = await fetch(`${API_FOOTBALL_BASE}/fixtures?id=${fixtureId}`, {
+    headers: { 'x-apisports-key': API_FOOTBALL_KEY! },
+  });
+  requestsMade++;
+
+  if (byIdResp.ok) {
+    const byIdData = await byIdResp.json();
+    const byIdFixture = byIdData.response?.[0];
+    if (byIdFixture) {
+      return { fixture: byIdFixture, requestsMade };
+    }
+    console.warn(`⚠️ Empty response for fixtures?id=${fixtureId}. Trying date fallback...`);
+  } else {
+    console.warn(`⚠️ fixtures?id=${fixtureId} returned ${byIdResp.status}. Trying date fallback...`);
+  }
+
+  const dateParam = new Date(match.match_date).toISOString().split('T')[0];
+  const byDateResp = await fetch(`${API_FOOTBALL_BASE}/fixtures?date=${dateParam}`, {
+    headers: { 'x-apisports-key': API_FOOTBALL_KEY! },
+  });
+  requestsMade++;
+
+  if (!byDateResp.ok) {
+    console.warn(`⚠️ fixtures?date=${dateParam} returned ${byDateResp.status} for match ${match.id}`);
+    return { fixture: null, requestsMade };
+  }
+
+  const byDateData = await byDateResp.json();
+  const targetHome = normalizeTeamName(match.home_team || '');
+  const targetAway = normalizeTeamName(match.away_team || '');
+
+  const matchedByTeams = (byDateData.response || []).find((fixture: any) => {
+    const apiHome = normalizeTeamName(fixture.teams?.home?.name || '');
+    const apiAway = normalizeTeamName(fixture.teams?.away?.name || '');
+    return apiHome === targetHome && apiAway === targetAway;
+  });
+
+  if (!matchedByTeams) {
+    console.warn(`⚠️ Date fallback could not match teams for ${match.home_team} vs ${match.away_team}`);
+    return { fixture: null, requestsMade };
+  }
+
+  console.log(`🔁 Matched fixture by date/teams for ${match.home_team} vs ${match.away_team} (id ${matchedByTeams.fixture?.id})`);
+  return { fixture: matchedByTeams, requestsMade };
 }
 
 
