@@ -459,6 +459,15 @@ function getFixtureKickoffTime(fixture: any): number | null {
   return Number.isNaN(timestamp) ? null : timestamp;
 }
 
+function isStrongTeamMatch(homeScore: number, awayScore: number, totalScore: number, secondBestScore: number): boolean {
+  const minTeamScore = Math.min(homeScore, awayScore);
+  const confidenceGap = secondBestScore === Number.NEGATIVE_INFINITY
+    ? Number.POSITIVE_INFINITY
+    : totalScore - secondBestScore;
+
+  return minTeamScore >= 0.74 && totalScore >= 1.72 && confidenceGap >= 0.12;
+}
+
 async function findDbMatchForLiveFixture(supabase: any, fixture: any): Promise<any | null> {
   const kickoffTs = getFixtureKickoffTime(fixture);
   if (!kickoffTs) return null;
@@ -480,7 +489,10 @@ async function findDbMatchForLiveFixture(supabase: any, fixture: any): Promise<a
   const apiAway = fixture.teams?.away?.name || '';
 
   let bestMatch: any = null;
-  let bestScore = 0;
+  let bestTotal = Number.NEGATIVE_INFINITY;
+  let bestHomeScore = 0;
+  let bestAwayScore = 0;
+  let secondBestTotal = Number.NEGATIVE_INFINITY;
 
   for (const candidate of candidates) {
     const homeScore = scoreTeamSimilarity(apiHome, candidate.home_team || '');
@@ -493,15 +505,29 @@ async function findDbMatchForLiveFixture(supabase: any, fixture: any): Promise<a
 
     const totalScore = homeScore + awayScore - timePenalty;
 
-    if (totalScore > bestScore) {
-      bestScore = totalScore;
+    if (totalScore > bestTotal) {
+      secondBestTotal = bestTotal;
+      bestTotal = totalScore;
       bestMatch = candidate;
+      bestHomeScore = homeScore;
+      bestAwayScore = awayScore;
+    } else if (totalScore > secondBestTotal) {
+      secondBestTotal = totalScore;
     }
   }
 
-  if (bestMatch && bestScore >= 1.35) {
-    console.log(`🔁 Reconciled live fixture by teams/date: ${bestMatch.home_team} vs ${bestMatch.away_team} (score ${bestScore.toFixed(2)})`);
+  if (
+    bestMatch &&
+    isStrongTeamMatch(bestHomeScore, bestAwayScore, bestTotal, secondBestTotal)
+  ) {
+    console.log(`🔁 Reconciled live fixture by teams/date: ${bestMatch.home_team} vs ${bestMatch.away_team} (score ${bestTotal.toFixed(2)})`);
     return bestMatch;
+  }
+
+  if (bestMatch) {
+    console.warn(
+      `⚠️ Ignoring weak/ambiguous reconciliation for ${apiHome} vs ${apiAway} -> ${bestMatch.home_team} vs ${bestMatch.away_team} (score ${bestTotal.toFixed(2)}, second ${secondBestTotal.toFixed(2)})`
+    );
   }
 
   return null;
@@ -528,10 +554,22 @@ async function fetchFixtureWithFallback(match: any): Promise<{ fixture: any | nu
   if (byIdResp.ok) {
     const byIdData = await byIdResp.json();
     const byIdFixture = byIdData.response?.[0];
+
     if (byIdFixture) {
-      return { fixture: byIdFixture, requestsMade };
+      const byIdHomeScore = scoreTeamSimilarity(byIdFixture.teams?.home?.name || '', match.home_team || '');
+      const byIdAwayScore = scoreTeamSimilarity(byIdFixture.teams?.away?.name || '', match.away_team || '');
+      const byIdTotal = byIdHomeScore + byIdAwayScore;
+
+      if (isStrongTeamMatch(byIdHomeScore, byIdAwayScore, byIdTotal, Number.NEGATIVE_INFINITY)) {
+        return { fixture: byIdFixture, requestsMade };
+      }
+
+      console.warn(
+        `⚠️ Ignoring fixtures?id=${fixtureId} due to low team confidence (${byIdTotal.toFixed(2)}) for ${match.home_team} vs ${match.away_team}. Trying date fallback...`
+      );
+    } else {
+      console.warn(`⚠️ Empty response for fixtures?id=${fixtureId}. Trying date fallback...`);
     }
-    console.warn(`⚠️ Empty response for fixtures?id=${fixtureId}. Trying date fallback...`);
   } else {
     console.warn(`⚠️ fixtures?id=${fixtureId} returned ${byIdResp.status}. Trying date fallback...`);
   }
@@ -562,7 +600,10 @@ async function fetchFixtureWithFallback(match: any): Promise<{ fixture: any | nu
     const fixturesByDate = byDateData.response || [];
 
     let matchedByTeams: any = null;
-    let bestScore = 0;
+    let bestTotal = Number.NEGATIVE_INFINITY;
+    let bestHomeScore = 0;
+    let bestAwayScore = 0;
+    let secondBestTotal = Number.NEGATIVE_INFINITY;
     const targetKickoffTs = new Date(match.match_date).getTime();
 
     for (const fixture of fixturesByDate) {
@@ -575,15 +616,29 @@ async function fetchFixtureWithFallback(match: any): Promise<{ fixture: any | nu
       const timePenalty = Math.min(minuteDiff / 360, 0.5); // penaliza diferenças > 6h
       const totalScore = homeScore + awayScore - timePenalty;
 
-      if (totalScore > bestScore) {
-        bestScore = totalScore;
+      if (totalScore > bestTotal) {
+        secondBestTotal = bestTotal;
+        bestTotal = totalScore;
         matchedByTeams = fixture;
+        bestHomeScore = homeScore;
+        bestAwayScore = awayScore;
+      } else if (totalScore > secondBestTotal) {
+        secondBestTotal = totalScore;
       }
     }
 
-    if (matchedByTeams && bestScore >= 1.25) {
-      console.log(`🔁 Matched fixture by date/teams for ${match.home_team} vs ${match.away_team} (id ${matchedByTeams.fixture?.id}, score ${bestScore.toFixed(2)})`);
+    if (
+      matchedByTeams &&
+      isStrongTeamMatch(bestHomeScore, bestAwayScore, bestTotal, secondBestTotal)
+    ) {
+      console.log(`🔁 Matched fixture by date/teams for ${match.home_team} vs ${match.away_team} (id ${matchedByTeams.fixture?.id}, score ${bestTotal.toFixed(2)})`);
       return { fixture: matchedByTeams, requestsMade };
+    }
+
+    if (matchedByTeams) {
+      console.warn(
+        `⚠️ Ignoring weak/ambiguous date fallback for ${match.home_team} vs ${match.away_team} (best ${bestTotal.toFixed(2)}, second ${secondBestTotal.toFixed(2)})`
+      );
     }
   }
 
