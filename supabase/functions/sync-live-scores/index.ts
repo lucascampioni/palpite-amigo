@@ -242,11 +242,11 @@ serve(async (req) => {
             console.error(`❌ Fallback error for fixture ${apifbId}:`, fbError);
           }
 
-          // Safety net: mark as finished if >2.5h since kickoff and has scores
+          // Safety net: mark as finished if >2h since kickoff and has scores
           const kickoff = new Date(missed.match_date).getTime();
           const hoursSinceKickoff = (Date.now() - kickoff) / (1000 * 60 * 60);
 
-          if (hoursSinceKickoff >= 2.5 && missed.home_score !== null && missed.away_score !== null) {
+          if (hoursSinceKickoff >= 2.0 && missed.home_score !== null && missed.away_score !== null) {
             console.log(`⏰ Safety net: ${missed.home_team} vs ${missed.away_team} (${hoursSinceKickoff.toFixed(1)}h), marking finished`);
 
             const { data: poolData } = await supabase
@@ -277,17 +277,18 @@ serve(async (req) => {
       }
     }
 
-    // 7. Fallback: check for "scheduled" matches whose kickoff was >3h ago (missed entirely)
-    const threeHoursAgo = new Date(Date.now() - 3 * 60 * 60 * 1000).toISOString();
+    // 7. Proactive check: fetch matches whose kickoff was 5+ min ago but still "scheduled" in DB
+    //    This catches matches that started but weren't in the live feed when we checked
+    const fiveMinAgo = new Date(Date.now() - 5 * 60 * 1000).toISOString();
     const { data: missedScheduled } = await supabase
       .from('football_matches')
       .select('id, external_id, pool_id, home_team, away_team, status, match_date, home_score, away_score')
       .eq('status', 'scheduled')
-      .lt('match_date', threeHoursAgo)
+      .lt('match_date', fiveMinAgo)
       .not('external_id', 'is', null);
 
     if (missedScheduled && missedScheduled.length > 0) {
-      console.log(`🕐 Found ${missedScheduled.length} scheduled matches past kickoff+3h. Fetching results...`);
+      console.log(`🕐 Found ${missedScheduled.length} scheduled matches past kickoff. Fetching results...`);
 
       for (const missed of missedScheduled) {
         if (dailyCount >= DAILY_LIMIT) break;
