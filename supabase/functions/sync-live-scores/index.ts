@@ -122,35 +122,44 @@ serve(async (req) => {
       const apiFixtureId = String(fixture.fixture?.id);
       const externalId = `apifb_${apiFixtureId}`;
 
-      // Find matching match in our DB
-      const { data: dbMatch } = await supabase
+      // 1) Try exact external_id match
+      let { data: dbMatch } = await supabase
         .from('football_matches')
         .select('*, pools!inner(scoring_system)')
         .eq('external_id', externalId)
         .maybeSingle();
 
+      // 2) If external_id is stale/wrong, reconcile by team names + kickoff proximity
+      if (!dbMatch) {
+        dbMatch = await findDbMatchForLiveFixture(supabase, fixture);
+      }
+
       if (!dbMatch) continue;
 
       const apiStatus = fixture.fixture?.status?.short; // NS, 1H, HT, 2H, FT, etc.
+      const mappedStatus = mapApiStatus(apiStatus);
       const homeGoals = fixture.goals?.home ?? null;
       const awayGoals = fixture.goals?.away ?? null;
 
-      const statusChanged = dbMatch.status !== mapApiStatus(apiStatus);
-      const scoreChanged = dbMatch.home_score !== homeGoals || dbMatch.away_score !== awayGoals;
+      const statusChanged = dbMatch.status !== mappedStatus;
+      const homeScoreChanged = homeGoals !== null && dbMatch.home_score !== homeGoals;
+      const awayScoreChanged = awayGoals !== null && dbMatch.away_score !== awayGoals;
+      const scoreChanged = homeScoreChanged || awayScoreChanged;
+      const externalIdChanged = dbMatch.external_id !== externalId;
 
-      if (!statusChanged && !scoreChanged) continue;
+      if (!statusChanged && !scoreChanged && !externalIdChanged) continue;
 
-      const mappedStatus = mapApiStatus(apiStatus);
+      const updateData: any = {
+        status: mappedStatus,
+        last_sync_at: new Date().toISOString(),
+      };
+      if (homeGoals !== null) updateData.home_score = homeGoals;
+      if (awayGoals !== null) updateData.away_score = awayGoals;
+      if (externalIdChanged) updateData.external_id = externalId;
 
-      // Update match
       const { error: updateError } = await supabase
         .from('football_matches')
-        .update({
-          home_score: homeGoals,
-          away_score: awayGoals,
-          status: mappedStatus,
-          last_sync_at: new Date().toISOString(),
-        })
+        .update(updateData)
         .eq('id', dbMatch.id);
 
       if (updateError) {
@@ -159,7 +168,7 @@ serve(async (req) => {
       }
 
       updatedCount++;
-      console.log(`✅ Updated: ${dbMatch.home_team} ${homeGoals} x ${awayGoals} ${dbMatch.away_team} [${mappedStatus}]`);
+      console.log(`✅ Updated: ${dbMatch.home_team} ${homeGoals ?? '-'} x ${awayGoals ?? '-'} ${dbMatch.away_team} [${dbMatch.status} → ${mappedStatus}]`);
 
       // If match finished, calculate points
       if (mappedStatus === 'finished' && homeGoals !== null && awayGoals !== null) {
@@ -244,51 +253,9 @@ serve(async (req) => {
             console.error(`❌ Fallback lookup error for match ${missed.id}:`, fbError);
           }
 
-          // Safety net for API gaps: advance phase by elapsed time before forcing finish
-          const kickoff = new Date(missed.match_date).getTime();
-          const hoursSinceKickoff = (Date.now() - kickoff) / (1000 * 60 * 60);
-
-          if (hoursSinceKickoff >= 1.1 && hoursSinceKickoff < 2.0 && (missed.status === '1H' || missed.status === 'HT')) {
-            await supabase
-              .from('football_matches')
-              .update({ status: '2H', last_sync_at: new Date().toISOString() })
-              .eq('id', missed.id);
-
-            updatedCount++;
-            console.log(`⏱️ Safety net phase update: ${missed.home_team} vs ${missed.away_team} (${hoursSinceKickoff.toFixed(1)}h), forcing 2H`);
-            continue;
-          }
-
-          if (hoursSinceKickoff >= 0.75 && hoursSinceKickoff < 1.1 && missed.status === '1H') {
-            await supabase
-              .from('football_matches')
-              .update({ status: 'HT', last_sync_at: new Date().toISOString() })
-              .eq('id', missed.id);
-
-            updatedCount++;
-            console.log(`⏱️ Safety net phase update: ${missed.home_team} vs ${missed.away_team} (${hoursSinceKickoff.toFixed(1)}h), forcing HT`);
-            continue;
-          }
-
-          if (hoursSinceKickoff >= 2.0 && missed.home_score !== null && missed.away_score !== null) {
-            console.log(`⏰ Safety net: ${missed.home_team} vs ${missed.away_team} (${hoursSinceKickoff.toFixed(1)}h), marking finished`);
-
-            const { data: poolData } = await supabase
-              .from('pools')
-              .select('scoring_system')
-              .eq('id', missed.pool_id)
-              .single();
-
-            await supabase
-              .from('football_matches')
-              .update({ status: 'finished', last_sync_at: new Date().toISOString() })
-              .eq('id', missed.id);
-
-            updatedCount++;
-            finishedPoolIds.add(missed.pool_id);
-            const matchWithPool = { ...missed, pools: { scoring_system: poolData?.scoring_system || 'standard' } };
-            await calculateMatchPoints(supabase, matchWithPool, missed.home_score, missed.away_score);
-          }
+          // Do NOT force phase/finish when fixture lookup fails.
+          // Keeping current status is safer than writing wrong status/score.
+          console.warn(`⚠️ Could not reconcile fixture for ${missed.home_team} vs ${missed.away_team}; keeping current status (${missed.status}).`);
         }
 
         // Update daily count
@@ -437,13 +404,107 @@ function normalizeTeamName(name: string): string {
     .normalize('NFD')
     .replace(/[\u0300-\u036f]/g, '')
     .toLowerCase()
-    .replace(/[^a-z0-9]/g, '');
+    .replace(/[^a-z0-9\s]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
 }
 
-function isLikelySameTeam(apiName: string, targetName: string): boolean {
-  if (!apiName || !targetName) return false;
-  if (apiName === targetName) return true;
-  return apiName.includes(targetName) || targetName.includes(apiName);
+const TEAM_STOP_WORDS = new Set([
+  'fc', 'sc', 'ac', 'ec', 'cd', 'cf', 'clube', 'club', 'esporte', 'futebol', 'sport', 'de', 'da', 'do', 'the',
+]);
+
+function tokenizeTeamName(name: string): string[] {
+  const normalized = normalizeTeamName(name);
+  if (!normalized) return [];
+  return normalized
+    .split(' ')
+    .filter(Boolean)
+    .filter((token) => !TEAM_STOP_WORDS.has(token));
+}
+
+function scoreTeamSimilarity(apiName: string, targetName: string): number {
+  if (!apiName || !targetName) return 0;
+
+  const apiNormalized = normalizeTeamName(apiName);
+  const targetNormalized = normalizeTeamName(targetName);
+
+  if (!apiNormalized || !targetNormalized) return 0;
+  if (apiNormalized === targetNormalized) return 1;
+
+  const apiCompact = apiNormalized.replace(/\s+/g, '');
+  const targetCompact = targetNormalized.replace(/\s+/g, '');
+
+  if (apiCompact === targetCompact) return 0.98;
+  if (apiCompact.includes(targetCompact) || targetCompact.includes(apiCompact)) return 0.92;
+
+  const apiTokens = tokenizeTeamName(apiName);
+  const targetTokens = tokenizeTeamName(targetName);
+  if (apiTokens.length === 0 || targetTokens.length === 0) return 0;
+
+  const targetSet = new Set(targetTokens);
+  const intersection = apiTokens.filter((token) => targetSet.has(token)).length;
+  const overlap = intersection / Math.max(apiTokens.length, targetTokens.length);
+
+  if (overlap >= 0.8) return 0.88;
+  if (overlap >= 0.6) return 0.74;
+  if (overlap >= 0.5) return 0.62;
+
+  return 0;
+}
+
+function getFixtureKickoffTime(fixture: any): number | null {
+  const rawDate = fixture?.fixture?.date;
+  if (!rawDate) return null;
+  const timestamp = new Date(rawDate).getTime();
+  return Number.isNaN(timestamp) ? null : timestamp;
+}
+
+async function findDbMatchForLiveFixture(supabase: any, fixture: any): Promise<any | null> {
+  const kickoffTs = getFixtureKickoffTime(fixture);
+  if (!kickoffTs) return null;
+
+  const windowStart = new Date(kickoffTs - 10 * 60 * 60 * 1000).toISOString();
+  const windowEnd = new Date(kickoffTs + 10 * 60 * 60 * 1000).toISOString();
+
+  const { data: candidates, error } = await supabase
+    .from('football_matches')
+    .select('*, pools!inner(scoring_system)')
+    .eq('external_source', 'apifb')
+    .in('status', ['scheduled', 'NS', '1H', 'HT', '2H', 'ET', 'P'])
+    .gte('match_date', windowStart)
+    .lte('match_date', windowEnd);
+
+  if (error || !candidates || candidates.length === 0) return null;
+
+  const apiHome = fixture.teams?.home?.name || '';
+  const apiAway = fixture.teams?.away?.name || '';
+
+  let bestMatch: any = null;
+  let bestScore = 0;
+
+  for (const candidate of candidates) {
+    const homeScore = scoreTeamSimilarity(apiHome, candidate.home_team || '');
+    const awayScore = scoreTeamSimilarity(apiAway, candidate.away_team || '');
+    if (homeScore === 0 || awayScore === 0) continue;
+
+    const candidateKickoffTs = new Date(candidate.match_date).getTime();
+    const minuteDiff = Math.abs(candidateKickoffTs - kickoffTs) / (1000 * 60);
+    const timePenalty = Math.min(minuteDiff / 240, 0.45); // penaliza diferenças > 4h
+
+    const totalScore = homeScore + awayScore - timePenalty;
+
+    if (totalScore > bestScore) {
+      bestScore = totalScore;
+      bestMatch = candidate;
+    }
+  }
+
+  if (bestMatch && bestScore >= 1.35) {
+    console.log(`🔁 Reconciled live fixture by teams/date: ${bestMatch.home_team} vs ${bestMatch.away_team} (score ${bestScore.toFixed(2)})`);
+    return bestMatch;
+  }
+
+  return null;
 }
 
 function formatApiDate(date: Date): string {
@@ -480,11 +541,11 @@ async function fetchFixtureWithFallback(match: any): Promise<{ fixture: any | nu
     formatApiDate(baseDate),
     formatApiDate(new Date(baseDate.getTime() - 24 * 60 * 60 * 1000)),
     formatApiDate(new Date(baseDate.getTime() + 24 * 60 * 60 * 1000)),
+    formatApiDate(new Date(baseDate.getTime() - 2 * 24 * 60 * 60 * 1000)),
+    formatApiDate(new Date(baseDate.getTime() + 2 * 24 * 60 * 60 * 1000)),
   ];
 
   const uniqueDates = [...new Set(dateCandidates)];
-  const targetHome = normalizeTeamName(match.home_team || '');
-  const targetAway = normalizeTeamName(match.away_team || '');
 
   for (const dateParam of uniqueDates) {
     const byDateResp = await fetch(`${API_FOOTBALL_BASE}/fixtures?date=${dateParam}`, {
@@ -498,14 +559,30 @@ async function fetchFixtureWithFallback(match: any): Promise<{ fixture: any | nu
     }
 
     const byDateData = await byDateResp.json();
-    const matchedByTeams = (byDateData.response || []).find((fixture: any) => {
-      const apiHome = normalizeTeamName(fixture.teams?.home?.name || '');
-      const apiAway = normalizeTeamName(fixture.teams?.away?.name || '');
-      return isLikelySameTeam(apiHome, targetHome) && isLikelySameTeam(apiAway, targetAway);
-    });
+    const fixturesByDate = byDateData.response || [];
 
-    if (matchedByTeams) {
-      console.log(`🔁 Matched fixture by date/teams for ${match.home_team} vs ${match.away_team} (id ${matchedByTeams.fixture?.id})`);
+    let matchedByTeams: any = null;
+    let bestScore = 0;
+    const targetKickoffTs = new Date(match.match_date).getTime();
+
+    for (const fixture of fixturesByDate) {
+      const homeScore = scoreTeamSimilarity(fixture.teams?.home?.name || '', match.home_team || '');
+      const awayScore = scoreTeamSimilarity(fixture.teams?.away?.name || '', match.away_team || '');
+      if (homeScore === 0 || awayScore === 0) continue;
+
+      const fixtureKickoffTs = getFixtureKickoffTime(fixture) ?? targetKickoffTs;
+      const minuteDiff = Math.abs(fixtureKickoffTs - targetKickoffTs) / (1000 * 60);
+      const timePenalty = Math.min(minuteDiff / 360, 0.5); // penaliza diferenças > 6h
+      const totalScore = homeScore + awayScore - timePenalty;
+
+      if (totalScore > bestScore) {
+        bestScore = totalScore;
+        matchedByTeams = fixture;
+      }
+    }
+
+    if (matchedByTeams && bestScore >= 1.25) {
+      console.log(`🔁 Matched fixture by date/teams for ${match.home_team} vs ${match.away_team} (id ${matchedByTeams.fixture?.id}, score ${bestScore.toFixed(2)})`);
       return { fixture: matchedByTeams, requestsMade };
     }
   }
