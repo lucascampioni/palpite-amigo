@@ -546,8 +546,6 @@ async function fetchFixtureWithFallback(match: any): Promise<{ fixture: any | nu
   ];
 
   const uniqueDates = [...new Set(dateCandidates)];
-  const targetHome = normalizeTeamName(match.home_team || '');
-  const targetAway = normalizeTeamName(match.away_team || '');
 
   for (const dateParam of uniqueDates) {
     const byDateResp = await fetch(`${API_FOOTBALL_BASE}/fixtures?date=${dateParam}`, {
