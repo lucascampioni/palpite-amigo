@@ -561,14 +561,30 @@ async function fetchFixtureWithFallback(match: any): Promise<{ fixture: any | nu
     }
 
     const byDateData = await byDateResp.json();
-    const matchedByTeams = (byDateData.response || []).find((fixture: any) => {
-      const apiHome = normalizeTeamName(fixture.teams?.home?.name || '');
-      const apiAway = normalizeTeamName(fixture.teams?.away?.name || '');
-      return isLikelySameTeam(apiHome, targetHome) && isLikelySameTeam(apiAway, targetAway);
-    });
+    const fixturesByDate = byDateData.response || [];
 
-    if (matchedByTeams) {
-      console.log(`🔁 Matched fixture by date/teams for ${match.home_team} vs ${match.away_team} (id ${matchedByTeams.fixture?.id})`);
+    let matchedByTeams: any = null;
+    let bestScore = 0;
+    const targetKickoffTs = new Date(match.match_date).getTime();
+
+    for (const fixture of fixturesByDate) {
+      const homeScore = scoreTeamSimilarity(fixture.teams?.home?.name || '', match.home_team || '');
+      const awayScore = scoreTeamSimilarity(fixture.teams?.away?.name || '', match.away_team || '');
+      if (homeScore === 0 || awayScore === 0) continue;
+
+      const fixtureKickoffTs = getFixtureKickoffTime(fixture) ?? targetKickoffTs;
+      const minuteDiff = Math.abs(fixtureKickoffTs - targetKickoffTs) / (1000 * 60);
+      const timePenalty = Math.min(minuteDiff / 360, 0.5); // penaliza diferenças > 6h
+      const totalScore = homeScore + awayScore - timePenalty;
+
+      if (totalScore > bestScore) {
+        bestScore = totalScore;
+        matchedByTeams = fixture;
+      }
+    }
+
+    if (matchedByTeams && bestScore >= 1.25) {
+      console.log(`🔁 Matched fixture by date/teams for ${match.home_team} vs ${match.away_team} (id ${matchedByTeams.fixture?.id}, score ${bestScore.toFixed(2)})`);
       return { fixture: matchedByTeams, requestsMade };
     }
   }
