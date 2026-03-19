@@ -678,33 +678,53 @@ const FootballRanking = ({ poolId, pool, approvedParticipantsCount, isOwner }: F
 
     const participantIds = [...new Set(entries.map(e => e.pid))];
 
-    const { data: predictions } = await supabase
-      .from("football_predictions")
-      .select(`
-        match_id,
-        participant_id,
-        home_score_prediction,
-        away_score_prediction,
-        points_earned,
-        prediction_set,
-        football_matches (
-          home_team,
-          away_team,
-          home_score,
-          away_score,
-          match_date,
-          home_team_crest,
-          away_team_crest,
-          status
-        )
-      `)
-      .in("participant_id", participantIds)
-      .order("football_matches(match_date)", { ascending: true });
+    // Fetch all predictions in paginated batches to avoid 1000-row limit
+    const PAGE_SIZE = 1000;
+    let allPredictions: any[] = [];
+    let from = 0;
+    let hasMore = true;
 
-    if (!predictions) return;
+    while (hasMore) {
+      const { data: batch } = await supabase
+        .from("football_predictions")
+        .select(`
+          match_id,
+          participant_id,
+          home_score_prediction,
+          away_score_prediction,
+          points_earned,
+          prediction_set,
+          football_matches (
+            home_team,
+            away_team,
+            home_score,
+            away_score,
+            match_date,
+            home_team_crest,
+            away_team_crest,
+            status
+          )
+        `)
+        .in("participant_id", participantIds)
+        .order("football_matches(match_date)", { ascending: true })
+        .range(from, from + PAGE_SIZE - 1);
+
+      if (!batch || batch.length === 0) {
+        hasMore = false;
+      } else {
+        allPredictions = allPredictions.concat(batch);
+        if (batch.length < PAGE_SIZE) {
+          hasMore = false;
+        } else {
+          from += PAGE_SIZE;
+        }
+      }
+    }
+
+    if (allPredictions.length === 0) return;
 
     const grouped: Record<string, MatchPrediction[]> = {};
-    for (const p of predictions as any[]) {
+    for (const p of allPredictions) {
       const key = `${p.participant_id}_${p.prediction_set || 1}`;
       if (!grouped[key]) grouped[key] = [];
       grouped[key].push({
