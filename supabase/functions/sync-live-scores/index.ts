@@ -404,13 +404,107 @@ function normalizeTeamName(name: string): string {
     .normalize('NFD')
     .replace(/[\u0300-\u036f]/g, '')
     .toLowerCase()
-    .replace(/[^a-z0-9]/g, '');
+    .replace(/[^a-z0-9\s]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
 }
 
-function isLikelySameTeam(apiName: string, targetName: string): boolean {
-  if (!apiName || !targetName) return false;
-  if (apiName === targetName) return true;
-  return apiName.includes(targetName) || targetName.includes(apiName);
+const TEAM_STOP_WORDS = new Set([
+  'fc', 'sc', 'ac', 'ec', 'cd', 'cf', 'clube', 'club', 'esporte', 'futebol', 'sport', 'de', 'da', 'do', 'the',
+]);
+
+function tokenizeTeamName(name: string): string[] {
+  const normalized = normalizeTeamName(name);
+  if (!normalized) return [];
+  return normalized
+    .split(' ')
+    .filter(Boolean)
+    .filter((token) => !TEAM_STOP_WORDS.has(token));
+}
+
+function scoreTeamSimilarity(apiName: string, targetName: string): number {
+  if (!apiName || !targetName) return 0;
+
+  const apiNormalized = normalizeTeamName(apiName);
+  const targetNormalized = normalizeTeamName(targetName);
+
+  if (!apiNormalized || !targetNormalized) return 0;
+  if (apiNormalized === targetNormalized) return 1;
+
+  const apiCompact = apiNormalized.replace(/\s+/g, '');
+  const targetCompact = targetNormalized.replace(/\s+/g, '');
+
+  if (apiCompact === targetCompact) return 0.98;
+  if (apiCompact.includes(targetCompact) || targetCompact.includes(apiCompact)) return 0.92;
+
+  const apiTokens = tokenizeTeamName(apiName);
+  const targetTokens = tokenizeTeamName(targetName);
+  if (apiTokens.length === 0 || targetTokens.length === 0) return 0;
+
+  const targetSet = new Set(targetTokens);
+  const intersection = apiTokens.filter((token) => targetSet.has(token)).length;
+  const overlap = intersection / Math.max(apiTokens.length, targetTokens.length);
+
+  if (overlap >= 0.8) return 0.88;
+  if (overlap >= 0.6) return 0.74;
+  if (overlap >= 0.5) return 0.62;
+
+  return 0;
+}
+
+function getFixtureKickoffTime(fixture: any): number | null {
+  const rawDate = fixture?.fixture?.date;
+  if (!rawDate) return null;
+  const timestamp = new Date(rawDate).getTime();
+  return Number.isNaN(timestamp) ? null : timestamp;
+}
+
+async function findDbMatchForLiveFixture(supabase: any, fixture: any): Promise<any | null> {
+  const kickoffTs = getFixtureKickoffTime(fixture);
+  if (!kickoffTs) return null;
+
+  const windowStart = new Date(kickoffTs - 10 * 60 * 60 * 1000).toISOString();
+  const windowEnd = new Date(kickoffTs + 10 * 60 * 60 * 1000).toISOString();
+
+  const { data: candidates, error } = await supabase
+    .from('football_matches')
+    .select('*, pools!inner(scoring_system)')
+    .eq('external_source', 'apifb')
+    .in('status', ['scheduled', 'NS', '1H', 'HT', '2H', 'ET', 'P'])
+    .gte('match_date', windowStart)
+    .lte('match_date', windowEnd);
+
+  if (error || !candidates || candidates.length === 0) return null;
+
+  const apiHome = fixture.teams?.home?.name || '';
+  const apiAway = fixture.teams?.away?.name || '';
+
+  let bestMatch: any = null;
+  let bestScore = 0;
+
+  for (const candidate of candidates) {
+    const homeScore = scoreTeamSimilarity(apiHome, candidate.home_team || '');
+    const awayScore = scoreTeamSimilarity(apiAway, candidate.away_team || '');
+    if (homeScore === 0 || awayScore === 0) continue;
+
+    const candidateKickoffTs = new Date(candidate.match_date).getTime();
+    const minuteDiff = Math.abs(candidateKickoffTs - kickoffTs) / (1000 * 60);
+    const timePenalty = Math.min(minuteDiff / 240, 0.45); // penaliza diferenças > 4h
+
+    const totalScore = homeScore + awayScore - timePenalty;
+
+    if (totalScore > bestScore) {
+      bestScore = totalScore;
+      bestMatch = candidate;
+    }
+  }
+
+  if (bestMatch && bestScore >= 1.35) {
+    console.log(`🔁 Reconciled live fixture by teams/date: ${bestMatch.home_team} vs ${bestMatch.away_team} (score ${bestScore.toFixed(2)})`);
+    return bestMatch;
+  }
+
+  return null;
 }
 
 function formatApiDate(date: Date): string {
