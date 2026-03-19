@@ -244,9 +244,31 @@ serve(async (req) => {
             console.error(`❌ Fallback lookup error for match ${missed.id}:`, fbError);
           }
 
-          // Safety net: mark as finished if >2h since kickoff and has scores
+          // Safety net for API gaps: advance phase by elapsed time before forcing finish
           const kickoff = new Date(missed.match_date).getTime();
           const hoursSinceKickoff = (Date.now() - kickoff) / (1000 * 60 * 60);
+
+          if (hoursSinceKickoff >= 1.1 && hoursSinceKickoff < 2.0 && (missed.status === '1H' || missed.status === 'HT')) {
+            await supabase
+              .from('football_matches')
+              .update({ status: '2H', last_sync_at: new Date().toISOString() })
+              .eq('id', missed.id);
+
+            updatedCount++;
+            console.log(`⏱️ Safety net phase update: ${missed.home_team} vs ${missed.away_team} (${hoursSinceKickoff.toFixed(1)}h), forcing 2H`);
+            continue;
+          }
+
+          if (hoursSinceKickoff >= 0.75 && hoursSinceKickoff < 1.1 && missed.status === '1H') {
+            await supabase
+              .from('football_matches')
+              .update({ status: 'HT', last_sync_at: new Date().toISOString() })
+              .eq('id', missed.id);
+
+            updatedCount++;
+            console.log(`⏱️ Safety net phase update: ${missed.home_team} vs ${missed.away_team} (${hoursSinceKickoff.toFixed(1)}h), forcing HT`);
+            continue;
+          }
 
           if (hoursSinceKickoff >= 2.0 && missed.home_score !== null && missed.away_score !== null) {
             console.log(`⏰ Safety net: ${missed.home_team} vs ${missed.away_team} (${hoursSinceKickoff.toFixed(1)}h), marking finished`);
