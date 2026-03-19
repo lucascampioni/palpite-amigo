@@ -541,6 +541,8 @@ async function fetchFixtureWithFallback(match: any): Promise<{ fixture: any | nu
     formatApiDate(baseDate),
     formatApiDate(new Date(baseDate.getTime() - 24 * 60 * 60 * 1000)),
     formatApiDate(new Date(baseDate.getTime() + 24 * 60 * 60 * 1000)),
+    formatApiDate(new Date(baseDate.getTime() - 2 * 24 * 60 * 60 * 1000)),
+    formatApiDate(new Date(baseDate.getTime() + 2 * 24 * 60 * 60 * 1000)),
   ];
 
   const uniqueDates = [...new Set(dateCandidates)];
