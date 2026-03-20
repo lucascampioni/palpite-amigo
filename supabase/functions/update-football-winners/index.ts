@@ -90,12 +90,34 @@ serve(async (req) => {
 
     // Calculate points for each participant, grouped by prediction_set
     const participantIds = participants.map(p => p.id);
-    const { data: predictions, error: predictionsError } = await supabaseClient
-      .from('football_predictions')
-      .select('participant_id, points_earned, created_at, home_score_prediction, away_score_prediction, match_id, prediction_set')
-      .in('participant_id', participantIds);
 
-    if (predictionsError) throw predictionsError;
+    // Fetch ALL predictions with pagination (Supabase default limit is 1000)
+    let predictions: any[] = [];
+    const PAGE_SIZE = 1000;
+    let from = 0;
+    let hasMore = true;
+
+    while (hasMore) {
+      const { data: batch, error: batchError } = await supabaseClient
+        .from('football_predictions')
+        .select('participant_id, points_earned, created_at, home_score_prediction, away_score_prediction, match_id, prediction_set')
+        .in('participant_id', participantIds)
+        .range(from, from + PAGE_SIZE - 1);
+
+      if (batchError) throw batchError;
+
+      if (batch && batch.length > 0) {
+        predictions = predictions.concat(batch);
+      }
+
+      if (!batch || batch.length < PAGE_SIZE) {
+        hasMore = false;
+      } else {
+        from += PAGE_SIZE;
+      }
+    }
+
+    console.log(`Fetched ${predictions.length} total predictions for ${participantIds.length} participants`);
 
     // Build a map of match results for detailed tiebreaker calculation
     const matchResultsMap: Record<string, { home_score: number; away_score: number }> = {};
