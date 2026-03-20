@@ -543,25 +543,23 @@ const PoolDetail = () => {
       }
       const preds = allPreds;
 
-      if (preds) {
-        const setTotals: Record<string, number> = {};
+      const setTotals: Record<string, number> = {};
 
-        for (const row of preds as any[]) {
-          const set = row.prediction_set || 1;
-          const setKey = `${row.participant_id}_${set}`;
-          setTotals[setKey] = (setTotals[setKey] || 0) + (row.points_earned || 0);
-        }
-
-        for (const [setKey, total] of Object.entries(setTotals)) {
-          const participantId = setKey.split("_")[0];
-          pointsMap[participantId] = Math.max(pointsMap[participantId] ?? Number.NEGATIVE_INFINITY, total);
-        }
-
-        // Keep 0 for participants that only have zero-point sets
-        Object.keys(pointsMap).forEach((pid) => {
-          if (pointsMap[pid] === Number.NEGATIVE_INFINITY) pointsMap[pid] = 0;
-        });
+      for (const row of preds as any[]) {
+        const set = row.prediction_set || 1;
+        const setKey = `${row.participant_id}_${set}`;
+        setTotals[setKey] = (setTotals[setKey] || 0) + (row.points_earned || 0);
       }
+
+      for (const [setKey, total] of Object.entries(setTotals)) {
+        const participantId = setKey.split("_")[0];
+        pointsMap[participantId] = Math.max(pointsMap[participantId] ?? Number.NEGATIVE_INFINITY, total);
+      }
+
+      // Keep 0 for participants that only have zero-point sets
+      Object.keys(pointsMap).forEach((pid) => {
+        if (pointsMap[pid] === Number.NEGATIVE_INFINITY) pointsMap[pid] = 0;
+      });
     }
     setParticipantsPoints(pointsMap);
 
