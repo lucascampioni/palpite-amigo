@@ -421,7 +421,7 @@ function normalizeTeamName(name: string): string {
 }
 
 const TEAM_STOP_WORDS = new Set([
-  'fc', 'sc', 'ac', 'ec', 'cd', 'cf', 'clube', 'club', 'esporte', 'futebol', 'sport', 'de', 'da', 'do', 'the',
+  'fc', 'sc', 'ac', 'ec', 'cd', 'cf', 'af', 'fbpa', 'cr', 'clube', 'club', 'esporte', 'futebol', 'sport', 'de', 'da', 'do', 'the',
 ]);
 
 function tokenizeTeamName(name: string): string[] {
