@@ -294,19 +294,21 @@ serve(async (req) => {
         if (dailyCount >= DAILY_LIMIT) break;
 
         try {
-          const { fixture: fbFixture, requestsMade } = await fetchFixtureWithFallback(missed);
+          const { fixture: fbFixture, provider, requestsMade } = await fetchFixtureWithFallback(missed);
           dailyCount += requestsMade;
 
-          if (!fbFixture) continue;
+          if (!fbFixture || !provider) continue;
 
           const fbStatus = mapApiStatus(fbFixture.fixture?.status?.short);
           const fbHome = fbFixture.goals?.home ?? null;
           const fbAway = fbFixture.goals?.away ?? null;
-          const resolvedExternalId = `apifb_${fbFixture.fixture?.id}`;
+          const resolvedExternalId = provider === 'apifb'
+            ? `apifb_${fbFixture.fixture?.id}`
+            : missed.external_id;
 
           const statusChanged = fbStatus !== missed.status;
           const scoreChanged = (fbHome !== null && fbHome !== missed.home_score) || (fbAway !== null && fbAway !== missed.away_score);
-          const externalIdChanged = missed.external_id !== resolvedExternalId;
+          const externalIdChanged = provider === 'apifb' && missed.external_id !== resolvedExternalId;
 
           if (statusChanged || scoreChanged || externalIdChanged) {
             const updateData: any = {
