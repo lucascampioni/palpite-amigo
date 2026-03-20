@@ -576,6 +576,24 @@ function isTrustedHighNameMatch(homeScore: number, awayScore: number, totalScore
   return homeScore >= 0.9 && awayScore >= 0.9 && totalScore >= 1.35 && confidenceGap >= 0.08;
 }
 
+function isLiveMatchStatus(status: string | null | undefined): boolean {
+  return ['1H', 'HT', '2H', 'ET', 'P'].includes(status || '');
+}
+
+function minutesSinceKickoff(matchDate: string): number {
+  const kickoffTs = new Date(matchDate).getTime();
+  if (Number.isNaN(kickoffTs)) return 0;
+  return (Date.now() - kickoffTs) / (1000 * 60);
+}
+
+function shouldConfirmLiveStatusWithEspn(match: any, status: string): boolean {
+  return isLiveMatchStatus(status) && minutesSinceKickoff(match.match_date) >= 95;
+}
+
+function shouldForceFinishByTimeout(match: any, status: string): boolean {
+  return isLiveMatchStatus(status) && minutesSinceKickoff(match.match_date) >= 125;
+}
+
 function mapFootballDataStatus(status: string | undefined): string {
   const statusMap: Record<string, string> = {
     SCHEDULED: 'NS',
@@ -589,6 +607,23 @@ function mapFootballDataStatus(status: string | undefined): string {
   };
 
   return statusMap[status || ''] || 'NS';
+}
+
+function mapEspnStatus(event: any): string {
+  const statusType = event?.status?.type;
+  const state = String(statusType?.state || '').toLowerCase();
+  const shortDetail = String(statusType?.shortDetail || '').toUpperCase();
+
+  if (statusType?.completed || state === 'post') return 'FT';
+  if (state === 'pre') return 'NS';
+
+  if (state === 'in') {
+    if (shortDetail.includes('HT') || shortDetail.includes('INTERVAL')) return 'HT';
+    if (shortDetail.includes('2ND')) return '2H';
+    return '1H';
+  }
+
+  return 'NS';
 }
 
 function buildApiLikeFixtureFromFootballData(matchData: any): any {
@@ -610,6 +645,107 @@ function buildApiLikeFixtureFromFootballData(matchData: any): any {
       away: { name: matchData?.awayTeam?.name || '' },
     },
   };
+}
+
+function buildApiLikeFixtureFromEspnEvent(event: any): any {
+  const competition = event?.competitions?.[0] || {};
+  const competitors = competition?.competitors || [];
+  const homeTeam = competitors.find((c: any) => c?.homeAway === 'home') || competitors[0] || {};
+  const awayTeam = competitors.find((c: any) => c?.homeAway === 'away') || competitors[1] || {};
+
+  const homeScore = Number(homeTeam?.score);
+  const awayScore = Number(awayTeam?.score);
+
+  return {
+    fixture: {
+      id: `espn_${event?.id || 'unknown'}`,
+      date: event?.date || null,
+      status: { short: mapEspnStatus(event) },
+    },
+    goals: {
+      home: Number.isFinite(homeScore) ? homeScore : null,
+      away: Number.isFinite(awayScore) ? awayScore : null,
+    },
+    teams: {
+      home: { name: homeTeam?.team?.displayName || homeTeam?.team?.shortDisplayName || '' },
+      away: { name: awayTeam?.team?.displayName || awayTeam?.team?.shortDisplayName || '' },
+    },
+  };
+}
+
+function formatEspnDate(date: Date): string {
+  const y = date.getUTCFullYear();
+  const m = String(date.getUTCMonth() + 1).padStart(2, '0');
+  const d = String(date.getUTCDate()).padStart(2, '0');
+  return `${y}${m}${d}`;
+}
+
+async function fetchEspnFixtureByTeamsAndDate(match: any): Promise<any | null> {
+  const baseDate = new Date(match.match_date);
+  const dateCandidates = [
+    formatEspnDate(baseDate),
+    formatEspnDate(new Date(baseDate.getTime() - 24 * 60 * 60 * 1000)),
+    formatEspnDate(new Date(baseDate.getTime() + 24 * 60 * 60 * 1000)),
+  ];
+
+  const uniqueDates = [...new Set(dateCandidates)];
+
+  let bestEvent: any = null;
+  let bestTotal = Number.NEGATIVE_INFINITY;
+  let bestHomeScore = 0;
+  let bestAwayScore = 0;
+  let secondBestTotal = Number.NEGATIVE_INFINITY;
+  const targetKickoffTs = new Date(match.match_date).getTime();
+
+  for (const dateParam of uniqueDates) {
+    const response = await fetch(`https://site.api.espn.com/apis/site/v2/sports/soccer/bra.1/scoreboard?dates=${dateParam}`);
+    if (!response.ok) continue;
+
+    const payload = await response.json();
+    const events = payload?.events || [];
+
+    for (const event of events) {
+      const competition = event?.competitions?.[0] || {};
+      const competitors = competition?.competitors || [];
+      const home = competitors.find((c: any) => c?.homeAway === 'home') || competitors[0];
+      const away = competitors.find((c: any) => c?.homeAway === 'away') || competitors[1];
+      if (!home || !away) continue;
+
+      const homeName = home?.team?.displayName || home?.team?.shortDisplayName || '';
+      const awayName = away?.team?.displayName || away?.team?.shortDisplayName || '';
+      const homeScore = scoreTeamSimilarity(homeName, match.home_team || '');
+      const awayScore = scoreTeamSimilarity(awayName, match.away_team || '');
+      if (homeScore === 0 || awayScore === 0) continue;
+
+      const eventKickoffTs = new Date(event?.date || match.match_date).getTime();
+      const minuteDiff = Math.abs(eventKickoffTs - targetKickoffTs) / (1000 * 60);
+      const timePenalty = Math.min(minuteDiff / 720, 0.35);
+      const totalScore = homeScore + awayScore - timePenalty;
+
+      if (totalScore > bestTotal) {
+        secondBestTotal = bestTotal;
+        bestTotal = totalScore;
+        bestEvent = event;
+        bestHomeScore = homeScore;
+        bestAwayScore = awayScore;
+      } else if (totalScore > secondBestTotal) {
+        secondBestTotal = totalScore;
+      }
+    }
+  }
+
+  if (!bestEvent) return null;
+
+  if (
+    isStrongTeamMatch(bestHomeScore, bestAwayScore, bestTotal, secondBestTotal) ||
+    isTrustedHighNameMatch(bestHomeScore, bestAwayScore, bestTotal, secondBestTotal)
+  ) {
+    const fixture = buildApiLikeFixtureFromEspnEvent(bestEvent);
+    console.log(`🛰️ Matched by ESPN fallback: ${fixture.teams?.home?.name} vs ${fixture.teams?.away?.name} (${fixture.fixture?.status?.short})`);
+    return fixture;
+  }
+
+  return null;
 }
 
 async function fetchFootballDataFixtureByTeamsAndDate(match: any): Promise<any | null> {
@@ -646,7 +782,7 @@ async function fetchFootballDataFixtureByTeamsAndDate(match: any): Promise<any |
 
     const candidateKickoffTs = new Date(candidate?.utcDate || match.match_date).getTime();
     const minuteDiff = Math.abs(candidateKickoffTs - targetKickoffTs) / (1000 * 60);
-    const timePenalty = Math.min(minuteDiff / 720, 0.35); // tolera diferenças de horário maiores entre provedores
+    const timePenalty = Math.min(minuteDiff / 720, 0.35);
     const totalScore = homeScore + awayScore - timePenalty;
 
     if (totalScore > bestTotal) {
@@ -673,15 +809,53 @@ async function fetchFootballDataFixtureByTeamsAndDate(match: any): Promise<any |
   return null;
 }
 
-type FixtureProvider = 'apifb' | 'football_data';
+type FixtureProvider = 'apifb' | 'football_data' | 'espn';
 type FixtureLookupResult = { fixture: any | null; provider: FixtureProvider | null; requestsMade: number };
+
+function forceFixtureAsFinished(fixture: any): any {
+  return {
+    ...fixture,
+    fixture: {
+      ...fixture?.fixture,
+      status: { short: 'FT' },
+    },
+  };
+}
+
+async function resolveSecondaryFallback(match: any, requestsMade: number): Promise<FixtureLookupResult> {
+  const fdFixture = await fetchFootballDataFixtureByTeamsAndDate(match);
+
+  if (fdFixture) {
+    const fdMappedStatus = mapApiStatus(fdFixture.fixture?.status?.short);
+
+    if (shouldConfirmLiveStatusWithEspn(match, fdMappedStatus)) {
+      const espnFixture = await fetchEspnFixtureByTeamsAndDate(match);
+      if (espnFixture) {
+        return { fixture: espnFixture, provider: 'espn', requestsMade };
+      }
+    }
+
+    if (shouldForceFinishByTimeout(match, fdMappedStatus)) {
+      console.warn(`⌛ Forcing finished by timeout for ${match.home_team} vs ${match.away_team} after ${Math.round(minutesSinceKickoff(match.match_date))} min.`);
+      return { fixture: forceFixtureAsFinished(fdFixture), provider: 'football_data', requestsMade };
+    }
+
+    return { fixture: fdFixture, provider: 'football_data', requestsMade };
+  }
+
+  const espnFixture = await fetchEspnFixtureByTeamsAndDate(match);
+  if (espnFixture) {
+    return { fixture: espnFixture, provider: 'espn', requestsMade };
+  }
+
+  return { fixture: null, provider: null, requestsMade };
+}
 
 async function fetchFixtureWithFallback(match: any): Promise<FixtureLookupResult> {
   const fixtureId = extractApiFixtureId(match.external_id);
   if (!fixtureId) {
     console.warn(`⚠️ Invalid external_id for match ${match.id}: ${match.external_id}`);
-    const fdFixture = await fetchFootballDataFixtureByTeamsAndDate(match);
-    return { fixture: fdFixture, provider: fdFixture ? 'football_data' : null, requestsMade: 0 };
+    return await resolveSecondaryFallback(match, 0);
   }
 
   let requestsMade = 0;
@@ -698,8 +872,7 @@ async function fetchFixtureWithFallback(match: any): Promise<FixtureLookupResult
     if (byIdError) {
       console.warn(`⚠️ API-Football fixtures?id=${fixtureId} returned error: ${byIdError}`);
       if (shouldUseFootballDataFallback(byIdError)) {
-        const fdFixture = await fetchFootballDataFixtureByTeamsAndDate(match);
-        return { fixture: fdFixture, provider: fdFixture ? 'football_data' : null, requestsMade };
+        return await resolveSecondaryFallback(match, requestsMade);
       }
     }
 
@@ -754,8 +927,7 @@ async function fetchFixtureWithFallback(match: any): Promise<FixtureLookupResult
     if (byDateError) {
       console.warn(`⚠️ API-Football fixtures?date=${dateParam} returned error: ${byDateError}`);
       if (shouldUseFootballDataFallback(byDateError)) {
-        const fdFixture = await fetchFootballDataFixtureByTeamsAndDate(match);
-        return { fixture: fdFixture, provider: fdFixture ? 'football_data' : null, requestsMade };
+        return await resolveSecondaryFallback(match, requestsMade);
       }
       continue;
     }
@@ -776,7 +948,7 @@ async function fetchFixtureWithFallback(match: any): Promise<FixtureLookupResult
 
       const fixtureKickoffTs = getFixtureKickoffTime(fixture) ?? targetKickoffTs;
       const minuteDiff = Math.abs(fixtureKickoffTs - targetKickoffTs) / (1000 * 60);
-      const timePenalty = Math.min(minuteDiff / 360, 0.5); // penaliza diferenças > 6h
+      const timePenalty = Math.min(minuteDiff / 360, 0.5);
       const totalScore = homeScore + awayScore - timePenalty;
 
       if (totalScore > bestTotal) {
@@ -806,9 +978,9 @@ async function fetchFixtureWithFallback(match: any): Promise<FixtureLookupResult
     }
   }
 
-  const fdFixture = await fetchFootballDataFixtureByTeamsAndDate(match);
-  if (fdFixture) {
-    return { fixture: fdFixture, provider: 'football_data', requestsMade };
+  const secondaryFallback = await resolveSecondaryFallback(match, requestsMade);
+  if (secondaryFallback.fixture) {
+    return secondaryFallback;
   }
 
   console.warn(`⚠️ Date fallback could not match teams for ${match.home_team} vs ${match.away_team}`);
