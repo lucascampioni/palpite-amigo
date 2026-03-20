@@ -521,6 +521,7 @@ const PoolDetail = () => {
     // Aggregate points per participant using the BEST prediction set (do not sum sets)
     const participantIds = (participantsData || []).map((p: any) => p.id);
     let pointsMap: Record<string, number> = {};
+    if (participantIds.length > 0) {
       // Paginated fetch to avoid 1000-row Supabase limit
       let allPreds: any[] = [];
       const PAGE_SIZE = 1000;
@@ -541,11 +542,9 @@ const PoolDetail = () => {
           from += PAGE_SIZE;
         }
       }
-      const preds = allPreds;
 
       const setTotals: Record<string, number> = {};
-
-      for (const row of preds as any[]) {
+      for (const row of allPreds) {
         const set = row.prediction_set || 1;
         const setKey = `${row.participant_id}_${set}`;
         setTotals[setKey] = (setTotals[setKey] || 0) + (row.points_earned || 0);
@@ -556,7 +555,6 @@ const PoolDetail = () => {
         pointsMap[participantId] = Math.max(pointsMap[participantId] ?? Number.NEGATIVE_INFINITY, total);
       }
 
-      // Keep 0 for participants that only have zero-point sets
       Object.keys(pointsMap).forEach((pid) => {
         if (pointsMap[pid] === Number.NEGATIVE_INFINITY) pointsMap[pid] = 0;
       });
