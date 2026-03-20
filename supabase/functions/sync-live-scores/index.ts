@@ -100,7 +100,12 @@ serve(async (req) => {
 
     const apiData = await response.json();
     const fixtures = apiData.response || [];
+    const apiErrors = extractApiFootballError(apiData);
     dailyCount++;
+
+    if (apiErrors) {
+      console.warn(`⚠️ API-Football returned warning/error: ${apiErrors}`);
+    }
 
     console.log(`📊 API returned ${fixtures.length} live fixtures. Daily count: ${dailyCount}`);
 
