@@ -521,11 +521,27 @@ const PoolDetail = () => {
     // Aggregate points per participant using the BEST prediction set (do not sum sets)
     const participantIds = (participantsData || []).map((p: any) => p.id);
     let pointsMap: Record<string, number> = {};
-    if (participantIds.length > 0) {
-      const { data: preds } = await supabase
-        .from("football_predictions")
-        .select("participant_id, prediction_set, points_earned")
-        .in("participant_id", participantIds);
+      // Paginated fetch to avoid 1000-row Supabase limit
+      let allPreds: any[] = [];
+      const PAGE_SIZE = 1000;
+      let from = 0;
+      let hasMore = true;
+      while (hasMore) {
+        const { data: batch } = await supabase
+          .from("football_predictions")
+          .select("participant_id, prediction_set, points_earned")
+          .in("participant_id", participantIds)
+          .range(from, from + PAGE_SIZE - 1);
+        if (batch && batch.length > 0) {
+          allPreds = allPreds.concat(batch);
+        }
+        if (!batch || batch.length < PAGE_SIZE) {
+          hasMore = false;
+        } else {
+          from += PAGE_SIZE;
+        }
+      }
+      const preds = allPreds;
 
       if (preds) {
         const setTotals: Record<string, number> = {};
