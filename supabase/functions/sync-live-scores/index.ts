@@ -529,7 +529,10 @@ async function findDbMatchForLiveFixture(supabase: any, fixture: any): Promise<a
 
   if (
     bestMatch &&
-    isStrongTeamMatch(bestHomeScore, bestAwayScore, bestTotal, secondBestTotal)
+    (
+      isStrongTeamMatch(bestHomeScore, bestAwayScore, bestTotal, secondBestTotal) ||
+      isTrustedHighNameMatch(bestHomeScore, bestAwayScore, bestTotal, secondBestTotal)
+    )
   ) {
     console.log(`🔁 Reconciled live fixture by teams/date: ${bestMatch.home_team} vs ${bestMatch.away_team} (score ${bestTotal.toFixed(2)})`);
     return bestMatch;
