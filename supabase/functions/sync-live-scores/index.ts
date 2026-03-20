@@ -7,7 +7,9 @@ const corsHeaders = {
 };
 
 const API_FOOTBALL_KEY = Deno.env.get('API_FOOTBALL_KEY');
+const FOOTBALL_DATA_API_KEY = Deno.env.get('FOOTBALL_DATA_API_KEY');
 const API_FOOTBALL_BASE = 'https://v3.football.api-sports.io';
+const FOOTBALL_DATA_BASE = 'https://api.football-data.org/v4';
 const DAILY_LIMIT = 2900; // Pro plan: 7500/day, safety margin
 
 serve(async (req) => {
