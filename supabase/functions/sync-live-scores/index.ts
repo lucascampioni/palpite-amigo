@@ -7,7 +7,9 @@ const corsHeaders = {
 };
 
 const API_FOOTBALL_KEY = Deno.env.get('API_FOOTBALL_KEY');
+const FOOTBALL_DATA_API_KEY = Deno.env.get('FOOTBALL_DATA_API_KEY');
 const API_FOOTBALL_BASE = 'https://v3.football.api-sports.io';
+const FOOTBALL_DATA_BASE = 'https://api.football-data.org/v4';
 const DAILY_LIMIT = 2900; // Pro plan: 7500/day, safety margin
 
 serve(async (req) => {
@@ -98,7 +100,12 @@ serve(async (req) => {
 
     const apiData = await response.json();
     const fixtures = apiData.response || [];
+    const apiErrors = extractApiFootballError(apiData);
     dailyCount++;
+
+    if (apiErrors) {
+      console.warn(`⚠️ API-Football returned warning/error: ${apiErrors}`);
+    }
 
     console.log(`📊 API returned ${fixtures.length} live fixtures. Daily count: ${dailyCount}`);
 
@@ -201,18 +208,20 @@ serve(async (req) => {
           if (dailyCount >= DAILY_LIMIT) break;
 
           try {
-            const { fixture: fbFixture, requestsMade } = await fetchFixtureWithFallback(missed);
+            const { fixture: fbFixture, provider, requestsMade } = await fetchFixtureWithFallback(missed);
             dailyCount += requestsMade;
 
-            if (fbFixture) {
+            if (fbFixture && provider) {
               const fbStatus = mapApiStatus(fbFixture.fixture?.status?.short);
               const fbHome = fbFixture.goals?.home ?? null;
               const fbAway = fbFixture.goals?.away ?? null;
-              const resolvedExternalId = `apifb_${fbFixture.fixture?.id}`;
+              const resolvedExternalId = provider === 'apifb'
+                ? `apifb_${fbFixture.fixture?.id}`
+                : missed.external_id;
 
               const statusChanged = missed.status !== fbStatus;
               const scoreChanged = missed.home_score !== fbHome || missed.away_score !== fbAway;
-              const externalIdChanged = missed.external_id !== resolvedExternalId;
+              const externalIdChanged = provider === 'apifb' && missed.external_id !== resolvedExternalId;
 
               if (statusChanged || scoreChanged || externalIdChanged) {
                 const updateData: any = {
@@ -285,19 +294,21 @@ serve(async (req) => {
         if (dailyCount >= DAILY_LIMIT) break;
 
         try {
-          const { fixture: fbFixture, requestsMade } = await fetchFixtureWithFallback(missed);
+          const { fixture: fbFixture, provider, requestsMade } = await fetchFixtureWithFallback(missed);
           dailyCount += requestsMade;
 
-          if (!fbFixture) continue;
+          if (!fbFixture || !provider) continue;
 
           const fbStatus = mapApiStatus(fbFixture.fixture?.status?.short);
           const fbHome = fbFixture.goals?.home ?? null;
           const fbAway = fbFixture.goals?.away ?? null;
-          const resolvedExternalId = `apifb_${fbFixture.fixture?.id}`;
+          const resolvedExternalId = provider === 'apifb'
+            ? `apifb_${fbFixture.fixture?.id}`
+            : missed.external_id;
 
           const statusChanged = fbStatus !== missed.status;
           const scoreChanged = (fbHome !== null && fbHome !== missed.home_score) || (fbAway !== null && fbAway !== missed.away_score);
-          const externalIdChanged = missed.external_id !== resolvedExternalId;
+          const externalIdChanged = provider === 'apifb' && missed.external_id !== resolvedExternalId;
 
           if (statusChanged || scoreChanged || externalIdChanged) {
             const updateData: any = {
@@ -410,7 +421,7 @@ function normalizeTeamName(name: string): string {
 }
 
 const TEAM_STOP_WORDS = new Set([
-  'fc', 'sc', 'ac', 'ec', 'cd', 'cf', 'clube', 'club', 'esporte', 'futebol', 'sport', 'de', 'da', 'do', 'the',
+  'fc', 'sc', 'ac', 'ec', 'cd', 'cf', 'af', 'fbpa', 'cr', 'clube', 'club', 'esporte', 'futebol', 'sport', 'de', 'da', 'do', 'the',
 ]);
 
 function tokenizeTeamName(name: string): string[] {
@@ -518,7 +529,10 @@ async function findDbMatchForLiveFixture(supabase: any, fixture: any): Promise<a
 
   if (
     bestMatch &&
-    isStrongTeamMatch(bestHomeScore, bestAwayScore, bestTotal, secondBestTotal)
+    (
+      isStrongTeamMatch(bestHomeScore, bestAwayScore, bestTotal, secondBestTotal) ||
+      isTrustedHighNameMatch(bestHomeScore, bestAwayScore, bestTotal, secondBestTotal)
+    )
   ) {
     console.log(`🔁 Reconciled live fixture by teams/date: ${bestMatch.home_team} vs ${bestMatch.away_team} (score ${bestTotal.toFixed(2)})`);
     return bestMatch;
@@ -537,11 +551,137 @@ function formatApiDate(date: Date): string {
   return date.toISOString().split('T')[0];
 }
 
-async function fetchFixtureWithFallback(match: any): Promise<{ fixture: any | null; requestsMade: number }> {
+function extractApiFootballError(payload: any): string | null {
+  const errors = payload?.errors;
+  if (!errors || typeof errors !== 'object') return null;
+
+  const messages = Object.values(errors)
+    .map((value) => String(value || '').trim())
+    .filter(Boolean);
+
+  return messages.length > 0 ? messages.join(' | ') : null;
+}
+
+function shouldUseFootballDataFallback(errorMessage: string | null): boolean {
+  if (!errorMessage) return false;
+  const normalized = errorMessage.toLowerCase();
+  return normalized.includes('account is suspended') || normalized.includes('free plans do not have access') || normalized.includes('access');
+}
+
+function isTrustedHighNameMatch(homeScore: number, awayScore: number, totalScore: number, secondBestScore: number): boolean {
+  const confidenceGap = secondBestScore === Number.NEGATIVE_INFINITY
+    ? Number.POSITIVE_INFINITY
+    : totalScore - secondBestScore;
+
+  return homeScore >= 0.9 && awayScore >= 0.9 && totalScore >= 1.35 && confidenceGap >= 0.08;
+}
+
+function mapFootballDataStatus(status: string | undefined): string {
+  const statusMap: Record<string, string> = {
+    SCHEDULED: 'NS',
+    TIMED: 'NS',
+    IN_PLAY: '1H',
+    PAUSED: 'HT',
+    FINISHED: 'FT',
+    SUSPENDED: 'SUSP',
+    POSTPONED: 'PST',
+    CANCELLED: 'CANC',
+  };
+
+  return statusMap[status || ''] || 'NS';
+}
+
+function buildApiLikeFixtureFromFootballData(matchData: any): any {
+  const fdStatus = mapFootballDataStatus(matchData?.status);
+  const fullTime = matchData?.score?.fullTime || {};
+
+  return {
+    fixture: {
+      id: matchData?.id,
+      date: matchData?.utcDate,
+      status: { short: fdStatus },
+    },
+    goals: {
+      home: typeof fullTime.home === 'number' ? fullTime.home : null,
+      away: typeof fullTime.away === 'number' ? fullTime.away : null,
+    },
+    teams: {
+      home: { name: matchData?.homeTeam?.name || '' },
+      away: { name: matchData?.awayTeam?.name || '' },
+    },
+  };
+}
+
+async function fetchFootballDataFixtureByTeamsAndDate(match: any): Promise<any | null> {
+  if (!FOOTBALL_DATA_API_KEY) return null;
+
+  const baseDate = new Date(match.match_date);
+  const dateFrom = formatApiDate(new Date(baseDate.getTime() - 24 * 60 * 60 * 1000));
+  const dateTo = formatApiDate(new Date(baseDate.getTime() + 24 * 60 * 60 * 1000));
+
+  const response = await fetch(`${FOOTBALL_DATA_BASE}/matches?dateFrom=${dateFrom}&dateTo=${dateTo}`, {
+    headers: { 'X-Auth-Token': FOOTBALL_DATA_API_KEY },
+  });
+
+  if (!response.ok) {
+    console.warn(`⚠️ Football-Data fallback failed with HTTP ${response.status} for ${match.home_team} vs ${match.away_team}`);
+    return null;
+  }
+
+  const payload = await response.json();
+  const matches = payload?.matches || [];
+  if (!Array.isArray(matches) || matches.length === 0) return null;
+
+  let bestMatch: any = null;
+  let bestTotal = Number.NEGATIVE_INFINITY;
+  let bestHomeScore = 0;
+  let bestAwayScore = 0;
+  let secondBestTotal = Number.NEGATIVE_INFINITY;
+  const targetKickoffTs = new Date(match.match_date).getTime();
+
+  for (const candidate of matches) {
+    const homeScore = scoreTeamSimilarity(candidate?.homeTeam?.name || '', match.home_team || '');
+    const awayScore = scoreTeamSimilarity(candidate?.awayTeam?.name || '', match.away_team || '');
+    if (homeScore === 0 || awayScore === 0) continue;
+
+    const candidateKickoffTs = new Date(candidate?.utcDate || match.match_date).getTime();
+    const minuteDiff = Math.abs(candidateKickoffTs - targetKickoffTs) / (1000 * 60);
+    const timePenalty = Math.min(minuteDiff / 720, 0.35); // tolera diferenças de horário maiores entre provedores
+    const totalScore = homeScore + awayScore - timePenalty;
+
+    if (totalScore > bestTotal) {
+      secondBestTotal = bestTotal;
+      bestTotal = totalScore;
+      bestMatch = candidate;
+      bestHomeScore = homeScore;
+      bestAwayScore = awayScore;
+    } else if (totalScore > secondBestTotal) {
+      secondBestTotal = totalScore;
+    }
+  }
+
+  if (!bestMatch) return null;
+
+  if (
+    isStrongTeamMatch(bestHomeScore, bestAwayScore, bestTotal, secondBestTotal) ||
+    isTrustedHighNameMatch(bestHomeScore, bestAwayScore, bestTotal, secondBestTotal)
+  ) {
+    console.log(`🔁 Matched by Football-Data fallback: ${bestMatch.homeTeam?.name} vs ${bestMatch.awayTeam?.name} (id ${bestMatch.id})`);
+    return buildApiLikeFixtureFromFootballData(bestMatch);
+  }
+
+  return null;
+}
+
+type FixtureProvider = 'apifb' | 'football_data';
+type FixtureLookupResult = { fixture: any | null; provider: FixtureProvider | null; requestsMade: number };
+
+async function fetchFixtureWithFallback(match: any): Promise<FixtureLookupResult> {
   const fixtureId = extractApiFixtureId(match.external_id);
   if (!fixtureId) {
     console.warn(`⚠️ Invalid external_id for match ${match.id}: ${match.external_id}`);
-    return { fixture: null, requestsMade: 0 };
+    const fdFixture = await fetchFootballDataFixtureByTeamsAndDate(match);
+    return { fixture: fdFixture, provider: fdFixture ? 'football_data' : null, requestsMade: 0 };
   }
 
   let requestsMade = 0;
@@ -553,6 +693,16 @@ async function fetchFixtureWithFallback(match: any): Promise<{ fixture: any | nu
 
   if (byIdResp.ok) {
     const byIdData = await byIdResp.json();
+    const byIdError = extractApiFootballError(byIdData);
+
+    if (byIdError) {
+      console.warn(`⚠️ API-Football fixtures?id=${fixtureId} returned error: ${byIdError}`);
+      if (shouldUseFootballDataFallback(byIdError)) {
+        const fdFixture = await fetchFootballDataFixtureByTeamsAndDate(match);
+        return { fixture: fdFixture, provider: fdFixture ? 'football_data' : null, requestsMade };
+      }
+    }
+
     const byIdFixture = byIdData.response?.[0];
 
     if (byIdFixture) {
@@ -560,8 +710,11 @@ async function fetchFixtureWithFallback(match: any): Promise<{ fixture: any | nu
       const byIdAwayScore = scoreTeamSimilarity(byIdFixture.teams?.away?.name || '', match.away_team || '');
       const byIdTotal = byIdHomeScore + byIdAwayScore;
 
-      if (isStrongTeamMatch(byIdHomeScore, byIdAwayScore, byIdTotal, Number.NEGATIVE_INFINITY)) {
-        return { fixture: byIdFixture, requestsMade };
+      if (
+        isStrongTeamMatch(byIdHomeScore, byIdAwayScore, byIdTotal, Number.NEGATIVE_INFINITY) ||
+        isTrustedHighNameMatch(byIdHomeScore, byIdAwayScore, byIdTotal, Number.NEGATIVE_INFINITY)
+      ) {
+        return { fixture: byIdFixture, provider: 'apifb', requestsMade };
       }
 
       console.warn(
@@ -597,6 +750,16 @@ async function fetchFixtureWithFallback(match: any): Promise<{ fixture: any | nu
     }
 
     const byDateData = await byDateResp.json();
+    const byDateError = extractApiFootballError(byDateData);
+    if (byDateError) {
+      console.warn(`⚠️ API-Football fixtures?date=${dateParam} returned error: ${byDateError}`);
+      if (shouldUseFootballDataFallback(byDateError)) {
+        const fdFixture = await fetchFootballDataFixtureByTeamsAndDate(match);
+        return { fixture: fdFixture, provider: fdFixture ? 'football_data' : null, requestsMade };
+      }
+      continue;
+    }
+
     const fixturesByDate = byDateData.response || [];
 
     let matchedByTeams: any = null;
@@ -629,10 +792,11 @@ async function fetchFixtureWithFallback(match: any): Promise<{ fixture: any | nu
 
     if (
       matchedByTeams &&
-      isStrongTeamMatch(bestHomeScore, bestAwayScore, bestTotal, secondBestTotal)
+      (isStrongTeamMatch(bestHomeScore, bestAwayScore, bestTotal, secondBestTotal) ||
+        isTrustedHighNameMatch(bestHomeScore, bestAwayScore, bestTotal, secondBestTotal))
     ) {
       console.log(`🔁 Matched fixture by date/teams for ${match.home_team} vs ${match.away_team} (id ${matchedByTeams.fixture?.id}, score ${bestTotal.toFixed(2)})`);
-      return { fixture: matchedByTeams, requestsMade };
+      return { fixture: matchedByTeams, provider: 'apifb', requestsMade };
     }
 
     if (matchedByTeams) {
@@ -642,8 +806,13 @@ async function fetchFixtureWithFallback(match: any): Promise<{ fixture: any | nu
     }
   }
 
+  const fdFixture = await fetchFootballDataFixtureByTeamsAndDate(match);
+  if (fdFixture) {
+    return { fixture: fdFixture, provider: 'football_data', requestsMade };
+  }
+
   console.warn(`⚠️ Date fallback could not match teams for ${match.home_team} vs ${match.away_team}`);
-  return { fixture: null, requestsMade };
+  return { fixture: null, provider: null, requestsMade };
 }
 
 
