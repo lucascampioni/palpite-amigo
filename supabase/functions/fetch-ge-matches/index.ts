@@ -341,7 +341,7 @@ async function fetchFromAPIFootball(): Promise<Championship[]> {
 
   for (const [key, comp] of Object.entries(AF_COMPETITIONS)) {
     try {
-      const url = key === 'worldCup'
+      const url = comp.fetchAll
         ? `${API_FOOTBALL_BASE}/fixtures?league=${comp.leagueId}&season=${comp.season}`
         : `${API_FOOTBALL_BASE}/fixtures?league=${comp.leagueId}&season=${comp.season}&from=${dateFrom}&to=${dateTo}`;
 
