@@ -43,7 +43,7 @@ const FD_COMPETITIONS: { id: number; code: string; name: string }[] = [
 ];
 
 // API-Football league IDs (fallback + extras not in Football-Data free tier)
-const AF_COMPETITIONS: Record<string, { leagueId: number; code: string; name: string; season: number }> = {
+const AF_COMPETITIONS: Record<string, { leagueId: number; code: string; name: string; season: number; fetchAll?: boolean }> = {
   paulista: { leagueId: 475, code: 'pau', name: 'Campeonato Paulista', season: 2026 },
   paulistaA2: { leagueId: 476, code: 'pa2', name: 'Campeonato Paulista A2', season: 2026 },
   mineiro: { leagueId: 629, code: 'min', name: 'Campeonato Mineiro', season: 2026 },
@@ -51,7 +51,8 @@ const AF_COMPETITIONS: Record<string, { leagueId: number; code: string; name: st
   gaucho: { leagueId: 632, code: 'gau', name: 'Campeonato Gaúcho', season: 2026 },
   cearense: { leagueId: 626, code: 'cea', name: 'Campeonato Cearense', season: 2026 },
   paraense: { leagueId: 635, code: 'par', name: 'Campeonato Paraense', season: 2026 },
-  worldCup: { leagueId: 1, code: 'wc', name: 'Copa do Mundo 2026', season: 2026 },
+  worldCup: { leagueId: 1, code: 'wc', name: 'Copa do Mundo 2026', season: 2026, fetchAll: true },
+  friendlies: { leagueId: 10, code: 'fri', name: 'Amistosos Internacionais', season: 2026 },
 };
 
 // Team name translations for display in pt-BR
