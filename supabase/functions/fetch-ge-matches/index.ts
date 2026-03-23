@@ -266,7 +266,7 @@ async function fetchFromFootballData(): Promise<Championship[]> {
         processMatches(data.matches || [], comp, roundsMap);
 
         // Small delay to respect rate limits (10 req/min)
-        await new Promise(r => setTimeout(r, 6500));
+        await new Promise(r => setTimeout(r, 3000));
       }
 
       if (roundsMap.size > 0) {
