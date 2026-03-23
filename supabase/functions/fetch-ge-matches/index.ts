@@ -284,6 +284,15 @@ async function fetchFromAPIFootball(): Promise<Championship[]> {
         for (const f of fixtures) {
           const status = f.fixture?.status?.short;
           if (EXCLUDED_AF_STATUSES.has(status)) continue;
+
+          // Filter out youth teams for friendlies
+          if (comp.code === 'fri') {
+            const homeName = f.teams?.home?.name || '';
+            const awayName = f.teams?.away?.name || '';
+            const youthPattern = /\b(U\d{2}|U-\d{2}|Sub[\s-]?\d{2}|Under[\s-]?\d{2}|Olympic|Olympique)\b/i;
+            if (youthPattern.test(homeName) || youthPattern.test(awayName)) continue;
+          }
+
           // Only include scheduled/not-started matches
           if (!['NS', 'TBD', 'SCH'].includes(status) && status !== null) continue;
 
