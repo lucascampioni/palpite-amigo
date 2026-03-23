@@ -33,7 +33,25 @@ const API_FOOTBALL_KEY = Deno.env.get('API_FOOTBALL_KEY');
 const FOOTBALL_DATA_BASE = 'https://api.football-data.org/v4';
 const API_FOOTBALL_BASE = 'https://v3.football.api-sports.io';
 
-// Football-Data.org competitions
+// API-Football leagues (PRIMARY source)
+const AF_COMPETITIONS: { leagueId: number; code: string; name: string; season: number; fetchAll?: boolean }[] = [
+  { leagueId: 71, code: 'bsa', name: 'Campeonato Brasileiro Série A', season: 2025 },
+  { leagueId: 39, code: 'pl', name: 'Premier League', season: 2025 },
+  { leagueId: 2, code: 'cl', name: 'UEFA Champions League', season: 2025 },
+  { leagueId: 61, code: 'fra', name: 'Ligue 1 (França)', season: 2025 },
+  { leagueId: 135, code: 'ita', name: 'Serie A (Itália)', season: 2025 },
+  { leagueId: 475, code: 'pau', name: 'Campeonato Paulista', season: 2026 },
+  { leagueId: 476, code: 'pa2', name: 'Campeonato Paulista A2', season: 2026 },
+  { leagueId: 629, code: 'min', name: 'Campeonato Mineiro', season: 2026 },
+  { leagueId: 624, code: 'car', name: 'Campeonato Carioca', season: 2026 },
+  { leagueId: 632, code: 'gau', name: 'Campeonato Gaúcho', season: 2026 },
+  { leagueId: 626, code: 'cea', name: 'Campeonato Cearense', season: 2026 },
+  { leagueId: 635, code: 'par', name: 'Campeonato Paraense', season: 2026 },
+  { leagueId: 1, code: 'wc', name: 'Copa do Mundo 2026', season: 2026, fetchAll: true },
+  { leagueId: 10, code: 'fri', name: 'Amistosos Internacionais', season: 2026 },
+];
+
+// Football-Data.org competitions (FALLBACK only if AF fails)
 const FD_COMPETITIONS: { id: number; code: string; name: string }[] = [
   { id: 2013, code: 'bsa', name: 'Campeonato Brasileiro Série A' },
   { id: 2021, code: 'pl', name: 'Premier League' },
@@ -42,20 +60,7 @@ const FD_COMPETITIONS: { id: number; code: string; name: string }[] = [
   { id: 2019, code: 'ita', name: 'Serie A (Itália)' },
 ];
 
-// API-Football league IDs (fallback + extras not in Football-Data free tier)
-const AF_COMPETITIONS: Record<string, { leagueId: number; code: string; name: string; season: number; fetchAll?: boolean }> = {
-  paulista: { leagueId: 475, code: 'pau', name: 'Campeonato Paulista', season: 2026 },
-  paulistaA2: { leagueId: 476, code: 'pa2', name: 'Campeonato Paulista A2', season: 2026 },
-  mineiro: { leagueId: 629, code: 'min', name: 'Campeonato Mineiro', season: 2026 },
-  carioca: { leagueId: 624, code: 'car', name: 'Campeonato Carioca', season: 2026 },
-  gaucho: { leagueId: 632, code: 'gau', name: 'Campeonato Gaúcho', season: 2026 },
-  cearense: { leagueId: 626, code: 'cea', name: 'Campeonato Cearense', season: 2026 },
-  paraense: { leagueId: 635, code: 'par', name: 'Campeonato Paraense', season: 2026 },
-  worldCup: { leagueId: 1, code: 'wc', name: 'Copa do Mundo 2026', season: 2026, fetchAll: true },
-  friendlies: { leagueId: 10, code: 'fri', name: 'Amistosos Internacionais', season: 2026 },
-};
-
-// Team name translations for display in pt-BR
+// Team name translations
 const TEAM_NAMES_PT: Record<string, string> = {
   'CA Paranaense': 'Athletico-PR',
   'Atletico Paranaense': 'Athletico-PR',
@@ -120,7 +125,6 @@ const TEAM_NAMES_PT: Record<string, string> = {
   'Remo PA': 'Remo',
   'Náutico': 'Náutico',
   'Nautico PE': 'Náutico',
-  // National teams
   'Argentina': 'Argentina',
   'Australia': 'Austrália',
   'Belgium': 'Bélgica',
@@ -176,6 +180,28 @@ function translateTeamName(name: string): string {
   return TEAM_NAMES_PT[name] || name;
 }
 
+function translateRoundAF(round: string): string {
+  const regularMatch = round.match(/Regular Season - (\d+)/);
+  if (regularMatch) return `Rodada ${regularMatch[1]}`;
+  const groupMatch = round.match(/Group ([A-Z]) - (\d+)/);
+  if (groupMatch) return `Grupo ${groupMatch[1]} - Rodada ${groupMatch[2]}`;
+  const STAGE_NAMES: Record<string, string> = {
+    'Group Stage': 'Fase de Grupos',
+    'League Stage': 'Fase de Liga',
+    'Round of 16': 'Oitavas de Final',
+    'Quarter-finals': 'Quartas de Final',
+    'Semi-finals': 'Semifinais',
+    'Final': 'Final',
+    '3rd Place Final': 'Disputa 3º Lugar',
+    'Regular Season': 'Temporada Regular',
+    'Friendly': 'Amistoso',
+  };
+  for (const [key, value] of Object.entries(STAGE_NAMES)) {
+    if (round.startsWith(key)) return value;
+  }
+  return round;
+}
+
 function translateStage(stage: string, matchday: number | null): string {
   const STAGES: Record<string, string> = {
     'REGULAR_SEASON': matchday ? `Rodada ${matchday}` : 'Temporada Regular',
@@ -193,125 +219,10 @@ function translateStage(stage: string, matchday: number | null): string {
   return STAGES[stage] || (matchday ? `Rodada ${matchday}` : stage);
 }
 
-function translateRoundAF(round: string): string {
-  const regularMatch = round.match(/Regular Season - (\d+)/);
-  if (regularMatch) return `Rodada ${regularMatch[1]}`;
-  const groupMatch = round.match(/Group ([A-Z]) - (\d+)/);
-  if (groupMatch) return `Grupo ${groupMatch[1]} - Rodada ${groupMatch[2]}`;
-  const STAGE_NAMES: Record<string, string> = {
-    'Group Stage': 'Fase de Grupos',
-    'League Stage': 'Fase de Liga',
-    'Round of 16': 'Oitavas de Final',
-    'Quarter-finals': 'Quartas de Final',
-    'Semi-finals': 'Semifinais',
-    'Final': 'Final',
-    '3rd Place Final': 'Disputa 3º Lugar',
-    'Regular Season': 'Temporada Regular',
-  };
-  for (const [key, value] of Object.entries(STAGE_NAMES)) {
-    if (round.startsWith(key)) return value;
-  }
-  return round;
-}
+const EXCLUDED_AF_STATUSES = new Set(['PST', 'CANC', 'ABD', 'WO', 'AWD', 'FT', 'AET', 'PEN']);
+const EXCLUDED_FD_STATUSES = new Set(['POSTPONED', 'CANCELLED', 'SUSPENDED', 'FINISHED']);
 
-const EXCLUDED_FD_STATUSES = new Set(['POSTPONED', 'CANCELLED', 'SUSPENDED']);
-const EXCLUDED_AF_STATUSES = new Set(['PST', 'CANC', 'ABD', 'WO', 'AWD']);
-
-// ── Football-Data.org fetcher ──
-async function fetchFromFootballData(): Promise<Championship[]> {
-  if (!FOOTBALL_DATA_KEY) {
-    console.log('⚠️ FOOTBALL_DATA_API_KEY not set, skipping Football-Data.org');
-    return [];
-  }
-
-  const championships: Championship[] = [];
-  const today = new Date();
-
-  for (const comp of FD_COMPETITIONS) {
-    try {
-      // Fetch in 10-day windows (API limit), up to 31 days ahead
-      const allMatches: Match[] = [];
-      const roundsMap = new Map<string, Match[]>();
-
-      for (let offset = 0; offset < 31; offset += 10) {
-        const from = new Date(today.getTime() + offset * 86400000);
-        const to = new Date(today.getTime() + Math.min(offset + 10, 31) * 86400000);
-        const dateFrom = from.toISOString().split('T')[0];
-        const dateTo = to.toISOString().split('T')[0];
-
-        const url = `${FOOTBALL_DATA_BASE}/competitions/${comp.id}/matches?dateFrom=${dateFrom}&dateTo=${dateTo}&status=SCHEDULED,TIMED`;
-        console.log(`  📡 FD: ${url}`);
-
-        const resp = await fetch(url, {
-          headers: { 'X-Auth-Token': FOOTBALL_DATA_KEY },
-        });
-
-        if (resp.status === 429) {
-          console.log('  ⏳ Rate limited, waiting 60s...');
-          await new Promise(r => setTimeout(r, 60000));
-          const retryResp = await fetch(url, {
-            headers: { 'X-Auth-Token': FOOTBALL_DATA_KEY },
-          });
-          if (!retryResp.ok) continue;
-          const retryData = await retryResp.json();
-          processMatches(retryData.matches || [], comp, roundsMap);
-          continue;
-        }
-
-        if (!resp.ok) {
-          console.error(`  ❌ FD error ${resp.status} for ${comp.name}`);
-          continue;
-        }
-
-        const data = await resp.json();
-        processMatches(data.matches || [], comp, roundsMap);
-
-        // Small delay to respect rate limits (10 req/min)
-        await new Promise(r => setTimeout(r, 3000));
-      }
-
-      if (roundsMap.size > 0) {
-        const rounds = buildRounds(roundsMap);
-        championships.push({ id: comp.code, name: comp.name, rounds });
-        console.log(`  ✅ ${comp.name}: ${rounds.reduce((s, r) => s + r.matches.length, 0)} matches`);
-      }
-    } catch (err) {
-      console.error(`❌ Error fetching ${comp.name} from FD:`, err instanceof Error ? err.message : err);
-    }
-  }
-
-  return championships;
-}
-
-function processMatches(
-  matches: any[],
-  comp: { code: string; name: string },
-  roundsMap: Map<string, Match[]>
-) {
-  for (const m of matches) {
-    if (EXCLUDED_FD_STATUSES.has(m.status)) continue;
-
-    const round = translateStage(m.stage || 'REGULAR_SEASON', m.matchday);
-    const matchObj: Match = {
-      homeTeam: translateTeamName(m.homeTeam?.name || 'TBD'),
-      awayTeam: translateTeamName(m.awayTeam?.name || 'TBD'),
-      matchDate: m.utcDate,
-      championship: comp.name,
-      externalId: `fd_${m.id}`,
-      round,
-      homeTeamCrest: m.homeTeam?.crest || undefined,
-      awayTeamCrest: m.awayTeam?.crest || undefined,
-    };
-
-    if (!roundsMap.has(round)) roundsMap.set(round, []);
-    const existing = roundsMap.get(round)!;
-    if (!existing.some(e => e.externalId === matchObj.externalId)) {
-      existing.push(matchObj);
-    }
-  }
-}
-
-// ── API-Football fetcher (for leagues not in Football-Data free tier) ──
+// ── API-Football fetcher (PRIMARY) ──
 async function fetchFromAPIFootball(): Promise<Championship[]> {
   if (!API_FOOTBALL_KEY) {
     console.log('⚠️ API_FOOTBALL_KEY not set, skipping API-Football');
@@ -325,11 +236,12 @@ async function fetchFromAPIFootball(): Promise<Championship[]> {
     });
     const statusData = await statusResp.json();
     if (statusData.errors?.access) {
-      console.log('⚠️ API-Football account suspended, skipping');
+      console.log('⚠️ API-Football account issue, skipping');
       return [];
     }
+    console.log(`📊 API-Football requests today: ${statusData.response?.requests?.current || '?'}/${statusData.response?.requests?.limit_day || '?'}`);
   } catch {
-    console.log('⚠️ Could not check API-Football status, skipping');
+    console.log('⚠️ Could not check API-Football status');
     return [];
   }
 
@@ -339,48 +251,139 @@ async function fetchFromAPIFootball(): Promise<Championship[]> {
   const toDate = new Date(today.getTime() + 31 * 86400000);
   const dateTo = toDate.toISOString().split('T')[0];
 
-  for (const [key, comp] of Object.entries(AF_COMPETITIONS)) {
+  // Fetch all leagues in parallel (batches of 5 to avoid overwhelming)
+  const batchSize = 5;
+  for (let i = 0; i < AF_COMPETITIONS.length; i += batchSize) {
+    const batch = AF_COMPETITIONS.slice(i, i + batchSize);
+    const results = await Promise.allSettled(
+      batch.map(async (comp) => {
+        const url = comp.fetchAll
+          ? `${API_FOOTBALL_BASE}/fixtures?league=${comp.leagueId}&season=${comp.season}`
+          : `${API_FOOTBALL_BASE}/fixtures?league=${comp.leagueId}&season=${comp.season}&from=${dateFrom}&to=${dateTo}`;
+
+        console.log(`  📡 AF: league=${comp.leagueId} (${comp.name})`);
+        const resp = await fetch(url, {
+          headers: { 'x-apisports-key': API_FOOTBALL_KEY },
+        });
+
+        if (!resp.ok) {
+          console.error(`  ❌ AF error ${resp.status} for ${comp.name}`);
+          return null;
+        }
+
+        const data = await resp.json();
+        if (data.errors && Object.keys(data.errors).length > 0) {
+          console.error(`  ❌ AF API error for ${comp.name}:`, JSON.stringify(data.errors));
+          return null;
+        }
+
+        const fixtures = data.response || [];
+        if (fixtures.length === 0) return null;
+
+        const roundsMap = new Map<string, Match[]>();
+        for (const f of fixtures) {
+          const status = f.fixture?.status?.short;
+          if (EXCLUDED_AF_STATUSES.has(status)) continue;
+          // Only include scheduled/not-started matches
+          if (!['NS', 'TBD', 'SCH'].includes(status) && status !== null) continue;
+
+          const round = translateRoundAF(f.league?.round || 'Rodada 1');
+          const matchObj: Match = {
+            homeTeam: translateTeamName(f.teams?.home?.name || 'TBD'),
+            awayTeam: translateTeamName(f.teams?.away?.name || 'TBD'),
+            matchDate: f.fixture?.date || new Date().toISOString(),
+            championship: comp.name,
+            externalId: `apifb_${f.fixture?.id}`,
+            round,
+            homeTeamCrest: f.teams?.home?.logo || undefined,
+            awayTeamCrest: f.teams?.away?.logo || undefined,
+          };
+          if (!roundsMap.has(round)) roundsMap.set(round, []);
+          roundsMap.get(round)!.push(matchObj);
+        }
+
+        if (roundsMap.size > 0) {
+          const rounds = buildRounds(roundsMap);
+          console.log(`  ✅ ${comp.name}: ${rounds.reduce((s, r) => s + r.matches.length, 0)} matches`);
+          return { id: comp.code, name: comp.name, rounds } as Championship;
+        }
+        return null;
+      })
+    );
+
+    for (const result of results) {
+      if (result.status === 'fulfilled' && result.value) {
+        championships.push(result.value);
+      }
+    }
+  }
+
+  return championships;
+}
+
+// ── Football-Data.org fetcher (FALLBACK) ──
+async function fetchFromFootballData(existingCodes: Set<string>): Promise<Championship[]> {
+  if (!FOOTBALL_DATA_KEY) return [];
+
+  const championships: Championship[] = [];
+  const today = new Date();
+  // Only fetch competitions not already covered by AF
+  const compsToFetch = FD_COMPETITIONS.filter(c => !existingCodes.has(c.code));
+  if (compsToFetch.length === 0) {
+    console.log('📋 FD: All competitions already covered by API-Football');
+    return [];
+  }
+
+  for (const comp of compsToFetch) {
     try {
-      const url = comp.fetchAll
-        ? `${API_FOOTBALL_BASE}/fixtures?league=${comp.leagueId}&season=${comp.season}`
-        : `${API_FOOTBALL_BASE}/fixtures?league=${comp.leagueId}&season=${comp.season}&from=${dateFrom}&to=${dateTo}`;
-
-      console.log(`  📡 AF: ${url}`);
-      const resp = await fetch(url, {
-        headers: { 'x-apisports-key': API_FOOTBALL_KEY },
-      });
-
-      if (!resp.ok) continue;
-      const data = await resp.json();
-      const fixtures = data.response || [];
-
-      if (fixtures.length === 0) continue;
-
       const roundsMap = new Map<string, Match[]>();
-      for (const f of fixtures) {
-        if (EXCLUDED_AF_STATUSES.has(f.fixture?.status?.short)) continue;
-        const round = translateRoundAF(f.league?.round || 'Rodada 1');
-        const matchObj: Match = {
-          homeTeam: translateTeamName(f.teams?.home?.name || 'TBD'),
-          awayTeam: translateTeamName(f.teams?.away?.name || 'TBD'),
-          matchDate: f.fixture?.date || new Date().toISOString(),
-          championship: comp.name,
-          externalId: `apifb_${f.fixture?.id}`,
-          round,
-          homeTeamCrest: f.teams?.home?.logo || undefined,
-          awayTeamCrest: f.teams?.away?.logo || undefined,
-        };
-        if (!roundsMap.has(round)) roundsMap.set(round, []);
-        roundsMap.get(round)!.push(matchObj);
+      for (let offset = 0; offset < 31; offset += 10) {
+        const from = new Date(today.getTime() + offset * 86400000);
+        const to = new Date(today.getTime() + Math.min(offset + 10, 31) * 86400000);
+        const dateFrom = from.toISOString().split('T')[0];
+        const dateTo = to.toISOString().split('T')[0];
+
+        const url = `${FOOTBALL_DATA_BASE}/competitions/${comp.id}/matches?dateFrom=${dateFrom}&dateTo=${dateTo}&status=SCHEDULED,TIMED`;
+        const resp = await fetch(url, {
+          headers: { 'X-Auth-Token': FOOTBALL_DATA_KEY },
+        });
+
+        if (resp.status === 429) {
+          console.log('  ⏳ FD rate limited, skipping remaining windows');
+          break;
+        }
+        if (!resp.ok) continue;
+
+        const data = await resp.json();
+        for (const m of (data.matches || [])) {
+          if (EXCLUDED_FD_STATUSES.has(m.status)) continue;
+          const round = translateStage(m.stage || 'REGULAR_SEASON', m.matchday);
+          const matchObj: Match = {
+            homeTeam: translateTeamName(m.homeTeam?.name || 'TBD'),
+            awayTeam: translateTeamName(m.awayTeam?.name || 'TBD'),
+            matchDate: m.utcDate,
+            championship: comp.name,
+            externalId: `fd_${m.id}`,
+            round,
+            homeTeamCrest: m.homeTeam?.crest || undefined,
+            awayTeamCrest: m.awayTeam?.crest || undefined,
+          };
+          if (!roundsMap.has(round)) roundsMap.set(round, []);
+          const existing = roundsMap.get(round)!;
+          if (!existing.some(e => e.externalId === matchObj.externalId)) {
+            existing.push(matchObj);
+          }
+        }
+        await new Promise(r => setTimeout(r, 2000));
       }
 
       if (roundsMap.size > 0) {
         const rounds = buildRounds(roundsMap);
         championships.push({ id: comp.code, name: comp.name, rounds });
-        console.log(`  ✅ ${comp.name}: ${rounds.reduce((s, r) => s + r.matches.length, 0)} matches`);
+        console.log(`  ✅ FD ${comp.name}: ${rounds.reduce((s, r) => s + r.matches.length, 0)} matches`);
       }
     } catch (err) {
-      console.error(`❌ Error fetching ${comp.name} from AF:`, err instanceof Error ? err.message : err);
+      console.error(`❌ FD error ${comp.name}:`, err instanceof Error ? err.message : err);
     }
   }
 
@@ -388,7 +391,7 @@ async function fetchFromAPIFootball(): Promise<Championship[]> {
 }
 
 function buildRounds(roundsMap: Map<string, Match[]>): Round[] {
-  const stageOrder = ['Fase de Grupos', 'Fase de Liga', 'Playoff', 'Oitavas de Final', 'Quartas de Final', 'Semifinais', 'Disputa 3º Lugar', 'Final'];
+  const stageOrder = ['Amistoso', 'Fase de Grupos', 'Fase de Liga', 'Playoff', 'Oitavas de Final', 'Quartas de Final', 'Semifinais', 'Disputa 3º Lugar', 'Final'];
 
   const sorted = Array.from(roundsMap.entries()).sort((a, b) => {
     const idxA = stageOrder.indexOf(a[0]);
@@ -422,10 +425,7 @@ serve(async (req) => {
     }
 
     if (!FOOTBALL_DATA_KEY && !API_FOOTBALL_KEY) {
-      return new Response(JSON.stringify({
-        error: 'No API keys configured',
-        success: false,
-      }), {
+      return new Response(JSON.stringify({ error: 'No API keys configured', success: false }), {
         status: 500,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
@@ -433,18 +433,19 @@ serve(async (req) => {
 
     console.log('=== Starting fetch-ge-matches ===');
 
-    // 1. Primary: Football-Data.org (BSA, PL, CL, Ligue1, SerieA)
-    const fdChampionships = await fetchFromFootballData();
-    console.log(`📋 Football-Data.org: ${fdChampionships.length} championships`);
-
-    // 2. Secondary: API-Football (Estaduais, Copa do Mundo)
+    // 1. PRIMARY: API-Football (fast, parallel fetches)
     const afChampionships = await fetchFromAPIFootball();
     console.log(`📋 API-Football: ${afChampionships.length} championships`);
 
-    // Merge (avoid duplicates by code)
+    // 2. FALLBACK: Football-Data.org (only for leagues AF didn't cover)
+    const coveredCodes = new Set(afChampionships.map(c => c.id));
+    const fdChampionships = await fetchFromFootballData(coveredCodes);
+    console.log(`📋 Football-Data.org fallback: ${fdChampionships.length} championships`);
+
+    // Merge
     const champMap = new Map<string, Championship>();
-    for (const c of fdChampionships) champMap.set(c.id, c);
-    for (const c of afChampionships) {
+    for (const c of afChampionships) champMap.set(c.id, c);
+    for (const c of fdChampionships) {
       if (!champMap.has(c.id)) champMap.set(c.id, c);
     }
 
