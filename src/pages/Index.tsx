@@ -279,8 +279,7 @@ const Index = () => {
         .from("participants")
         .select("pool_id")
         .in("pool_id", ownedPoolIds)
-        .eq("status", "pending")
-        .not("payment_proof", "is", null);
+        .eq("status", "pending");
       
       if (pendingParticipants && pendingParticipants.length > 0) {
         const countByPool: Record<string, number> = {};
