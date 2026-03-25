@@ -113,7 +113,8 @@ export const AdminPrizeManagement = ({ participant, poolId, poolTitle, participa
 
       if (uploadError) throw uploadError;
 
-      // Update participant status (store only file name)
+      // Update all participant entries for this user
+      const idsToUpdate = allParticipantIds && allParticipantIds.length > 0 ? allParticipantIds : [participant.id];
       const { error: updateError } = await supabase
         .from("participants")
         .update({
@@ -121,7 +122,7 @@ export const AdminPrizeManagement = ({ participant, poolId, poolTitle, participa
           prize_proof_url: fileName,
           prize_sent_at: new Date().toISOString(),
         })
-        .eq("id", participant.id);
+        .in("id", idsToUpdate);
 
       if (updateError) throw updateError;
 
