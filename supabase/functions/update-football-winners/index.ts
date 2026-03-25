@@ -164,78 +164,69 @@ serve(async (req) => {
       }
     });
 
-    // For each participant, pick the best prediction set (highest points, then tiebreakers)
-    const pointsMap: Record<string, number> = {};
-    const exactScoresMap: Record<string, number> = {};
-    const correctResultsMap: Record<string, number> = {};
-    const earliestPredictionMap: Record<string, string> = {};
+    // Each prediction set competes independently — build flat list of entries
+    interface EntryStats {
+      participant_id: string;
+      participant_name: string;
+      prediction_set: number;
+      points: number;
+      exactScores: number;
+      correctResults: number;
+      earliest: string;
+      created_at: string;
+    }
 
+    const entries: EntryStats[] = [];
     for (const p of participants) {
-      let bestStats: { points: number; exactScores: number; correctResults: number; earliest: string } | null = null;
-
-      for (const key of Object.keys(setStatsMap)) {
-        if (!key.startsWith(`${p.id}_`)) continue;
-        const stats = setStatsMap[key];
-
-        if (!bestStats) {
-          bestStats = stats;
-          continue;
+      // Get all prediction sets for this participant
+      const participantKeys = Object.keys(setStatsMap).filter(k => k.startsWith(`${p.id}_`));
+      if (participantKeys.length === 0) {
+        // Participant with no predictions
+        if (!isEstabelecimento) {
+          entries.push({
+            participant_id: p.id,
+            participant_name: p.participant_name,
+            prediction_set: 1,
+            points: 0,
+            exactScores: 0,
+            correctResults: 0,
+            earliest: p.created_at,
+            created_at: p.created_at,
+          });
         }
-
-        // Pick set with more points
-        if (stats.points > bestStats.points) {
-          bestStats = stats;
-        } else if (stats.points === bestStats.points) {
-          // Tiebreak: more exact scores
-          if (stats.exactScores > bestStats.exactScores) {
-            bestStats = stats;
-          } else if (stats.exactScores === bestStats.exactScores) {
-            // Tiebreak: more correct results
-            if (stats.correctResults > bestStats.correctResults) {
-              bestStats = stats;
-            } else if (stats.correctResults === bestStats.correctResults) {
-              // Tiebreak: earlier prediction
-              if (new Date(stats.earliest).getTime() < new Date(bestStats.earliest).getTime()) {
-                bestStats = stats;
-              }
-            }
-          }
-        }
+        continue;
       }
-
-      if (bestStats) {
-        pointsMap[p.id] = bestStats.points;
-        exactScoresMap[p.id] = bestStats.exactScores;
-        correctResultsMap[p.id] = bestStats.correctResults;
-        earliestPredictionMap[p.id] = bestStats.earliest;
+      for (const key of participantKeys) {
+        const stats = setStatsMap[key];
+        const ps = parseInt(key.split('_')[1]) || 1;
+        entries.push({
+          participant_id: p.id,
+          participant_name: p.participant_name,
+          prediction_set: ps,
+          points: stats.points,
+          exactScores: stats.exactScores,
+          correctResults: stats.correctResults,
+          earliest: stats.earliest,
+          created_at: p.created_at,
+        });
       }
     }
 
-    // Sort participants by points, then by tiebreaker criteria
-    // For estabelecimento pools, exclude participants without predictions
-    const participantsWithPredictions = new Set(predictions?.map(p => p.participant_id) || []);
-    
-    const participantsWithPoints = participants
-      .filter(p => !isEstabelecimento || participantsWithPredictions.has(p.id))
-      .map(p => ({
-        ...p,
-        total_points: pointsMap[p.id] || 0,
-        exact_scores: exactScoresMap[p.id] || 0,
-        correct_results: correctResultsMap[p.id] || 0,
-        earliest_prediction: earliestPredictionMap[p.id] || p.created_at
-      }))
-      .sort((a, b) => {
-        if (b.total_points !== a.total_points) return b.total_points - a.total_points;
-        
-        if (isEstabelecimento) {
-          // Estabelecimento tiebreaker: exact scores → correct results → prediction time
-          if (b.exact_scores !== a.exact_scores) return b.exact_scores - a.exact_scores;
-          if (b.correct_results !== a.correct_results) return b.correct_results - a.correct_results;
-        }
-        
-        // Tiebreaker: earliest prediction submission time wins
-        return new Date(a.earliest_prediction).getTime() - new Date(b.earliest_prediction).getTime();
-      });
+    // Sort entries by points, then tiebreaker criteria
+    entries.sort((a, b) => {
+      if (b.points !== a.points) return b.points - a.points;
+      
+      if (isEstabelecimento) {
+        if (b.exactScores !== a.exactScores) return b.exactScores - a.exactScores;
+        if (b.correctResults !== a.correctResults) return b.correctResults - a.correctResults;
+      }
+      
+      // Tiebreaker: earliest prediction submission time wins
+      return new Date(a.earliest).getTime() - new Date(b.earliest).getTime();
+    });
+
+    // Use entries as the ranking (replaces participantsWithPoints)
+    const participantsWithPoints = entries;
 
     console.log('Participants with points:', participantsWithPoints);
 
@@ -243,41 +234,35 @@ serve(async (req) => {
     let tiebreakerMethod: string | null = null;
 
     if (isEstabelecimento && participantsWithPoints.length > 1) {
-      const topScore = participantsWithPoints[0].total_points;
-      const tiedAtTop = participantsWithPoints.filter(p => p.total_points === topScore);
+      const topScore = participantsWithPoints[0].points;
+      const tiedAtTop = participantsWithPoints.filter(p => p.points === topScore);
 
       if (tiedAtTop.length > 1) {
-        // Check if exact scores broke the tie
-        const topExactScores = tiedAtTop[0].exact_scores;
-        const stillTiedAfterExact = tiedAtTop.filter(p => p.exact_scores === topExactScores);
+        const topExactScores = tiedAtTop[0].exactScores;
+        const stillTiedAfterExact = tiedAtTop.filter(p => p.exactScores === topExactScores);
 
         if (stillTiedAfterExact.length < tiedAtTop.length) {
           tiebreakerMethod = 'exact_scores';
         } else {
-          // Check if correct results broke the tie
-          const topCorrectResults = stillTiedAfterExact[0].correct_results;
-          const stillTiedAfterResults = stillTiedAfterExact.filter(p => p.correct_results === topCorrectResults);
+          const topCorrectResults = stillTiedAfterExact[0].correctResults;
+          const stillTiedAfterResults = stillTiedAfterExact.filter(p => p.correctResults === topCorrectResults);
 
           if (stillTiedAfterResults.length < stillTiedAfterExact.length) {
             tiebreakerMethod = 'total_correct_results';
           } else {
-            // Check if prediction time broke the tie
-            const topTime = new Date(stillTiedAfterResults[0].earliest_prediction).getTime();
+            const topTime = new Date(stillTiedAfterResults[0].earliest).getTime();
             const stillTiedAfterTime = stillTiedAfterResults.filter(
-              p => new Date(p.earliest_prediction).getTime() === topTime
+              p => new Date(p.earliest).getTime() === topTime
             );
 
             if (stillTiedAfterTime.length < stillTiedAfterResults.length) {
               tiebreakerMethod = 'prediction_time';
             } else if (stillTiedAfterTime.length > 1) {
-              // Random draw needed
               tiebreakerMethod = 'random_draw';
-              // Shuffle the tied participants randomly
               for (let i = stillTiedAfterTime.length - 1; i > 0; i--) {
                 const j = Math.floor(Math.random() * (i + 1));
-                // Find these participants in the main array and swap
-                const idxI = participantsWithPoints.findIndex(p => p.id === stillTiedAfterTime[i].id);
-                const idxJ = participantsWithPoints.findIndex(p => p.id === stillTiedAfterTime[j].id);
+                const idxI = participantsWithPoints.findIndex(p => p.participant_id === stillTiedAfterTime[i].participant_id && p.prediction_set === stillTiedAfterTime[i].prediction_set);
+                const idxJ = participantsWithPoints.findIndex(p => p.participant_id === stillTiedAfterTime[j].participant_id && p.prediction_set === stillTiedAfterTime[j].prediction_set);
                 if (idxI >= 0 && idxJ >= 0) {
                   const temp = participantsWithPoints[idxI];
                   participantsWithPoints[idxI] = participantsWithPoints[idxJ];
@@ -291,7 +276,7 @@ serve(async (req) => {
     }
 
     // Check if everyone has 0 points (tiebreaker by prediction time applies)
-    const allZeroPoints = participantsWithPoints.every(p => p.total_points === 0);
+    const allZeroPoints = participantsWithPoints.every(p => p.points === 0);
 
     // Identify top positions considering ties and max_winners
     const maxWinners = pool.max_winners || 3;
@@ -301,42 +286,43 @@ serve(async (req) => {
       maxWinners >= 3 && pool.third_place_prize ? parseFloat(pool.third_place_prize.toString()) : 0
     ].slice(0, maxWinners);
 
+    // Collect unique participant_ids that are winners
     const winnersToUpdate: string[] = [];
 
     if (isEstabelecimento) {
-      // For estabelecimento, only 1 winner (max_winners is always 1)
       if (participantsWithPoints.length > 0) {
-        winnersToUpdate.push(participantsWithPoints[0].id);
+        winnersToUpdate.push(participantsWithPoints[0].participant_id);
       }
     } else if (allZeroPoints) {
-      // When nobody scored, winners are determined by earliest prediction submission time
       const topN = Math.min(maxWinners, participantsWithPoints.length);
       for (let i = 0; i < topN; i++) {
-        winnersToUpdate.push(participantsWithPoints[i].id);
+        if (!winnersToUpdate.includes(participantsWithPoints[i].participant_id)) {
+          winnersToUpdate.push(participantsWithPoints[i].participant_id);
+        }
       }
       console.log('All participants have 0 points - tiebreaker by prediction submission time applied');
     } else {
       let currentPosition = 0;
-      while (currentPosition < participantsWithPoints.length && currentPosition < maxWinners) {
-        const currentScore = participantsWithPoints[currentPosition].total_points;
-        
-        // Skip if score is 0
+      while (currentPosition < participantsWithPoints.length) {
+        const currentScore = participantsWithPoints[currentPosition].points;
         if (currentScore === 0) break;
 
-        // Find all participants with the same score (tie group)
         let tieGroupEnd = currentPosition;
         while (
           tieGroupEnd < participantsWithPoints.length &&
-          participantsWithPoints[tieGroupEnd].total_points === currentScore
+          participantsWithPoints[tieGroupEnd].points === currentScore
         ) {
           tieGroupEnd++;
         }
 
-        // If this group touches any prize position, they all get a share
+        // If this group touches any prize position, all entries' participants get marked
         if (currentPosition < maxWinners) {
           for (let i = currentPosition; i < tieGroupEnd; i++) {
-            if (participantsWithPoints[i].total_points > 0) {
-              winnersToUpdate.push(participantsWithPoints[i].id);
+            if (participantsWithPoints[i].points > 0) {
+              const pid = participantsWithPoints[i].participant_id;
+              if (!winnersToUpdate.includes(pid)) {
+                winnersToUpdate.push(pid);
+              }
             }
           }
         }

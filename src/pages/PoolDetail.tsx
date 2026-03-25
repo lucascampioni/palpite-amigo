@@ -177,7 +177,7 @@ const PoolDetail = () => {
       if (!pool || !hasFootballMatches) return;
       if (pool.status !== 'active' && pool.status !== 'finished') return;
       if (participants.length === 0) return;
-      if (Object.keys(participantsPoints).length === 0) return;
+      if (rankingData.length === 0 && Object.keys(participantsPoints).length === 0) return;
 
       // Check if all matches are finished
       const { data: matches } = await supabase
@@ -194,69 +194,72 @@ const PoolDetail = () => {
 
       console.log('All matches finished, updating winners prize_status...');
 
-      // Get pool prize details
-      const prizes = [
-        pool.first_place_prize ? parseFloat(pool.first_place_prize) : 0,
-        pool.second_place_prize ? parseFloat(pool.second_place_prize) : 0,
-        pool.third_place_prize ? parseFloat(pool.third_place_prize) : 0
-      ];
-
-      // Calculate ranking
-      const participantsWithPoints = participants
-        .filter((p: any) => p.status === 'approved')
-        .map((p: any) => ({
-          ...p,
-          total_points: participantsPoints[p.id] || 0
-        }))
-        .sort((a: any, b: any) => {
-          if (b.total_points !== a.total_points) return b.total_points - a.total_points;
-          return new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
-        });
-
-      // Deduplicate by user_id: only best entry per user competes for prizes
-      const bestByUser: typeof participantsWithPoints = [];
-      const seenUsers = new Set<string>();
-      for (const entry of participantsWithPoints) {
-        if (!seenUsers.has(entry.user_id)) {
-          seenUsers.add(entry.user_id);
-          bestByUser.push(entry);
-        }
-      }
-
       const maxWinners = pool.max_winners || 3;
       const winnersToUpdate: string[] = [];
-      
-      const allZeroPoints = bestByUser.every((p: any) => p.total_points === 0);
 
-      if (allZeroPoints) {
-        // When nobody scored, winners are determined by earliest join time
-        const topN = Math.min(maxWinners, bestByUser.length);
-        for (let i = 0; i < topN; i++) {
-          winnersToUpdate.push(bestByUser[i].id);
-        }
-      } else {
-        let currentPosition = 0;
-        while (currentPosition < bestByUser.length && currentPosition < maxWinners) {
-          const currentScore = bestByUser[currentPosition].total_points;
-          if (currentScore === 0) break;
+      if (rankingData.length > 0) {
+        // Use prediction-set level ranking
+        const sorted = [...rankingData].sort((a: any, b: any) => b.total_points - a.total_points);
+        const allZero = sorted.every((r: any) => r.total_points === 0);
 
-          let tieGroupEnd = currentPosition;
-          while (
-            tieGroupEnd < bestByUser.length &&
-            bestByUser[tieGroupEnd].total_points === currentScore
-          ) {
-            tieGroupEnd++;
-          }
-
-          if (currentPosition < maxWinners) {
-            for (let i = currentPosition; i < tieGroupEnd; i++) {
-              if (bestByUser[i].total_points > 0) {
-                winnersToUpdate.push(bestByUser[i].id);
-              }
+        if (allZero) {
+          const topN = Math.min(maxWinners, sorted.length);
+          const seenPids = new Set<string>();
+          for (let i = 0; i < topN; i++) {
+            const pid = (sorted[i] as any).participant_id;
+            if (!seenPids.has(pid)) {
+              seenPids.add(pid);
+              winnersToUpdate.push(pid);
             }
           }
+        } else {
+          let pos = 0;
+          while (pos < sorted.length) {
+            const score = (sorted[pos] as any).total_points;
+            if (score === 0) break;
+            let groupEnd = pos;
+            while (groupEnd < sorted.length - 1 && (sorted[groupEnd + 1] as any).total_points === score) {
+              groupEnd++;
+            }
+            if (pos < maxWinners) {
+              for (let i = pos; i <= groupEnd; i++) {
+                const pid = (sorted[i] as any).participant_id;
+                if (!winnersToUpdate.includes(pid)) {
+                  winnersToUpdate.push(pid);
+                }
+              }
+            }
+            pos = groupEnd + 1;
+          }
+        }
+      } else {
+        // Fallback: participant-level
+        const participantsWithPoints = participants
+          .filter((p: any) => p.status === 'approved')
+          .map((p: any) => ({ ...p, total_points: participantsPoints[p.id] || 0 }))
+          .sort((a: any, b: any) => {
+            if (b.total_points !== a.total_points) return b.total_points - a.total_points;
+            return new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
+          });
 
-          currentPosition = tieGroupEnd;
+        const allZero = participantsWithPoints.every((p: any) => p.total_points === 0);
+        if (allZero) {
+          const topN = Math.min(maxWinners, participantsWithPoints.length);
+          for (let i = 0; i < topN; i++) winnersToUpdate.push(participantsWithPoints[i].id);
+        } else {
+          let pos = 0;
+          while (pos < participantsWithPoints.length && pos < maxWinners) {
+            const score = participantsWithPoints[pos].total_points;
+            if (score === 0) break;
+            let groupEnd = pos;
+            while (groupEnd < participantsWithPoints.length && participantsWithPoints[groupEnd].total_points === score) groupEnd++;
+            if (pos < maxWinners) {
+              for (let i = pos; i < groupEnd; i++) {
+                if (participantsWithPoints[i].total_points > 0) winnersToUpdate.push(participantsWithPoints[i].id);
+              }
+            }
+            pos = groupEnd;
+          }
         }
       }
 
@@ -275,7 +278,6 @@ const PoolDetail = () => {
 
         if (!updateError) {
           console.log(`Updated ${winnersNeedingUpdate.length} winners to awaiting_pix status`);
-          // Update local state instead of reloading to avoid infinite loop
           setParticipants(prev => prev.map(p => 
             winnersNeedingUpdate.includes(p.id) ? { ...p, prize_status: 'awaiting_pix' } : p
           ));
@@ -289,10 +291,11 @@ const PoolDetail = () => {
     };
 
     updateWinnersPrizeStatus();
-  }, [pool, participants, participantsPoints, hasFootballMatches, poolId]);
+  }, [pool, participants, participantsPoints, hasFootballMatches, poolId, rankingData]);
 
   // Calculate prize amount per winner participant for admin management
-  // Calculate prize amount per participant entry (each prediction set competes independently)
+  // Calculate prize amount per participant, using prediction-set level ranking
+  // Each prediction set competes independently — prizes split per entry, then consolidated per participant_id
   const winnerPrizeAmounts = useMemo<Record<string, number>>(() => {
     if (!pool || participants.length === 0) return {};
     
@@ -312,7 +315,53 @@ const PoolDetail = () => {
       maxW >= 3 ? calcPrize(pool.third_place_prize) : 0,
     ];
 
-    // Each participant entry competes independently (no user deduplication)
+    // Use rankingData (prediction-set level) if available, otherwise fall back to participant-level
+    if (rankingData.length > 0) {
+      // rankingData has entries like { participant_id, participant_name, total_points, prediction_set, user_id }
+      // Sort by points desc, then by created_at of participant
+      const participantCreatedAt: Record<string, string> = {};
+      participants.forEach(p => { participantCreatedAt[p.id] = p.created_at; });
+
+      const sorted = [...rankingData]
+        .sort((a: any, b: any) => {
+          if (b.total_points !== a.total_points) return b.total_points - a.total_points;
+          const aTime = participantCreatedAt[a.participant_id] || '';
+          const bTime = participantCreatedAt[b.participant_id] || '';
+          return new Date(aTime).getTime() - new Date(bTime).getTime();
+        });
+
+      // Each prediction set entry competes independently
+      const amounts: Record<string, number> = {};
+      let pos = 0;
+      while (pos < sorted.length) {
+        const score = (sorted[pos] as any).total_points;
+        let groupEnd = pos;
+        while (groupEnd < sorted.length - 1 && (sorted[groupEnd + 1] as any).total_points === score) {
+          groupEnd++;
+        }
+        const groupSize = groupEnd - pos + 1;
+        
+        if (pos < maxW) {
+          let prizeSum = 0;
+          const end = Math.min(groupEnd, maxW - 1);
+          for (let i = pos; i <= end; i++) {
+            prizeSum += prizes[i] || 0;
+          }
+          const perEntry = prizeSum / groupSize;
+          if (perEntry > 0) {
+            for (let i = pos; i <= groupEnd; i++) {
+              const pid = (sorted[i] as any).participant_id;
+              // Accumulate prize per participant_id (a participant with multiple winning sets gets more)
+              amounts[pid] = (amounts[pid] || 0) + perEntry;
+            }
+          }
+        }
+        pos = groupEnd + 1;
+      }
+      return amounts;
+    }
+
+    // Fallback: participant-level (old logic)
     const sorted = participants
       .filter(p => p.status === 'approved')
       .map(p => ({ ...p, total_points: participantsPoints[p.id] || 0 }))
@@ -340,7 +389,7 @@ const PoolDetail = () => {
         const perEntry = prizeSum / groupSize;
         if (perEntry > 0) {
           for (let i = pos; i <= groupEnd; i++) {
-            amounts[sorted[i].id] = perEntry;
+            amounts[sorted[i].id] = (amounts[sorted[i].id] || 0) + perEntry;
           }
         }
       }
@@ -1765,17 +1814,47 @@ const PoolDetail = () => {
                   </h3>
                   {(() => {
                     // Group winning participants by user_id to consolidate prizes
-                    const pendingWinners = participants.filter(p => p.prize_status && p.prize_status !== 'prize_sent');
+                    // Use winnerPrizeAmounts (keyed by participant_id) to identify winners
+                    const pendingWinners = participants.filter(p => 
+                      (p.prize_status && p.prize_status !== 'prize_sent') || 
+                      (winnerPrizeAmounts[p.id] > 0 && p.prize_status !== 'prize_sent')
+                    );
+                    
+                    // Count winning prediction sets from rankingData for each participant
+                    const winningSetCounts: Record<string, number> = {};
+                    if (rankingData.length > 0) {
+                      // Find the top score threshold (entries that get prizes)
+                      const maxW = pool.max_winners || 3;
+                      const sortedRanking = [...rankingData].sort((a: any, b: any) => b.total_points - a.total_points);
+                      // Determine which entries are winners (same logic as prize calculation)
+                      let pos = 0;
+                      while (pos < sortedRanking.length) {
+                        const score = (sortedRanking[pos] as any).total_points;
+                        let groupEnd = pos;
+                        while (groupEnd < sortedRanking.length - 1 && (sortedRanking[groupEnd + 1] as any).total_points === score) {
+                          groupEnd++;
+                        }
+                        if (pos < maxW) {
+                          for (let i = pos; i <= groupEnd; i++) {
+                            const pid = (sortedRanking[i] as any).participant_id;
+                            winningSetCounts[pid] = (winningSetCounts[pid] || 0) + 1;
+                          }
+                        }
+                        pos = groupEnd + 1;
+                      }
+                    }
+
                     const grouped = new Map<string, { participant: typeof pendingWinners[0]; totalPrize: number; entriesCount: number; participantIds: string[] }>();
                     for (const p of pendingWinners) {
                       const existing = grouped.get(p.user_id);
                       const entryPrize = winnerPrizeAmounts[p.id] || 0;
+                      const setCount = winningSetCounts[p.id] || 1;
                       if (existing) {
                         existing.totalPrize += entryPrize;
-                        existing.entriesCount += 1;
+                        existing.entriesCount += setCount;
                         existing.participantIds.push(p.id);
                       } else {
-                        grouped.set(p.user_id, { participant: p, totalPrize: entryPrize, entriesCount: 1, participantIds: [p.id] });
+                        grouped.set(p.user_id, { participant: p, totalPrize: entryPrize, entriesCount: setCount, participantIds: [p.id] });
                       }
                     }
                     return Array.from(grouped.values()).map(({ participant, totalPrize, entriesCount, participantIds }) => (
