@@ -292,6 +292,7 @@ const PoolDetail = () => {
   }, [pool, participants, participantsPoints, hasFootballMatches, poolId]);
 
   // Calculate prize amount per winner participant for admin management
+  // Calculate prize amount per participant entry (each prediction set competes independently)
   const winnerPrizeAmounts = useMemo<Record<string, number>>(() => {
     if (!pool || participants.length === 0) return {};
     
@@ -311,6 +312,7 @@ const PoolDetail = () => {
       maxW >= 3 ? calcPrize(pool.third_place_prize) : 0,
     ];
 
+    // Each participant entry competes independently (no user deduplication)
     const sorted = participants
       .filter(p => p.status === 'approved')
       .map(p => ({ ...p, total_points: participantsPoints[p.id] || 0 }))
@@ -319,22 +321,12 @@ const PoolDetail = () => {
         return new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
       });
 
-    // Deduplicate by user_id: only the best entry per user competes for prizes
-    const bestByUser: typeof sorted = [];
-    const seenUsers = new Set<string>();
-    for (const entry of sorted) {
-      if (!seenUsers.has(entry.user_id)) {
-        seenUsers.add(entry.user_id);
-        bestByUser.push(entry);
-      }
-    }
-
     const amounts: Record<string, number> = {};
     let pos = 0;
-    while (pos < bestByUser.length) {
-      const score = bestByUser[pos].total_points;
+    while (pos < sorted.length) {
+      const score = sorted[pos].total_points;
       let groupEnd = pos;
-      while (groupEnd < bestByUser.length - 1 && bestByUser[groupEnd + 1].total_points === score) {
+      while (groupEnd < sorted.length - 1 && sorted[groupEnd + 1].total_points === score) {
         groupEnd++;
       }
       const groupSize = groupEnd - pos + 1;
@@ -345,10 +337,10 @@ const PoolDetail = () => {
         for (let i = pos; i <= end; i++) {
           prizeSum += prizes[i] || 0;
         }
-        const perPerson = prizeSum / groupSize;
-        if (perPerson > 0) {
+        const perEntry = prizeSum / groupSize;
+        if (perEntry > 0) {
           for (let i = pos; i <= groupEnd; i++) {
-            amounts[bestByUser[i].id] = perPerson;
+            amounts[sorted[i].id] = perEntry;
           }
         }
       }
