@@ -642,14 +642,27 @@ const Index = () => {
                 )}
 
 
-                {myAwaitingPixPools.length > 0 && (
+                {myAwaitingPixPools.filter(p => p.prize_type !== 'estabelecimento').length > 0 && (
                   <AlertSection
                     icon="🏆"
                     title="Você Ganhou! Envie sua Chave PIX"
                     subtitle="Informe sua chave PIX para receber o prêmio"
                     bgClass="bg-yellow-50 dark:bg-yellow-950/50 border-yellow-200 dark:border-yellow-800"
                   >
-                    {filterPools(myAwaitingPixPools).map((pool) => (
+                    {filterPools(myAwaitingPixPools.filter(p => p.prize_type !== 'estabelecimento')).map((pool) => (
+                      <PoolCard key={pool.id} pool={pool} isUserParticipating hasWonPrize onClick={() => navigate(`/bolao/${pool.slug}`)} {...getCommunityProps(pool)} />
+                    ))}
+                  </AlertSection>
+                )}
+
+                {myAwaitingPixPools.filter(p => p.prize_type === 'estabelecimento').length > 0 && (
+                  <AlertSection
+                    icon="🎉"
+                    title="Você Ganhou! Resgate seu Prêmio"
+                    subtitle="Entre em contato com o organizador para resgatar"
+                    bgClass="bg-amber-50 dark:bg-amber-950/50 border-amber-200 dark:border-amber-800"
+                  >
+                    {filterPools(myAwaitingPixPools.filter(p => p.prize_type === 'estabelecimento')).map((pool) => (
                       <PoolCard key={pool.id} pool={pool} isUserParticipating hasWonPrize onClick={() => navigate(`/bolao/${pool.slug}`)} {...getCommunityProps(pool)} />
                     ))}
                   </AlertSection>
