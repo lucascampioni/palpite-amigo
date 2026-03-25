@@ -176,13 +176,15 @@ export const AdminPrizeManagement = ({ participant, poolId, poolTitle, participa
   const handleMarkPaidDirectly = async () => {
     setIsMarkingPaidDirectly(true);
     try {
+      // Update all participant entries for this user
+      const idsToUpdate = allParticipantIds && allParticipantIds.length > 0 ? allParticipantIds : [participant.id];
       const { error } = await supabase
         .from("participants")
         .update({
           prize_status: "prize_sent",
           prize_sent_at: new Date().toISOString(),
         })
-        .eq("id", participant.id);
+        .in("id", idsToUpdate);
 
       if (error) throw error;
 
