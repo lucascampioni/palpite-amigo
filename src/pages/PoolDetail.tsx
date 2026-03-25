@@ -1862,10 +1862,14 @@ const PoolDetail = () => {
                   {(() => {
                     // Group winning participants by user_id to consolidate prizes
                     // Use winnerPrizeAmounts (keyed by participant_id) to identify winners
-                    const pendingWinners = participants.filter(p => 
+                    // For estabelecimento pools, only show the actual winner(s) by winner_id
+                    let pendingWinners = participants.filter(p => 
                       (p.prize_status && p.prize_status !== 'prize_sent') || 
                       (winnerPrizeAmounts[p.id] > 0 && p.prize_status !== 'prize_sent')
                     );
+                    if (pool.prize_type === 'estabelecimento' && pool.winner_id) {
+                      pendingWinners = pendingWinners.filter(p => p.user_id === pool.winner_id);
+                    }
                     
                     // Count winning prediction sets from rankingData for each participant
                     const winningSetCounts: Record<string, number> = {};
@@ -1922,6 +1926,8 @@ const PoolDetail = () => {
                           prizeAmount={totalPrize}
                           winningEntriesCount={entriesCount}
                           allParticipantIds={participantIds}
+                          prizeType={pool.prize_type}
+                          estabelecimentoPrizeDescription={pool.estabelecimento_prize_description}
                           onSuccess={loadPoolData}
                         />
                       </div>
@@ -1939,7 +1945,7 @@ const PoolDetail = () => {
                     <Collapsible open={paidPrizesOpen} onOpenChange={setPaidPrizesOpen}>
                       <CollapsibleTrigger className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors w-full">
                         <CheckCircle className="w-4 h-4 text-green-600" />
-                        <span>Prêmios já pagos ({participants.filter(p => p.prize_status === 'prize_sent').length})</span>
+                        <span>{pool.prize_type === 'estabelecimento' ? 'Prêmios já entregues' : 'Prêmios já pagos'} ({participants.filter(p => p.prize_status === 'prize_sent').length})</span>
                         {paidPrizesOpen ? <ChevronUp className="w-4 h-4 ml-auto" /> : <ChevronDown className="w-4 h-4 ml-auto" />}
                       </CollapsibleTrigger>
                       <CollapsibleContent className="space-y-4 mt-3">
@@ -1975,6 +1981,8 @@ const PoolDetail = () => {
                                 prizeAmount={totalPrize}
                                 winningEntriesCount={entriesCount}
                                 allParticipantIds={participantIds}
+                                prizeType={pool.prize_type}
+                                estabelecimentoPrizeDescription={pool.estabelecimento_prize_description}
                                 onSuccess={loadPoolData}
                               />
                             </div>

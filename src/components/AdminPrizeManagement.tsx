@@ -23,10 +23,12 @@ interface AdminPrizeManagementProps {
   prizeAmount?: number;
   winningEntriesCount?: number;
   allParticipantIds?: string[];
+  prizeType?: string;
+  estabelecimentoPrizeDescription?: string;
   onSuccess?: () => void;
 }
 
-export const AdminPrizeManagement = ({ participant, poolId, poolTitle, participantPhone, prizeAmount, winningEntriesCount, allParticipantIds, onSuccess }: AdminPrizeManagementProps) => {
+export const AdminPrizeManagement = ({ participant, poolId, poolTitle, participantPhone, prizeAmount, winningEntriesCount, allParticipantIds, prizeType, estabelecimentoPrizeDescription, onSuccess }: AdminPrizeManagementProps) => {
   const [proofFile, setProofFile] = useState<File | null>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [isMarkingPaidDirectly, setIsMarkingPaidDirectly] = useState(false);
@@ -140,18 +142,20 @@ export const AdminPrizeManagement = ({ participant, poolId, poolTitle, participa
     ? `(ganhou com ${winningEntriesCount} palpites)`
     : winningEntriesCount === 1 ? '(ganhou com 1 palpite)' : null;
 
+  const isEstabelecimento = prizeType === 'estabelecimento';
+
   if (participant.prize_status === "prize_sent") {
     return (
       <Card className="border-green-200 dark:border-green-800 bg-green-50 dark:bg-green-950">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <CheckCircle className="w-5 h-5 text-green-600" />
-            Prêmio Enviado
+            {isEstabelecimento ? 'Prêmio Entregue' : 'Prêmio Enviado'}
           </CardTitle>
           <CardDescription>
-            O prêmio para <span className="font-bold text-foreground">{participant.participant_name}</span> já foi enviado.
+            O prêmio para <span className="font-bold text-foreground">{participant.participant_name}</span> já foi {isEstabelecimento ? 'entregue' : 'enviado'}.
             {entriesLabel && <span className="ml-1 text-muted-foreground">{entriesLabel}</span>}
-            {prizeAmount != null && prizeAmount > 0 && (
+            {!isEstabelecimento && prizeAmount != null && prizeAmount > 0 && (
               <span className="ml-1 font-semibold text-green-700 dark:text-green-300">
                 (R$ {prizeAmount.toFixed(2).replace('.', ',')})
               </span>
@@ -159,7 +163,7 @@ export const AdminPrizeManagement = ({ participant, poolId, poolTitle, participa
           </CardDescription>
         </CardHeader>
         <CardContent>
-          {participant.prize_proof_url && (
+          {!isEstabelecimento && participant.prize_proof_url && (
             <a
               href={viewUrl || participant.prize_proof_url}
               target="_blank"
@@ -211,6 +215,57 @@ export const AdminPrizeManagement = ({ participant, poolId, poolTitle, participa
     const encoded = encodeURIComponent(message);
     window.open(`https://wa.me/${phoneWithCountry}?text=${encoded}`, '_blank');
   };
+
+  // Estabelecimento pools: show simplified card with "Já entreguei" button
+  if (isEstabelecimento) {
+    return (
+      <Card className="border-amber-300 dark:border-amber-700 bg-amber-50 dark:bg-amber-950">
+        <CardHeader className="pb-3">
+          <CardTitle className="flex items-center gap-2 text-amber-800 dark:text-amber-200 text-base">
+            <Clock className="w-5 h-5" />
+            Aguardando resgate - {participant.participant_name}
+          </CardTitle>
+          <CardDescription className="text-amber-700 dark:text-amber-300">
+            Este ganhador precisa resgatar o prêmio com você.
+            {entriesLabel && <span className="block mt-1 text-sm">{entriesLabel}</span>}
+            {estabelecimentoPrizeDescription && (
+              <span className="block mt-1 font-semibold text-amber-800 dark:text-amber-200">
+                🏪 Prêmio: {estabelecimentoPrizeDescription}
+              </span>
+            )}
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-3 pt-0">
+          {participantPhone && (
+            <Button
+              variant="outline"
+              size="sm"
+              className="w-full text-xs"
+              onClick={() => {
+                const digits = participantPhone.replace(/\D/g, '');
+                const phoneWithCountry = digits.startsWith('55') ? digits : `55${digits}`;
+                const message = encodeURIComponent(`Olá, ${participant.participant_name}! 🎉\n\nParabéns! Você ganhou o bolão *${poolTitle || ''}*! 🏆\n\nEntre em contato para combinar a entrega do seu prêmio!`);
+                window.open(`https://wa.me/${phoneWithCountry}?text=${message}`, '_blank');
+              }}
+            >
+              <MessageCircle className="w-4 h-4 mr-1" />
+              Enviar mensagem ao ganhador
+            </Button>
+          )}
+          <Button
+            variant="default"
+            size="sm"
+            className="w-full"
+            disabled={isMarkingPaidDirectly}
+            onClick={handleMarkPaidDirectly}
+          >
+            <CheckCircle className="w-4 h-4 mr-1" />
+            {isMarkingPaidDirectly ? "Marcando..." : "Já entreguei este prêmio"}
+          </Button>
+        </CardContent>
+      </Card>
+    );
+  }
 
   if (!participant.prize_pix_key) {
     return (
