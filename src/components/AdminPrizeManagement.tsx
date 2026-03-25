@@ -142,18 +142,20 @@ export const AdminPrizeManagement = ({ participant, poolId, poolTitle, participa
     ? `(ganhou com ${winningEntriesCount} palpites)`
     : winningEntriesCount === 1 ? '(ganhou com 1 palpite)' : null;
 
+  const isEstabelecimento = prizeType === 'estabelecimento';
+
   if (participant.prize_status === "prize_sent") {
     return (
       <Card className="border-green-200 dark:border-green-800 bg-green-50 dark:bg-green-950">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <CheckCircle className="w-5 h-5 text-green-600" />
-            Prêmio Enviado
+            {isEstabelecimento ? 'Prêmio Entregue' : 'Prêmio Enviado'}
           </CardTitle>
           <CardDescription>
-            O prêmio para <span className="font-bold text-foreground">{participant.participant_name}</span> já foi enviado.
+            O prêmio para <span className="font-bold text-foreground">{participant.participant_name}</span> já foi {isEstabelecimento ? 'entregue' : 'enviado'}.
             {entriesLabel && <span className="ml-1 text-muted-foreground">{entriesLabel}</span>}
-            {prizeAmount != null && prizeAmount > 0 && (
+            {!isEstabelecimento && prizeAmount != null && prizeAmount > 0 && (
               <span className="ml-1 font-semibold text-green-700 dark:text-green-300">
                 (R$ {prizeAmount.toFixed(2).replace('.', ',')})
               </span>
@@ -161,7 +163,7 @@ export const AdminPrizeManagement = ({ participant, poolId, poolTitle, participa
           </CardDescription>
         </CardHeader>
         <CardContent>
-          {participant.prize_proof_url && (
+          {!isEstabelecimento && participant.prize_proof_url && (
             <a
               href={viewUrl || participant.prize_proof_url}
               target="_blank"
