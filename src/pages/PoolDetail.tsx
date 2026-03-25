@@ -158,7 +158,17 @@ const PoolDetail = () => {
       // Divide equally among ALL members of the tie group
       const prizeAmount = prizeSum / tieGroupSize;
 
-      if (prizeAmount > 0) {
+      // For estabelecimento pools, prize is non-monetary — always set info if user is a winner
+      if (pool.prize_type === 'estabelecimento') {
+        if (groupStart < maxW) {
+          setUserPrizeInfo({
+            amount: 0,
+            placement: groupStart + 1,
+            isTied: tieGroupSize > 1,
+            tiedWithCount: tieGroupSize > 1 ? tieGroupSize - 1 : 0
+          });
+        }
+      } else if (prizeAmount > 0) {
         setUserPrizeInfo({
           amount: prizeAmount,
           placement: groupStart + 1,
