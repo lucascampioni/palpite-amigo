@@ -216,6 +216,57 @@ export const AdminPrizeManagement = ({ participant, poolId, poolTitle, participa
     window.open(`https://wa.me/${phoneWithCountry}?text=${encoded}`, '_blank');
   };
 
+  // Estabelecimento pools: show simplified card with "Já entreguei" button
+  if (isEstabelecimento) {
+    return (
+      <Card className="border-amber-300 dark:border-amber-700 bg-amber-50 dark:bg-amber-950">
+        <CardHeader className="pb-3">
+          <CardTitle className="flex items-center gap-2 text-amber-800 dark:text-amber-200 text-base">
+            <Clock className="w-5 h-5" />
+            Aguardando resgate - {participant.participant_name}
+          </CardTitle>
+          <CardDescription className="text-amber-700 dark:text-amber-300">
+            Este ganhador precisa resgatar o prêmio com você.
+            {entriesLabel && <span className="block mt-1 text-sm">{entriesLabel}</span>}
+            {estabelecimentoPrizeDescription && (
+              <span className="block mt-1 font-semibold text-amber-800 dark:text-amber-200">
+                🏪 Prêmio: {estabelecimentoPrizeDescription}
+              </span>
+            )}
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-3 pt-0">
+          {participantPhone && (
+            <Button
+              variant="outline"
+              size="sm"
+              className="w-full text-xs"
+              onClick={() => {
+                const digits = participantPhone.replace(/\D/g, '');
+                const phoneWithCountry = digits.startsWith('55') ? digits : `55${digits}`;
+                const message = encodeURIComponent(`Olá, ${participant.participant_name}! 🎉\n\nParabéns! Você ganhou o bolão *${poolTitle || ''}*! 🏆\n\nEntre em contato para combinar a entrega do seu prêmio!`);
+                window.open(`https://wa.me/${phoneWithCountry}?text=${message}`, '_blank');
+              }}
+            >
+              <MessageCircle className="w-4 h-4 mr-1" />
+              Enviar mensagem ao ganhador
+            </Button>
+          )}
+          <Button
+            variant="default"
+            size="sm"
+            className="w-full"
+            disabled={isMarkingPaidDirectly}
+            onClick={handleMarkPaidDirectly}
+          >
+            <CheckCircle className="w-4 h-4 mr-1" />
+            {isMarkingPaidDirectly ? "Marcando..." : "Já entreguei este prêmio"}
+          </Button>
+        </CardContent>
+      </Card>
+    );
+  }
+
   if (!participant.prize_pix_key) {
     return (
       <Card className="border-yellow-300 dark:border-yellow-700 bg-yellow-50 dark:bg-yellow-950">
