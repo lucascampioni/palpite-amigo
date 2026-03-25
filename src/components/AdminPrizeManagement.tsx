@@ -23,10 +23,12 @@ interface AdminPrizeManagementProps {
   prizeAmount?: number;
   winningEntriesCount?: number;
   allParticipantIds?: string[];
+  prizeType?: string;
+  estabelecimentoPrizeDescription?: string;
   onSuccess?: () => void;
 }
 
-export const AdminPrizeManagement = ({ participant, poolId, poolTitle, participantPhone, prizeAmount, winningEntriesCount, allParticipantIds, onSuccess }: AdminPrizeManagementProps) => {
+export const AdminPrizeManagement = ({ participant, poolId, poolTitle, participantPhone, prizeAmount, winningEntriesCount, allParticipantIds, prizeType, estabelecimentoPrizeDescription, onSuccess }: AdminPrizeManagementProps) => {
   const [proofFile, setProofFile] = useState<File | null>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [isMarkingPaidDirectly, setIsMarkingPaidDirectly] = useState(false);
