@@ -221,6 +221,7 @@ export const AdminPrizeManagement = ({ participant, poolId, poolTitle, participa
           </CardTitle>
           <CardDescription className="text-yellow-700 dark:text-yellow-300">
             Este ganhador ainda não informou sua chave PIX para recebimento do prêmio.
+            {entriesLabel && <span className="block mt-1 text-sm">{entriesLabel}</span>}
             {prizeAmount != null && prizeAmount > 0 && (
               <span className="block mt-1 font-semibold text-yellow-800 dark:text-yellow-200">
                 💰 Valor a enviar: R$ {prizeAmount.toFixed(2).replace('.', ',')}
