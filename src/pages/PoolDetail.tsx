@@ -1981,6 +1981,8 @@ const PoolDetail = () => {
                                 prizeAmount={totalPrize}
                                 winningEntriesCount={entriesCount}
                                 allParticipantIds={participantIds}
+                                prizeType={pool.prize_type}
+                                estabelecimentoPrizeDescription={pool.estabelecimento_prize_description}
                                 onSuccess={loadPoolData}
                               />
                             </div>
