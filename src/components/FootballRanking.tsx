@@ -822,10 +822,13 @@ const FootballRanking = ({ poolId, pool, approvedParticipantsCount, isOwner }: F
 
   // Get display name with prediction set label
   const getDisplayName = (participant: ParticipantScore) => {
-    const setCount = participantSetCounts[participant.id] || 1;
     const name = shortenName(participant.participant_name);
-    if (setCount > 1) {
-      return `${name} (Palpite ${participant.prediction_set})`;
+    const userId = participant.user_id;
+    const totalEntries = userId ? (userTotalEntries[userId] || 1) : 1;
+    if (totalEntries > 1) {
+      const rankingKey = `${participant.id}_${participant.prediction_set}`;
+      const palpiteNum = globalPalpiteNumbers[rankingKey] || participant.prediction_set;
+      return `${name} (Palpite ${palpiteNum})`;
     }
     return name;
   };
