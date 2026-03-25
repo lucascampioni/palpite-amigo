@@ -256,6 +256,19 @@ const FootballPredictionForm = ({ poolId, userId, onSuccess, entryFee, pool, pix
     // For estabelecimento pools with voucher, always approve
     const initialStatus = isEstabelecimento ? "approved" : (hasEntryFee ? "pending" : "approved");
 
+    // Find the max prediction_set already used by this user in this pool
+    let maxExistingSet = 0;
+    const { data: existingSets } = await supabase
+      .from("football_predictions")
+      .select("prediction_set, participants!inner(pool_id, user_id)")
+      .eq("participants.pool_id", poolId)
+      .eq("participants.user_id", userId);
+    if (existingSets) {
+      for (const row of existingSets as any[]) {
+        if (row.prediction_set > maxExistingSet) maxExistingSet = row.prediction_set;
+      }
+    }
+
     // For estabelecimento pools, find existing approved participant created by the owner
     if (isEstabelecimento) {
       const { data: existingParticipant } = await supabase
