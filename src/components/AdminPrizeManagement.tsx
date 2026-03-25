@@ -135,6 +135,10 @@ export const AdminPrizeManagement = ({ participant, poolId, poolTitle, participa
     }
   };
 
+  const entriesLabel = winningEntriesCount && winningEntriesCount > 1
+    ? `(ganhou com ${winningEntriesCount} palpites)`
+    : winningEntriesCount === 1 ? '(ganhou com 1 palpite)' : null;
+
   if (participant.prize_status === "prize_sent") {
     return (
       <Card className="border-green-200 dark:border-green-800 bg-green-50 dark:bg-green-950">
@@ -145,6 +149,7 @@ export const AdminPrizeManagement = ({ participant, poolId, poolTitle, participa
           </CardTitle>
           <CardDescription>
             O prêmio para <span className="font-bold text-foreground">{participant.participant_name}</span> já foi enviado.
+            {entriesLabel && <span className="ml-1 text-muted-foreground">{entriesLabel}</span>}
             {prizeAmount != null && prizeAmount > 0 && (
               <span className="ml-1 font-semibold text-green-700 dark:text-green-300">
                 (R$ {prizeAmount.toFixed(2).replace('.', ',')})
