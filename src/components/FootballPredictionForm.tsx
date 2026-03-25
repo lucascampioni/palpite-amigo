@@ -295,7 +295,7 @@ const FootballPredictionForm = ({ poolId, userId, onSuccess, entryFee, pool, pix
             match_id: p.matchId,
             home_score_prediction: parseInt(p.homeScore),
             away_score_prediction: parseInt(p.awayScore),
-            prediction_set: setIndex + 1,
+            prediction_set: maxExistingSet + setIndex + 1,
           }))
         );
 
@@ -364,7 +364,7 @@ const FootballPredictionForm = ({ poolId, userId, onSuccess, entryFee, pool, pix
         match_id: p.matchId,
         home_score_prediction: parseInt(p.homeScore),
         away_score_prediction: parseInt(p.awayScore),
-        prediction_set: setIndex + 1,
+        prediction_set: maxExistingSet + setIndex + 1,
       }))
     );
 
