@@ -63,6 +63,8 @@ const FootballRanking = ({ poolId, pool, approvedParticipantsCount, isOwner }: F
   const [expandedMyPosition, setExpandedMyPosition] = useState<Set<string>>(new Set());
   const [participantPredictions, setParticipantPredictions] = useState<Record<string, MatchPrediction[]>>({});
   const [participantSetCounts, setParticipantSetCounts] = useState<Record<string, number>>({});
+  const [userTotalEntries, setUserTotalEntries] = useState<Record<string, number>>({});
+  const [globalPalpiteNumbers, setGlobalPalpiteNumbers] = useState<Record<string, number>>({});
   const [allMatchesFinished, setAllMatchesFinished] = useState(false);
   const [ownerPhone, setOwnerPhone] = useState<string | null>(null);
   const [hasLiveMatches, setHasLiveMatches] = useState(false);
@@ -215,7 +217,34 @@ const FootballRanking = ({ poolId, pool, approvedParticipantsCount, isOwner }: F
       rpcData.forEach((r: any) => {
         setCounts[r.participant_id] = Math.max(setCounts[r.participant_id] || 0, r.prediction_set || 1);
       });
+
+      // Also track total entries per user_id to label "Palpite X" across separate submissions
+      const userEntryCounts: Record<string, number> = {};
+      rpcData.forEach((r: any) => {
+        if (r.user_id) {
+          userEntryCounts[r.user_id] = (userEntryCounts[r.user_id] || 0) + 1;
+        }
+      });
+
+      // Assign a global palpite number per user (across all participant rows)
+      const userEntryIndex: Record<string, number> = {};
+      const globalPalpiteNumber: Record<string, number> = {};
+      // Sort by prediction_set to keep consistent ordering
+      const sortedRpc = [...rpcData].sort((a: any, b: any) => {
+        if (a.participant_id === b.participant_id) return (a.prediction_set || 1) - (b.prediction_set || 1);
+        return 0;
+      });
+      sortedRpc.forEach((r: any) => {
+        if (r.user_id) {
+          userEntryIndex[r.user_id] = (userEntryIndex[r.user_id] || 0) + 1;
+          const key = `${r.participant_id}_${r.prediction_set || 1}`;
+          globalPalpiteNumber[key] = userEntryIndex[r.user_id];
+        }
+      });
+
       setParticipantSetCounts(setCounts);
+      setUserTotalEntries(userEntryCounts);
+      setGlobalPalpiteNumbers(globalPalpiteNumber);
 
       // Fetch all predictions with details for tiebreaker stats (paginated to avoid 1000-row limit)
       let allPredictions: any[] = [];
@@ -793,10 +822,13 @@ const FootballRanking = ({ poolId, pool, approvedParticipantsCount, isOwner }: F
 
   // Get display name with prediction set label
   const getDisplayName = (participant: ParticipantScore) => {
-    const setCount = participantSetCounts[participant.id] || 1;
     const name = shortenName(participant.participant_name);
-    if (setCount > 1) {
-      return `${name} (Palpite ${participant.prediction_set})`;
+    const userId = participant.user_id;
+    const totalEntries = userId ? (userTotalEntries[userId] || 1) : 1;
+    if (totalEntries > 1) {
+      const rankingKey = `${participant.id}_${participant.prediction_set}`;
+      const palpiteNum = globalPalpiteNumbers[rankingKey] || participant.prediction_set;
+      return `${name} (Palpite ${palpiteNum})`;
     }
     return name;
   };
