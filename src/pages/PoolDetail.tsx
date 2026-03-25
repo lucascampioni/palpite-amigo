@@ -1862,10 +1862,14 @@ const PoolDetail = () => {
                   {(() => {
                     // Group winning participants by user_id to consolidate prizes
                     // Use winnerPrizeAmounts (keyed by participant_id) to identify winners
-                    const pendingWinners = participants.filter(p => 
+                    // For estabelecimento pools, only show the actual winner(s) by winner_id
+                    let pendingWinners = participants.filter(p => 
                       (p.prize_status && p.prize_status !== 'prize_sent') || 
                       (winnerPrizeAmounts[p.id] > 0 && p.prize_status !== 'prize_sent')
                     );
+                    if (pool.prize_type === 'estabelecimento' && pool.winner_id) {
+                      pendingWinners = pendingWinners.filter(p => p.user_id === pool.winner_id);
+                    }
                     
                     // Count winning prediction sets from rankingData for each participant
                     const winningSetCounts: Record<string, number> = {};
@@ -1922,6 +1926,8 @@ const PoolDetail = () => {
                           prizeAmount={totalPrize}
                           winningEntriesCount={entriesCount}
                           allParticipantIds={participantIds}
+                          prizeType={pool.prize_type}
+                          estabelecimentoPrizeDescription={pool.estabelecimento_prize_description}
                           onSuccess={loadPoolData}
                         />
                       </div>
