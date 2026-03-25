@@ -1812,17 +1812,47 @@ const PoolDetail = () => {
                   </h3>
                   {(() => {
                     // Group winning participants by user_id to consolidate prizes
-                    const pendingWinners = participants.filter(p => p.prize_status && p.prize_status !== 'prize_sent');
+                    // Use winnerPrizeAmounts (keyed by participant_id) to identify winners
+                    const pendingWinners = participants.filter(p => 
+                      (p.prize_status && p.prize_status !== 'prize_sent') || 
+                      (winnerPrizeAmounts[p.id] > 0 && p.prize_status !== 'prize_sent')
+                    );
+                    
+                    // Count winning prediction sets from rankingData for each participant
+                    const winningSetCounts: Record<string, number> = {};
+                    if (rankingData.length > 0) {
+                      // Find the top score threshold (entries that get prizes)
+                      const maxW = pool.max_winners || 3;
+                      const sortedRanking = [...rankingData].sort((a: any, b: any) => b.total_points - a.total_points);
+                      // Determine which entries are winners (same logic as prize calculation)
+                      let pos = 0;
+                      while (pos < sortedRanking.length) {
+                        const score = (sortedRanking[pos] as any).total_points;
+                        let groupEnd = pos;
+                        while (groupEnd < sortedRanking.length - 1 && (sortedRanking[groupEnd + 1] as any).total_points === score) {
+                          groupEnd++;
+                        }
+                        if (pos < maxW) {
+                          for (let i = pos; i <= groupEnd; i++) {
+                            const pid = (sortedRanking[i] as any).participant_id;
+                            winningSetCounts[pid] = (winningSetCounts[pid] || 0) + 1;
+                          }
+                        }
+                        pos = groupEnd + 1;
+                      }
+                    }
+
                     const grouped = new Map<string, { participant: typeof pendingWinners[0]; totalPrize: number; entriesCount: number; participantIds: string[] }>();
                     for (const p of pendingWinners) {
                       const existing = grouped.get(p.user_id);
                       const entryPrize = winnerPrizeAmounts[p.id] || 0;
+                      const setCount = winningSetCounts[p.id] || 1;
                       if (existing) {
                         existing.totalPrize += entryPrize;
-                        existing.entriesCount += 1;
+                        existing.entriesCount += setCount;
                         existing.participantIds.push(p.id);
                       } else {
-                        grouped.set(p.user_id, { participant: p, totalPrize: entryPrize, entriesCount: 1, participantIds: [p.id] });
+                        grouped.set(p.user_id, { participant: p, totalPrize: entryPrize, entriesCount: setCount, participantIds: [p.id] });
                       }
                     }
                     return Array.from(grouped.values()).map(({ participant, totalPrize, entriesCount, participantIds }) => (
