@@ -292,7 +292,8 @@ const PoolDetail = () => {
   }, [pool, participants, participantsPoints, hasFootballMatches, poolId]);
 
   // Calculate prize amount per winner participant for admin management
-  // Calculate prize amount per participant entry (each prediction set competes independently)
+  // Calculate prize amount per participant, using prediction-set level ranking
+  // Each prediction set competes independently — prizes split per entry, then consolidated per participant_id
   const winnerPrizeAmounts = useMemo<Record<string, number>>(() => {
     if (!pool || participants.length === 0) return {};
     
@@ -312,7 +313,53 @@ const PoolDetail = () => {
       maxW >= 3 ? calcPrize(pool.third_place_prize) : 0,
     ];
 
-    // Each participant entry competes independently (no user deduplication)
+    // Use rankingData (prediction-set level) if available, otherwise fall back to participant-level
+    if (rankingData.length > 0) {
+      // rankingData has entries like { participant_id, participant_name, total_points, prediction_set, user_id }
+      // Sort by points desc, then by created_at of participant
+      const participantCreatedAt: Record<string, string> = {};
+      participants.forEach(p => { participantCreatedAt[p.id] = p.created_at; });
+
+      const sorted = [...rankingData]
+        .sort((a: any, b: any) => {
+          if (b.total_points !== a.total_points) return b.total_points - a.total_points;
+          const aTime = participantCreatedAt[a.participant_id] || '';
+          const bTime = participantCreatedAt[b.participant_id] || '';
+          return new Date(aTime).getTime() - new Date(bTime).getTime();
+        });
+
+      // Each prediction set entry competes independently
+      const amounts: Record<string, number> = {};
+      let pos = 0;
+      while (pos < sorted.length) {
+        const score = (sorted[pos] as any).total_points;
+        let groupEnd = pos;
+        while (groupEnd < sorted.length - 1 && (sorted[groupEnd + 1] as any).total_points === score) {
+          groupEnd++;
+        }
+        const groupSize = groupEnd - pos + 1;
+        
+        if (pos < maxW) {
+          let prizeSum = 0;
+          const end = Math.min(groupEnd, maxW - 1);
+          for (let i = pos; i <= end; i++) {
+            prizeSum += prizes[i] || 0;
+          }
+          const perEntry = prizeSum / groupSize;
+          if (perEntry > 0) {
+            for (let i = pos; i <= groupEnd; i++) {
+              const pid = (sorted[i] as any).participant_id;
+              // Accumulate prize per participant_id (a participant with multiple winning sets gets more)
+              amounts[pid] = (amounts[pid] || 0) + perEntry;
+            }
+          }
+        }
+        pos = groupEnd + 1;
+      }
+      return amounts;
+    }
+
+    // Fallback: participant-level (old logic)
     const sorted = participants
       .filter(p => p.status === 'approved')
       .map(p => ({ ...p, total_points: participantsPoints[p.id] || 0 }))
@@ -340,7 +387,7 @@ const PoolDetail = () => {
         const perEntry = prizeSum / groupSize;
         if (perEntry > 0) {
           for (let i = pos; i <= groupEnd; i++) {
-            amounts[sorted[i].id] = perEntry;
+            amounts[sorted[i].id] = (amounts[sorted[i].id] || 0) + perEntry;
           }
         }
       }
