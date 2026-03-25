@@ -164,78 +164,69 @@ serve(async (req) => {
       }
     });
 
-    // For each participant, pick the best prediction set (highest points, then tiebreakers)
-    const pointsMap: Record<string, number> = {};
-    const exactScoresMap: Record<string, number> = {};
-    const correctResultsMap: Record<string, number> = {};
-    const earliestPredictionMap: Record<string, string> = {};
+    // Each prediction set competes independently — build flat list of entries
+    interface EntryStats {
+      participant_id: string;
+      participant_name: string;
+      prediction_set: number;
+      points: number;
+      exactScores: number;
+      correctResults: number;
+      earliest: string;
+      created_at: string;
+    }
 
+    const entries: EntryStats[] = [];
     for (const p of participants) {
-      let bestStats: { points: number; exactScores: number; correctResults: number; earliest: string } | null = null;
-
-      for (const key of Object.keys(setStatsMap)) {
-        if (!key.startsWith(`${p.id}_`)) continue;
-        const stats = setStatsMap[key];
-
-        if (!bestStats) {
-          bestStats = stats;
-          continue;
+      // Get all prediction sets for this participant
+      const participantKeys = Object.keys(setStatsMap).filter(k => k.startsWith(`${p.id}_`));
+      if (participantKeys.length === 0) {
+        // Participant with no predictions
+        if (!isEstabelecimento) {
+          entries.push({
+            participant_id: p.id,
+            participant_name: p.participant_name,
+            prediction_set: 1,
+            points: 0,
+            exactScores: 0,
+            correctResults: 0,
+            earliest: p.created_at,
+            created_at: p.created_at,
+          });
         }
-
-        // Pick set with more points
-        if (stats.points > bestStats.points) {
-          bestStats = stats;
-        } else if (stats.points === bestStats.points) {
-          // Tiebreak: more exact scores
-          if (stats.exactScores > bestStats.exactScores) {
-            bestStats = stats;
-          } else if (stats.exactScores === bestStats.exactScores) {
-            // Tiebreak: more correct results
-            if (stats.correctResults > bestStats.correctResults) {
-              bestStats = stats;
-            } else if (stats.correctResults === bestStats.correctResults) {
-              // Tiebreak: earlier prediction
-              if (new Date(stats.earliest).getTime() < new Date(bestStats.earliest).getTime()) {
-                bestStats = stats;
-              }
-            }
-          }
-        }
+        continue;
       }
-
-      if (bestStats) {
-        pointsMap[p.id] = bestStats.points;
-        exactScoresMap[p.id] = bestStats.exactScores;
-        correctResultsMap[p.id] = bestStats.correctResults;
-        earliestPredictionMap[p.id] = bestStats.earliest;
+      for (const key of participantKeys) {
+        const stats = setStatsMap[key];
+        const ps = parseInt(key.split('_')[1]) || 1;
+        entries.push({
+          participant_id: p.id,
+          participant_name: p.participant_name,
+          prediction_set: ps,
+          points: stats.points,
+          exactScores: stats.exactScores,
+          correctResults: stats.correctResults,
+          earliest: stats.earliest,
+          created_at: p.created_at,
+        });
       }
     }
 
-    // Sort participants by points, then by tiebreaker criteria
-    // For estabelecimento pools, exclude participants without predictions
-    const participantsWithPredictions = new Set(predictions?.map(p => p.participant_id) || []);
-    
-    const participantsWithPoints = participants
-      .filter(p => !isEstabelecimento || participantsWithPredictions.has(p.id))
-      .map(p => ({
-        ...p,
-        total_points: pointsMap[p.id] || 0,
-        exact_scores: exactScoresMap[p.id] || 0,
-        correct_results: correctResultsMap[p.id] || 0,
-        earliest_prediction: earliestPredictionMap[p.id] || p.created_at
-      }))
-      .sort((a, b) => {
-        if (b.total_points !== a.total_points) return b.total_points - a.total_points;
-        
-        if (isEstabelecimento) {
-          // Estabelecimento tiebreaker: exact scores → correct results → prediction time
-          if (b.exact_scores !== a.exact_scores) return b.exact_scores - a.exact_scores;
-          if (b.correct_results !== a.correct_results) return b.correct_results - a.correct_results;
-        }
-        
-        // Tiebreaker: earliest prediction submission time wins
-        return new Date(a.earliest_prediction).getTime() - new Date(b.earliest_prediction).getTime();
-      });
+    // Sort entries by points, then tiebreaker criteria
+    entries.sort((a, b) => {
+      if (b.points !== a.points) return b.points - a.points;
+      
+      if (isEstabelecimento) {
+        if (b.exactScores !== a.exactScores) return b.exactScores - a.exactScores;
+        if (b.correctResults !== a.correctResults) return b.correctResults - a.correctResults;
+      }
+      
+      // Tiebreaker: earliest prediction submission time wins
+      return new Date(a.earliest).getTime() - new Date(b.earliest).getTime();
+    });
+
+    // Use entries as the ranking (replaces participantsWithPoints)
+    const participantsWithPoints = entries;
 
     console.log('Participants with points:', participantsWithPoints);
 
