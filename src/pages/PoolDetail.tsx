@@ -1478,33 +1478,70 @@ const PoolDetail = () => {
 
             {hasJoined && currentUserParticipant?.status === 'approved' && (
               <>
-                {/* Winner needs to submit PIX */}
+                {/* Winner needs to submit PIX or claim prize */}
                 {currentUserParticipant.prize_status === 'awaiting_pix' && userPrizeInfo && (
                   <>
                     <Separator />
-                    <PrizePixSubmission
-                      participantId={currentUserParticipant.id}
-                      poolTitle={pool.title}
-                      prizeAmount={userPrizeInfo.amount}
-                      placement={userPrizeInfo.placement}
-                      isTied={userPrizeInfo.isTied}
-                      tiedWithCount={userPrizeInfo.tiedWithCount}
-                      totalPrizes={(() => {
-                        const isPercentage = pool.prize_type === 'percentage';
-                        const totalPredictionSets = rankingData.length > 0 ? rankingData.length : participants.filter(p => p.status === 'approved').length;
-                        const totalCollected = (pool.entry_fee ? parseFloat(pool.entry_fee) : 0) * totalPredictionSets;
-                        const calc = (val: any) => {
-                          const num = val ? parseFloat(val) : 0;
-                          return isPercentage ? (num / 100) * totalCollected : num;
-                        };
-                        return {
-                          first: calc(pool.first_place_prize),
-                          second: calc(pool.second_place_prize),
-                          third: calc(pool.third_place_prize)
-                        };
-                      })()}
-                      onSuccess={loadPoolData}
-                    />
+                    {pool.prize_type === 'estabelecimento' ? (
+                      <div className="p-4 rounded-lg bg-gradient-to-r from-amber-50 to-orange-50 dark:from-amber-950/30 dark:to-orange-950/30 border-2 border-amber-300 dark:border-amber-700 space-y-3">
+                        <div className="flex items-center gap-2">
+                          <Trophy className="w-5 h-5 text-amber-600" />
+                          <p className="text-sm font-bold text-amber-800 dark:text-amber-200">
+                            🎉 Parabéns! Você ganhou!
+                          </p>
+                        </div>
+                        <p className="text-sm text-amber-700 dark:text-amber-300">
+                          Resgate seu prêmio entrando em contato com o organizador do bolão.
+                        </p>
+                        {pool.estabelecimento_prize_description && (
+                          <p className="text-sm font-semibold text-foreground">
+                            🏪 Prêmio: {pool.estabelecimento_prize_description}
+                          </p>
+                        )}
+                        {ownerPhone ? (
+                          <Button
+                            className="w-full"
+                            onClick={() => {
+                              const digits = ownerPhone.replace(/\D/g, '');
+                              const phoneWithCountry = digits.startsWith('55') ? digits : `55${digits}`;
+                              const message = encodeURIComponent(`Olá ${ownerName || ''}! 🎉 Ganhei o bolão "${pool.title}" na Delfos e gostaria de resgatar meu prêmio!\n\nLink do bolão: https://delfos.app.br/bolao/${pool.slug || pool.id}`);
+                              window.open(`https://wa.me/${phoneWithCountry}?text=${message}`, '_blank');
+                            }}
+                          >
+                            <MessageCircle className="w-4 h-4 mr-1" />
+                            Falar com o organizador para resgatar
+                          </Button>
+                        ) : (
+                          <p className="text-xs text-muted-foreground italic">
+                            Entre em contato com o organizador do bolão para resgatar seu prêmio.
+                          </p>
+                        )}
+                      </div>
+                    ) : (
+                      <PrizePixSubmission
+                        participantId={currentUserParticipant.id}
+                        poolTitle={pool.title}
+                        prizeAmount={userPrizeInfo.amount}
+                        placement={userPrizeInfo.placement}
+                        isTied={userPrizeInfo.isTied}
+                        tiedWithCount={userPrizeInfo.tiedWithCount}
+                        totalPrizes={(() => {
+                          const isPercentage = pool.prize_type === 'percentage';
+                          const totalPredictionSets = rankingData.length > 0 ? rankingData.length : participants.filter(p => p.status === 'approved').length;
+                          const totalCollected = (pool.entry_fee ? parseFloat(pool.entry_fee) : 0) * totalPredictionSets;
+                          const calc = (val: any) => {
+                            const num = val ? parseFloat(val) : 0;
+                            return isPercentage ? (num / 100) * totalCollected : num;
+                          };
+                          return {
+                            first: calc(pool.first_place_prize),
+                            second: calc(pool.second_place_prize),
+                            third: calc(pool.third_place_prize)
+                          };
+                        })()}
+                        onSuccess={loadPoolData}
+                      />
+                    )}
                   </>
                 )}
                 
