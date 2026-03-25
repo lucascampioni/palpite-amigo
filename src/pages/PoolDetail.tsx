@@ -1763,10 +1763,23 @@ const PoolDetail = () => {
                     <Trophy className="w-5 h-5 text-yellow-500" />
                     Gerenciar Prêmios
                   </h3>
-                  {participants
-                    .filter(p => p.prize_status && p.prize_status !== 'prize_sent')
-                    .map((participant) => (
-                      <div key={participant.id} id={`premio-${participant.id}`}>
+                  {(() => {
+                    // Group winning participants by user_id to consolidate prizes
+                    const pendingWinners = participants.filter(p => p.prize_status && p.prize_status !== 'prize_sent');
+                    const grouped = new Map<string, { participant: typeof pendingWinners[0]; totalPrize: number; entriesCount: number; participantIds: string[] }>();
+                    for (const p of pendingWinners) {
+                      const existing = grouped.get(p.user_id);
+                      const entryPrize = winnerPrizeAmounts[p.id] || 0;
+                      if (existing) {
+                        existing.totalPrize += entryPrize;
+                        existing.entriesCount += 1;
+                        existing.participantIds.push(p.id);
+                      } else {
+                        grouped.set(p.user_id, { participant: p, totalPrize: entryPrize, entriesCount: 1, participantIds: [p.id] });
+                      }
+                    }
+                    return Array.from(grouped.values()).map(({ participant, totalPrize, entriesCount, participantIds }) => (
+                      <div key={participant.user_id} id={`premio-${participant.id}`}>
                         <AdminPrizeManagement
                           participant={{
                             id: participant.id,
@@ -1780,11 +1793,14 @@ const PoolDetail = () => {
                           poolId={pool.id}
                           poolTitle={pool.title}
                           participantPhone={participantPhones[participant.user_id]}
-                          prizeAmount={winnerPrizeAmounts[participant.id]}
+                          prizeAmount={totalPrize}
+                          winningEntriesCount={entriesCount}
+                          allParticipantIds={participantIds}
                           onSuccess={loadPoolData}
                         />
                       </div>
-                    ))}
+                    ));
+                  })()}
                   {participants.filter(p => p.prize_status && p.prize_status !== 'prize_sent').length === 0 && 
                    participants.filter(p => p.prize_status === 'prize_sent').length === 0 && (
                     <p className="text-sm text-muted-foreground">
@@ -1801,10 +1817,22 @@ const PoolDetail = () => {
                         {paidPrizesOpen ? <ChevronUp className="w-4 h-4 ml-auto" /> : <ChevronDown className="w-4 h-4 ml-auto" />}
                       </CollapsibleTrigger>
                       <CollapsibleContent className="space-y-4 mt-3">
-                        {participants
-                          .filter(p => p.prize_status === 'prize_sent')
-                          .map((participant) => (
-                            <div key={participant.id} id={`premio-${participant.id}`}>
+                        {(() => {
+                          const paidWinners = participants.filter(p => p.prize_status === 'prize_sent');
+                          const grouped = new Map<string, { participant: typeof paidWinners[0]; totalPrize: number; entriesCount: number; participantIds: string[] }>();
+                          for (const p of paidWinners) {
+                            const existing = grouped.get(p.user_id);
+                            const entryPrize = winnerPrizeAmounts[p.id] || 0;
+                            if (existing) {
+                              existing.totalPrize += entryPrize;
+                              existing.entriesCount += 1;
+                              existing.participantIds.push(p.id);
+                            } else {
+                              grouped.set(p.user_id, { participant: p, totalPrize: entryPrize, entriesCount: 1, participantIds: [p.id] });
+                            }
+                          }
+                          return Array.from(grouped.values()).map(({ participant, totalPrize, entriesCount, participantIds }) => (
+                            <div key={participant.user_id} id={`premio-${participant.id}`}>
                               <AdminPrizeManagement
                                 participant={{
                                   id: participant.id,
@@ -1818,11 +1846,14 @@ const PoolDetail = () => {
                                 poolId={pool.id}
                                 poolTitle={pool.title}
                                 participantPhone={participantPhones[participant.user_id]}
-                                prizeAmount={winnerPrizeAmounts[participant.id]}
+                                prizeAmount={totalPrize}
+                                winningEntriesCount={entriesCount}
+                                allParticipantIds={participantIds}
                                 onSuccess={loadPoolData}
                               />
                             </div>
-                          ))}
+                          ));
+                        })()}
                       </CollapsibleContent>
                     </Collapsible>
                   )}
