@@ -1945,7 +1945,7 @@ const PoolDetail = () => {
                     <Collapsible open={paidPrizesOpen} onOpenChange={setPaidPrizesOpen}>
                       <CollapsibleTrigger className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors w-full">
                         <CheckCircle className="w-4 h-4 text-green-600" />
-                        <span>Prêmios já pagos ({participants.filter(p => p.prize_status === 'prize_sent').length})</span>
+                        <span>{pool.prize_type === 'estabelecimento' ? 'Prêmios já entregues' : 'Prêmios já pagos'} ({participants.filter(p => p.prize_status === 'prize_sent').length})</span>
                         {paidPrizesOpen ? <ChevronUp className="w-4 h-4 ml-auto" /> : <ChevronDown className="w-4 h-4 ml-auto" />}
                       </CollapsibleTrigger>
                       <CollapsibleContent className="space-y-4 mt-3">
