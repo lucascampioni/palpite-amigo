@@ -335,16 +335,21 @@ export const AdminParticipantsManager = ({
                       <div key={p.id} className="flex items-center justify-between py-2 px-3 rounded-lg bg-card border text-sm gap-2">
                         <div className="min-w-0 flex-1">
                           <span className="font-medium truncate block">{p.participant_name}</span>
-                          {predictionCounts[p.id] && predictionCounts[p.id] > 1 && (
-                            <span className="text-[11px] font-semibold text-primary">
-                              {predictionCounts[p.id]} palpites{fee > 0 ? ` · R$ ${(fee * predictionCounts[p.id]).toFixed(2).replace('.', ',')}` : ''}
-                            </span>
-                          )}
-                          {predictionCounts[p.id] && predictionCounts[p.id] === 1 && fee > 0 && (
-                            <span className="text-[11px] text-muted-foreground">
-                              1 palpite · R$ {fee.toFixed(2).replace('.', ',')}
-                            </span>
-                          )}
+                          {(() => {
+                            const count = predictionCounts[p.id] || 1;
+                            if (count > 1) {
+                              return (
+                                <span className="text-[11px] font-semibold text-primary">
+                                  {count} palpites{fee > 0 ? ` · R$ ${(fee * count).toFixed(2).replace('.', ',')}` : ''}
+                                </span>
+                              );
+                            }
+                            return (
+                              <span className="text-[11px] text-muted-foreground">
+                                1 palpite{fee > 0 ? ` · R$ ${fee.toFixed(2).replace('.', ',')}` : ''}
+                              </span>
+                            );
+                          })()}
                           {p.payment_proof ? (
                             <span className="text-[11px] text-blue-500 dark:text-blue-400">✅ Comprovante enviado</span>
                           ) : (
