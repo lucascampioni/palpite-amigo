@@ -107,10 +107,17 @@ export const AdminParticipantsManager = ({
         .select("participant_id, prediction_set")
         .in("participant_id", ids);
       if (data) {
-        const counts: Record<string, number> = {};
+        const setsPerParticipant: Record<string, Set<number>> = {};
         data.forEach((row: any) => {
           const ps = row.prediction_set || 1;
-          counts[row.participant_id] = Math.max(counts[row.participant_id] || 0, ps);
+          if (!setsPerParticipant[row.participant_id]) {
+            setsPerParticipant[row.participant_id] = new Set();
+          }
+          setsPerParticipant[row.participant_id].add(ps);
+        });
+        const counts: Record<string, number> = {};
+        Object.entries(setsPerParticipant).forEach(([id, sets]) => {
+          counts[id] = sets.size;
         });
         setPredictionCounts(counts);
       }
