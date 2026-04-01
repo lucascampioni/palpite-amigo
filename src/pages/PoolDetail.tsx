@@ -1335,7 +1335,7 @@ const PoolDetail = () => {
                   <div className="px-3 pb-3 pt-2 rounded-b-xl bg-yellow-50 dark:bg-yellow-950/30 border-2 border-t-0 border-yellow-300 dark:border-yellow-700 -mt-2">
                     <div className="space-y-1.5 text-[11px] sm:text-xs text-yellow-800 dark:text-yellow-300 leading-relaxed">
                       <p>
-                        • Sem comprovante até <strong>{format(proofCutoff, "dd/MM 'às' HH:mm", { locale: ptBR })}</strong> → <strong>rejeitado automaticamente</strong>.
+                        • Sem comprovante até <strong>{firstMatchDate ? format(firstMatchDate, "dd/MM 'às' HH:mm", { locale: ptBR }) : format(new Date(new Date(pool.deadline).getTime() + 3 * 60 * 60 * 1000), "dd/MM 'às' HH:mm", { locale: ptBR })}</strong> → <strong>rejeitado automaticamente</strong>.
                       </p>
                       <p>
                         • Você tem até <strong>{firstMatchDate ? format(firstMatchDate, "dd/MM 'às' HH:mm", { locale: ptBR }) : format(new Date(new Date(pool.deadline).getTime() + 3 * 60 * 60 * 1000), "dd/MM 'às' HH:mm", { locale: ptBR })}</strong> para aprovar/reprovar.
