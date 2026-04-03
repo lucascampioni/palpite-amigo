@@ -75,6 +75,7 @@ const FootballRanking = ({ poolId, pool, approvedParticipantsCount, isOwner }: F
   const [lastFrontendRefresh, setLastFrontendRefresh] = useState<Date>(new Date());
   const [anyMatchStarted, setAnyMatchStarted] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
+  const [userPhoneSuffix, setUserPhoneSuffix] = useState<Record<string, string>>({});
   const ITEMS_PER_PAGE = 10;
 
   useEffect(() => {
