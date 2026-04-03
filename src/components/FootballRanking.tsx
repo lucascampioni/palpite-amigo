@@ -1110,7 +1110,7 @@ const FootballRanking = ({ poolId, pool, approvedParticipantsCount, isOwner }: F
                         key={winner.ranking_key} 
                         className="inline-flex items-center gap-1 rounded-full bg-yellow-500/15 border border-yellow-500/30 font-semibold text-sm px-3 py-1"
                       >
-                        🏆 {getDisplayName(winner)}
+                        🏆 {renderDisplayName(winner)}
                       </span>
                     ))}
                   </div>
@@ -1149,7 +1149,7 @@ const FootballRanking = ({ poolId, pool, approvedParticipantsCount, isOwner }: F
                         isManyWinners ? 'text-xs px-2 py-0.5' : 'text-sm px-3 py-1'
                       }`}
                     >
-                      🏆 {getDisplayName(winner)}
+                      🏆 {renderDisplayName(winner)}
                     </span>
                   ))}
                 </div>
@@ -1479,7 +1479,7 @@ const FootballRanking = ({ poolId, pool, approvedParticipantsCount, isOwner }: F
                                 </div>
                               )}
                               <span className="font-semibold text-sm break-words whitespace-normal sm:whitespace-nowrap sm:truncate min-w-0">
-                                {getDisplayName(currentUser)}
+                                {renderDisplayName(currentUser)}
                               </span>
                             </div>
                             <div className="flex items-center gap-1 sm:gap-2 flex-shrink-0">
@@ -1736,7 +1736,7 @@ const FootballRanking = ({ poolId, pool, approvedParticipantsCount, isOwner }: F
                              <span className={`font-medium text-sm sm:text-base break-words whitespace-normal sm:whitespace-nowrap sm:truncate min-w-0 ${
                                isCurrentUser ? 'font-semibold' : ''
                              }`}>
-                              {getDisplayName(participant)}
+                              {renderDisplayName(participant)}
                             </span>
                           </div>
                           <div className="flex items-center gap-1 sm:gap-2 flex-shrink-0">
