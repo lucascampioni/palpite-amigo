@@ -853,23 +853,40 @@ const FootballRanking = ({ poolId, pool, approvedParticipantsCount, isOwner }: F
     return `${parts[0]} ${parts[parts.length - 1]}`;
   };
 
-  // Get display name with prediction set label and phone suffix for disambiguation
-  const getDisplayName = (participant: ParticipantScore) => {
+  // Get display name parts: name text and optional phone suffix
+  const getDisplayParts = (participant: ParticipantScore) => {
     const name = shortenName(participant.participant_name);
     const userId = participant.user_id;
     const totalEntries = userId ? (userTotalEntries[userId] || 1) : 1;
     
-    // Build phone suffix if there are name duplicates
     const phoneSuffix = userId && userPhoneSuffix[userId] 
-      ? ` · ••${userPhoneSuffix[userId]}` 
-      : '';
+      ? userPhoneSuffix[userId] 
+      : null;
     
+    let displayName = name;
     if (totalEntries > 1) {
       const rankingKey = `${participant.id}_${participant.prediction_set}`;
       const palpiteNum = globalPalpiteNumbers[rankingKey] || participant.prediction_set;
-      return `${name} (Palpite ${palpiteNum})${phoneSuffix}`;
+      displayName = `${name} (Palpite ${palpiteNum})`;
     }
-    return `${name}${phoneSuffix}`;
+    
+    return { displayName, phoneSuffix };
+  };
+
+  // Render name with phone badge
+  const renderDisplayName = (participant: ParticipantScore, className?: string) => {
+    const { displayName, phoneSuffix } = getDisplayParts(participant);
+    return (
+      <span className={`inline-flex flex-wrap items-center gap-1 ${className || ''}`}>
+        <span>{displayName}</span>
+        {phoneSuffix && (
+          <span className="inline-flex items-center gap-0.5 rounded-md bg-muted px-1.5 py-0.5 text-[10px] text-muted-foreground font-medium">
+            <Phone className="w-2.5 h-2.5" />
+            **{phoneSuffix}
+          </span>
+        )}
+      </span>
+    );
   };
 
   if (loading) {
