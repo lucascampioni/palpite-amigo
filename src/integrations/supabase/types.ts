@@ -749,6 +749,13 @@ export type Database = {
       }
       get_pool_owner_name: { Args: { pool_uuid: string }; Returns: string }
       get_pool_owner_phone: { Args: { pool_uuid: string }; Returns: string }
+      get_pool_participants_phone_suffix: {
+        Args: { p_pool_id: string }
+        Returns: {
+          phone_suffix: string
+          user_id: string
+        }[]
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
