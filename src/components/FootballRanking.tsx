@@ -915,12 +915,8 @@ const FootballRanking = ({ poolId, pool, approvedParticipantsCount, isOwner }: F
     // Position = index + 1 (skips positions taken by the tied group)
     return index + 1;
   };
-  // Shorten name: "Maria Luiza Machado Dias" → "Maria Dias"
-  const shortenName = (fullName: string) => {
-    const parts = fullName.trim().split(/\s+/);
-    if (parts.length <= 2) return fullName;
-    return `${parts[0]} ${parts[parts.length - 1]}`;
-  };
+
+
 
 
   const getRankIcon = (position: number, hasPrize: boolean) => {
