@@ -1105,14 +1105,15 @@ const FootballRanking = ({ poolId, pool, approvedParticipantsCount, isOwner }: F
                     </span>
                     <span className="text-xs font-bold text-foreground">0 pts</span>
                   </div>
-                  <div className="flex flex-wrap items-center justify-center gap-1.5">
+                  <div className="flex flex-wrap items-stretch justify-center gap-2">
                     {topN.map((winner) => (
-                      <span 
+                      <div 
                         key={winner.ranking_key} 
-                        className="inline-flex items-center gap-1 rounded-full bg-yellow-500/15 border border-yellow-500/30 font-semibold text-sm px-3 py-1"
+                        className="inline-flex items-start gap-1.5 rounded-lg bg-yellow-500/15 border border-yellow-500/30 font-semibold text-sm px-3 py-2"
                       >
-                        🏆 {renderDisplayName(winner)}
-                      </span>
+                        <span className="flex-shrink-0">🏆</span>
+                        {renderDisplayName(winner, true)}
+                      </div>
                     ))}
                   </div>
                 </div>
