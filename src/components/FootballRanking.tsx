@@ -874,17 +874,18 @@ const FootballRanking = ({ poolId, pool, approvedParticipantsCount, isOwner }: F
   };
 
   // Render name with phone badge
-  const renderDisplayName = (participant: ParticipantScore, className?: string) => {
+  // Render name with phone badge - compact mode for winner cards
+  const renderDisplayName = (participant: ParticipantScore, compact?: boolean) => {
     const { displayName, phoneSuffix } = getDisplayParts(participant);
+    if (!phoneSuffix) return <span>{displayName}</span>;
+    
     return (
-      <span className={`inline-flex flex-wrap items-center gap-1 ${className || ''}`}>
-        <span>{displayName}</span>
-        {phoneSuffix && (
-          <span className="inline-flex items-center gap-0.5 rounded-md bg-muted px-1.5 py-0.5 text-[10px] text-muted-foreground font-medium">
-            <Phone className="w-2.5 h-2.5" />
-            **{phoneSuffix}
-          </span>
-        )}
+      <span className={`inline-flex ${compact ? 'flex-col items-start' : 'flex-col sm:flex-row sm:items-center items-start'} gap-0.5`}>
+        <span className="break-words">{displayName}</span>
+        <span className="inline-flex items-center gap-0.5 rounded bg-muted/80 px-1 py-px text-[9px] text-muted-foreground font-medium leading-tight">
+          <Phone className="w-2 h-2 flex-shrink-0" />
+          final {phoneSuffix}
+        </span>
       </span>
     );
   };
