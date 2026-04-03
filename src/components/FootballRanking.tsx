@@ -874,17 +874,18 @@ const FootballRanking = ({ poolId, pool, approvedParticipantsCount, isOwner }: F
   };
 
   // Render name with phone badge
-  const renderDisplayName = (participant: ParticipantScore, className?: string) => {
+  // Render name with phone badge - compact mode for winner cards
+  const renderDisplayName = (participant: ParticipantScore, compact?: boolean) => {
     const { displayName, phoneSuffix } = getDisplayParts(participant);
+    if (!phoneSuffix) return <span>{displayName}</span>;
+    
     return (
-      <span className={`inline-flex flex-wrap items-center gap-1 ${className || ''}`}>
-        <span>{displayName}</span>
-        {phoneSuffix && (
-          <span className="inline-flex items-center gap-0.5 rounded-md bg-muted px-1.5 py-0.5 text-[10px] text-muted-foreground font-medium">
-            <Phone className="w-2.5 h-2.5" />
-            **{phoneSuffix}
-          </span>
-        )}
+      <span className={`inline-flex ${compact ? 'flex-col items-start' : 'flex-col sm:flex-row sm:items-center items-start'} gap-0.5`}>
+        <span className="break-words">{displayName}</span>
+        <span className="inline-flex items-center gap-0.5 rounded bg-muted/80 px-1 py-px text-[9px] text-muted-foreground font-medium leading-tight">
+          <Phone className="w-2 h-2 flex-shrink-0" />
+          final {phoneSuffix}
+        </span>
       </span>
     );
   };
@@ -1104,14 +1105,15 @@ const FootballRanking = ({ poolId, pool, approvedParticipantsCount, isOwner }: F
                     </span>
                     <span className="text-xs font-bold text-foreground">0 pts</span>
                   </div>
-                  <div className="flex flex-wrap items-center justify-center gap-1.5">
+                  <div className="flex flex-wrap items-stretch justify-center gap-2">
                     {topN.map((winner) => (
-                      <span 
+                      <div 
                         key={winner.ranking_key} 
-                        className="inline-flex items-center gap-1 rounded-full bg-yellow-500/15 border border-yellow-500/30 font-semibold text-sm px-3 py-1"
+                        className="inline-flex items-start gap-1.5 rounded-lg bg-yellow-500/15 border border-yellow-500/30 font-semibold text-sm px-3 py-2"
                       >
-                        🏆 {renderDisplayName(winner)}
-                      </span>
+                        <span className="flex-shrink-0">🏆</span>
+                        {renderDisplayName(winner, true)}
+                      </div>
                     ))}
                   </div>
                 </div>
@@ -1141,16 +1143,17 @@ const FootballRanking = ({ poolId, pool, approvedParticipantsCount, isOwner }: F
                     </span>
                   )}
                 </div>
-                <div className={`flex flex-wrap items-center justify-center gap-1.5 ${isManyWinners ? 'gap-y-1' : 'gap-2'}`}>
+                <div className={`flex flex-wrap items-stretch justify-center ${isManyWinners ? 'gap-1.5' : 'gap-2'}`}>
                   {winners.map((winner) => (
-                    <span 
+                    <div 
                       key={winner.ranking_key} 
-                      className={`inline-flex items-center gap-1 rounded-full bg-yellow-500/15 border border-yellow-500/30 font-semibold ${
-                        isManyWinners ? 'text-xs px-2 py-0.5' : 'text-sm px-3 py-1'
+                      className={`inline-flex items-start gap-1.5 rounded-lg bg-yellow-500/15 border border-yellow-500/30 font-semibold ${
+                        isManyWinners ? 'text-xs px-2 py-1.5' : 'text-sm px-3 py-2'
                       }`}
                     >
-                      🏆 {renderDisplayName(winner)}
-                    </span>
+                      <span className="flex-shrink-0">🏆</span>
+                      {renderDisplayName(winner, true)}
+                    </div>
                   ))}
                 </div>
               </div>
