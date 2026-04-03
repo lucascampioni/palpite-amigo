@@ -75,6 +75,7 @@ const FootballRanking = ({ poolId, pool, approvedParticipantsCount, isOwner }: F
   const [lastFrontendRefresh, setLastFrontendRefresh] = useState<Date>(new Date());
   const [anyMatchStarted, setAnyMatchStarted] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
+  const [userPhoneSuffix, setUserPhoneSuffix] = useState<Record<string, string>>({});
   const ITEMS_PER_PAGE = 10;
 
   useEffect(() => {
@@ -805,17 +806,70 @@ const FootballRanking = ({ poolId, pool, approvedParticipantsCount, isOwner }: F
     setExpandedParticipants(newExpanded);
   };
 
-  // Get display name with prediction set label
+  // Load phone suffixes for all participants in ranking
+  useEffect(() => {
+    const loadPhoneSuffixes = async () => {
+      if (ranking.length === 0) return;
+      const userIds = [...new Set(ranking.map(r => r.user_id).filter(Boolean))] as string[];
+      if (userIds.length === 0) return;
+
+      // Check if there are duplicate names to decide if we need phone suffix
+      const nameCount: Record<string, number> = {};
+      ranking.forEach(r => {
+        const shortName = shortenName(r.participant_name);
+        nameCount[shortName] = (nameCount[shortName] || 0) + 1;
+      });
+      const hasDuplicates = Object.values(nameCount).some(c => c > 1);
+      if (!hasDuplicates) {
+        setUserPhoneSuffix({});
+        return;
+      }
+
+      const { data: profiles } = await supabase
+        .from("profiles")
+        .select("id, phone")
+        .in("id", userIds);
+
+      if (profiles) {
+        const suffixMap: Record<string, string> = {};
+        profiles.forEach((p: any) => {
+          if (p.phone) {
+            const digits = p.phone.replace(/\D/g, '');
+            if (digits.length >= 4) {
+              suffixMap[p.id] = digits.slice(-4);
+            }
+          }
+        });
+        setUserPhoneSuffix(suffixMap);
+      }
+    };
+    loadPhoneSuffixes();
+  }, [ranking]);
+
+  // Shorten name: "Maria Luiza Machado Dias" → "Maria Dias"
+  const shortenName = (fullName: string) => {
+    const parts = fullName.trim().split(/\s+/);
+    if (parts.length <= 2) return fullName;
+    return `${parts[0]} ${parts[parts.length - 1]}`;
+  };
+
+  // Get display name with prediction set label and phone suffix for disambiguation
   const getDisplayName = (participant: ParticipantScore) => {
     const name = shortenName(participant.participant_name);
     const userId = participant.user_id;
     const totalEntries = userId ? (userTotalEntries[userId] || 1) : 1;
+    
+    // Build phone suffix if there are name duplicates
+    const phoneSuffix = userId && userPhoneSuffix[userId] 
+      ? ` · ••${userPhoneSuffix[userId]}` 
+      : '';
+    
     if (totalEntries > 1) {
       const rankingKey = `${participant.id}_${participant.prediction_set}`;
       const palpiteNum = globalPalpiteNumbers[rankingKey] || participant.prediction_set;
-      return `${name} (Palpite ${palpiteNum})`;
+      return `${name} (Palpite ${palpiteNum})${phoneSuffix}`;
     }
-    return name;
+    return `${name}${phoneSuffix}`;
   };
 
   if (loading) {
@@ -861,12 +915,8 @@ const FootballRanking = ({ poolId, pool, approvedParticipantsCount, isOwner }: F
     // Position = index + 1 (skips positions taken by the tied group)
     return index + 1;
   };
-  // Shorten name: "Maria Luiza Machado Dias" → "Maria Dias"
-  const shortenName = (fullName: string) => {
-    const parts = fullName.trim().split(/\s+/);
-    if (parts.length <= 2) return fullName;
-    return `${parts[0]} ${parts[parts.length - 1]}`;
-  };
+
+
 
 
   const getRankIcon = (position: number, hasPrize: boolean) => {
