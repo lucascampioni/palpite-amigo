@@ -825,19 +825,14 @@ const FootballRanking = ({ poolId, pool, approvedParticipantsCount, isOwner }: F
         return;
       }
 
-      const { data: profiles } = await supabase
-        .from("profiles")
-        .select("id, phone")
-        .in("id", userIds);
+      const { data: phoneSuffixes } = await supabase
+        .rpc("get_pool_participants_phone_suffix", { p_pool_id: poolId });
 
-      if (profiles) {
+      if (phoneSuffixes) {
         const suffixMap: Record<string, string> = {};
-        profiles.forEach((p: any) => {
-          if (p.phone) {
-            const digits = p.phone.replace(/\D/g, '');
-            if (digits.length >= 4) {
-              suffixMap[p.id] = digits.slice(-4);
-            }
+        (phoneSuffixes as any[]).forEach((p) => {
+          if (p.phone_suffix) {
+            suffixMap[p.user_id] = p.phone_suffix;
           }
         });
         setUserPhoneSuffix(suffixMap);
