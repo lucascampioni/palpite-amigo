@@ -1180,9 +1180,19 @@ const FootballRanking = ({ poolId, pool, approvedParticipantsCount, isOwner }: F
           const items: { icon: string; text: string; bold?: boolean; indent?: boolean }[] = [];
 
           if (isPercentage) {
+            const prizeTotal = prizes.reduce((s, v) => s + v, 0);
             items.push({
               icon: '💰',
-              text: `Total arrecadado: R$ ${totalCollected.toFixed(2).replace('.', ',')} (${totalPredictionSets} palpites × R$ ${(pool.entry_fee || 0).toFixed(2).replace('.', ',')})`,
+              text: `Premiação total: R$ ${prizeTotal.toFixed(2).replace('.', ',')}`,
+            });
+            rawPrizes.forEach((pct, i) => {
+              if (pct > 0 && i < maxW) {
+                items.push({
+                  icon: '',
+                  text: `${positionLabels[i]}: ${pct}% → R$ ${prizes[i].toFixed(2).replace('.', ',')}`,
+                  indent: true,
+                });
+              }
             });
           }
 
