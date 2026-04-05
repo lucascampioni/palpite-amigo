@@ -49,6 +49,9 @@ const AF_COMPETITIONS: { leagueId: number; code: string; name: string; season: n
   { leagueId: 635, code: 'par', name: 'Campeonato Paraense', season: 2026 },
   { leagueId: 1, code: 'wc', name: 'Copa do Mundo 2026', season: 2026, fetchAll: true },
   { leagueId: 10, code: 'fri', name: 'Amistosos Internacionais', season: 2026 },
+  { leagueId: 73, code: 'cdb', name: 'Copa do Brasil', season: 2025 },
+  { leagueId: 13, code: 'lib', name: 'Copa Libertadores', season: 2025 },
+  { leagueId: 11, code: 'sul', name: 'Copa Sul-Americana', season: 2025 },
 ];
 
 // Football-Data.org competitions (FALLBACK only if AF fails)
@@ -346,6 +349,18 @@ function translateRoundAF(round: string): string {
     '3rd Place Final': 'Disputa 3º Lugar',
     'Regular Season': 'Temporada Regular',
     'Friendly': 'Amistoso',
+    'Preliminary Round': 'Fase Preliminar',
+    'Qualifying Round': 'Fase Qualificatória',
+    '1st Qualifying Round': '1ª Fase Qualificatória',
+    '2nd Qualifying Round': '2ª Fase Qualificatória',
+    '3rd Qualifying Round': '3ª Fase Qualificatória',
+    '1st Round': '1ª Fase',
+    '2nd Round': '2ª Fase',
+    '3rd Round': '3ª Fase',
+    'Round of 32': 'Fase de 32',
+    'Round of 64': '1ª Fase',
+    'Knockout Round Play-offs': 'Playoff',
+    'Play-offs': 'Playoff',
   };
   for (const [key, value] of Object.entries(STAGE_NAMES)) {
     if (round.startsWith(key)) return value;

@@ -45,6 +45,9 @@ const CHAMP_LABELS: Record<string, { label: string; emoji: string }> = {
   'pl': { label: 'Premier', emoji: '🏴󠁧󠁢󠁥󠁮󠁧󠁿' },
   'cl': { label: 'Champions', emoji: '🏆' },
   'wc': { label: 'Copa', emoji: '🌍' },
+  'cdb': { label: 'Copa do Brasil', emoji: '🏆' },
+  'lib': { label: 'Libertadores', emoji: '🏆' },
+  'sul': { label: 'Sul-Americana', emoji: '🏆' },
 };
 
 export const GEMatchSelector = ({ open, onOpenChange, onMatchesSelected }: GEMatchSelectorProps) => {
