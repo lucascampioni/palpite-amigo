@@ -391,12 +391,12 @@ export const AdminPrizeManagement = ({ participant, poolId, poolTitle, participa
           <Button
             variant="secondary"
             size="sm"
-            className="w-full text-xs"
+            className="w-full text-xs whitespace-normal h-auto py-2.5 leading-tight"
             disabled={isMarkingPaidDirectly}
             onClick={handleMarkPaidDirectly}
           >
-            <CheckCircle className="w-4 h-4 mr-1" />
-            {isMarkingPaidDirectly ? "Marcando..." : "Já paguei — comprovante enviado no privado"}
+            <CheckCircle className="w-4 h-4 mr-1.5 flex-shrink-0" />
+            <span>{isMarkingPaidDirectly ? "Marcando..." : "Já paguei — comprovante enviado no privado"}</span>
           </Button>
         </div>
       </CardContent>
