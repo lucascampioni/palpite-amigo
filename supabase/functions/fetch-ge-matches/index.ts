@@ -49,9 +49,9 @@ const AF_COMPETITIONS: { leagueId: number; code: string; name: string; season: n
   { leagueId: 635, code: 'par', name: 'Campeonato Paraense', season: 2026 },
   { leagueId: 1, code: 'wc', name: 'Copa do Mundo 2026', season: 2026, fetchAll: true },
   { leagueId: 10, code: 'fri', name: 'Amistosos Internacionais', season: 2026 },
-  { leagueId: 73, code: 'cdb', name: 'Copa do Brasil', season: 2025 },
-  { leagueId: 13, code: 'lib', name: 'Copa Libertadores', season: 2025 },
-  { leagueId: 11, code: 'sul', name: 'Copa Sul-Americana', season: 2025 },
+  { leagueId: 73, code: 'cdb', name: 'Copa do Brasil', season: 2026 },
+  { leagueId: 13, code: 'lib', name: 'Copa Libertadores', season: 2026 },
+  { leagueId: 11, code: 'sul', name: 'Copa Sul-Americana', season: 2026 },
 ];
 
 // Football-Data.org competitions (FALLBACK only if AF fails)
