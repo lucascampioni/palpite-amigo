@@ -376,14 +376,29 @@ export const AdminPrizeManagement = ({ participant, poolId, poolTitle, participa
               type="file"
               accept="image/*,.pdf"
               onChange={handleFileChange}
-              required
             />
           </div>
 
-          <Button type="submit" disabled={isUploading} className="w-full">
-            {isUploading ? "Enviando..." : "Marcar como Prêmio Enviado"}
-          </Button>
+          {proofFile && (
+            <Button type="submit" disabled={isUploading} className="w-full">
+              {isUploading ? "Enviando..." : "Marcar como Prêmio Enviado"}
+            </Button>
+          )}
         </form>
+
+        <div className="border-t pt-3 space-y-2">
+          <p className="text-xs text-muted-foreground">Ou marque como enviado sem anexar comprovante aqui:</p>
+          <Button
+            variant="secondary"
+            size="sm"
+            className="w-full text-xs"
+            disabled={isMarkingPaidDirectly}
+            onClick={handleMarkPaidDirectly}
+          >
+            <CheckCircle className="w-4 h-4 mr-1" />
+            {isMarkingPaidDirectly ? "Marcando..." : "Já paguei — comprovante enviado no privado"}
+          </Button>
+        </div>
       </CardContent>
     </Card>
   );
