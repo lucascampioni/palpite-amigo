@@ -1,0 +1,1 @@
+UPDATE public.profiles SET phone_verified = true WHERE phone_verified = false;

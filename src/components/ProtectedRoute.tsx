@@ -21,17 +21,6 @@ const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
         return;
       }
 
-      const { data: profile } = await supabase
-        .from("profiles")
-        .select("phone, phone_verified")
-        .eq("id", session.user.id)
-        .single();
-
-      if (profile && profile.phone !== null && profile.phone !== '' && !profile.phone_verified) {
-        navigate("/verificacao-sms");
-        return;
-      }
-
       setAuthorized(true);
       setChecking(false);
     };
