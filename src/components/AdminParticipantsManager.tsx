@@ -413,7 +413,7 @@ export const AdminParticipantsManager = ({
                 <Collapsible open={approvedOpen} onOpenChange={setApprovedOpen}>
                   <CollapsibleTrigger className="w-full flex items-center justify-between p-3 rounded-lg bg-green-50 dark:bg-green-950/50 border border-green-200 dark:border-green-800 hover:bg-green-100 dark:hover:bg-green-950 transition-colors">
                     <span className="text-sm font-medium text-green-700 dark:text-green-400 flex items-center gap-2">
-                      ✅ Aprovados ({approved.length})
+                      ✅ Aprovados ({approved.length} {approved.length === 1 ? 'pessoa' : 'pessoas'}, {approved.reduce((sum, p) => sum + (predictionCounts[p.id] || 1), 0)} palpites)
                     </span>
                     {approvedOpen ? <ChevronUp className="w-4 h-4 text-green-600" /> : <ChevronDown className="w-4 h-4 text-green-600" />}
                   </CollapsibleTrigger>
