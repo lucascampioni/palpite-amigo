@@ -151,6 +151,10 @@ export const InAppPaymentSubmission = ({ participantId, participantIds, poolId, 
   }, [tx?.id, tx?.status]);
 
   const generatePix = async () => {
+    if (paymentClosed) {
+      toast({ title: "Pagamento encerrado", description: "O prazo para pagar este bolão já encerrou.", variant: "destructive" });
+      return;
+    }
     setGenerating(true);
     try {
       const { data, error } = await supabase.functions.invoke("mp-create-pix", {
@@ -165,7 +169,7 @@ export const InAppPaymentSubmission = ({ participantId, participantIds, poolId, 
         mp_ticket_url: data.ticket_url,
         expires_at: data.expires_at,
       });
-      toast({ title: "PIX gerado", description: "Pague em até 30 minutos." });
+      toast({ title: "PIX gerado", description: firstMatchDate ? `Pague até ${formatCutoff(firstMatchDate)}.` : "Pague em até 30 minutos." });
     } catch (e: any) {
       toast({ title: "Erro", description: e.message, variant: "destructive" });
     } finally {
@@ -189,6 +193,24 @@ export const InAppPaymentSubmission = ({ participantId, participantIds, poolId, 
             <CheckCircle2 className="w-5 h-5" /> Pagamento confirmado
           </CardTitle>
           <CardDescription>Sua participação no bolão está aprovada.</CardDescription>
+        </CardHeader>
+      </Card>
+    );
+  }
+
+  // Payment window closed (first match already started)
+  if (paymentClosed && tx?.status !== "approved") {
+    return (
+      <Card className="border-destructive/30 bg-destructive/5">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-destructive text-base">
+            <AlertCircle className="w-5 h-5" /> Pagamento encerrado
+          </CardTitle>
+          <CardDescription>
+            O prazo para pagar este bolão se encerrou no início do primeiro jogo
+            {firstMatchDate ? ` (${formatCutoff(firstMatchDate)})` : ""}.
+            Não é mais possível gerar ou pagar o PIX.
+          </CardDescription>
         </CardHeader>
       </Card>
     );
