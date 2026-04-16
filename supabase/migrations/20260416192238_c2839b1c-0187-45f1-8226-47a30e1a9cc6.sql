@@ -1,0 +1,1 @@
+UPDATE public.profiles SET pix_key = NULL, pix_key_type = NULL WHERE id IN ('f32e5eba-4f52-4c82-b846-7e93a84e8705','74d68f1d-2ab2-4e07-b824-3514e593900e','a987adfb-4679-49ac-9101-8b592041e18b');

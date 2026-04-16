@@ -31,6 +31,8 @@ export const InAppPaymentSubmission = ({ participantId, poolId, poolTitle, entry
   const [polling, setPolling] = useState(false);
   const [copied, setCopied] = useState(false);
   const [hasProfilePix, setHasProfilePix] = useState<boolean | null>(null);
+  const [profilePixKey, setProfilePixKey] = useState<string | null>(null);
+  const [profilePixKeyType, setProfilePixKeyType] = useState<string | null>(null);
 
   // Check user profile PIX key
   useEffect(() => {
@@ -39,10 +41,13 @@ export const InAppPaymentSubmission = ({ participantId, poolId, poolTitle, entry
       if (!user) return;
       const { data: profile } = await supabase
         .from("profiles")
-        .select("pix_key")
+        .select("pix_key, pix_key_type")
         .eq("id", user.id)
         .maybeSingle();
-      setHasProfilePix(!!profile?.pix_key && profile.pix_key.trim().length > 0);
+      const has = !!profile?.pix_key && profile.pix_key.trim().length > 0;
+      setHasProfilePix(has);
+      setProfilePixKey(profile?.pix_key ?? null);
+      setProfilePixKeyType(profile?.pix_key_type ?? null);
     })();
   }, []);
 
@@ -162,10 +167,33 @@ export const InAppPaymentSubmission = ({ participantId, poolId, poolTitle, entry
       </CardHeader>
       <CardContent className="space-y-4">
         {!tx ? (
-          <Button onClick={generatePix} disabled={generating || hasProfilePix === null} className="w-full">
-            {generating ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <DollarSign className="w-4 h-4 mr-2" />}
-            Gerar QR Code PIX
-          </Button>
+          <>
+            {profilePixKey && (
+              <div className="rounded-lg border-2 border-primary/40 bg-primary/5 p-3 space-y-2">
+                <div className="text-sm font-semibold text-primary">
+                  ✅ Confirme onde você vai receber, caso ganhe
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Se você for um dos vencedores, o prêmio será enviado automaticamente via PIX para a chave abaixo (cadastrada no seu perfil):
+                </p>
+                <div className="rounded-md bg-background border p-2.5 flex items-center gap-2 flex-wrap">
+                  {profilePixKeyType && (
+                    <span className="inline-block bg-primary/15 text-primary rounded px-2 py-0.5 text-[11px] font-medium uppercase">
+                      {profilePixKeyType}
+                    </span>
+                  )}
+                  <span className="font-mono text-xs break-all">{profilePixKey}</span>
+                </div>
+                <p className="text-[11px] text-muted-foreground">
+                  Não é essa? <Link to="/perfil" className="underline font-medium text-primary">Atualize no perfil</Link> antes de pagar.
+                </p>
+              </div>
+            )}
+            <Button onClick={generatePix} disabled={generating || hasProfilePix === null} className="w-full">
+              {generating ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <DollarSign className="w-4 h-4 mr-2" />}
+              Gerar QR Code PIX
+            </Button>
+          </>
         ) : (
           <>
             {tx.mp_qr_code_base64 && (

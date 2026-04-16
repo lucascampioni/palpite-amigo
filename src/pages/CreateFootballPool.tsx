@@ -1130,6 +1130,28 @@ const CreateFootballPool = () => {
               </div>
 
 
+              {paymentMethod === 'in_app' && profilePixKey && (
+                <div className="rounded-lg border-2 border-primary/40 bg-primary/5 p-4 space-y-2">
+                  <div className="flex items-center gap-2 text-sm font-semibold text-primary">
+                    ✅ Confirme onde você vai receber sua comissão
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    Ao final do bolão, sua parte será enviada automaticamente via PIX para a chave abaixo (cadastrada no seu perfil):
+                  </p>
+                  <div className="rounded-md bg-background border p-3 flex items-center gap-2 flex-wrap">
+                    {profilePixKeyType && (
+                      <span className="inline-block bg-primary/15 text-primary rounded px-2 py-0.5 text-[11px] font-medium uppercase">
+                        {profilePixKeyType}
+                      </span>
+                    )}
+                    <span className="font-mono text-sm break-all">{profilePixKey}</span>
+                  </div>
+                  <p className="text-[11px] text-muted-foreground">
+                    Não é essa? <a href="/perfil" className="underline font-medium text-primary">Atualize no perfil</a> antes de criar o bolão.
+                  </p>
+                </div>
+              )}
+
               <div className="flex gap-3 pt-4">
                 <Button
                   type="button"
