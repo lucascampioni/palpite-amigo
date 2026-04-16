@@ -9,7 +9,8 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { PixKeyInput } from "@/components/PixKeyInput";
 
 interface Props {
-  participantId: string;
+  participantId?: string;
+  participantIds?: string[];
   poolId: string;
   poolTitle: string;
   entryFee: number;
@@ -25,7 +26,10 @@ interface Tx {
   expires_at: string | null;
 }
 
-export const InAppPaymentSubmission = ({ participantId, poolId, poolTitle, entryFee, onSuccess }: Props) => {
+export const InAppPaymentSubmission = ({ participantId, participantIds, poolId, poolTitle, entryFee, onSuccess }: Props) => {
+  const ids = participantIds && participantIds.length > 0 ? participantIds : (participantId ? [participantId] : []);
+  const primaryId = ids[0];
+  const idsKey = ids.join(",");
   const { toast } = useToast();
   const [tx, setTx] = useState<Tx | null>(null);
   const [generating, setGenerating] = useState(false);
