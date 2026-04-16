@@ -111,6 +111,17 @@ const UserPoolEntries = ({
     }
   }
 
+  // Consolidated in_app payment: aggregate all pending entries without proof into a single QR
+  const inAppPendingEntries =
+    hasEntryFee && pool?.payment_method === "in_app"
+      ? entries.filter((e) => e.status === "pending" && !e.payment_proof)
+      : [];
+  const inAppTotalAmount = inAppPendingEntries.reduce(
+    (sum, e) => sum + feePerPalpite * getPredictionCount(e),
+    0
+  );
+  const showConsolidatedInApp = inAppPendingEntries.length >= 2;
+
   return (
     <div className="space-y-4">
       {/* Summary for approved entries */}
@@ -124,6 +135,26 @@ const UserPoolEntries = ({
               ? `Você tem ${approved.length} entrada(s) aprovada(s). Boa sorte! 🍀`
               : "Seu palpite está aprovado. Boa sorte! 🍀"}
           </p>
+        </div>
+      )}
+
+      {/* Consolidated in-app payment card (one QR for all pending entries) */}
+      {showConsolidatedInApp && (
+        <div className="p-3 rounded-lg bg-primary/5 border border-primary/20 space-y-3">
+          <p className="text-sm font-semibold">
+            💳 Pagamento único — {inAppPendingEntries.length} palpites pendentes
+          </p>
+          <p className="text-xs text-muted-foreground">
+            Para facilitar, geramos <strong>um único QR Code PIX</strong> com a soma total.
+            Após o pagamento, todas as suas {inAppPendingEntries.length} entradas serão aprovadas automaticamente.
+          </p>
+          <InAppPaymentSubmission
+            participantIds={inAppPendingEntries.map((e) => e.id)}
+            poolId={poolId}
+            poolTitle={pool.title}
+            entryFee={inAppTotalAmount}
+            onSuccess={onReload}
+          />
         </div>
       )}
 
