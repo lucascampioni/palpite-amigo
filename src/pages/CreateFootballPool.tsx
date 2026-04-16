@@ -849,7 +849,35 @@ const CreateFootballPool = () => {
                 </div>
               )}
 
-              {!userRole?.isEstabelecimento && (
+              {!userRole?.isEstabelecimento && userRole?.canReceiveInApp && (
+                <div className="space-y-3">
+                  <Label className="text-base">💳 Como receber os pagamentos</Label>
+                  <div className="grid gap-3">
+                    <button
+                      type="button"
+                      onClick={() => setPaymentMethod('in_app')}
+                      className={`text-left p-4 rounded-lg border-2 transition-colors ${paymentMethod === 'in_app' ? 'border-primary bg-primary/5' : 'border-muted hover:border-primary/50'}`}
+                    >
+                      <div className="font-semibold text-sm mb-1">⚡ Receber dentro do app (PIX automático)</div>
+                      <div className="text-xs text-muted-foreground">
+                        Os participantes pagam direto no app via PIX, são aprovados automaticamente e o valor é repassado a você (e ao vencedor) ao fim do bolão, descontada a taxa Delfos.
+                      </div>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setPaymentMethod('pix_manual')}
+                      className={`text-left p-4 rounded-lg border-2 transition-colors ${paymentMethod === 'pix_manual' ? 'border-primary bg-primary/5' : 'border-muted hover:border-primary/50'}`}
+                    >
+                      <div className="font-semibold text-sm mb-1">📎 PIX manual + comprovante</div>
+                      <div className="text-xs text-muted-foreground">
+                        Participantes enviam PIX direto pra sua chave e anexam comprovante. Você aprova manualmente.
+                      </div>
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {!userRole?.isEstabelecimento && paymentMethod === 'pix_manual' && (
               <div className="space-y-3">
                 <div className="flex items-start gap-2">
                   <Label className="text-base">🔑 Chave PIX para receber pagamentos {userRole?.isAdmin ? '(opcional)' : '*'}</Label>
