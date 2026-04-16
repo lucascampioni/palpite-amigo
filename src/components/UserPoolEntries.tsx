@@ -41,6 +41,7 @@ const UserPoolEntries = ({
 }: UserPoolEntriesProps) => {
   const { toast } = useToast();
   const [showAddMoreForm, setShowAddMoreForm] = useState(false);
+  const [processingEntryId, setProcessingEntryId] = useState<string | null>(null);
 
   const approved = entries.filter((e) => e.status === "approved");
   const isEstabelecimento = pool?.prize_type === "estabelecimento";
@@ -53,39 +54,79 @@ const UserPoolEntries = ({
     return match ? parseInt(match[1]) : 1;
   };
 
+  const cancelPendingPixForPool = async () => {
+    if (pool?.payment_method !== "in_app") return;
+
+    const { error } = await supabase.functions.invoke("mp-cancel-pix", {
+      body: { pool_id: poolId },
+    });
+
+    if (error) throw error;
+  };
+
+  const removeEntry = async (
+    entry: any,
+    successMessage: { title: string; description?: string }
+  ) => {
+    setProcessingEntryId(entry.id);
+
+    try {
+      await cancelPendingPixForPool();
+
+      const { error: predictionsError } = await supabase
+        .from("football_predictions")
+        .delete()
+        .eq("participant_id", entry.id);
+      if (predictionsError) throw predictionsError;
+
+      const { error: participantError } = await supabase
+        .from("participants")
+        .delete()
+        .eq("id", entry.id);
+      if (participantError) throw participantError;
+
+      toast(successMessage);
+      onReload();
+    } catch (e: any) {
+      toast({
+        title: "Erro ao cancelar participação",
+        description: e.message || "Não foi possível cancelar este palpite agora.",
+        variant: "destructive",
+      });
+    } finally {
+      setProcessingEntryId(null);
+    }
+  };
+
   const handleDeleteEntry = async (entry: any) => {
     if (
       !confirm(
-        "Tem certeza que deseja cancelar esta participação? Todos os dados serão excluídos."
+        pool?.payment_method === "in_app"
+          ? "Tem certeza que deseja cancelar esta participação? O QR Code PIX pendente deste bolão também será cancelado."
+          : "Tem certeza que deseja cancelar esta participação? Todos os dados serão excluídos."
       )
-    )
+    ) {
       return;
-    await supabase
-      .from("football_predictions")
-      .delete()
-      .eq("participant_id", entry.id);
-    await supabase.from("participants").delete().eq("id", entry.id);
-    toast({ title: "Participação cancelada" });
-    onReload();
+    }
+
+    await removeEntry(entry, { title: "Participação cancelada" });
   };
 
   const handleRedoEntry = async (entry: any) => {
     if (
       !confirm(
-        "Deseja apagar esta entrada e refazer do zero? Seus palpites serão excluídos."
+        pool?.payment_method === "in_app"
+          ? "Deseja apagar esta entrada e refazer do zero? O QR Code PIX pendente deste bolão também será cancelado."
+          : "Deseja apagar esta entrada e refazer do zero? Seus palpites serão excluídos."
       )
-    )
+    ) {
       return;
-    await supabase
-      .from("football_predictions")
-      .delete()
-      .eq("participant_id", entry.id);
-    await supabase.from("participants").delete().eq("id", entry.id);
-    toast({
+    }
+
+    await removeEntry(entry, {
       title: "Entrada removida",
       description: "Refaça seu palpite.",
     });
-    onReload();
   };
 
   // For estabelecimento pools: if approved but no predictions, show form
