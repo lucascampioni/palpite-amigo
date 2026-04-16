@@ -93,8 +93,12 @@ serve(async (req) => {
 
     const expiresAt = new Date(Date.now() + 30 * 60 * 1000); // 30 min
 
-    // Create payment via Mercado Pago API
-    const idempotencyKey = `${participant_id}-${Date.now()}`;
+    // Create payment via Mercado Pago API (consolidated for N participants)
+    const idempotencyKey = `${primaryParticipant.id}-${participantIds.length}-${Date.now()}`;
+    const description = participantIds.length > 1
+      ? `Inscrição (${participantIds.length} palpites) - ${pool.title}`
+      : `Inscrição - ${pool.title}`;
+
     const mpResponse = await fetch("https://api.mercadopago.com/v1/payments", {
       method: "POST",
       headers: {
@@ -104,18 +108,19 @@ serve(async (req) => {
       },
       body: JSON.stringify({
         transaction_amount: Number(amount),
-        description: `Inscrição - ${pool.title}`,
+        description,
         payment_method_id: "pix",
         date_of_expiration: expiresAt.toISOString(),
         payer: {
           email: payerEmail,
-          first_name: participant.participant_name?.split(" ")[0] || "Participante",
+          first_name: primaryParticipant.participant_name?.split(" ")[0] || "Participante",
         },
-        external_reference: participant_id,
+        external_reference: primaryParticipant.id,
         notification_url: `${SUPABASE_URL}/functions/v1/mp-webhook`,
         metadata: {
           pool_id,
-          participant_id,
+          participant_id: primaryParticipant.id,
+          participant_ids: participantIds,
           user_id: user.id,
         },
       }),
@@ -131,30 +136,36 @@ serve(async (req) => {
     const qrCodeBase64 = mpData.point_of_interaction?.transaction_data?.qr_code_base64;
     const ticketUrl = mpData.point_of_interaction?.transaction_data?.ticket_url;
 
-    // Save transaction
-    const { data: transaction, error: txError } = await adminClient
+    // Save one transaction per participant — splits total evenly so sum(pool_transactions) == total paid
+    const perParticipantAmount = +(Number(amount) / participantIds.length).toFixed(2);
+    const txRows = participantIds.map((pid, idx) => ({
+      pool_id,
+      participant_id: pid,
+      user_id: user.id,
+      amount: idx === participantIds.length - 1
+        ? +(Number(amount) - perParticipantAmount * (participantIds.length - 1)).toFixed(2)
+        : perParticipantAmount,
+      mp_payment_id: String(mpData.id),
+      mp_qr_code: qrCode,
+      mp_qr_code_base64: qrCodeBase64,
+      mp_ticket_url: ticketUrl,
+      status: "pending",
+      expires_at: expiresAt.toISOString(),
+      raw_response: mpData,
+    }));
+
+    const { data: transactions, error: txError } = await adminClient
       .from("pool_transactions")
-      .insert({
-        pool_id,
-        participant_id,
-        user_id: user.id,
-        amount,
-        mp_payment_id: String(mpData.id),
-        mp_qr_code: qrCode,
-        mp_qr_code_base64: qrCodeBase64,
-        mp_ticket_url: ticketUrl,
-        status: "pending",
-        expires_at: expiresAt.toISOString(),
-        raw_response: mpData,
-      })
-      .select()
-      .single();
+      .insert(txRows)
+      .select();
 
     if (txError) throw txError;
 
     return new Response(JSON.stringify({
       success: true,
-      transaction_id: transaction.id,
+      transaction_id: transactions?.[0]?.id,
+      transaction_ids: transactions?.map((t) => t.id) || [],
+      participant_ids: participantIds,
       mp_payment_id: mpData.id,
       qr_code: qrCode,
       qr_code_base64: qrCodeBase64,
