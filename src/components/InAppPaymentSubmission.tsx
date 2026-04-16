@@ -129,7 +129,7 @@ export const InAppPaymentSubmission = ({ participantId, participantIds, poolId, 
     setGenerating(true);
     try {
       const { data, error } = await supabase.functions.invoke("mp-create-pix", {
-        body: { pool_id: poolId, participant_id: participantId, amount: entryFee },
+        body: { pool_id: poolId, participant_ids: ids, amount: entryFee },
       });
       if (error) throw error;
       setTx({
