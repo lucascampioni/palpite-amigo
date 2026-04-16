@@ -389,6 +389,16 @@ export const InAppPaymentSubmission = ({ participantId, participantIds, poolId, 
                 )}
               </AlertDescription>
             </Alert>
+            <Button
+              onClick={cancelPix}
+              variant="outline"
+              size="sm"
+              disabled={cancelling}
+              className="w-full text-destructive hover:text-destructive"
+            >
+              {cancelling ? <Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" /> : null}
+              Cancelar este QR Code
+            </Button>
           </>
         )}
       </CardContent>
