@@ -1,9 +1,10 @@
 import { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
-import { DollarSign, Copy, Check, Loader2, RefreshCw, CheckCircle2 } from "lucide-react";
+import { DollarSign, Copy, Check, Loader2, RefreshCw, CheckCircle2, AlertCircle } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 
 interface Props {
@@ -29,6 +30,21 @@ export const InAppPaymentSubmission = ({ participantId, poolId, poolTitle, entry
   const [generating, setGenerating] = useState(false);
   const [polling, setPolling] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [hasProfilePix, setHasProfilePix] = useState<boolean | null>(null);
+
+  // Check user profile PIX key
+  useEffect(() => {
+    (async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("pix_key")
+        .eq("id", user.id)
+        .maybeSingle();
+      setHasProfilePix(!!profile?.pix_key && profile.pix_key.trim().length > 0);
+    })();
+  }, []);
 
   // Load existing pending transaction
   useEffect(() => {
@@ -110,6 +126,29 @@ export const InAppPaymentSubmission = ({ participantId, poolId, poolTitle, entry
     );
   }
 
+  // Block PIX generation if user has no PIX key in profile
+  if (hasProfilePix === false && !tx) {
+    return (
+      <Card className="border-2 border-destructive/30 bg-destructive/5">
+        <CardHeader>
+          <CardTitle className="text-base flex items-center gap-2 text-destructive">
+            <AlertCircle className="w-5 h-5" />
+            Cadastre sua chave PIX para participar
+          </CardTitle>
+          <CardDescription>
+            Para participar de bolões com pagamento dentro do app, você precisa ter uma chave PIX cadastrada no seu perfil.
+            Caso você ganhe, é para essa chave que o prêmio será enviado automaticamente.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <Button asChild className="w-full">
+            <Link to="/perfil">Cadastrar chave PIX no perfil</Link>
+          </Button>
+        </CardContent>
+      </Card>
+    );
+  }
+
   return (
     <Card className="border-2 border-primary/20 bg-gradient-to-br from-primary/5 to-primary/10">
       <CardHeader>
@@ -123,7 +162,7 @@ export const InAppPaymentSubmission = ({ participantId, poolId, poolTitle, entry
       </CardHeader>
       <CardContent className="space-y-4">
         {!tx ? (
-          <Button onClick={generatePix} disabled={generating} className="w-full">
+          <Button onClick={generatePix} disabled={generating || hasProfilePix === null} className="w-full">
             {generating ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <DollarSign className="w-4 h-4 mr-2" />}
             Gerar QR Code PIX
           </Button>

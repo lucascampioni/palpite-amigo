@@ -231,6 +231,12 @@ const CreateFootballPool = () => {
       
       // Additional validation for non-admin users
       const usingInApp = userRole?.canReceiveInApp && paymentMethod === 'in_app' && entryFee && parseFloat(entryFee) > 0;
+
+      // For in-app payment: organizer MUST have a PIX key in profile (used to receive their commission)
+      if (usingInApp && !profilePixKey) {
+        throw new Error("Para receber dentro do app, cadastre sua chave PIX no perfil. É para essa chave que sua comissão será enviada.");
+      }
+
       if (!userRole?.isAdmin && !userRole?.isEstabelecimento) {
         if (!entryFee || parseFloat(entryFee) <= 0) {
           throw new Error("Valor de entrada é obrigatório");
