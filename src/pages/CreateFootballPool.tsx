@@ -59,6 +59,7 @@ const CreateFootballPool = () => {
   const [profilePixKey, setProfilePixKey] = useState<string | null>(null);
   const [profilePixKeyType, setProfilePixKeyType] = useState<string | null>(null);
   const [pixSource, setPixSource] = useState<'profile' | 'custom' | null>(null);
+  const [delfosFeePercent, setDelfosFeePercent] = useState<number>(0);
   const [replaceProfilePix, setReplaceProfilePix] = useState(false);
   const [savePixToProfile, setSavePixToProfile] = useState(false);
   const [isOfficial, setIsOfficial] = useState(false);
@@ -143,6 +144,18 @@ const CreateFootballPool = () => {
       }
     };
     loadProfilePix();
+  }, []);
+
+  // Load Delfos fee % from platform settings
+  useEffect(() => {
+    (async () => {
+      const { data } = await supabase
+        .from("platform_settings")
+        .select("value")
+        .eq("key", "delfos_fee_percent")
+        .maybeSingle();
+      if (data?.value != null) setDelfosFeePercent(Number(data.value));
+    })();
   }, []);
 
   // Non-admin pool creators default to percentage prize type
@@ -680,17 +693,32 @@ const CreateFootballPool = () => {
                     </div>
 
                     {prizeType === 'percentage' && totalPercentage > 0 && (
-                      <div className={`p-3 rounded-lg text-sm font-medium ${
+                      <div className={`p-3 rounded-lg text-sm font-medium space-y-1 ${
                         totalPercentage > 100 
                           ? 'bg-destructive/10 text-destructive border border-destructive/30' 
                           : 'bg-muted/50 text-muted-foreground'
                       }`}>
                         {totalPercentage > 100 ? (
                           <p>⚠️ A soma das porcentagens ({totalPercentage}%) ultrapassa 100%!</p>
-                        ) : remainingPercentage > 0 ? (
-                          <p>💰 {remainingPercentage}% do valor arrecadado ficará com você (organizador)</p>
                         ) : (
-                          <p>✅ 100% do valor arrecadado será distribuído como premiação</p>
+                          <>
+                            {paymentMethod === 'in_app' && delfosFeePercent > 0 && (
+                              <p>🏛️ {delfosFeePercent}% do valor arrecadado fica com o app (taxa Delfos, descontada automaticamente)</p>
+                            )}
+                            {remainingPercentage > 0 ? (
+                              <p>
+                                💰 {paymentMethod === 'in_app' && delfosFeePercent > 0
+                                  ? `${Math.max(0, +(remainingPercentage * (100 - delfosFeePercent) / 100).toFixed(2))}% do total arrecadado vai para você (organizador) — equivalente a ${remainingPercentage}% do valor já descontada a taxa do app`
+                                  : `${remainingPercentage}% do valor arrecadado ficará com você (organizador)`}
+                              </p>
+                            ) : (
+                              <p>
+                                {paymentMethod === 'in_app' && delfosFeePercent > 0
+                                  ? `✅ ${100 - delfosFeePercent}% do arrecadado será distribuído como premiação (após taxa do app)`
+                                  : '✅ 100% do valor arrecadado será distribuído como premiação'}
+                              </p>
+                            )}
+                          </>
                         )}
                       </div>
                     )}
