@@ -95,7 +95,7 @@ serve(async (req) => {
       : status === "refunded" ? "refunded"
       : "pending";
 
-    // Update ALL transactions sharing this mp_payment_id (consolidated payment)
+    // Update ALL non-cancelled transactions sharing this mp_payment_id
     const { data: updatedTxs, error: updateTxError } = await adminClient
       .from("pool_transactions")
       .update({
@@ -104,17 +104,16 @@ serve(async (req) => {
         raw_response: payment,
       })
       .eq("mp_payment_id", String(paymentId))
-      .select("participant_id");
+      .neq("status", "cancelled")
+      .select("id, participant_id");
 
     if (updateTxError) console.error("Error updating transactions:", updateTxError);
 
-    if (status === "approved") {
+    if (status === "approved" && updatedTxs && updatedTxs.length > 0) {
       const participantIds = new Set<string>();
-      (updatedTxs || []).forEach((t: any) => { if (t.participant_id) participantIds.add(t.participant_id); });
-      const metaIds: string[] = payment.metadata?.participant_ids || [];
-      metaIds.forEach((id) => participantIds.add(id));
-      const single = payment.external_reference || payment.metadata?.participant_id;
-      if (single) participantIds.add(single);
+      (updatedTxs || []).forEach((t: any) => {
+        if (t.participant_id) participantIds.add(t.participant_id);
+      });
 
       if (participantIds.size > 0) {
         const { error: approveError } = await adminClient
