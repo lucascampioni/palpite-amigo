@@ -59,6 +59,7 @@ const CreateFootballPool = () => {
   const [profilePixKey, setProfilePixKey] = useState<string | null>(null);
   const [profilePixKeyType, setProfilePixKeyType] = useState<string | null>(null);
   const [pixSource, setPixSource] = useState<'profile' | 'custom' | null>(null);
+  const [delfosFeePercent, setDelfosFeePercent] = useState<number>(0);
   const [replaceProfilePix, setReplaceProfilePix] = useState(false);
   const [savePixToProfile, setSavePixToProfile] = useState(false);
   const [isOfficial, setIsOfficial] = useState(false);
