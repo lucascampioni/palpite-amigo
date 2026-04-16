@@ -330,7 +330,7 @@ export const InAppPaymentSubmission = ({ participantId, participantIds, poolId, 
                 </div>
               </div>
             )}
-            <Button onClick={generatePix} disabled={generating || hasProfilePix === null || editingPix} className="w-full">
+            <Button onClick={generatePix} disabled={generating || hasProfilePix === null || editingPix || paymentClosed} className="w-full">
               {generating ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <DollarSign className="w-4 h-4 mr-2" />}
               Gerar QR Code PIX
             </Button>
