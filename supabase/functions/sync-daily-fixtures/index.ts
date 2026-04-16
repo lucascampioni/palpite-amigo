@@ -305,8 +305,16 @@ async function recalculatePoolDeadline(supabase: any, poolId: string) {
 
   if (validMatches.length === 0) return;
 
+  // Determine pool payment_method to apply correct offset
+  const { data: poolRow } = await supabase
+    .from('pools')
+    .select('payment_method')
+    .eq('id', poolId)
+    .maybeSingle();
+
+  const offsetMs = poolRow?.payment_method === 'in_app' ? 10 * 60 * 1000 : 3 * 60 * 60 * 1000;
   const firstValidMatchDate = new Date(validMatches[0].match_date);
-  const newDeadline = new Date(firstValidMatchDate.getTime() - 3 * 60 * 60 * 1000);
+  const newDeadline = new Date(firstValidMatchDate.getTime() - offsetMs);
 
   const { error } = await supabase
     .from('pools')
@@ -315,6 +323,6 @@ async function recalculatePoolDeadline(supabase: any, poolId: string) {
     .in('status', ['active', 'closed']);
 
   if (!error) {
-    console.log(`📅 Pool ${poolId} deadline updated to ${newDeadline.toISOString()} (3h before first valid match)`);
+    console.log(`📅 Pool ${poolId} deadline updated to ${newDeadline.toISOString()} (offset ${offsetMs}ms before first valid match)`);
   }
 }

@@ -229,14 +229,15 @@ const CreateFootballPool = () => {
     
     setMatches(matchesWithSource);
     
-    // Calculate deadline: 3 hours before first match (prediction cutoff)
+    // Calculate deadline: in_app pools = 10min before first match; others = 3h before
     if (matchesWithSource.length > 0) {
       const sortedMatches = [...matchesWithSource].sort((a, b) => 
         new Date(a.matchDate).getTime() - new Date(b.matchDate).getTime()
       );
       const firstMatch = sortedMatches[0];
       const firstMatchDate = new Date(firstMatch.matchDate);
-      const deadlineDate = new Date(firstMatchDate.getTime() - 3 * 60 * 60 * 1000); // 3 hours before
+      const offsetMs = userRole?.canReceiveInApp ? 10 * 60 * 1000 : 3 * 60 * 60 * 1000;
+      const deadlineDate = new Date(firstMatchDate.getTime() - offsetMs);
       
       // Format for datetime-local input
       const year = deadlineDate.getFullYear();
