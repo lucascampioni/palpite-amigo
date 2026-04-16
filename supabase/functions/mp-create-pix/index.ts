@@ -87,6 +87,78 @@ serve(async (req) => {
 
     const primaryParticipant = participants[0];
 
+    // ===== Anti-fraude: cancelar cobranças PIX pendentes anteriores deste usuário neste bolão =====
+    // Busca todas as transações pendentes do usuário neste bolão (qualquer participant)
+    const { data: existingPending } = await adminClient
+      .from("pool_transactions")
+      .select("id, mp_payment_id, participant_id, amount, mp_qr_code, mp_qr_code_base64, mp_ticket_url, expires_at")
+      .eq("user_id", user.id)
+      .eq("pool_id", pool_id)
+      .eq("status", "pending");
+
+    // Agrupa por mp_payment_id para entender quais cobranças MP existem
+    const groupedByPayment = new Map<string, { participantIds: string[]; rows: any[] }>();
+    for (const row of existingPending || []) {
+      if (!row.mp_payment_id) continue;
+      const g = groupedByPayment.get(row.mp_payment_id) || { participantIds: [], rows: [] };
+      if (row.participant_id) g.participantIds.push(row.participant_id);
+      g.rows.push(row);
+      groupedByPayment.set(row.mp_payment_id, g);
+    }
+
+    // Reaproveitar: se já existe uma cobrança pendente cobrindo EXATAMENTE os mesmos participantes E o mesmo valor total, devolve ela
+    const requestedSet = [...participantIds].sort().join(",");
+    for (const [mpPaymentId, group] of groupedByPayment) {
+      const groupSet = [...group.participantIds].sort().join(",");
+      const groupTotal = group.rows.reduce((s, r) => s + Number(r.amount), 0);
+      const expiresOk = group.rows.every((r) => !r.expires_at || new Date(r.expires_at) > new Date());
+      if (groupSet === requestedSet && Math.abs(groupTotal - Number(amount)) < 0.01 && expiresOk) {
+        const sample = group.rows[0];
+        return new Response(JSON.stringify({
+          success: true,
+          reused: true,
+          transaction_id: sample.id,
+          transaction_ids: group.rows.map((r) => r.id),
+          participant_ids: participantIds,
+          mp_payment_id: mpPaymentId,
+          qr_code: sample.mp_qr_code,
+          qr_code_base64: sample.mp_qr_code_base64,
+          ticket_url: sample.mp_ticket_url,
+          expires_at: sample.expires_at,
+        }), { status: 200, headers: { "Content-Type": "application/json", ...corsHeaders } });
+      }
+    }
+
+    // Cancela no Mercado Pago todas as cobranças pendentes anteriores deste usuário/bolão
+    for (const mpPaymentId of groupedByPayment.keys()) {
+      try {
+        const cancelRes = await fetch(`https://api.mercadopago.com/v1/payments/${mpPaymentId}`, {
+          method: "PUT",
+          headers: {
+            "Authorization": `Bearer ${MP_ACCESS_TOKEN}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ status: "cancelled" }),
+        });
+        if (!cancelRes.ok) {
+          const errBody = await cancelRes.text();
+          console.warn(`Falha ao cancelar MP payment ${mpPaymentId}:`, cancelRes.status, errBody);
+        }
+      } catch (e) {
+        console.warn(`Erro ao cancelar MP payment ${mpPaymentId}:`, e);
+      }
+    }
+
+    // Marca as transações antigas como canceladas no banco
+    const oldTxIds = (existingPending || []).map((r) => r.id);
+    if (oldTxIds.length > 0) {
+      await adminClient
+        .from("pool_transactions")
+        .update({ status: "cancelled" })
+        .in("id", oldTxIds);
+    }
+    // ===== fim anti-fraude =====
+
     // Get user email for Mercado Pago
     const { data: authData } = await adminClient.auth.admin.getUserById(user.id);
     const payerEmail = authData?.user?.email || `user-${user.id}@delfos.app.br`;
