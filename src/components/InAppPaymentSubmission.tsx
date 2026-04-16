@@ -44,6 +44,25 @@ export const InAppPaymentSubmission = ({ participantId, participantIds, poolId, 
   const [editingPix, setEditingPix] = useState(false);
   const [firstMatchDate, setFirstMatchDate] = useState<Date | null>(null);
   const [now, setNow] = useState<Date>(new Date());
+  const [cancelling, setCancelling] = useState(false);
+
+  const cancelPix = async () => {
+    if (!tx) return;
+    if (!confirm("Tem certeza que deseja cancelar este QR Code? O código atual deixará de ser válido para pagamento.")) return;
+    setCancelling(true);
+    try {
+      const { error } = await supabase.functions.invoke("mp-cancel-pix", {
+        body: { transaction_id: tx.id, pool_id: poolId },
+      });
+      if (error) throw error;
+      setTx(null);
+      toast({ title: "QR Code cancelado", description: "Este código PIX não é mais válido. Gere um novo se quiser pagar." });
+    } catch (e: any) {
+      toast({ title: "Erro ao cancelar", description: e.message, variant: "destructive" });
+    } finally {
+      setCancelling(false);
+    }
+  };
 
   // Tick every 30s to keep "expired" check fresh
   useEffect(() => {
@@ -370,6 +389,16 @@ export const InAppPaymentSubmission = ({ participantId, participantIds, poolId, 
                 )}
               </AlertDescription>
             </Alert>
+            <Button
+              onClick={cancelPix}
+              variant="outline"
+              size="sm"
+              disabled={cancelling}
+              className="w-full text-destructive hover:text-destructive"
+            >
+              {cancelling ? <Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" /> : null}
+              Cancelar este QR Code
+            </Button>
           </>
         )}
       </CardContent>
