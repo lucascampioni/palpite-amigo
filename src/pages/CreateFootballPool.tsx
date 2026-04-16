@@ -705,19 +705,17 @@ const CreateFootballPool = () => {
                             {paymentMethod === 'in_app' && delfosFeePercent > 0 && (
                               <p>🏛️ {delfosFeePercent}% do valor arrecadado fica com o app (taxa Delfos, descontada automaticamente)</p>
                             )}
-                            {remainingPercentage > 0 ? (
-                              <p>
-                                💰 {paymentMethod === 'in_app' && delfosFeePercent > 0
-                                  ? `${Math.max(0, +(remainingPercentage * (100 - delfosFeePercent) / 100).toFixed(2))}% do total arrecadado vai para você (organizador) — equivalente a ${remainingPercentage}% do valor já descontada a taxa do app`
-                                  : `${remainingPercentage}% do valor arrecadado ficará com você (organizador)`}
-                              </p>
-                            ) : (
-                              <p>
-                                {paymentMethod === 'in_app' && delfosFeePercent > 0
-                                  ? `✅ ${100 - delfosFeePercent}% do arrecadado será distribuído como premiação (após taxa do app)`
-                                  : '✅ 100% do valor arrecadado será distribuído como premiação'}
-                              </p>
-                            )}
+                            {(() => {
+                              const appFee = paymentMethod === 'in_app' ? delfosFeePercent : 0;
+                              const organizerShare = +(remainingPercentage - appFee).toFixed(2);
+                              if (organizerShare > 0) {
+                                return <p>💰 {organizerShare}% do valor arrecadado fica com você (organizador)</p>;
+                              }
+                              if (organizerShare === 0) {
+                                return <p>✅ 100% do valor arrecadado distribuído (premiação + taxa do app)</p>;
+                              }
+                              return <p className="text-destructive">⚠️ A soma das premiações ({totalPercentage}%) + taxa do app ({appFee}%) ultrapassa 100%. Reduza as porcentagens.</p>;
+                            })()}
                           </>
                         )}
                       </div>
