@@ -55,6 +55,7 @@ const CreateFootballPool = () => {
   const [loading, setLoading] = useState(false);
   const [isPrivate, setIsPrivate] = useState(false);
   const [pixKey, setPixKey] = useState("");
+  const [paymentMethod, setPaymentMethod] = useState<'pix_manual' | 'in_app'>('pix_manual');
   const [profilePixKey, setProfilePixKey] = useState<string | null>(null);
   const [profilePixKeyType, setProfilePixKeyType] = useState<string | null>(null);
   const [pixSource, setPixSource] = useState<'profile' | 'custom' | null>(null);
@@ -340,6 +341,7 @@ const CreateFootballPool = () => {
         third_place_prize: prizeType !== 'estabelecimento' && maxWinners >= 3 && thirdPlacePrize ? parseFloat(thirdPlacePrize) : null,
         estabelecimento_prize_description: prizeType === 'estabelecimento' ? estabelecimentoPrizeDescription.trim() : null,
         estabelecimento_prize_address: prizeType === 'estabelecimento' ? buildFullAddress() : null,
+        payment_method: (userRole?.canReceiveInApp && entryFee && parseFloat(entryFee) > 0) ? paymentMethod : 'pix_manual',
       } as any])
       .select()
       .single();
