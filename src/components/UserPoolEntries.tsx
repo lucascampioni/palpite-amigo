@@ -225,13 +225,19 @@ const UserPoolEntries = ({
                     </div>
                   )}
                   {hasEntryFee && pool?.payment_method === 'in_app' ? (
-                    <InAppPaymentSubmission
-                      participantId={entry.id}
-                      poolId={poolId}
-                      poolTitle={pool.title}
-                      entryFee={entryFee}
-                      onSuccess={onReload}
-                    />
+                    showConsolidatedInApp ? (
+                      <div className="p-2 rounded bg-primary/5 border border-primary/20 text-xs text-muted-foreground">
+                        💡 Esta entrada será paga junto com as demais no QR Code único acima.
+                      </div>
+                    ) : (
+                      <InAppPaymentSubmission
+                        participantId={entry.id}
+                        poolId={poolId}
+                        poolTitle={pool.title}
+                        entryFee={entryFee}
+                        onSuccess={onReload}
+                      />
+                    )
                   ) : hasEntryFee ? (
                     <PaymentProofSubmission
                       participantId={entry.id}
