@@ -87,35 +87,42 @@ serve(async (req) => {
       auth: { persistSession: false },
     });
 
-    const status = payment.status; // approved | pending | rejected | cancelled | refunded
-    const participantId = payment.external_reference || payment.metadata?.participant_id;
+    const status = payment.status;
 
-    // Map MP status to our status
     const localStatus = status === "approved" ? "approved"
       : status === "rejected" ? "rejected"
       : status === "cancelled" ? "cancelled"
       : status === "refunded" ? "refunded"
       : "pending";
 
-    // Update transaction
-    const { error: updateTxError } = await adminClient
+    // Update ALL transactions sharing this mp_payment_id (consolidated payment)
+    const { data: updatedTxs, error: updateTxError } = await adminClient
       .from("pool_transactions")
       .update({
         status: localStatus,
         paid_at: status === "approved" ? (payment.date_approved || new Date().toISOString()) : null,
         raw_response: payment,
       })
-      .eq("mp_payment_id", String(paymentId));
+      .eq("mp_payment_id", String(paymentId))
+      .select("participant_id");
 
-    if (updateTxError) console.error("Error updating transaction:", updateTxError);
+    if (updateTxError) console.error("Error updating transactions:", updateTxError);
 
-    // If approved, approve the participant
-    if (status === "approved" && participantId) {
-      const { error: approveError } = await adminClient
-        .from("participants")
-        .update({ status: "approved" })
-        .eq("id", participantId);
-      if (approveError) console.error("Error approving participant:", approveError);
+    if (status === "approved") {
+      const participantIds = new Set<string>();
+      (updatedTxs || []).forEach((t: any) => { if (t.participant_id) participantIds.add(t.participant_id); });
+      const metaIds: string[] = payment.metadata?.participant_ids || [];
+      metaIds.forEach((id) => participantIds.add(id));
+      const single = payment.external_reference || payment.metadata?.participant_id;
+      if (single) participantIds.add(single);
+
+      if (participantIds.size > 0) {
+        const { error: approveError } = await adminClient
+          .from("participants")
+          .update({ status: "approved" })
+          .in("id", Array.from(participantIds));
+        if (approveError) console.error("Error approving participants:", approveError);
+      }
     }
 
     return new Response(JSON.stringify({ received: true, status: localStatus }), {

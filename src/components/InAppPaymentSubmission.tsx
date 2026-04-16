@@ -9,7 +9,8 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { PixKeyInput } from "@/components/PixKeyInput";
 
 interface Props {
-  participantId: string;
+  participantId?: string;
+  participantIds?: string[];
   poolId: string;
   poolTitle: string;
   entryFee: number;
@@ -25,7 +26,10 @@ interface Tx {
   expires_at: string | null;
 }
 
-export const InAppPaymentSubmission = ({ participantId, poolId, poolTitle, entryFee, onSuccess }: Props) => {
+export const InAppPaymentSubmission = ({ participantId, participantIds, poolId, poolTitle, entryFee, onSuccess }: Props) => {
+  const ids = participantIds && participantIds.length > 0 ? participantIds : (participantId ? [participantId] : []);
+  const primaryId = ids[0];
+  const idsKey = ids.join(",");
   const { toast } = useToast();
   const [tx, setTx] = useState<Tx | null>(null);
   const [generating, setGenerating] = useState(false);
@@ -84,19 +88,20 @@ export const InAppPaymentSubmission = ({ participantId, poolId, poolTitle, entry
     })();
   }, []);
 
-  // Load existing pending transaction
+  // Load existing pending transaction (any of the participant ids)
   useEffect(() => {
+    if (ids.length === 0) return;
     (async () => {
       const { data } = await supabase
         .from("pool_transactions")
         .select("id, status, mp_qr_code, mp_qr_code_base64, mp_ticket_url, expires_at")
-        .eq("participant_id", participantId)
+        .in("participant_id", ids)
         .in("status", ["pending", "approved"])
         .order("created_at", { ascending: false })
         .limit(1);
       if (data && data.length > 0) setTx(data[0] as Tx);
     })();
-  }, [participantId]);
+  }, [idsKey]);
 
   // Poll for approved status
   useEffect(() => {
@@ -124,7 +129,7 @@ export const InAppPaymentSubmission = ({ participantId, poolId, poolTitle, entry
     setGenerating(true);
     try {
       const { data, error } = await supabase.functions.invoke("mp-create-pix", {
-        body: { pool_id: poolId, participant_id: participantId, amount: entryFee },
+        body: { pool_id: poolId, participant_ids: ids, amount: entryFee },
       });
       if (error) throw error;
       setTx({
