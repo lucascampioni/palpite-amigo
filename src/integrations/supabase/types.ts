@@ -776,7 +776,12 @@ export type Database = {
       is_user_admin: { Args: never; Returns: boolean }
     }
     Enums: {
-      app_role: "admin" | "user" | "pool_creator" | "estabelecimento"
+      app_role:
+        | "admin"
+        | "user"
+        | "pool_creator"
+        | "estabelecimento"
+        | "in_app_payment"
       measurement_unit: "kg" | "cm" | "reais" | "units" | "score"
       participant_status: "pending" | "approved" | "rejected" | "awaiting_proof"
       pool_status: "draft" | "active" | "closed" | "finished" | "cancelled"
@@ -908,7 +913,13 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
-      app_role: ["admin", "user", "pool_creator", "estabelecimento"],
+      app_role: [
+        "admin",
+        "user",
+        "pool_creator",
+        "estabelecimento",
+        "in_app_payment",
+      ],
       measurement_unit: ["kg", "cm", "reais", "units", "score"],
       participant_status: ["pending", "approved", "rejected", "awaiting_proof"],
       pool_status: ["draft", "active", "closed", "finished", "cancelled"],
