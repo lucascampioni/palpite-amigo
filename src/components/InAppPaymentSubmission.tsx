@@ -31,6 +31,8 @@ export const InAppPaymentSubmission = ({ participantId, poolId, poolTitle, entry
   const [polling, setPolling] = useState(false);
   const [copied, setCopied] = useState(false);
   const [hasProfilePix, setHasProfilePix] = useState<boolean | null>(null);
+  const [profilePixKey, setProfilePixKey] = useState<string | null>(null);
+  const [profilePixKeyType, setProfilePixKeyType] = useState<string | null>(null);
 
   // Check user profile PIX key
   useEffect(() => {
@@ -39,10 +41,13 @@ export const InAppPaymentSubmission = ({ participantId, poolId, poolTitle, entry
       if (!user) return;
       const { data: profile } = await supabase
         .from("profiles")
-        .select("pix_key")
+        .select("pix_key, pix_key_type")
         .eq("id", user.id)
         .maybeSingle();
-      setHasProfilePix(!!profile?.pix_key && profile.pix_key.trim().length > 0);
+      const has = !!profile?.pix_key && profile.pix_key.trim().length > 0;
+      setHasProfilePix(has);
+      setProfilePixKey(profile?.pix_key ?? null);
+      setProfilePixKeyType(profile?.pix_key_type ?? null);
     })();
   }, []);
 
