@@ -510,7 +510,7 @@ const FootballPredictionForm = ({ poolId, userId, onSuccess, entryFee, pool, pix
                 • Prazo para apostas: <strong>{format(predictionCutoffDate, "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}</strong> (3h antes do primeiro jogo).
               </p>
             )}
-            {hasEntryFee && proofCutoffDate && (
+            {hasEntryFee && proofCutoffDate && pool?.payment_method !== 'in_app' && (
               <>
                 <p className="text-xs text-muted-foreground">
                   • Prazo para comprovante de pagamento: <strong>{format(proofCutoffDate, "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}</strong> (2h30 antes do primeiro jogo).
@@ -519,6 +519,11 @@ const FootballPredictionForm = ({ poolId, userId, onSuccess, entryFee, pool, pix
                   • Quem não enviar o comprovante até o prazo será <strong>rejeitado automaticamente</strong>.
                 </p>
               </>
+            )}
+            {hasEntryFee && pool?.payment_method === 'in_app' && (
+              <p className="text-xs text-muted-foreground">
+                • Pagamento via PIX automático no app — sua participação é confirmada na hora após o pagamento.
+              </p>
             )}
             <div className="mt-2 pt-2 border-t border-secondary/20">
               <p className="text-xs text-muted-foreground font-medium">📊 Sistema de Pontuação:</p>
