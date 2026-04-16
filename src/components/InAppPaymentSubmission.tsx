@@ -37,6 +37,7 @@ export const InAppPaymentSubmission = ({ participantId, poolId, poolTitle, entry
   const [newPixKey, setNewPixKey] = useState("");
   const [newPixKeyType, setNewPixKeyType] = useState<string>("");
   const [savingPix, setSavingPix] = useState(false);
+  const [editingPix, setEditingPix] = useState(false);
 
   const saveProfilePix = async () => {
     if (!newPixKey.trim() || !newPixKeyType) {
