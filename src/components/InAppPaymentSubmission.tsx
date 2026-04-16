@@ -4,8 +4,9 @@ import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
-import { DollarSign, Copy, Check, Loader2, RefreshCw, CheckCircle2, AlertCircle } from "lucide-react";
+import { DollarSign, Copy, Check, Loader2, RefreshCw, CheckCircle2, AlertCircle, Save } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { PixKeyInput } from "@/components/PixKeyInput";
 
 interface Props {
   participantId: string;
@@ -33,6 +34,34 @@ export const InAppPaymentSubmission = ({ participantId, poolId, poolTitle, entry
   const [hasProfilePix, setHasProfilePix] = useState<boolean | null>(null);
   const [profilePixKey, setProfilePixKey] = useState<string | null>(null);
   const [profilePixKeyType, setProfilePixKeyType] = useState<string | null>(null);
+  const [newPixKey, setNewPixKey] = useState("");
+  const [newPixKeyType, setNewPixKeyType] = useState<string>("");
+  const [savingPix, setSavingPix] = useState(false);
+
+  const saveProfilePix = async () => {
+    if (!newPixKey.trim() || !newPixKeyType) {
+      toast({ title: "Selecione o tipo e digite a chave PIX", variant: "destructive" });
+      return;
+    }
+    setSavingPix(true);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("Usuário não autenticado");
+      const { error } = await supabase
+        .from("profiles")
+        .update({ pix_key: newPixKey.trim(), pix_key_type: newPixKeyType })
+        .eq("id", user.id);
+      if (error) throw error;
+      setProfilePixKey(newPixKey.trim());
+      setProfilePixKeyType(newPixKeyType);
+      setHasProfilePix(true);
+      toast({ title: "Chave PIX salva no seu perfil!" });
+    } catch (e: any) {
+      toast({ title: "Erro ao salvar", description: e.message, variant: "destructive" });
+    } finally {
+      setSavingPix(false);
+    }
+  };
 
   // Check user profile PIX key
   useEffect(() => {
@@ -131,7 +160,7 @@ export const InAppPaymentSubmission = ({ participantId, poolId, poolTitle, entry
     );
   }
 
-  // Block PIX generation if user has no PIX key in profile
+  // Inline PIX registration if user has no PIX key in profile
   if (hasProfilePix === false && !tx) {
     return (
       <Card className="border-2 border-destructive/30 bg-destructive/5">
@@ -141,14 +170,25 @@ export const InAppPaymentSubmission = ({ participantId, poolId, poolTitle, entry
             Cadastre sua chave PIX para participar
           </CardTitle>
           <CardDescription>
-            Para participar de bolões com pagamento dentro do app, você precisa ter uma chave PIX cadastrada no seu perfil.
-            Caso você ganhe, é para essa chave que o prêmio será enviado automaticamente.
+            Para participar de bolões com pagamento dentro do app, você precisa de uma chave PIX cadastrada.
+            Caso você ganhe, é para essa chave que o prêmio será enviado automaticamente. A chave será salva no seu perfil.
           </CardDescription>
         </CardHeader>
-        <CardContent>
-          <Button asChild className="w-full">
-            <Link to="/perfil">Cadastrar chave PIX no perfil</Link>
+        <CardContent className="space-y-3">
+          <PixKeyInput
+            value={newPixKey}
+            onChange={setNewPixKey}
+            onTypeChange={(t) => setNewPixKeyType(t)}
+            label="Sua chave PIX para receber prêmios"
+            required
+          />
+          <Button onClick={saveProfilePix} disabled={savingPix || !newPixKey.trim() || !newPixKeyType} className="w-full">
+            {savingPix ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Save className="w-4 h-4 mr-2" />}
+            Salvar chave PIX e continuar
           </Button>
+          <p className="text-[11px] text-muted-foreground text-center">
+            Prefere editar depois? <Link to="/perfil" className="underline">Abrir perfil completo</Link>
+          </p>
         </CardContent>
       </Card>
     );
