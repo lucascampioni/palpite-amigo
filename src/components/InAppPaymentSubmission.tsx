@@ -212,7 +212,7 @@ export const InAppPaymentSubmission = ({ participantId, poolId, poolTitle, entry
       <CardContent className="space-y-4">
         {!tx ? (
           <>
-            {profilePixKey && (
+            {profilePixKey && !editingPix && (
               <div className="rounded-lg border-2 border-primary/40 bg-primary/5 p-3 space-y-2">
                 <div className="text-sm font-semibold text-primary">
                   ✅ Confirme onde você vai receber, caso ganhe
@@ -229,11 +229,51 @@ export const InAppPaymentSubmission = ({ participantId, poolId, poolTitle, entry
                   <span className="font-mono text-xs break-all">{profilePixKey}</span>
                 </div>
                 <p className="text-[11px] text-muted-foreground">
-                  Não é essa? <Link to="/perfil" className="underline font-medium text-primary">Atualize no perfil</Link> antes de pagar.
+                  Não é essa?{" "}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setNewPixKey(profilePixKey || "");
+                      setNewPixKeyType(profilePixKeyType || "");
+                      setEditingPix(true);
+                    }}
+                    className="underline font-medium text-primary"
+                  >
+                    Atualizar chave PIX aqui
+                  </button>
                 </p>
               </div>
             )}
-            <Button onClick={generatePix} disabled={generating || hasProfilePix === null} className="w-full">
+            {editingPix && (
+              <div className="rounded-lg border-2 border-primary/40 bg-background p-3 space-y-3">
+                <div className="text-sm font-semibold text-primary">Atualizar chave PIX</div>
+                <PixKeyInput
+                  value={newPixKey}
+                  onChange={setNewPixKey}
+                  onTypeChange={(t) => setNewPixKeyType(t)}
+                  label="Nova chave PIX"
+                  required
+                />
+                <div className="flex gap-2">
+                  <Button
+                    onClick={saveProfilePix}
+                    disabled={savingPix || !newPixKey.trim() || !newPixKeyType}
+                    className="flex-1"
+                  >
+                    {savingPix ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Save className="w-4 h-4 mr-2" />}
+                    Salvar
+                  </Button>
+                  <Button
+                    variant="outline"
+                    onClick={() => { setEditingPix(false); setNewPixKey(""); setNewPixKeyType(""); }}
+                    disabled={savingPix}
+                  >
+                    Cancelar
+                  </Button>
+                </div>
+              </div>
+            )}
+            <Button onClick={generatePix} disabled={generating || hasProfilePix === null || editingPix} className="w-full">
               {generating ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <DollarSign className="w-4 h-4 mr-2" />}
               Gerar QR Code PIX
             </Button>
