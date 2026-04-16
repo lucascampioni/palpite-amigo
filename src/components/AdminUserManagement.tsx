@@ -8,7 +8,7 @@ import { Separator } from "@/components/ui/separator";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { toast } from "@/hooks/use-toast";
-import { Search, Trash2, Shield, ShieldOff, Loader2, ChevronLeft, ChevronRight, LogIn } from "lucide-react";
+import { Search, Trash2, Shield, ShieldOff, Loader2, ChevronLeft, ChevronRight, LogIn, Wallet } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
 interface UserItem {
@@ -135,6 +135,7 @@ const AdminUserManagement = () => {
       case "admin": return <Badge variant="destructive" className="text-xs">Admin</Badge>;
       case "pool_creator": return <Badge className="text-xs bg-accent text-accent-foreground">Organizador</Badge>;
       case "estabelecimento": return <Badge className="text-xs bg-amber-600 text-white">Estabelecimento</Badge>;
+      case "in_app_payment": return <Badge className="text-xs bg-emerald-600 text-white">Recebe no app</Badge>;
       default: return <Badge variant="secondary" className="text-xs">Usuário</Badge>;
     }
   };
@@ -237,6 +238,21 @@ const AdminUserManagement = () => {
                       <Shield className="w-3 h-3 mr-1" />
                     )}
                     {user.roles.includes("estabelecimento") ? "Remover Estabelecimento" : "Tornar Estabelecimento"}
+                  </Button>
+
+                  <Button
+                    size="sm"
+                    variant={user.roles.includes("in_app_payment") ? "secondary" : "outline"}
+                    onClick={() => toggleRole(user.id, "in_app_payment", user.roles.includes("in_app_payment"))}
+                    disabled={actionLoading === `role-${user.id}-in_app_payment`}
+                    className="text-xs"
+                  >
+                    {actionLoading === `role-${user.id}-in_app_payment` ? (
+                      <Loader2 className="w-3 h-3 animate-spin mr-1" />
+                    ) : (
+                      <Wallet className="w-3 h-3 mr-1" />
+                    )}
+                    {user.roles.includes("in_app_payment") ? "Remover Recebimento no app" : "Habilitar Recebimento no app"}
                   </Button>
 
                   <Button

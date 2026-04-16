@@ -363,6 +363,30 @@ export type Database = {
           },
         ]
       }
+      platform_settings: {
+        Row: {
+          id: string
+          key: string
+          updated_at: string
+          updated_by: string | null
+          value: Json
+        }
+        Insert: {
+          id?: string
+          key: string
+          updated_at?: string
+          updated_by?: string | null
+          value: Json
+        }
+        Update: {
+          id?: string
+          key?: string
+          updated_at?: string
+          updated_by?: string | null
+          value?: Json
+        }
+        Relationships: []
+      }
       pool_payment_info: {
         Row: {
           created_at: string
@@ -394,6 +418,120 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      pool_payouts: {
+        Row: {
+          amount: number
+          approved_at: string | null
+          approved_by: string | null
+          created_at: string
+          failure_reason: string | null
+          id: string
+          mp_transfer_id: string | null
+          notes: string | null
+          pix_key: string | null
+          pix_key_type: string | null
+          pool_id: string
+          raw_response: Json | null
+          recipient_type: string
+          recipient_user_id: string | null
+          sent_at: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          amount: number
+          approved_at?: string | null
+          approved_by?: string | null
+          created_at?: string
+          failure_reason?: string | null
+          id?: string
+          mp_transfer_id?: string | null
+          notes?: string | null
+          pix_key?: string | null
+          pix_key_type?: string | null
+          pool_id: string
+          raw_response?: Json | null
+          recipient_type: string
+          recipient_user_id?: string | null
+          sent_at?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          amount?: number
+          approved_at?: string | null
+          approved_by?: string | null
+          created_at?: string
+          failure_reason?: string | null
+          id?: string
+          mp_transfer_id?: string | null
+          notes?: string | null
+          pix_key?: string | null
+          pix_key_type?: string | null
+          pool_id?: string
+          raw_response?: Json | null
+          recipient_type?: string
+          recipient_user_id?: string | null
+          sent_at?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      pool_transactions: {
+        Row: {
+          amount: number
+          created_at: string
+          expires_at: string | null
+          id: string
+          mp_payment_id: string | null
+          mp_qr_code: string | null
+          mp_qr_code_base64: string | null
+          mp_ticket_url: string | null
+          paid_at: string | null
+          participant_id: string | null
+          pool_id: string
+          raw_response: Json | null
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          expires_at?: string | null
+          id?: string
+          mp_payment_id?: string | null
+          mp_qr_code?: string | null
+          mp_qr_code_base64?: string | null
+          mp_ticket_url?: string | null
+          paid_at?: string | null
+          participant_id?: string | null
+          pool_id: string
+          raw_response?: Json | null
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          expires_at?: string | null
+          id?: string
+          mp_payment_id?: string | null
+          mp_qr_code?: string | null
+          mp_qr_code_base64?: string | null
+          mp_ticket_url?: string | null
+          paid_at?: string | null
+          participant_id?: string | null
+          pool_id?: string
+          raw_response?: Json | null
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
       }
       pool_vouchers: {
         Row: {
@@ -466,6 +604,7 @@ export type Database = {
           max_winners: number
           measurement_unit: Database["public"]["Enums"]["measurement_unit"]
           owner_id: string
+          payment_method: string
           pool_type: Database["public"]["Enums"]["pool_type"]
           prize_type: string
           reminder_30min_sent: boolean
@@ -503,6 +642,7 @@ export type Database = {
           max_winners?: number
           measurement_unit?: Database["public"]["Enums"]["measurement_unit"]
           owner_id: string
+          payment_method?: string
           pool_type?: Database["public"]["Enums"]["pool_type"]
           prize_type?: string
           reminder_30min_sent?: boolean
@@ -540,6 +680,7 @@ export type Database = {
           max_winners?: number
           measurement_unit?: Database["public"]["Enums"]["measurement_unit"]
           owner_id?: string
+          payment_method?: string
           pool_type?: Database["public"]["Enums"]["pool_type"]
           prize_type?: string
           reminder_30min_sent?: boolean
@@ -734,6 +875,10 @@ export type Database = {
         Returns: number
       }
       can_create_pools: { Args: never; Returns: boolean }
+      can_receive_in_app_payments: {
+        Args: { _user_id: string }
+        Returns: boolean
+      }
       check_email_exists: { Args: { _email: string }; Returns: boolean }
       cleanup_expired_otp: { Args: never; Returns: undefined }
       generate_slug: { Args: { title: string }; Returns: string }
@@ -776,7 +921,12 @@ export type Database = {
       is_user_admin: { Args: never; Returns: boolean }
     }
     Enums: {
-      app_role: "admin" | "user" | "pool_creator" | "estabelecimento"
+      app_role:
+        | "admin"
+        | "user"
+        | "pool_creator"
+        | "estabelecimento"
+        | "in_app_payment"
       measurement_unit: "kg" | "cm" | "reais" | "units" | "score"
       participant_status: "pending" | "approved" | "rejected" | "awaiting_proof"
       pool_status: "draft" | "active" | "closed" | "finished" | "cancelled"
@@ -908,7 +1058,13 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
-      app_role: ["admin", "user", "pool_creator", "estabelecimento"],
+      app_role: [
+        "admin",
+        "user",
+        "pool_creator",
+        "estabelecimento",
+        "in_app_payment",
+      ],
       measurement_unit: ["kg", "cm", "reais", "units", "score"],
       participant_status: ["pending", "approved", "rejected", "awaiting_proof"],
       pool_status: ["draft", "active", "closed", "finished", "cancelled"],
