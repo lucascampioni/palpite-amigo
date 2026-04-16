@@ -146,6 +146,18 @@ const CreateFootballPool = () => {
     loadProfilePix();
   }, []);
 
+  // Load Delfos fee % from platform settings
+  useEffect(() => {
+    (async () => {
+      const { data } = await supabase
+        .from("platform_settings")
+        .select("value")
+        .eq("key", "delfos_fee_percent")
+        .maybeSingle();
+      if (data?.value != null) setDelfosFeePercent(Number(data.value));
+    })();
+  }, []);
+
   // Non-admin pool creators default to percentage prize type
   useEffect(() => {
     if (!isLoadingRole && userRole?.canCreatePools && !userRole?.isAdmin) {
