@@ -259,6 +259,11 @@ export const InAppPaymentSubmission = ({ participantId, participantIds, poolId, 
         </CardTitle>
         <CardDescription>
           Pague R$ {entryFee.toFixed(2).replace(".", ",")} para confirmar sua participação em <strong>{poolTitle}</strong>.
+          {firstMatchDate && (
+            <span className="block mt-1 text-primary font-medium">
+              ⏰ Pague até {formatCutoff(firstMatchDate)} (início do 1º jogo).
+            </span>
+          )}
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
