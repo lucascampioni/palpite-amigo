@@ -42,6 +42,31 @@ export const InAppPaymentSubmission = ({ participantId, participantIds, poolId, 
   const [newPixKeyType, setNewPixKeyType] = useState<string>("");
   const [savingPix, setSavingPix] = useState(false);
   const [editingPix, setEditingPix] = useState(false);
+  const [firstMatchDate, setFirstMatchDate] = useState<Date | null>(null);
+  const [now, setNow] = useState<Date>(new Date());
+
+  // Tick every 30s to keep "expired" check fresh
+  useEffect(() => {
+    const t = setInterval(() => setNow(new Date()), 30000);
+    return () => clearInterval(t);
+  }, []);
+
+  // Load first valid match date for this pool (payment cutoff = first match kickoff)
+  useEffect(() => {
+    (async () => {
+      const { data } = await supabase
+        .from("football_matches")
+        .select("match_date, status")
+        .eq("pool_id", poolId)
+        .order("match_date", { ascending: true });
+      const first = (data || []).find((m: any) => !["postponed", "cancelled", "abandoned"].includes(m.status));
+      if (first) setFirstMatchDate(new Date(first.match_date));
+    })();
+  }, [poolId]);
+
+  const paymentClosed = !!firstMatchDate && now >= firstMatchDate;
+  const formatCutoff = (d: Date) =>
+    d.toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" });
 
   const saveProfilePix = async () => {
     if (!newPixKey.trim() || !newPixKeyType) {
@@ -126,6 +151,10 @@ export const InAppPaymentSubmission = ({ participantId, participantIds, poolId, 
   }, [tx?.id, tx?.status]);
 
   const generatePix = async () => {
+    if (paymentClosed) {
+      toast({ title: "Pagamento encerrado", description: "O prazo para pagar este bolão já encerrou.", variant: "destructive" });
+      return;
+    }
     setGenerating(true);
     try {
       const { data, error } = await supabase.functions.invoke("mp-create-pix", {
@@ -140,7 +169,7 @@ export const InAppPaymentSubmission = ({ participantId, participantIds, poolId, 
         mp_ticket_url: data.ticket_url,
         expires_at: data.expires_at,
       });
-      toast({ title: "PIX gerado", description: "Pague em até 30 minutos." });
+      toast({ title: "PIX gerado", description: firstMatchDate ? `Pague até ${formatCutoff(firstMatchDate)}.` : "Pague em até 30 minutos." });
     } catch (e: any) {
       toast({ title: "Erro", description: e.message, variant: "destructive" });
     } finally {
@@ -164,6 +193,24 @@ export const InAppPaymentSubmission = ({ participantId, participantIds, poolId, 
             <CheckCircle2 className="w-5 h-5" /> Pagamento confirmado
           </CardTitle>
           <CardDescription>Sua participação no bolão está aprovada.</CardDescription>
+        </CardHeader>
+      </Card>
+    );
+  }
+
+  // Payment window closed (first match already started)
+  if (paymentClosed && tx?.status !== "approved") {
+    return (
+      <Card className="border-destructive/30 bg-destructive/5">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-destructive text-base">
+            <AlertCircle className="w-5 h-5" /> Pagamento encerrado
+          </CardTitle>
+          <CardDescription>
+            O prazo para pagar este bolão se encerrou no início do primeiro jogo
+            {firstMatchDate ? ` (${formatCutoff(firstMatchDate)})` : ""}.
+            Não é mais possível gerar ou pagar o PIX.
+          </CardDescription>
         </CardHeader>
       </Card>
     );
@@ -212,6 +259,11 @@ export const InAppPaymentSubmission = ({ participantId, participantIds, poolId, 
         </CardTitle>
         <CardDescription>
           Pague R$ {entryFee.toFixed(2).replace(".", ",")} para confirmar sua participação em <strong>{poolTitle}</strong>.
+          {firstMatchDate && (
+            <span className="block mt-1 text-primary font-medium">
+              ⏰ Pague até {formatCutoff(firstMatchDate)} (início do 1º jogo).
+            </span>
+          )}
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
@@ -278,7 +330,7 @@ export const InAppPaymentSubmission = ({ participantId, participantIds, poolId, 
                 </div>
               </div>
             )}
-            <Button onClick={generatePix} disabled={generating || hasProfilePix === null || editingPix} className="w-full">
+            <Button onClick={generatePix} disabled={generating || hasProfilePix === null || editingPix || paymentClosed} className="w-full">
               {generating ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <DollarSign className="w-4 h-4 mr-2" />}
               Gerar QR Code PIX
             </Button>
