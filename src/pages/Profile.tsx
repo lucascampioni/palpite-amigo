@@ -16,6 +16,8 @@ import { useUserRole } from "@/hooks/useUserRole";
 import AdminUserManagement from "@/components/AdminUserManagement";
 import AdminPoolManagement from "@/components/AdminPoolManagement";
 import AdminAllParticipants from "@/components/AdminAllParticipants";
+import AdminPlatformSettings from "@/components/AdminPlatformSettings";
+import AdminPayoutsManagement from "@/components/AdminPayoutsManagement";
 
 const Profile = () => {
   const navigate = useNavigate();
@@ -560,11 +562,13 @@ const Profile = () => {
             </CardHeader>
             <CardContent>
               <Tabs defaultValue="users" className="w-full">
-                <TabsList className="grid w-full grid-cols-4">
-                  <TabsTrigger value="users" className="text-[11px] sm:text-xs">Usuários</TabsTrigger>
-                  <TabsTrigger value="pools" className="text-[11px] sm:text-xs">Bolões</TabsTrigger>
-                  <TabsTrigger value="participants" className="text-[11px] sm:text-xs">Participantes</TabsTrigger>
-                  <TabsTrigger value="other" className="text-[11px] sm:text-xs">Outros</TabsTrigger>
+                <TabsList className="grid w-full grid-cols-6">
+                  <TabsTrigger value="users" className="text-[10px] sm:text-xs">Usuários</TabsTrigger>
+                  <TabsTrigger value="pools" className="text-[10px] sm:text-xs">Bolões</TabsTrigger>
+                  <TabsTrigger value="participants" className="text-[10px] sm:text-xs">Participantes</TabsTrigger>
+                  <TabsTrigger value="payouts" className="text-[10px] sm:text-xs">Repasses</TabsTrigger>
+                  <TabsTrigger value="settings" className="text-[10px] sm:text-xs">Config</TabsTrigger>
+                  <TabsTrigger value="other" className="text-[10px] sm:text-xs">Outros</TabsTrigger>
                 </TabsList>
                 <TabsContent value="users" className="mt-4">
                   <AdminUserManagement />
@@ -574,6 +578,12 @@ const Profile = () => {
                 </TabsContent>
                 <TabsContent value="participants" className="mt-4">
                   <AdminAllParticipants />
+                </TabsContent>
+                <TabsContent value="payouts" className="mt-4">
+                  <AdminPayoutsManagement />
+                </TabsContent>
+                <TabsContent value="settings" className="mt-4">
+                  <AdminPlatformSettings />
                 </TabsContent>
                 <TabsContent value="other" className="mt-4">
                   <Button
