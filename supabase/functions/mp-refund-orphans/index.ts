@@ -18,10 +18,10 @@ serve(async (req) => {
 
     const adminClient = createClient(SUPABASE_URL, SERVICE_ROLE_KEY, { auth: { persistSession: false } });
 
-    // Auth: aceita chamada do cron (com service role no Authorization) OU admin logado
+    // Auth: aceita (a) cron interno (header X-Cron-Source), (b) chamada com service role, ou (c) admin logado
     const authHeader = req.headers.get("Authorization") || "";
     const token = authHeader.replace(/^Bearer\s+/i, "");
-    const isCron = token === SERVICE_ROLE_KEY;
+    const isCron = req.headers.get("X-Cron-Source") === "pg_cron" || token === SERVICE_ROLE_KEY;
 
     if (!isCron) {
       if (!authHeader) {
