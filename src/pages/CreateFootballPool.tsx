@@ -880,6 +880,11 @@ const CreateFootballPool = () => {
                       </div>
                     </button>
                   </div>
+                  {paymentMethod === 'in_app' && !profilePixKey && (
+                    <div className="p-3 rounded-lg bg-destructive/10 border border-destructive/30 text-xs text-destructive">
+                      ⚠️ Para receber dentro do app você precisa cadastrar sua chave PIX no <a href="/perfil" className="underline font-medium">perfil</a>. É para essa chave que sua comissão será enviada ao final do bolão.
+                    </div>
+                  )}
                 </div>
               )}
 
