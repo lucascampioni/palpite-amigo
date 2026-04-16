@@ -56,6 +56,9 @@ export const InAppPaymentSubmission = ({ participantId, poolId, poolTitle, entry
       setProfilePixKey(newPixKey.trim());
       setProfilePixKeyType(newPixKeyType);
       setHasProfilePix(true);
+      setEditingPix(false);
+      setNewPixKey("");
+      setNewPixKeyType("");
       toast({ title: "Chave PIX salva no seu perfil!" });
     } catch (e: any) {
       toast({ title: "Erro ao salvar", description: e.message, variant: "destructive" });
