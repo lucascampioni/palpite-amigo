@@ -76,6 +76,9 @@ const CreateFootballPool = () => {
   const [addressCity, setAddressCity] = useState("");
   const [addressState, setAddressState] = useState("");
   const [saveAddress, setSaveAddress] = useState(false);
+  const [inlinePixKey, setInlinePixKey] = useState("");
+  const [inlinePixKeyType, setInlinePixKeyType] = useState<string>("");
+  const [savingInlinePix, setSavingInlinePix] = useState(false);
 
   const buildFullAddress = () => {
     const addressParts = [
