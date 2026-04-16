@@ -88,19 +88,20 @@ export const InAppPaymentSubmission = ({ participantId, participantIds, poolId, 
     })();
   }, []);
 
-  // Load existing pending transaction
+  // Load existing pending transaction (any of the participant ids)
   useEffect(() => {
+    if (ids.length === 0) return;
     (async () => {
       const { data } = await supabase
         .from("pool_transactions")
         .select("id, status, mp_qr_code, mp_qr_code_base64, mp_ticket_url, expires_at")
-        .eq("participant_id", participantId)
+        .in("participant_id", ids)
         .in("status", ["pending", "approved"])
         .order("created_at", { ascending: false })
         .limit(1);
       if (data && data.length > 0) setTx(data[0] as Tx);
     })();
-  }, [participantId]);
+  }, [idsKey]);
 
   // Poll for approved status
   useEffect(() => {
