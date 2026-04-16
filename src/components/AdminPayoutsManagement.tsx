@@ -4,7 +4,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "@/hooks/use-toast";
-import { Loader2, CheckCircle, Send, AlertCircle, Copy, RefreshCcw } from "lucide-react";
+import { Loader2, CheckCircle, Send, AlertCircle, Copy } from "lucide-react";
 
 interface Payout {
   id: string;
@@ -37,7 +37,7 @@ const AdminPayoutsManagement = () => {
   const [payouts, setPayouts] = useState<Payout[]>([]);
   const [loading, setLoading] = useState(false);
   const [actionId, setActionId] = useState<string | null>(null);
-  const [refunding, setRefunding] = useState(false);
+  
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -108,44 +108,17 @@ const AdminPayoutsManagement = () => {
     toast({ title: "Chave PIX copiada" });
   };
 
-  const refundOrphans = async () => {
-    if (!confirm("Reembolsar todos os pagamentos aprovados sem palpite ativo? Esta ação devolve o valor total ao pagador via Mercado Pago.")) return;
-    setRefunding(true);
-    try {
-      const { data, error } = await supabase.functions.invoke("mp-refund-orphans", { body: {} });
-      if (error) throw error;
-      const ok = (data?.results || []).filter((r: any) => r.ok).length;
-      const fail = (data?.results || []).filter((r: any) => !r.ok).length;
-      toast({
-        title: "Reembolsos processados",
-        description: `${ok} reembolsado(s)${fail > 0 ? `, ${fail} falha(s)` : ""}.`,
-      });
-    } catch (e: any) {
-      toast({ title: "Erro", description: e.message, variant: "destructive" });
-    } finally {
-      setRefunding(false);
-    }
-  };
-
-  const headerActions = (
-    <div className="flex justify-end mb-3">
-      <Button size="sm" variant="outline" onClick={refundOrphans} disabled={refunding}>
-        {refunding ? <Loader2 className="w-3 h-3 mr-1 animate-spin" /> : <RefreshCcw className="w-3 h-3 mr-1" />}
-        Reembolsar pagamentos órfãos
-      </Button>
-    </div>
-  );
-
   if (loading) {
     return <div className="flex justify-center py-8"><Loader2 className="w-6 h-6 animate-spin text-muted-foreground" /></div>;
   }
 
+  if (payouts.length === 0) {
+    return <p className="text-center text-muted-foreground py-8">Nenhum repasse pendente.</p>;
+  }
+
   return (
     <div className="space-y-3">
-      {headerActions}
-      {payouts.length === 0 ? (
-        <p className="text-center text-muted-foreground py-8">Nenhum repasse pendente.</p>
-      ) : payouts.map((p) => (
+      {payouts.map((p) => (
         <Card key={p.id}>
           <CardContent className="p-4 space-y-2">
             <div className="flex items-start justify-between gap-2">

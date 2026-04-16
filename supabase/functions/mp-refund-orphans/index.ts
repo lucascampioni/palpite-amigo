@@ -16,23 +16,29 @@ serve(async (req) => {
     const ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY")!;
     const MP_ACCESS_TOKEN = Deno.env.get("MP_ACCESS_TOKEN")!;
 
-    // Auth: somente admin
-    const authHeader = req.headers.get("Authorization");
-    if (!authHeader) return new Response(JSON.stringify({ error: "unauthorized" }), { status: 401, headers: { "Content-Type": "application/json", ...corsHeaders } });
-
-    const userClient = createClient(SUPABASE_URL, ANON_KEY, {
-      auth: { persistSession: false },
-      global: { headers: { Authorization: authHeader } },
-    });
-    const { data: { user } } = await userClient.auth.getUser();
-    if (!user) return new Response(JSON.stringify({ error: "unauthorized" }), { status: 401, headers: { "Content-Type": "application/json", ...corsHeaders } });
-
     const adminClient = createClient(SUPABASE_URL, SERVICE_ROLE_KEY, { auth: { persistSession: false } });
 
-    const { data: isAdmin } = await adminClient.rpc("is_app_admin");
-    const { data: isUserAdmin } = await adminClient.rpc("has_role", { _user_id: user.id, _role: "admin" });
-    if (!isAdmin && !isUserAdmin) {
-      return new Response(JSON.stringify({ error: "forbidden" }), { status: 403, headers: { "Content-Type": "application/json", ...corsHeaders } });
+    // Auth: aceita chamada do cron (com service role no Authorization) OU admin logado
+    const authHeader = req.headers.get("Authorization") || "";
+    const token = authHeader.replace(/^Bearer\s+/i, "");
+    const isCron = token === SERVICE_ROLE_KEY;
+
+    if (!isCron) {
+      if (!authHeader) {
+        return new Response(JSON.stringify({ error: "unauthorized" }), { status: 401, headers: { "Content-Type": "application/json", ...corsHeaders } });
+      }
+      const userClient = createClient(SUPABASE_URL, ANON_KEY, {
+        auth: { persistSession: false },
+        global: { headers: { Authorization: authHeader } },
+      });
+      const { data: { user } } = await userClient.auth.getUser();
+      if (!user) {
+        return new Response(JSON.stringify({ error: "unauthorized" }), { status: 401, headers: { "Content-Type": "application/json", ...corsHeaders } });
+      }
+      const { data: isUserAdmin } = await adminClient.rpc("has_role", { _user_id: user.id, _role: "admin" });
+      if (!isUserAdmin) {
+        return new Response(JSON.stringify({ error: "forbidden" }), { status: 403, headers: { "Content-Type": "application/json", ...corsHeaders } });
+      }
     }
 
     // Busca todas as transações aprovadas cujo participant não existe mais
