@@ -42,6 +42,31 @@ export const InAppPaymentSubmission = ({ participantId, participantIds, poolId, 
   const [newPixKeyType, setNewPixKeyType] = useState<string>("");
   const [savingPix, setSavingPix] = useState(false);
   const [editingPix, setEditingPix] = useState(false);
+  const [firstMatchDate, setFirstMatchDate] = useState<Date | null>(null);
+  const [now, setNow] = useState<Date>(new Date());
+
+  // Tick every 30s to keep "expired" check fresh
+  useEffect(() => {
+    const t = setInterval(() => setNow(new Date()), 30000);
+    return () => clearInterval(t);
+  }, []);
+
+  // Load first valid match date for this pool (payment cutoff = first match kickoff)
+  useEffect(() => {
+    (async () => {
+      const { data } = await supabase
+        .from("football_matches")
+        .select("match_date, status")
+        .eq("pool_id", poolId)
+        .order("match_date", { ascending: true });
+      const first = (data || []).find((m: any) => !["postponed", "cancelled", "abandoned"].includes(m.status));
+      if (first) setFirstMatchDate(new Date(first.match_date));
+    })();
+  }, [poolId]);
+
+  const paymentClosed = !!firstMatchDate && now >= firstMatchDate;
+  const formatCutoff = (d: Date) =>
+    d.toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" });
 
   const saveProfilePix = async () => {
     if (!newPixKey.trim() || !newPixKeyType) {
