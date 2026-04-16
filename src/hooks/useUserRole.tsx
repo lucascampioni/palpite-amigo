@@ -6,7 +6,7 @@ export const useUserRole = () => {
     queryKey: ["user-role"],
     queryFn: async () => {
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return { isAdmin: false, isPoolCreator: false, isEstabelecimento: false, canCreatePools: false, role: null };
+      if (!user) return { isAdmin: false, isPoolCreator: false, isEstabelecimento: false, canReceiveInApp: false, canCreatePools: false, role: null };
 
       // Check if user is app admin (via email check)
       const { data: isAppAdmin, error: appAdminError } = await supabase
@@ -16,11 +16,7 @@ export const useUserRole = () => {
         console.error("Error checking app admin:", appAdminError);
       }
 
-      if (isAppAdmin) {
-        return { isAdmin: true, isPoolCreator: false, isEstabelecimento: false, canCreatePools: true, role: "admin" };
-      }
-
-      // Check user_roles table
+      // Always fetch user_roles to detect in_app_payment even for app admins
       const { data, error } = await supabase
         .from("user_roles")
         .select("role")
@@ -31,6 +27,12 @@ export const useUserRole = () => {
       }
 
       const roles = data?.map(r => r.role) || [];
+      const canReceiveInApp = roles.includes("in_app_payment" as any);
+
+      if (isAppAdmin) {
+        return { isAdmin: true, isPoolCreator: false, isEstabelecimento: false, canReceiveInApp, canCreatePools: true, role: "admin" };
+      }
+
       const isAdmin = roles.includes("admin");
       const isPoolCreator = roles.includes("pool_creator");
       const isEstabelecimento = roles.includes("estabelecimento");
@@ -39,6 +41,7 @@ export const useUserRole = () => {
         isAdmin,
         isPoolCreator,
         isEstabelecimento,
+        canReceiveInApp,
         canCreatePools: isAdmin || isPoolCreator || isEstabelecimento,
         role: isAdmin ? "admin" : isPoolCreator ? "pool_creator" : isEstabelecimento ? "estabelecimento" : (roles[0] || null),
       };
