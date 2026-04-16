@@ -230,11 +230,12 @@ const CreateFootballPool = () => {
       footballPoolSchema.parse({ title, description, pixKey: pixKeyValue, entryFee, maxParticipants });
       
       // Additional validation for non-admin users
+      const usingInApp = userRole?.canReceiveInApp && paymentMethod === 'in_app' && entryFee && parseFloat(entryFee) > 0;
       if (!userRole?.isAdmin && !userRole?.isEstabelecimento) {
         if (!entryFee || parseFloat(entryFee) <= 0) {
           throw new Error("Valor de entrada é obrigatório");
         }
-        if (!pixKeyValue.trim()) {
+        if (!usingInApp && !pixKeyValue.trim()) {
           throw new Error("Chave PIX é obrigatória");
         }
       } else if (userRole?.isEstabelecimento) {
@@ -250,9 +251,9 @@ const CreateFootballPool = () => {
           if (!addressState.trim()) throw new Error("Estado é obrigatório");
         }
       } else {
-        // Admin: PIX required only if entry fee is set
+        // Admin: PIX required only if entry fee is set and not using in-app
         const hasEntryFee = entryFee && parseFloat(entryFee) > 0;
-        if (hasEntryFee && !pixKeyValue.trim()) {
+        if (hasEntryFee && !usingInApp && !pixKeyValue.trim()) {
           throw new Error("Chave PIX é obrigatória quando há valor de entrada");
         }
       }
