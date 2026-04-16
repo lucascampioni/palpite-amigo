@@ -76,6 +76,9 @@ const CreateFootballPool = () => {
   const [addressCity, setAddressCity] = useState("");
   const [addressState, setAddressState] = useState("");
   const [saveAddress, setSaveAddress] = useState(false);
+  const [inlinePixKey, setInlinePixKey] = useState("");
+  const [inlinePixKeyType, setInlinePixKeyType] = useState<string>("");
+  const [savingInlinePix, setSavingInlinePix] = useState(false);
 
   const buildFullAddress = () => {
     const addressParts = [
@@ -145,6 +148,39 @@ const CreateFootballPool = () => {
     };
     loadProfilePix();
   }, []);
+
+  // Force in-app payment as default for users with canReceiveInApp
+  useEffect(() => {
+    if (userRole?.canReceiveInApp && !userRole?.isEstabelecimento) {
+      setPaymentMethod('in_app');
+    }
+  }, [userRole?.canReceiveInApp, userRole?.isEstabelecimento]);
+
+  const saveInlinePixKey = async () => {
+    if (!inlinePixKey.trim() || !inlinePixKeyType) {
+      toast({ title: "Selecione o tipo e digite a chave PIX", variant: "destructive" });
+      return;
+    }
+    setSavingInlinePix(true);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("Não autenticado");
+      const { error } = await supabase
+        .from("profiles")
+        .update({ pix_key: inlinePixKey.trim(), pix_key_type: inlinePixKeyType })
+        .eq("id", user.id);
+      if (error) throw error;
+      setProfilePixKey(inlinePixKey.trim());
+      setProfilePixKeyType(inlinePixKeyType);
+      setInlinePixKey("");
+      setInlinePixKeyType("");
+      toast({ title: "Chave PIX salva no seu perfil!" });
+    } catch (e: any) {
+      toast({ title: "Erro ao salvar", description: e.message, variant: "destructive" });
+    } finally {
+      setSavingInlinePix(false);
+    }
+  };
 
   // Load Delfos fee % from platform settings
   useEffect(() => {
@@ -895,20 +931,28 @@ const CreateFootballPool = () => {
                         Os participantes pagam direto no app via PIX, são aprovados automaticamente e o valor é repassado a você (e ao vencedor) ao fim do bolão, descontada a taxa Delfos.
                       </div>
                     </button>
-                    <button
-                      type="button"
-                      onClick={() => setPaymentMethod('pix_manual')}
-                      className={`text-left p-4 rounded-lg border-2 transition-colors ${paymentMethod === 'pix_manual' ? 'border-primary bg-primary/5' : 'border-muted hover:border-primary/50'}`}
-                    >
-                      <div className="font-semibold text-sm mb-1">📎 PIX manual + comprovante</div>
-                      <div className="text-xs text-muted-foreground">
-                        Participantes enviam PIX direto pra sua chave e anexam comprovante. Você aprova manualmente.
-                      </div>
-                    </button>
                   </div>
                   {paymentMethod === 'in_app' && !profilePixKey && (
-                    <div className="p-3 rounded-lg bg-destructive/10 border border-destructive/30 text-xs text-destructive">
-                      ⚠️ Para receber dentro do app você precisa cadastrar sua chave PIX no <a href="/perfil" className="underline font-medium">perfil</a>. É para essa chave que sua comissão será enviada ao final do bolão.
+                    <div className="p-4 rounded-lg bg-destructive/5 border-2 border-destructive/30 space-y-3">
+                      <div className="text-xs text-destructive font-medium">
+                        ⚠️ Para receber dentro do app você precisa cadastrar sua chave PIX. É para essa chave que sua comissão será enviada ao final do bolão.
+                      </div>
+                      <PixKeyInput
+                        value={inlinePixKey}
+                        onChange={setInlinePixKey}
+                        onTypeChange={(t) => setInlinePixKeyType(t)}
+                        label="Sua chave PIX para receber a comissão"
+                        required
+                      />
+                      <Button
+                        type="button"
+                        onClick={saveInlinePixKey}
+                        disabled={savingInlinePix || !inlinePixKey.trim() || !inlinePixKeyType}
+                        size="sm"
+                        className="w-full"
+                      >
+                        {savingInlinePix ? "Salvando..." : "Salvar chave PIX"}
+                      </Button>
                     </div>
                   )}
                 </div>
