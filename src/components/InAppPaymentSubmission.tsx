@@ -1,0 +1,170 @@
+import { useEffect, useState } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { useToast } from "@/hooks/use-toast";
+import { DollarSign, Copy, Check, Loader2, RefreshCw, CheckCircle2 } from "lucide-react";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+
+interface Props {
+  participantId: string;
+  poolId: string;
+  poolTitle: string;
+  entryFee: number;
+  onSuccess?: () => void;
+}
+
+interface Tx {
+  id: string;
+  status: string;
+  mp_qr_code: string | null;
+  mp_qr_code_base64: string | null;
+  mp_ticket_url: string | null;
+  expires_at: string | null;
+}
+
+export const InAppPaymentSubmission = ({ participantId, poolId, poolTitle, entryFee, onSuccess }: Props) => {
+  const { toast } = useToast();
+  const [tx, setTx] = useState<Tx | null>(null);
+  const [generating, setGenerating] = useState(false);
+  const [polling, setPolling] = useState(false);
+  const [copied, setCopied] = useState(false);
+
+  // Load existing pending transaction
+  useEffect(() => {
+    (async () => {
+      const { data } = await supabase
+        .from("pool_transactions")
+        .select("id, status, mp_qr_code, mp_qr_code_base64, mp_ticket_url, expires_at")
+        .eq("participant_id", participantId)
+        .in("status", ["pending", "approved"])
+        .order("created_at", { ascending: false })
+        .limit(1);
+      if (data && data.length > 0) setTx(data[0] as Tx);
+    })();
+  }, [participantId]);
+
+  // Poll for approved status
+  useEffect(() => {
+    if (!tx || tx.status !== "pending") return;
+    setPolling(true);
+    const interval = setInterval(async () => {
+      const { data } = await supabase
+        .from("pool_transactions")
+        .select("id, status, mp_qr_code, mp_qr_code_base64, mp_ticket_url, expires_at")
+        .eq("id", tx.id)
+        .maybeSingle();
+      if (data) {
+        setTx(data as Tx);
+        if (data.status === "approved") {
+          setPolling(false);
+          toast({ title: "Pagamento confirmado!", description: "Você foi aprovado no bolão." });
+          onSuccess?.();
+        }
+      }
+    }, 5000);
+    return () => { clearInterval(interval); setPolling(false); };
+  }, [tx?.id, tx?.status]);
+
+  const generatePix = async () => {
+    setGenerating(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("mp-create-pix", {
+        body: { pool_id: poolId, participant_id: participantId, amount: entryFee },
+      });
+      if (error) throw error;
+      setTx({
+        id: data.transaction_id,
+        status: "pending",
+        mp_qr_code: data.qr_code,
+        mp_qr_code_base64: data.qr_code_base64,
+        mp_ticket_url: data.ticket_url,
+        expires_at: data.expires_at,
+      });
+      toast({ title: "PIX gerado", description: "Pague em até 30 minutos." });
+    } catch (e: any) {
+      toast({ title: "Erro", description: e.message, variant: "destructive" });
+    } finally {
+      setGenerating(false);
+    }
+  };
+
+  const copyPix = async () => {
+    if (!tx?.mp_qr_code) return;
+    await navigator.clipboard.writeText(tx.mp_qr_code);
+    setCopied(true);
+    toast({ title: "Código copiado" });
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  if (tx?.status === "approved") {
+    return (
+      <Card className="border-green-500/30 bg-green-500/5">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-green-700 dark:text-green-400">
+            <CheckCircle2 className="w-5 h-5" /> Pagamento confirmado
+          </CardTitle>
+          <CardDescription>Sua participação no bolão está aprovada.</CardDescription>
+        </CardHeader>
+      </Card>
+    );
+  }
+
+  return (
+    <Card className="border-2 border-primary/20 bg-gradient-to-br from-primary/5 to-primary/10">
+      <CardHeader>
+        <CardTitle className="text-lg flex items-center gap-2">
+          <DollarSign className="w-5 h-5 text-primary" />
+          Pagamento via PIX (instantâneo)
+        </CardTitle>
+        <CardDescription>
+          Pague R$ {entryFee.toFixed(2).replace(".", ",")} para confirmar sua participação em <strong>{poolTitle}</strong>.
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        {!tx ? (
+          <Button onClick={generatePix} disabled={generating} className="w-full">
+            {generating ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <DollarSign className="w-4 h-4 mr-2" />}
+            Gerar QR Code PIX
+          </Button>
+        ) : (
+          <>
+            {tx.mp_qr_code_base64 && (
+              <div className="flex justify-center bg-white p-4 rounded-lg">
+                <img
+                  src={`data:image/png;base64,${tx.mp_qr_code_base64}`}
+                  alt="QR Code PIX"
+                  className="w-56 h-56"
+                />
+              </div>
+            )}
+            {tx.mp_qr_code && (
+              <div className="space-y-2">
+                <p className="text-xs text-muted-foreground text-center">Ou copie o código PIX:</p>
+                <div className="bg-background border rounded-lg p-3">
+                  <p className="font-mono text-xs break-all select-all">{tx.mp_qr_code}</p>
+                </div>
+                <Button onClick={copyPix} variant="outline" size="sm" className="w-full">
+                  {copied ? <Check className="w-3.5 h-3.5 mr-1.5" /> : <Copy className="w-3.5 h-3.5 mr-1.5" />}
+                  {copied ? "Copiado!" : "Copiar código PIX"}
+                </Button>
+              </div>
+            )}
+            <Alert>
+              <AlertDescription className="text-xs">
+                {polling ? (
+                  <span className="flex items-center gap-2">
+                    <RefreshCw className="w-3 h-3 animate-spin" />
+                    Aguardando confirmação automática do pagamento...
+                  </span>
+                ) : (
+                  "Após o pagamento, sua participação será aprovada automaticamente."
+                )}
+              </AlertDescription>
+            </Alert>
+          </>
+        )}
+      </CardContent>
+    </Card>
+  );
+};
