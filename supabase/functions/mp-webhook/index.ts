@@ -1,4 +1,5 @@
-// Edge function: webhook do Mercado Pago — confirma pagamento e aprova participante
+// Edge function: webhook do Mercado Pago — confirma pagamento, aprova participante
+// e dispara reembolso automático quando o pagamento corresponde a um palpite cancelado/inexistente
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.44.4";
 
@@ -57,7 +58,6 @@ serve(async (req) => {
     const body = await req.json().catch(() => ({}));
     console.log("MP webhook received:", JSON.stringify(body));
 
-    // We only care about payment notifications
     if (body.type !== "payment" && body.topic !== "payment") {
       return new Response(JSON.stringify({ received: true }), {
         status: 200,
@@ -88,12 +88,98 @@ serve(async (req) => {
     });
 
     const status = payment.status;
-
     const localStatus = status === "approved" ? "approved"
       : status === "rejected" ? "rejected"
       : status === "cancelled" ? "cancelled"
       : status === "refunded" ? "refunded"
       : "pending";
+
+    // ===== Reembolso automático: paid sobre QR cancelado ou sem palpite ativo =====
+    if (status === "approved") {
+      // Carrega TODAS as transações com este mp_payment_id (inclusive canceladas)
+      const { data: allTxs } = await adminClient
+        .from("pool_transactions")
+        .select("id, status, participant_id")
+        .eq("mp_payment_id", String(paymentId));
+
+      let needsRefund = false;
+      let reason = "";
+
+      if (!allTxs || allTxs.length === 0) {
+        needsRefund = true;
+        reason = "no_transaction_found";
+      } else {
+        const allCancelled = allTxs.every((t: any) => t.status === "cancelled");
+        if (allCancelled) {
+          needsRefund = true;
+          reason = "all_transactions_cancelled";
+        } else {
+          // Verifica se os participantes ainda existem
+          const participantIds = Array.from(
+            new Set(allTxs.map((t: any) => t.participant_id).filter(Boolean))
+          );
+          if (participantIds.length === 0) {
+            needsRefund = true;
+            reason = "no_participant_linked";
+          } else {
+            const { data: existingParts } = await adminClient
+              .from("participants")
+              .select("id")
+              .in("id", participantIds);
+            const existingIds = new Set((existingParts || []).map((p: any) => p.id));
+            const anyAlive = allTxs.some(
+              (t: any) => t.status !== "cancelled" && t.participant_id && existingIds.has(t.participant_id)
+            );
+            if (!anyAlive) {
+              needsRefund = true;
+              reason = "no_active_participant";
+            }
+          }
+        }
+      }
+
+      if (needsRefund) {
+        console.log(`Disparando reembolso automático para payment ${paymentId} — motivo: ${reason}`);
+        try {
+          const refundResp = await fetch(
+            `https://api.mercadopago.com/v1/payments/${paymentId}/refunds`,
+            {
+              method: "POST",
+              headers: {
+                Authorization: `Bearer ${MP_ACCESS_TOKEN}`,
+                "Content-Type": "application/json",
+                "X-Idempotency-Key": `refund-${paymentId}`,
+              },
+              body: JSON.stringify({}), // sem amount = reembolso total
+            },
+          );
+          const refundData = await refundResp.json();
+          if (!refundResp.ok) {
+            console.error(`Falha no reembolso ${paymentId}:`, refundResp.status, refundData);
+          } else {
+            console.log(`Reembolso OK para ${paymentId}:`, refundData?.id);
+            // Marca transações como refunded
+            if (allTxs && allTxs.length > 0) {
+              await adminClient
+                .from("pool_transactions")
+                .update({
+                  status: "refunded",
+                  raw_response: { payment, refund: refundData, refund_reason: reason },
+                })
+                .eq("mp_payment_id", String(paymentId));
+            }
+          }
+        } catch (err) {
+          console.error(`Erro ao reembolsar ${paymentId}:`, err);
+        }
+
+        return new Response(JSON.stringify({ received: true, status: "refunded", reason }), {
+          status: 200,
+          headers: { "Content-Type": "application/json", ...corsHeaders },
+        });
+      }
+    }
+    // ===== fim reembolso automático =====
 
     // Update ALL non-cancelled transactions sharing this mp_payment_id
     const { data: updatedTxs, error: updateTxError } = await adminClient
