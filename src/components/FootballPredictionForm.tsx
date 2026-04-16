@@ -12,6 +12,7 @@ import { ptBR } from "date-fns/locale";
 import { Copy, Upload, AlertTriangle, Plus, Trash2, Info } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { PaymentProofSubmission } from "@/components/PaymentProofSubmission";
+import { InAppPaymentSubmission } from "@/components/InAppPaymentSubmission";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
@@ -431,7 +432,18 @@ const FootballPredictionForm = ({ poolId, userId, onSuccess, entryFee, pool, pix
                       : 'Seus palpites foram salvos! Agora envie o comprovante para ser aprovado no bolão.'}
                   </DialogDescription>
                 </DialogHeader>
-                {createdParticipantId && (
+                {createdParticipantId && pool?.payment_method === 'in_app' ? (
+                  <InAppPaymentSubmission
+                    participantId={createdParticipantId}
+                    poolId={poolId}
+                    poolTitle={pool?.title || ''}
+                    entryFee={totalFee}
+                    onSuccess={() => {
+                      setShowPaymentDialog(false);
+                      onSuccess();
+                    }}
+                  />
+                ) : createdParticipantId && (
                   <PaymentProofSubmission
                     participantId={createdParticipantId}
                     poolId={poolId}

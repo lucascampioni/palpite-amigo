@@ -55,6 +55,7 @@ const CreateFootballPool = () => {
   const [loading, setLoading] = useState(false);
   const [isPrivate, setIsPrivate] = useState(false);
   const [pixKey, setPixKey] = useState("");
+  const [paymentMethod, setPaymentMethod] = useState<'pix_manual' | 'in_app'>('pix_manual');
   const [profilePixKey, setProfilePixKey] = useState<string | null>(null);
   const [profilePixKeyType, setProfilePixKeyType] = useState<string | null>(null);
   const [pixSource, setPixSource] = useState<'profile' | 'custom' | null>(null);
@@ -229,11 +230,12 @@ const CreateFootballPool = () => {
       footballPoolSchema.parse({ title, description, pixKey: pixKeyValue, entryFee, maxParticipants });
       
       // Additional validation for non-admin users
+      const usingInApp = userRole?.canReceiveInApp && paymentMethod === 'in_app' && entryFee && parseFloat(entryFee) > 0;
       if (!userRole?.isAdmin && !userRole?.isEstabelecimento) {
         if (!entryFee || parseFloat(entryFee) <= 0) {
           throw new Error("Valor de entrada é obrigatório");
         }
-        if (!pixKeyValue.trim()) {
+        if (!usingInApp && !pixKeyValue.trim()) {
           throw new Error("Chave PIX é obrigatória");
         }
       } else if (userRole?.isEstabelecimento) {
@@ -249,9 +251,9 @@ const CreateFootballPool = () => {
           if (!addressState.trim()) throw new Error("Estado é obrigatório");
         }
       } else {
-        // Admin: PIX required only if entry fee is set
+        // Admin: PIX required only if entry fee is set and not using in-app
         const hasEntryFee = entryFee && parseFloat(entryFee) > 0;
-        if (hasEntryFee && !pixKeyValue.trim()) {
+        if (hasEntryFee && !usingInApp && !pixKeyValue.trim()) {
           throw new Error("Chave PIX é obrigatória quando há valor de entrada");
         }
       }
@@ -340,6 +342,7 @@ const CreateFootballPool = () => {
         third_place_prize: prizeType !== 'estabelecimento' && maxWinners >= 3 && thirdPlacePrize ? parseFloat(thirdPlacePrize) : null,
         estabelecimento_prize_description: prizeType === 'estabelecimento' ? estabelecimentoPrizeDescription.trim() : null,
         estabelecimento_prize_address: prizeType === 'estabelecimento' ? buildFullAddress() : null,
+        payment_method: (userRole?.canReceiveInApp && entryFee && parseFloat(entryFee) > 0) ? paymentMethod : 'pix_manual',
       } as any])
       .select()
       .single();
@@ -846,7 +849,35 @@ const CreateFootballPool = () => {
                 </div>
               )}
 
-              {!userRole?.isEstabelecimento && (
+              {!userRole?.isEstabelecimento && userRole?.canReceiveInApp && (
+                <div className="space-y-3">
+                  <Label className="text-base">💳 Como receber os pagamentos</Label>
+                  <div className="grid gap-3">
+                    <button
+                      type="button"
+                      onClick={() => setPaymentMethod('in_app')}
+                      className={`text-left p-4 rounded-lg border-2 transition-colors ${paymentMethod === 'in_app' ? 'border-primary bg-primary/5' : 'border-muted hover:border-primary/50'}`}
+                    >
+                      <div className="font-semibold text-sm mb-1">⚡ Receber dentro do app (PIX automático)</div>
+                      <div className="text-xs text-muted-foreground">
+                        Os participantes pagam direto no app via PIX, são aprovados automaticamente e o valor é repassado a você (e ao vencedor) ao fim do bolão, descontada a taxa Delfos.
+                      </div>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setPaymentMethod('pix_manual')}
+                      className={`text-left p-4 rounded-lg border-2 transition-colors ${paymentMethod === 'pix_manual' ? 'border-primary bg-primary/5' : 'border-muted hover:border-primary/50'}`}
+                    >
+                      <div className="font-semibold text-sm mb-1">📎 PIX manual + comprovante</div>
+                      <div className="text-xs text-muted-foreground">
+                        Participantes enviam PIX direto pra sua chave e anexam comprovante. Você aprova manualmente.
+                      </div>
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {!userRole?.isEstabelecimento && paymentMethod === 'pix_manual' && (
               <div className="space-y-3">
                 <div className="flex items-start gap-2">
                   <Label className="text-base">🔑 Chave PIX para receber pagamentos {userRole?.isAdmin ? '(opcional)' : '*'}</Label>

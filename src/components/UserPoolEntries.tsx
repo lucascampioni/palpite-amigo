@@ -9,6 +9,7 @@ import { Plus, Edit, X, MessageCircle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import FootballPredictionForm from "./FootballPredictionForm";
 import { PaymentProofSubmission } from "./PaymentProofSubmission";
+import { InAppPaymentSubmission } from "./InAppPaymentSubmission";
 import UserPredictionsSummary from "./UserPredictionsSummary";
 
 interface UserPoolEntriesProps {
@@ -192,7 +193,15 @@ const UserPoolEntries = ({
                       )}
                     </div>
                   )}
-                  {hasEntryFee && (
+                  {hasEntryFee && pool?.payment_method === 'in_app' ? (
+                    <InAppPaymentSubmission
+                      participantId={entry.id}
+                      poolId={poolId}
+                      poolTitle={pool.title}
+                      entryFee={entryFee}
+                      onSuccess={onReload}
+                    />
+                  ) : hasEntryFee ? (
                     <PaymentProofSubmission
                       participantId={entry.id}
                       poolId={poolId}
@@ -202,7 +211,7 @@ const UserPoolEntries = ({
                       firstMatchDate={firstMatchDate}
                       onSuccess={onReload}
                     />
-                  )}
+                  ) : null}
                   <div className="flex gap-2">
                     <Button
                       variant="outline"
