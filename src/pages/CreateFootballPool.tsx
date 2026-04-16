@@ -149,6 +149,39 @@ const CreateFootballPool = () => {
     loadProfilePix();
   }, []);
 
+  // Force in-app payment as default for users with canReceiveInApp
+  useEffect(() => {
+    if (userRole?.canReceiveInApp && !userRole?.isEstabelecimento) {
+      setPaymentMethod('in_app');
+    }
+  }, [userRole?.canReceiveInApp, userRole?.isEstabelecimento]);
+
+  const saveInlinePixKey = async () => {
+    if (!inlinePixKey.trim() || !inlinePixKeyType) {
+      toast({ title: "Selecione o tipo e digite a chave PIX", variant: "destructive" });
+      return;
+    }
+    setSavingInlinePix(true);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("Não autenticado");
+      const { error } = await supabase
+        .from("profiles")
+        .update({ pix_key: inlinePixKey.trim(), pix_key_type: inlinePixKeyType })
+        .eq("id", user.id);
+      if (error) throw error;
+      setProfilePixKey(inlinePixKey.trim());
+      setProfilePixKeyType(inlinePixKeyType);
+      setInlinePixKey("");
+      setInlinePixKeyType("");
+      toast({ title: "Chave PIX salva no seu perfil!" });
+    } catch (e: any) {
+      toast({ title: "Erro ao salvar", description: e.message, variant: "destructive" });
+    } finally {
+      setSavingInlinePix(false);
+    }
+  };
+
   // Load Delfos fee % from platform settings
   useEffect(() => {
     (async () => {
