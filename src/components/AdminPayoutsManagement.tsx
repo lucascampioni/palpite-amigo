@@ -37,6 +37,7 @@ const AdminPayoutsManagement = () => {
   const [payouts, setPayouts] = useState<Payout[]>([]);
   const [loading, setLoading] = useState(false);
   const [actionId, setActionId] = useState<string | null>(null);
+  const [refunding, setRefunding] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -107,7 +108,6 @@ const AdminPayoutsManagement = () => {
     toast({ title: "Chave PIX copiada" });
   };
 
-  const [refunding, setRefunding] = useState(false);
   const refundOrphans = async () => {
     if (!confirm("Reembolsar todos os pagamentos aprovados sem palpite ativo? Esta ação devolve o valor total ao pagador via Mercado Pago.")) return;
     setRefunding(true);
