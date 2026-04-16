@@ -34,6 +34,34 @@ export const InAppPaymentSubmission = ({ participantId, poolId, poolTitle, entry
   const [hasProfilePix, setHasProfilePix] = useState<boolean | null>(null);
   const [profilePixKey, setProfilePixKey] = useState<string | null>(null);
   const [profilePixKeyType, setProfilePixKeyType] = useState<string | null>(null);
+  const [newPixKey, setNewPixKey] = useState("");
+  const [newPixKeyType, setNewPixKeyType] = useState<string>("");
+  const [savingPix, setSavingPix] = useState(false);
+
+  const saveProfilePix = async () => {
+    if (!newPixKey.trim() || !newPixKeyType) {
+      toast({ title: "Selecione o tipo e digite a chave PIX", variant: "destructive" });
+      return;
+    }
+    setSavingPix(true);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("Usuário não autenticado");
+      const { error } = await supabase
+        .from("profiles")
+        .update({ pix_key: newPixKey.trim(), pix_key_type: newPixKeyType })
+        .eq("id", user.id);
+      if (error) throw error;
+      setProfilePixKey(newPixKey.trim());
+      setProfilePixKeyType(newPixKeyType);
+      setHasProfilePix(true);
+      toast({ title: "Chave PIX salva no seu perfil!" });
+    } catch (e: any) {
+      toast({ title: "Erro ao salvar", description: e.message, variant: "destructive" });
+    } finally {
+      setSavingPix(false);
+    }
+  };
 
   // Check user profile PIX key
   useEffect(() => {
