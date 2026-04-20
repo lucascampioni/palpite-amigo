@@ -24,19 +24,27 @@ serve(async (req) => {
     }
 
     const body = await req.json().catch(() => ({}));
-    console.log("asaas-transfer-validation recebido:", JSON.stringify(body).slice(0, 500));
+    console.log("asaas-transfer-validation recebido:", JSON.stringify(body).slice(0, 800));
 
-    // Sempre aprova — a autorização real ocorre no asaas-execute-payout
-    return new Response(JSON.stringify({ approved: true }), {
+    // Resposta com TODAS as variações aceitas pelo Asaas (cobre mudanças de spec)
+    const approveResponse = {
+      approved: true,
+      approve: true,
+      status: "APPROVED",
+      authorized: true,
+    };
+
+    console.log("asaas-transfer-validation respondendo:", JSON.stringify(approveResponse));
+
+    return new Response(JSON.stringify(approveResponse), {
       status: 200,
       headers: { "Content-Type": "application/json", ...corsHeaders },
     });
   } catch (e: any) {
     console.error("asaas-transfer-validation error:", e);
-    // Em caso de erro, ainda aprovamos para não travar saques legítimos
-    return new Response(JSON.stringify({ approved: true }), {
-      status: 200,
-      headers: { "Content-Type": "application/json", ...corsHeaders },
-    });
+    return new Response(
+      JSON.stringify({ approved: true, approve: true, status: "APPROVED", authorized: true }),
+      { status: 200, headers: { "Content-Type": "application/json", ...corsHeaders } },
+    );
   }
 });
