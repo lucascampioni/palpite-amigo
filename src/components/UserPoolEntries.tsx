@@ -57,7 +57,7 @@ const UserPoolEntries = ({
   const cancelPendingPixForPool = async () => {
     if (pool?.payment_method !== "in_app") return;
 
-    const { error } = await supabase.functions.invoke("mp-cancel-pix", {
+    const { error } = await supabase.functions.invoke("asaas-cancel-pix", {
       body: { pool_id: poolId },
     });
 
