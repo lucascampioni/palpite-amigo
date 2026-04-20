@@ -77,8 +77,8 @@ serve(async (req) => {
     const totalToWinners = winnerAmounts.reduce((s, v) => s + v, 0);
     const organizerAmount = +(totalCollected - delfosFee - totalToWinners).toFixed(2);
 
-    // Auto-approve from the start (no manual admin approval needed)
-    const initialStatus = auto_execute === false ? "pending_approval" : "approved";
+    // Always create as pending_approval — admin must explicitly approve in painel
+    const initialStatus = "pending_approval";
 
     const payouts: any[] = [];
 
@@ -126,28 +126,7 @@ serve(async (req) => {
       inserted = data || [];
     }
 
-    // Auto-execute every payout immediately if requested
-    let executionResults: any[] = [];
-    if (auto_execute !== false && inserted.length > 0) {
-      for (const p of inserted) {
-        try {
-          const resp = await fetch(`${SUPABASE_URL}/functions/v1/asaas-execute-payout`, {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              "Authorization": `Bearer ${SERVICE_ROLE_KEY}`,
-              "X-Internal-Source": "auto-finish",
-            },
-            body: JSON.stringify({ payout_id: p.id }),
-          });
-          const data = await resp.json();
-          executionResults.push({ payout_id: p.id, ...data });
-        } catch (e: any) {
-          executionResults.push({ payout_id: p.id, error: e.message });
-        }
-      }
-    }
-
+    // No auto-execute: payouts wait for manual approval in admin panel
     return jsonResp({
       success: true,
       total_collected: totalCollected,
@@ -155,8 +134,7 @@ serve(async (req) => {
       total_to_winners: totalToWinners,
       organizer_amount: organizerAmount,
       payouts_created: inserted.length,
-      auto_executed: auto_execute !== false,
-      execution_results: executionResults,
+      auto_executed: false,
     }, 200);
   } catch (e: any) {
     console.error("asaas-process-payouts error:", e);
