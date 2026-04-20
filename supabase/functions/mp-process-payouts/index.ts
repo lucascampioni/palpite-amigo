@@ -18,29 +18,34 @@ serve(async (req) => {
     const SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY")!;
 
-    const authHeader = req.headers.get("Authorization");
-    if (!authHeader) {
-      return new Response(JSON.stringify({ error: "Não autorizado" }), {
-        status: 401, headers: { "Content-Type": "application/json", ...corsHeaders },
-      });
-    }
+    const authHeader = req.headers.get("Authorization") || "";
+    const internalSource = req.headers.get("X-Internal-Source");
+    const isInternalCall = internalSource === "update-football-winners" &&
+      authHeader === `Bearer ${SERVICE_ROLE_KEY}`;
 
-    const userClient = createClient(SUPABASE_URL, ANON_KEY, {
-      auth: { persistSession: false },
-      global: { headers: { Authorization: authHeader } },
-    });
-    const { data: { user } } = await userClient.auth.getUser();
-    if (!user) {
-      return new Response(JSON.stringify({ error: "Não autorizado" }), {
-        status: 401, headers: { "Content-Type": "application/json", ...corsHeaders },
+    if (!isInternalCall) {
+      if (!authHeader) {
+        return new Response(JSON.stringify({ error: "Não autorizado" }), {
+          status: 401, headers: { "Content-Type": "application/json", ...corsHeaders },
+        });
+      }
+      const userClient = createClient(SUPABASE_URL, ANON_KEY, {
+        auth: { persistSession: false },
+        global: { headers: { Authorization: authHeader } },
       });
-    }
-    const { data: isAppAdmin } = await userClient.rpc("is_app_admin");
-    const { data: isUserAdmin } = await userClient.rpc("is_user_admin");
-    if (!isAppAdmin && !isUserAdmin) {
-      return new Response(JSON.stringify({ error: "Acesso negado" }), {
-        status: 403, headers: { "Content-Type": "application/json", ...corsHeaders },
-      });
+      const { data: { user } } = await userClient.auth.getUser();
+      if (!user) {
+        return new Response(JSON.stringify({ error: "Não autorizado" }), {
+          status: 401, headers: { "Content-Type": "application/json", ...corsHeaders },
+        });
+      }
+      const { data: isAppAdmin } = await userClient.rpc("is_app_admin");
+      const { data: isUserAdmin } = await userClient.rpc("is_user_admin");
+      if (!isAppAdmin && !isUserAdmin) {
+        return new Response(JSON.stringify({ error: "Acesso negado" }), {
+          status: 403, headers: { "Content-Type": "application/json", ...corsHeaders },
+        });
+      }
     }
 
     const { pool_id } = await req.json();
