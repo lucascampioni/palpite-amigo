@@ -1,0 +1,1 @@
+DELETE FROM public.pool_payouts WHERE pool_id='9efad95c-f8f2-4cb4-8d50-586b9e799538' AND status='pending_approval';
