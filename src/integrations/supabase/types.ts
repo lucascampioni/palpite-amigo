@@ -424,6 +424,8 @@ export type Database = {
           amount: number
           approved_at: string | null
           approved_by: string | null
+          asaas_status: string | null
+          asaas_transfer_id: string | null
           created_at: string
           failure_reason: string | null
           id: string
@@ -443,6 +445,8 @@ export type Database = {
           amount: number
           approved_at?: string | null
           approved_by?: string | null
+          asaas_status?: string | null
+          asaas_transfer_id?: string | null
           created_at?: string
           failure_reason?: string | null
           id?: string
@@ -462,6 +466,8 @@ export type Database = {
           amount?: number
           approved_at?: string | null
           approved_by?: string | null
+          asaas_status?: string | null
+          asaas_transfer_id?: string | null
           created_at?: string
           failure_reason?: string | null
           id?: string
@@ -482,6 +488,10 @@ export type Database = {
       pool_transactions: {
         Row: {
           amount: number
+          asaas_invoice_url: string | null
+          asaas_payment_id: string | null
+          asaas_qr_code: string | null
+          asaas_qr_code_base64: string | null
           created_at: string
           expires_at: string | null
           id: string
@@ -499,6 +509,10 @@ export type Database = {
         }
         Insert: {
           amount: number
+          asaas_invoice_url?: string | null
+          asaas_payment_id?: string | null
+          asaas_qr_code?: string | null
+          asaas_qr_code_base64?: string | null
           created_at?: string
           expires_at?: string | null
           id?: string
@@ -516,6 +530,10 @@ export type Database = {
         }
         Update: {
           amount?: number
+          asaas_invoice_url?: string | null
+          asaas_payment_id?: string | null
+          asaas_qr_code?: string | null
+          asaas_qr_code_base64?: string | null
           created_at?: string
           expires_at?: string | null
           id?: string

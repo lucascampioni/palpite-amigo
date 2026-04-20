@@ -372,19 +372,20 @@ serve(async (req) => {
       try {
         const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
         const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-        const resp = await fetch(`${supabaseUrl}/functions/v1/mp-process-payouts`, {
+        // Asaas: cria payouts E executa transferências PIX automaticamente
+        const resp = await fetch(`${supabaseUrl}/functions/v1/asaas-process-payouts`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
             'Authorization': `Bearer ${serviceKey}`,
             'X-Internal-Source': 'update-football-winners',
           },
-          body: JSON.stringify({ pool_id }),
+          body: JSON.stringify({ pool_id, auto_execute: true }),
         });
         payoutsResult = await resp.json();
-        console.log('💰 mp-process-payouts result:', payoutsResult);
+        console.log('💰 asaas-process-payouts result:', payoutsResult);
       } catch (e) {
-        console.error('❌ Error calling mp-process-payouts:', e);
+        console.error('❌ Error calling asaas-process-payouts:', e);
       }
     }
 

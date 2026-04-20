@@ -79,7 +79,7 @@ const AdminPayoutsManagement = () => {
   const approvePayout = async (id: string) => {
     setActionId(id);
     try {
-      const { data, error } = await supabase.functions.invoke("mp-execute-payout", { body: { payout_id: id } });
+      const { data, error } = await supabase.functions.invoke("asaas-execute-payout", { body: { payout_id: id } });
       if (error) throw error;
       if (data?.success === false) {
         toast({
@@ -103,7 +103,7 @@ const AdminPayoutsManagement = () => {
   const markSent = async (id: string) => {
     setActionId(id);
     try {
-      const { error } = await supabase.functions.invoke("mp-execute-payout", { body: { payout_id: id, mark_only: true } });
+      const { error } = await supabase.functions.invoke("asaas-execute-payout", { body: { payout_id: id, mark_only: true } });
       if (error) throw error;
       toast({ title: "Marcado como enviado" });
       load();
