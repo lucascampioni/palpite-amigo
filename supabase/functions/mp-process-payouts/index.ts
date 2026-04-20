@@ -177,7 +177,8 @@ serve(async (req) => {
       success: true,
       total_collected: totalCollected,
       delfos_fee: delfosFee,
-      net_pool: netPool,
+      total_to_winners: totalToWinners,
+      organizer_amount: organizerAmount,
       payouts_created: payouts.length,
       payouts,
     }), {
