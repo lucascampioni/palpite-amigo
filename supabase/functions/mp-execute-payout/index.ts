@@ -105,15 +105,27 @@ serve(async (req) => {
       .eq("id", payout_id);
 
     // Tenta executar a transferência PIX via Mercado Pago
-    // Endpoint: POST /v1/money_transfers (PIX OUT) — requer permissão "money out" na conta
+    // Endpoint: POST /v1/transaction-intents/process (PIX OUT)
+    // Doc: https://www.mercadopago.com.br/developers/en/reference/online-payments/payouts/one-transaction/pix-transfer/post
     const idempotencyKey = `payout-${payout.id}`;
+    // external_reference não pode ter caracteres especiais e tem max 64 chars
+    const externalRef = `payout${payout.id.replace(/-/g, "")}`.slice(0, 64);
     const transferBody = {
-      amount: Number(payout.amount),
-      description: payout.notes || `Payout bolão ${payout.pool_id}`,
-      external_reference: payout.id,
-      payment_method_id: "pix",
-      receiver: {
-        pix_key: payout.pix_key,
+      external_reference: externalRef,
+      point_of_interaction: { type: "PSP_TRANSFER" },
+      transaction: {
+        amount: Number(payout.amount),
+        description: (payout.notes || `Payout ${payout.pool_id}`).slice(0, 100),
+        payment_method: {
+          id: "pix",
+          type: "pix",
+        },
+        receiver: {
+          pix: {
+            key: payout.pix_key,
+            ...(payout.pix_key_type ? { key_type: payout.pix_key_type } : {}),
+          },
+        },
       },
     };
 
@@ -121,12 +133,16 @@ serve(async (req) => {
     let mpData: any = null;
     let mpStatus = 0;
     try {
-      mpResponse = await fetch("https://api.mercadopago.com/v1/money_transfers", {
+      mpResponse = await fetch("https://api.mercadopago.com/v1/transaction-intents/process", {
         method: "POST",
         headers: {
           "Authorization": `Bearer ${MP_ACCESS_TOKEN}`,
           "Content-Type": "application/json",
           "X-Idempotency-Key": idempotencyKey,
+          // X-signature é obrigatório em produção (HMAC com par de chaves do integrador).
+          // Como ainda não temos as chaves cadastradas, mandamos X-Enforce-Signature=false.
+          // Em produção real esse header deve ser true e o body precisa ser assinado.
+          "X-Enforce-Signature": "false",
         },
         body: JSON.stringify(transferBody),
       });
