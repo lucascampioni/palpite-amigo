@@ -359,6 +359,35 @@ serve(async (req) => {
       console.log(`Tiebreaker method for estabelecimento pool: ${tiebreakerMethod}`);
     }
 
+    // For in_app payment pools: automatically create payouts (Delfos fee + winners + organizer)
+    // Winners' PIX keys are pulled from their profile by mp-process-payouts.
+    const { data: poolPayment } = await supabaseClient
+      .from('pools')
+      .select('payment_method')
+      .eq('id', pool_id)
+      .single();
+
+    let payoutsResult: any = null;
+    if (poolPayment?.payment_method === 'in_app' && winnersToUpdate.length > 0) {
+      try {
+        const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+        const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+        const resp = await fetch(`${supabaseUrl}/functions/v1/mp-process-payouts`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${serviceKey}`,
+            'X-Internal-Source': 'update-football-winners',
+          },
+          body: JSON.stringify({ pool_id }),
+        });
+        payoutsResult = await resp.json();
+        console.log('💰 mp-process-payouts result:', payoutsResult);
+      } catch (e) {
+        console.error('❌ Error calling mp-process-payouts:', e);
+      }
+    }
+
     return new Response(
       JSON.stringify({ 
         success: true,
@@ -366,6 +395,7 @@ serve(async (req) => {
         winners: winnersToUpdate,
         tiebreakerApplied: allZeroPoints,
         tiebreakerMethod: tiebreakerMethod,
+        payouts: payoutsResult,
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
