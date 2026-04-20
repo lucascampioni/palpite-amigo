@@ -54,3 +54,15 @@ verify_jwt = false
 
 [functions.notify-pool-events]
 verify_jwt = false
+
+[functions.asaas-webhook]
+verify_jwt = false
+
+[functions.asaas-refund-orphans]
+verify_jwt = false
+
+[functions.asaas-process-payouts]
+verify_jwt = false
+
+[functions.asaas-execute-payout]
+verify_jwt = false
