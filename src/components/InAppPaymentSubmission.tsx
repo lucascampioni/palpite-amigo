@@ -51,7 +51,7 @@ export const InAppPaymentSubmission = ({ participantId, participantIds, poolId, 
     if (!confirm("Tem certeza que deseja cancelar este QR Code? O código atual deixará de ser válido para pagamento.")) return;
     setCancelling(true);
     try {
-      const { error } = await supabase.functions.invoke("mp-cancel-pix", {
+      const { error } = await supabase.functions.invoke("asaas-cancel-pix", {
         body: { transaction_id: tx.id, pool_id: poolId },
       });
       if (error) throw error;
@@ -176,7 +176,7 @@ export const InAppPaymentSubmission = ({ participantId, participantIds, poolId, 
     }
     setGenerating(true);
     try {
-      const { data, error } = await supabase.functions.invoke("mp-create-pix", {
+      const { data, error } = await supabase.functions.invoke("asaas-create-pix", {
         body: { pool_id: poolId, participant_ids: ids, amount: entryFee },
       });
       if (error) throw error;
