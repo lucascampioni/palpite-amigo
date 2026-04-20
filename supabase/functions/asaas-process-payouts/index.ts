@@ -77,8 +77,8 @@ serve(async (req) => {
     const totalToWinners = winnerAmounts.reduce((s, v) => s + v, 0);
     const organizerAmount = +(totalCollected - delfosFee - totalToWinners).toFixed(2);
 
-    // Auto-approve from the start (no manual admin approval needed)
-    const initialStatus = auto_execute === false ? "pending_approval" : "approved";
+    // Always create as pending_approval — admin must explicitly approve in painel
+    const initialStatus = "pending_approval";
 
     const payouts: any[] = [];
 
