@@ -16,6 +16,7 @@ interface Payout {
   amount: number;
   status: string;
   notes: string | null;
+  failure_reason?: string | null;
   created_at: string;
   pool_title?: string;
   recipient_name?: string;
@@ -78,9 +79,19 @@ const AdminPayoutsManagement = () => {
   const approvePayout = async (id: string) => {
     setActionId(id);
     try {
-      const { error } = await supabase.functions.invoke("mp-execute-payout", { body: { payout_id: id } });
+      const { data, error } = await supabase.functions.invoke("mp-execute-payout", { body: { payout_id: id } });
       if (error) throw error;
-      toast({ title: "Aprovado", description: "Payout aprovado. Execute a transferência no painel Mercado Pago." });
+      if (data?.success === false) {
+        toast({
+          title: "Pagamento automático indisponível",
+          description: data?.error || "Faça a transferência manual e depois marque como enviado.",
+          variant: "destructive",
+        });
+        load();
+        return;
+      }
+
+      toast({ title: "PIX enviado", description: data?.message || "Pagamento automático executado com sucesso." });
       load();
     } catch (e: any) {
       toast({ title: "Erro", description: e.message, variant: "destructive" });
@@ -162,11 +173,17 @@ const AdminPayoutsManagement = () => {
               </div>
             )}
 
-            {p.status === "approved" && (
-              <Button size="sm" variant="secondary" disabled={actionId === p.id} onClick={() => markSent(p.id)}>
-                <Send className="w-3 h-3 mr-1" />
-                Marcar como enviado
-              </Button>
+            {(p.status === "approved" || p.status === "failed") && (
+              <div className="space-y-2 pt-2">
+                {p.failure_reason && (
+                  <p className="text-xs text-amber-600 dark:text-amber-400">{p.failure_reason}</p>
+                )}
+
+                <Button size="sm" variant="secondary" disabled={actionId === p.id} onClick={() => markSent(p.id)}>
+                  <Send className="w-3 h-3 mr-1" />
+                  Marcar como enviado
+                </Button>
+              </div>
             )}
           </CardContent>
         </Card>

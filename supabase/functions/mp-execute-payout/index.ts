@@ -155,9 +155,9 @@ serve(async (req) => {
       await adminClient
         .from("pool_payouts")
         .update({
-          status: "failed",
+          status: isMoneyOutDisabled ? "approved" : "failed",
           failure_reason: isMoneyOutDisabled
-            ? "Conta Mercado Pago não tem 'money out' (PIX OUT) habilitado. Solicite a habilitação no painel MP ou faça a transferência manualmente."
+            ? "Conta Mercado Pago não oferece PIX OUT nesta conta. Faça a transferência manualmente e depois marque como enviado."
             : `Mercado Pago: ${reason}`,
           raw_response: mpData,
         })
