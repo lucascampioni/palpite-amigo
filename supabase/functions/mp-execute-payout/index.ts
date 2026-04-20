@@ -74,28 +74,123 @@ serve(async (req) => {
       });
     }
 
+    // Plataforma (Delfos) — não precisa de PIX externo, só registra como enviado
+    if (payout.recipient_type === "platform") {
+      const { error: updateError } = await adminClient
+        .from("pool_payouts")
+        .update({
+          status: "sent",
+          approved_by: user.id,
+          approved_at: new Date().toISOString(),
+          sent_at: new Date().toISOString(),
+          notes: (payout.notes || "") + " [Retido na conta Delfos]",
+        })
+        .eq("id", payout_id);
+      if (updateError) throw updateError;
+      return new Response(JSON.stringify({ success: true, platform_retained: true }), {
+        status: 200, headers: { "Content-Type": "application/json", ...corsHeaders },
+      });
+    }
+
     if (!payout.pix_key) throw new Error("Destinatário não tem chave PIX cadastrada");
 
-    // NOTE: Mercado Pago API for PIX payouts requires "money out" / "withdraw" capabilities
-    // which need to be enabled on the merchant account. The endpoint below is a placeholder
-    // representing the integration point; for now we mark the payout as 'approved' and let
-    // admin manually execute the transfer. Once MP enables PIX payouts on the account,
-    // this can be wired to /v1/payouts or similar.
+    // Marca como "processing" antes de chamar a API
+    await adminClient
+      .from("pool_payouts")
+      .update({
+        status: "processing",
+        approved_by: user.id,
+        approved_at: new Date().toISOString(),
+      })
+      .eq("id", payout_id);
 
-    // For now: mark as approved (next step: admin disparará transferência manualmente ou via produto MP)
+    // Tenta executar a transferência PIX via Mercado Pago
+    // Endpoint: POST /v1/money_transfers (PIX OUT) — requer permissão "money out" na conta
+    const idempotencyKey = `payout-${payout.id}`;
+    const transferBody = {
+      amount: Number(payout.amount),
+      description: payout.notes || `Payout bolão ${payout.pool_id}`,
+      external_reference: payout.id,
+      payment_method_id: "pix",
+      receiver: {
+        pix_key: payout.pix_key,
+      },
+    };
+
+    let mpResponse: Response;
+    let mpData: any = null;
+    let mpStatus = 0;
+    try {
+      mpResponse = await fetch("https://api.mercadopago.com/v1/money_transfers", {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${MP_ACCESS_TOKEN}`,
+          "Content-Type": "application/json",
+          "X-Idempotency-Key": idempotencyKey,
+        },
+        body: JSON.stringify(transferBody),
+      });
+      mpStatus = mpResponse.status;
+      mpData = await mpResponse.json().catch(() => ({}));
+    } catch (fetchErr: any) {
+      await adminClient
+        .from("pool_payouts")
+        .update({
+          status: "failed",
+          failure_reason: `Erro de rede: ${fetchErr.message}`,
+          raw_response: { error: fetchErr.message },
+        })
+        .eq("id", payout_id);
+      throw new Error(`Falha de rede ao chamar Mercado Pago: ${fetchErr.message}`);
+    }
+
+    console.log("MP transfer response:", mpStatus, JSON.stringify(mpData));
+
+    // Se a conta MP não tem permissão de "money out", retornamos erro claro
+    if (mpStatus >= 400) {
+      const reason = mpData?.message || mpData?.error || `HTTP ${mpStatus}`;
+      const isMoneyOutDisabled = mpStatus === 403 || mpStatus === 404 ||
+        /money.?out|not.?found|forbidden|permission/i.test(reason);
+
+      await adminClient
+        .from("pool_payouts")
+        .update({
+          status: "failed",
+          failure_reason: isMoneyOutDisabled
+            ? "Conta Mercado Pago não tem 'money out' (PIX OUT) habilitado. Solicite a habilitação no painel MP ou faça a transferência manualmente."
+            : `Mercado Pago: ${reason}`,
+          raw_response: mpData,
+        })
+        .eq("id", payout_id);
+
+      return new Response(JSON.stringify({
+        success: false,
+        error: isMoneyOutDisabled
+          ? "PIX OUT não habilitado na conta Mercado Pago. Faça a transferência manualmente e use 'Marcar como pago'."
+          : `Falha ao executar transferência: ${reason}`,
+        mp_status: mpStatus,
+        mp_response: mpData,
+      }), {
+        status: 200, headers: { "Content-Type": "application/json", ...corsHeaders },
+      });
+    }
+
+    // Sucesso — marca como enviado
     const { error: updateError } = await adminClient
       .from("pool_payouts")
       .update({
-        status: "approved",
-        approved_by: user.id,
-        approved_at: new Date().toISOString(),
+        status: "sent",
+        sent_at: new Date().toISOString(),
+        mp_transfer_id: mpData?.id?.toString() || null,
+        raw_response: mpData,
       })
       .eq("id", payout_id);
     if (updateError) throw updateError;
 
     return new Response(JSON.stringify({
       success: true,
-      message: "Payout aprovado. Transferência PIX deve ser executada manualmente via painel Mercado Pago até que a API de payouts esteja habilitada na conta.",
+      mp_transfer_id: mpData?.id,
+      message: "Transferência PIX executada com sucesso via Mercado Pago.",
     }), {
       status: 200, headers: { "Content-Type": "application/json", ...corsHeaders },
     });
