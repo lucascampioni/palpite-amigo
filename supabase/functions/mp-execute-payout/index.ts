@@ -105,15 +105,23 @@ serve(async (req) => {
       .eq("id", payout_id);
 
     // Tenta executar a transferência PIX via Mercado Pago
-    // Endpoint: POST /v1/money_transfers (PIX OUT) — requer permissão "money out" na conta
+    // Endpoint: POST /v1/transaction-intents/process (PIX OUT via Transaction Intents)
     const idempotencyKey = `payout-${payout.id}`;
     const transferBody = {
-      amount: Number(payout.amount),
-      description: payout.notes || `Payout bolão ${payout.pool_id}`,
-      external_reference: payout.id,
-      payment_method_id: "pix",
-      receiver: {
-        pix_key: payout.pix_key,
+      transaction_intent: {
+        amount: Number(payout.amount),
+        description: payout.notes || `Payout bolão ${payout.pool_id}`,
+        external_reference: payout.id,
+        payment_method: {
+          id: "pix",
+          type: "pix",
+        },
+        receiver: {
+          pix: {
+            key: payout.pix_key,
+            key_type: payout.pix_key_type || undefined,
+          },
+        },
       },
     };
 
@@ -121,7 +129,7 @@ serve(async (req) => {
     let mpData: any = null;
     let mpStatus = 0;
     try {
-      mpResponse = await fetch("https://api.mercadopago.com/v1/money_transfers", {
+      mpResponse = await fetch("https://api.mercadopago.com/v1/transaction-intents/process", {
         method: "POST",
         headers: {
           "Authorization": `Bearer ${MP_ACCESS_TOKEN}`,
