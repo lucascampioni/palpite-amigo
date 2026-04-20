@@ -90,27 +90,27 @@ serve(async (req) => {
     const delfosFeePercent = Number(feeSetting?.value || 0);
     const delfosFee = +(totalCollected * delfosFeePercent / 100).toFixed(2);
 
-    // Net pool (after Delfos fee) — this is what gets distributed to winner(s) + organizer
-    const netPool = +(totalCollected - delfosFee).toFixed(2);
-
     // Get winners from ranking
     const { data: ranking } = await adminClient.rpc("get_football_pool_ranking", { p_pool_id: pool_id });
     const sortedRanking = (ranking || []).sort((a: any, b: any) => b.total_points - a.total_points);
 
     // Determine prize split
-    // For percentage pools, prize fields are %; for fixed, they are absolute values
+    // Percentages (and the implicit organizer share) are calculated over the TOTAL collected,
+    // matching what was shown to participants at pool creation. The Delfos fee is a separate
+    // deduction from the platform's perspective, NOT from the prize pool.
     const prizeType = pool.prize_type;
     const maxWinners = pool.max_winners || 1;
     const prizes = [pool.first_place_prize, pool.second_place_prize, pool.third_place_prize].slice(0, maxWinners);
 
     let winnerAmounts: number[] = [];
     if (prizeType === "percentage") {
-      winnerAmounts = prizes.map((p: any) => +(netPool * Number(p || 0) / 100).toFixed(2));
+      winnerAmounts = prizes.map((p: any) => +(totalCollected * Number(p || 0) / 100).toFixed(2));
     } else {
       winnerAmounts = prizes.map((p: any) => Number(p || 0));
     }
     const totalToWinners = winnerAmounts.reduce((s, v) => s + v, 0);
-    const organizerAmount = +(netPool - totalToWinners).toFixed(2);
+    // Organizer receives whatever is left after Delfos fee + winners
+    const organizerAmount = +(totalCollected - delfosFee - totalToWinners).toFixed(2);
 
     const payouts: any[] = [];
 
