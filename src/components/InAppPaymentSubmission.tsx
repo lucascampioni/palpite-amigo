@@ -222,9 +222,9 @@ export const InAppPaymentSubmission = ({ participantId, participantIds, poolId, 
       setTx({
         id: data.transaction_id,
         status: "pending",
-        mp_qr_code: data.qr_code,
-        mp_qr_code_base64: data.qr_code_base64,
-        mp_ticket_url: data.ticket_url,
+        asaas_qr_code: data.qr_code,
+        asaas_qr_code_base64: data.qr_code_base64,
+        asaas_invoice_url: data.ticket_url,
         expires_at: data.expires_at,
       });
       toast({ title: "PIX gerado", description: firstMatchDate ? `Pague até ${formatCutoff(firstMatchDate)}.` : "Pague em até 30 minutos." });
