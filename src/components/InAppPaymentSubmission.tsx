@@ -21,9 +21,9 @@ interface Props {
 interface Tx {
   id: string;
   status: string;
-  mp_qr_code: string | null;
-  mp_qr_code_base64: string | null;
-  mp_ticket_url: string | null;
+  asaas_qr_code: string | null;
+  asaas_qr_code_base64: string | null;
+  asaas_invoice_url: string | null;
   expires_at: string | null;
 }
 
