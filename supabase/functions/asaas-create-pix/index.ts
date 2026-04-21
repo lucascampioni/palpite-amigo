@@ -147,7 +147,16 @@ serve(async (req) => {
 
     const oldTxIds = (existingPending || []).map((r) => r.id);
     if (oldTxIds.length > 0) {
-      await adminClient.from("pool_transactions").update({ status: "cancelled" }).in("id", oldTxIds);
+      // Limpa mp_payment_id/asaas_payment_id para liberar a unique constraint
+      // caso o Asaas retorne o mesmo id em uma nova cobrança.
+      await adminClient
+        .from("pool_transactions")
+        .update({
+          status: "cancelled",
+          mp_payment_id: null,
+          asaas_payment_id: null,
+        })
+        .in("id", oldTxIds);
     }
     // ===== fim anti-fraude =====
 
