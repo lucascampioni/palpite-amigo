@@ -360,7 +360,7 @@ serve(async (req) => {
     }
 
     // For in_app payment pools: automatically create payouts (Delfos fee + winners + organizer)
-    // Winners' PIX keys are pulled from their profile by mp-process-payouts.
+    // Winners' PIX keys are pulled from their profile by asaas-process-payouts.
     const { data: poolPayment } = await supabaseClient
       .from('pools')
       .select('payment_method')
