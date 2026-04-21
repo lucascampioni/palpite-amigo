@@ -1,6 +1,5 @@
 // Edge function: gera uma cobrança PIX via Asaas
-// Substitui mp-create-pix. Mantém o MESMO contrato de resposta para o frontend:
-// { transaction_id, transaction_ids, participant_ids, qr_code, qr_code_base64, ticket_url, expires_at }
+// Resposta: { transaction_id, transaction_ids, participant_ids, qr_code, qr_code_base64, ticket_url, expires_at }
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.44.4";
 
@@ -147,13 +146,11 @@ serve(async (req) => {
 
     const oldTxIds = (existingPending || []).map((r) => r.id);
     if (oldTxIds.length > 0) {
-      // Limpa mp_payment_id/asaas_payment_id para liberar a unique constraint
-      // caso o Asaas retorne o mesmo id em uma nova cobrança.
+      // Limpa asaas_payment_id para liberar a unique constraint caso o Asaas reuse o id.
       await adminClient
         .from("pool_transactions")
         .update({
           status: "cancelled",
-          mp_payment_id: null,
           asaas_payment_id: null,
         })
         .in("id", oldTxIds);
@@ -278,11 +275,6 @@ serve(async (req) => {
       asaas_qr_code: qrCode,
       asaas_qr_code_base64: qrCodeBase64,
       asaas_invoice_url: ticketUrl,
-      // Mirror to legacy mp_* columns so frontend keeps working during transition
-      mp_payment_id: String(paymentData.id),
-      mp_qr_code: qrCode,
-      mp_qr_code_base64: qrCodeBase64,
-      mp_ticket_url: ticketUrl,
       status: "pending",
       expires_at: expiresAt.toISOString(),
       raw_response: { payment: paymentData, qr: qrData },

@@ -21,9 +21,9 @@ interface Props {
 interface Tx {
   id: string;
   status: string;
-  mp_qr_code: string | null;
-  mp_qr_code_base64: string | null;
-  mp_ticket_url: string | null;
+  asaas_qr_code: string | null;
+  asaas_qr_code_base64: string | null;
+  asaas_invoice_url: string | null;
   expires_at: string | null;
 }
 
@@ -143,7 +143,7 @@ export const InAppPaymentSubmission = ({ participantId, participantIds, poolId, 
       // 1) Approved: qualquer transação aprovada de algum desses participantes já confirma
       const { data: approved } = await supabase
         .from("pool_transactions")
-        .select("id, status, mp_qr_code, mp_qr_code_base64, mp_ticket_url, expires_at")
+        .select("id, status, asaas_qr_code, asaas_qr_code_base64, asaas_invoice_url, expires_at")
         .in("participant_id", ids)
         .eq("status", "approved")
         .order("created_at", { ascending: false })
@@ -153,17 +153,17 @@ export const InAppPaymentSubmission = ({ participantId, participantIds, poolId, 
         return;
       }
 
-      // 2) Pending: agrupa por mp_payment_id e só reaproveita se o grupo cobrir exatamente os mesmos ids
+      // 2) Pending: agrupa por asaas_payment_id e só reaproveita se o grupo cobrir exatamente os mesmos ids
       const { data: pending } = await supabase
         .from("pool_transactions")
-        .select("id, status, mp_qr_code, mp_qr_code_base64, mp_ticket_url, expires_at, mp_payment_id, participant_id, pool_id")
+        .select("id, status, asaas_qr_code, asaas_qr_code_base64, asaas_invoice_url, expires_at, asaas_payment_id, participant_id, pool_id")
         .eq("pool_id", poolId)
         .eq("status", "pending")
         .order("created_at", { ascending: false });
 
       const groups = new Map<string, any[]>();
       for (const row of pending || []) {
-        const key = row.mp_payment_id || row.id;
+        const key = row.asaas_payment_id || row.id;
         const arr = groups.get(key) || [];
         arr.push(row);
         groups.set(key, arr);
@@ -188,7 +188,7 @@ export const InAppPaymentSubmission = ({ participantId, participantIds, poolId, 
     const interval = setInterval(async () => {
       const { data } = await supabase
         .from("pool_transactions")
-        .select("id, status, mp_qr_code, mp_qr_code_base64, mp_ticket_url, expires_at")
+        .select("id, status, asaas_qr_code, asaas_qr_code_base64, asaas_invoice_url, expires_at")
         .eq("id", tx.id)
         .maybeSingle();
       if (data) {
@@ -222,9 +222,9 @@ export const InAppPaymentSubmission = ({ participantId, participantIds, poolId, 
       setTx({
         id: data.transaction_id,
         status: "pending",
-        mp_qr_code: data.qr_code,
-        mp_qr_code_base64: data.qr_code_base64,
-        mp_ticket_url: data.ticket_url,
+        asaas_qr_code: data.qr_code,
+        asaas_qr_code_base64: data.qr_code_base64,
+        asaas_invoice_url: data.ticket_url,
         expires_at: data.expires_at,
       });
       toast({ title: "PIX gerado", description: firstMatchDate ? `Pague até ${formatCutoff(firstMatchDate)}.` : "Pague em até 30 minutos." });
@@ -236,8 +236,8 @@ export const InAppPaymentSubmission = ({ participantId, participantIds, poolId, 
   };
 
   const copyPix = async () => {
-    if (!tx?.mp_qr_code) return;
-    await navigator.clipboard.writeText(tx.mp_qr_code);
+    if (!tx?.asaas_qr_code) return;
+    await navigator.clipboard.writeText(tx.asaas_qr_code);
     setCopied(true);
     toast({ title: "Código copiado" });
     setTimeout(() => setCopied(false), 2000);
@@ -395,20 +395,20 @@ export const InAppPaymentSubmission = ({ participantId, participantIds, poolId, 
           </>
         ) : (
           <>
-            {tx.mp_qr_code_base64 && (
+            {tx.asaas_qr_code_base64 && (
               <div className="flex justify-center bg-white p-4 rounded-lg">
                 <img
-                  src={`data:image/png;base64,${tx.mp_qr_code_base64}`}
+                  src={`data:image/png;base64,${tx.asaas_qr_code_base64}`}
                   alt="QR Code PIX"
                   className="w-56 h-56"
                 />
               </div>
             )}
-            {tx.mp_qr_code && (
+            {tx.asaas_qr_code && (
               <div className="space-y-2">
                 <p className="text-xs text-muted-foreground text-center">Ou copie o código PIX:</p>
                 <div className="bg-background border rounded-lg p-3">
-                  <p className="font-mono text-xs break-all select-all">{tx.mp_qr_code}</p>
+                  <p className="font-mono text-xs break-all select-all">{tx.asaas_qr_code}</p>
                 </div>
                 <Button onClick={copyPix} variant="outline" size="sm" className="w-full">
                   {copied ? <Check className="w-3.5 h-3.5 mr-1.5" /> : <Copy className="w-3.5 h-3.5 mr-1.5" />}

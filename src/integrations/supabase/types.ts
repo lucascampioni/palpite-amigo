@@ -429,7 +429,6 @@ export type Database = {
           created_at: string
           failure_reason: string | null
           id: string
-          mp_transfer_id: string | null
           notes: string | null
           pix_key: string | null
           pix_key_type: string | null
@@ -450,7 +449,6 @@ export type Database = {
           created_at?: string
           failure_reason?: string | null
           id?: string
-          mp_transfer_id?: string | null
           notes?: string | null
           pix_key?: string | null
           pix_key_type?: string | null
@@ -471,7 +469,6 @@ export type Database = {
           created_at?: string
           failure_reason?: string | null
           id?: string
-          mp_transfer_id?: string | null
           notes?: string | null
           pix_key?: string | null
           pix_key_type?: string | null
@@ -495,10 +492,6 @@ export type Database = {
           created_at: string
           expires_at: string | null
           id: string
-          mp_payment_id: string | null
-          mp_qr_code: string | null
-          mp_qr_code_base64: string | null
-          mp_ticket_url: string | null
           paid_at: string | null
           participant_id: string | null
           pool_id: string
@@ -516,10 +509,6 @@ export type Database = {
           created_at?: string
           expires_at?: string | null
           id?: string
-          mp_payment_id?: string | null
-          mp_qr_code?: string | null
-          mp_qr_code_base64?: string | null
-          mp_ticket_url?: string | null
           paid_at?: string | null
           participant_id?: string | null
           pool_id: string
@@ -537,10 +526,6 @@ export type Database = {
           created_at?: string
           expires_at?: string | null
           id?: string
-          mp_payment_id?: string | null
-          mp_qr_code?: string | null
-          mp_qr_code_base64?: string | null
-          mp_ticket_url?: string | null
           paid_at?: string | null
           participant_id?: string | null
           pool_id?: string
