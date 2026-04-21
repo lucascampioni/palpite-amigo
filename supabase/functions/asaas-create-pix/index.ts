@@ -51,9 +51,16 @@ serve(async (req) => {
     const participantIds: string[] = Array.isArray(body.participant_ids) && body.participant_ids.length > 0
       ? body.participant_ids
       : (body.participant_id ? [body.participant_id] : []);
+    const cpfRaw: string = String(body.cpf || "").replace(/\D/g, "");
 
     if (!pool_id || participantIds.length === 0 || !amount || amount <= 0) {
       return new Response(JSON.stringify({ error: "pool_id, participant_id(s) e amount são obrigatórios" }), {
+        status: 400, headers: { "Content-Type": "application/json", ...corsHeaders },
+      });
+    }
+
+    if (cpfRaw.length !== 11) {
+      return new Response(JSON.stringify({ error: "CPF do pagador é obrigatório (11 dígitos)" }), {
         status: 400, headers: { "Content-Type": "application/json", ...corsHeaders },
       });
     }
