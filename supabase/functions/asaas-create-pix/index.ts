@@ -1,6 +1,5 @@
 // Edge function: gera uma cobrança PIX via Asaas
-// Substitui mp-create-pix. Mantém o MESMO contrato de resposta para o frontend:
-// { transaction_id, transaction_ids, participant_ids, qr_code, qr_code_base64, ticket_url, expires_at }
+// Resposta: { transaction_id, transaction_ids, participant_ids, qr_code, qr_code_base64, ticket_url, expires_at }
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.44.4";
 
