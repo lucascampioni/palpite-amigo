@@ -143,7 +143,7 @@ export const InAppPaymentSubmission = ({ participantId, participantIds, poolId, 
       // 1) Approved: qualquer transação aprovada de algum desses participantes já confirma
       const { data: approved } = await supabase
         .from("pool_transactions")
-        .select("id, status, mp_qr_code, mp_qr_code_base64, mp_ticket_url, expires_at")
+        .select("id, status, asaas_qr_code, asaas_qr_code_base64, asaas_invoice_url, expires_at")
         .in("participant_id", ids)
         .eq("status", "approved")
         .order("created_at", { ascending: false })
@@ -153,17 +153,17 @@ export const InAppPaymentSubmission = ({ participantId, participantIds, poolId, 
         return;
       }
 
-      // 2) Pending: agrupa por mp_payment_id e só reaproveita se o grupo cobrir exatamente os mesmos ids
+      // 2) Pending: agrupa por asaas_payment_id e só reaproveita se o grupo cobrir exatamente os mesmos ids
       const { data: pending } = await supabase
         .from("pool_transactions")
-        .select("id, status, mp_qr_code, mp_qr_code_base64, mp_ticket_url, expires_at, mp_payment_id, participant_id, pool_id")
+        .select("id, status, asaas_qr_code, asaas_qr_code_base64, asaas_invoice_url, expires_at, asaas_payment_id, participant_id, pool_id")
         .eq("pool_id", poolId)
         .eq("status", "pending")
         .order("created_at", { ascending: false });
 
       const groups = new Map<string, any[]>();
       for (const row of pending || []) {
-        const key = row.mp_payment_id || row.id;
+        const key = row.asaas_payment_id || row.id;
         const arr = groups.get(key) || [];
         arr.push(row);
         groups.set(key, arr);
