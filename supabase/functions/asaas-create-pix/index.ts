@@ -275,11 +275,6 @@ serve(async (req) => {
       asaas_qr_code: qrCode,
       asaas_qr_code_base64: qrCodeBase64,
       asaas_invoice_url: ticketUrl,
-      // Mirror to legacy mp_* columns so frontend keeps working during transition
-      mp_payment_id: String(paymentData.id),
-      mp_qr_code: qrCode,
-      mp_qr_code_base64: qrCodeBase64,
-      mp_ticket_url: ticketUrl,
       status: "pending",
       expires_at: expiresAt.toISOString(),
       raw_response: { payment: paymentData, qr: qrData },
