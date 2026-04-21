@@ -176,10 +176,15 @@ export const InAppPaymentSubmission = ({ participantId, participantIds, poolId, 
       toast({ title: "Pagamento encerrado", description: "O prazo para pagar este bolão já encerrou.", variant: "destructive" });
       return;
     }
+    setCpfDialogOpen(true);
+  };
+
+  const generatePixWithCpf = async (cpf: string) => {
+    setCpfDialogOpen(false);
     setGenerating(true);
     try {
       const { data, error } = await supabase.functions.invoke("asaas-create-pix", {
-        body: { pool_id: poolId, participant_ids: ids, amount: entryFee },
+        body: { pool_id: poolId, participant_ids: ids, amount: entryFee, cpf },
       });
       if (error) throw error;
       setTx({
