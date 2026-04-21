@@ -7,6 +7,7 @@ import { useToast } from "@/hooks/use-toast";
 import { DollarSign, Copy, Check, Loader2, RefreshCw, CheckCircle2, AlertCircle, Save } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { PixKeyInput } from "@/components/PixKeyInput";
+import { CpfPromptDialog } from "@/components/CpfPromptDialog";
 
 interface Props {
   participantId?: string;
