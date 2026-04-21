@@ -188,7 +188,7 @@ export const InAppPaymentSubmission = ({ participantId, participantIds, poolId, 
     const interval = setInterval(async () => {
       const { data } = await supabase
         .from("pool_transactions")
-        .select("id, status, mp_qr_code, mp_qr_code_base64, mp_ticket_url, expires_at")
+        .select("id, status, asaas_qr_code, asaas_qr_code_base64, asaas_invoice_url, expires_at")
         .eq("id", tx.id)
         .maybeSingle();
       if (data) {
