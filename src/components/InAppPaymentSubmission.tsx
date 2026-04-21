@@ -236,8 +236,8 @@ export const InAppPaymentSubmission = ({ participantId, participantIds, poolId, 
   };
 
   const copyPix = async () => {
-    if (!tx?.mp_qr_code) return;
-    await navigator.clipboard.writeText(tx.mp_qr_code);
+    if (!tx?.asaas_qr_code) return;
+    await navigator.clipboard.writeText(tx.asaas_qr_code);
     setCopied(true);
     toast({ title: "Código copiado" });
     setTimeout(() => setCopied(false), 2000);
