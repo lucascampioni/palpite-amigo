@@ -409,6 +409,7 @@ export const InAppPaymentSubmission = ({ participantId, participantIds, poolId, 
           </>
         )}
       </CardContent>
+      <CpfPromptDialog open={cpfDialogOpen} onOpenChange={setCpfDialogOpen} onConfirm={generatePixWithCpf} />
     </Card>
   );
 };
