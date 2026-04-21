@@ -7,6 +7,7 @@ import { useToast } from "@/hooks/use-toast";
 import { DollarSign, Copy, Check, Loader2, RefreshCw, CheckCircle2, AlertCircle, Save } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { PixKeyInput } from "@/components/PixKeyInput";
+import { CpfPromptDialog } from "@/components/CpfPromptDialog";
 
 interface Props {
   participantId?: string;
@@ -45,6 +46,7 @@ export const InAppPaymentSubmission = ({ participantId, participantIds, poolId, 
   const [firstMatchDate, setFirstMatchDate] = useState<Date | null>(null);
   const [now, setNow] = useState<Date>(new Date());
   const [cancelling, setCancelling] = useState(false);
+  const [cpfDialogOpen, setCpfDialogOpen] = useState(false);
 
   const cancelPix = async () => {
     if (!tx) return;
@@ -174,10 +176,15 @@ export const InAppPaymentSubmission = ({ participantId, participantIds, poolId, 
       toast({ title: "Pagamento encerrado", description: "O prazo para pagar este bolão já encerrou.", variant: "destructive" });
       return;
     }
+    setCpfDialogOpen(true);
+  };
+
+  const generatePixWithCpf = async (cpf: string) => {
+    setCpfDialogOpen(false);
     setGenerating(true);
     try {
       const { data, error } = await supabase.functions.invoke("asaas-create-pix", {
-        body: { pool_id: poolId, participant_ids: ids, amount: entryFee },
+        body: { pool_id: poolId, participant_ids: ids, amount: entryFee, cpf },
       });
       if (error) throw error;
       setTx({
@@ -402,6 +409,7 @@ export const InAppPaymentSubmission = ({ participantId, participantIds, poolId, 
           </>
         )}
       </CardContent>
+      <CpfPromptDialog open={cpfDialogOpen} onOpenChange={setCpfDialogOpen} onConfirm={generatePixWithCpf} />
     </Card>
   );
 };
