@@ -177,17 +177,20 @@ serve(async (req) => {
       console.warn("Erro buscando cliente Asaas:", e);
     }
 
+    const customerPayload = {
+      name: profile?.full_name || primaryParticipant.participant_name || "Participante",
+      email: payerEmail,
+      cpfCnpj: cpfRaw,
+      mobilePhone: (profile?.phone || payerPhone || "").replace(/\D/g, "").slice(-11) || undefined,
+      externalReference: user.id,
+      notificationDisabled: true,
+    };
+
     if (!asaasCustomerId) {
       const createCust = await fetch(`${ASAAS_BASE}/customers`, {
         method: "POST",
         headers: { "access_token": ASAAS_API_KEY, "Content-Type": "application/json" },
-        body: JSON.stringify({
-          name: profile?.full_name || primaryParticipant.participant_name || "Participante",
-          email: payerEmail,
-          mobilePhone: (profile?.phone || payerPhone || "").replace(/\D/g, "").slice(-11) || undefined,
-          externalReference: user.id,
-          notificationDisabled: true,
-        }),
+        body: JSON.stringify(customerPayload),
       });
       const createData = await createCust.json();
       if (!createCust.ok) {
@@ -195,6 +198,21 @@ serve(async (req) => {
         throw new Error(createData?.errors?.[0]?.description || "Erro ao criar cliente no Asaas");
       }
       asaasCustomerId = createData.id;
+    } else {
+      // Ensure CPF is set on existing customer (idempotent update)
+      try {
+        const updRes = await fetch(`${ASAAS_BASE}/customers/${asaasCustomerId}`, {
+          method: "POST",
+          headers: { "access_token": ASAAS_API_KEY, "Content-Type": "application/json" },
+          body: JSON.stringify(customerPayload),
+        });
+        if (!updRes.ok) {
+          const updErr = await updRes.json().catch(() => ({}));
+          console.warn("Falha ao atualizar cliente Asaas com CPF:", updErr);
+        }
+      } catch (e) {
+        console.warn("Erro atualizando cliente Asaas:", e);
+      }
     }
 
     // Create PIX charge
