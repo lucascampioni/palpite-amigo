@@ -134,20 +134,52 @@ export const InAppPaymentSubmission = ({ participantId, participantIds, poolId, 
     })();
   }, []);
 
-  // Load existing pending transaction (any of the participant ids)
+  // Load existing transaction. Approved → mostra confirmação.
+  // Pending → só reaproveita se cobrir EXATAMENTE os mesmos participantes solicitados
+  // (evita mostrar QR antigo de 1 palpite quando o usuário agora quer pagar 2).
   useEffect(() => {
     if (ids.length === 0) return;
     (async () => {
-      const { data } = await supabase
+      // 1) Approved: qualquer transação aprovada de algum desses participantes já confirma
+      const { data: approved } = await supabase
         .from("pool_transactions")
         .select("id, status, mp_qr_code, mp_qr_code_base64, mp_ticket_url, expires_at")
         .in("participant_id", ids)
-        .in("status", ["pending", "approved"])
+        .eq("status", "approved")
         .order("created_at", { ascending: false })
         .limit(1);
-      if (data && data.length > 0) setTx(data[0] as Tx);
+      if (approved && approved.length > 0) {
+        setTx(approved[0] as Tx);
+        return;
+      }
+
+      // 2) Pending: agrupa por mp_payment_id e só reaproveita se o grupo cobrir exatamente os mesmos ids
+      const { data: pending } = await supabase
+        .from("pool_transactions")
+        .select("id, status, mp_qr_code, mp_qr_code_base64, mp_ticket_url, expires_at, mp_payment_id, participant_id, pool_id")
+        .eq("pool_id", poolId)
+        .eq("status", "pending")
+        .order("created_at", { ascending: false });
+
+      const groups = new Map<string, any[]>();
+      for (const row of pending || []) {
+        const key = row.mp_payment_id || row.id;
+        const arr = groups.get(key) || [];
+        arr.push(row);
+        groups.set(key, arr);
+      }
+      const requestedSet = [...ids].sort().join(",");
+      for (const [, rows] of groups) {
+        const groupIds = rows.map((r) => r.participant_id).filter(Boolean).sort().join(",");
+        if (groupIds === requestedSet) {
+          setTx(rows[0] as Tx);
+          return;
+        }
+      }
+      // nenhum match exato → não exibe QR antigo; usuário deve gerar um novo
+      setTx(null);
     })();
-  }, [idsKey]);
+  }, [idsKey, poolId]);
 
   // Poll for approved status
   useEffect(() => {
