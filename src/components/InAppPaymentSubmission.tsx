@@ -46,6 +46,7 @@ export const InAppPaymentSubmission = ({ participantId, participantIds, poolId, 
   const [firstMatchDate, setFirstMatchDate] = useState<Date | null>(null);
   const [now, setNow] = useState<Date>(new Date());
   const [cancelling, setCancelling] = useState(false);
+  const [cpfDialogOpen, setCpfDialogOpen] = useState(false);
 
   const cancelPix = async () => {
     if (!tx) return;
