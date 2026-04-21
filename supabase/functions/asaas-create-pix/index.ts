@@ -146,13 +146,11 @@ serve(async (req) => {
 
     const oldTxIds = (existingPending || []).map((r) => r.id);
     if (oldTxIds.length > 0) {
-      // Limpa mp_payment_id/asaas_payment_id para liberar a unique constraint
-      // caso o Asaas retorne o mesmo id em uma nova cobrança.
+      // Limpa asaas_payment_id para liberar a unique constraint caso o Asaas reuse o id.
       await adminClient
         .from("pool_transactions")
         .update({
           status: "cancelled",
-          mp_payment_id: null,
           asaas_payment_id: null,
         })
         .in("id", oldTxIds);
