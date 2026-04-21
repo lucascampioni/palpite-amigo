@@ -395,20 +395,20 @@ export const InAppPaymentSubmission = ({ participantId, participantIds, poolId, 
           </>
         ) : (
           <>
-            {tx.mp_qr_code_base64 && (
+            {tx.asaas_qr_code_base64 && (
               <div className="flex justify-center bg-white p-4 rounded-lg">
                 <img
-                  src={`data:image/png;base64,${tx.mp_qr_code_base64}`}
+                  src={`data:image/png;base64,${tx.asaas_qr_code_base64}`}
                   alt="QR Code PIX"
                   className="w-56 h-56"
                 />
               </div>
             )}
-            {tx.mp_qr_code && (
+            {tx.asaas_qr_code && (
               <div className="space-y-2">
                 <p className="text-xs text-muted-foreground text-center">Ou copie o código PIX:</p>
                 <div className="bg-background border rounded-lg p-3">
-                  <p className="font-mono text-xs break-all select-all">{tx.mp_qr_code}</p>
+                  <p className="font-mono text-xs break-all select-all">{tx.asaas_qr_code}</p>
                 </div>
                 <Button onClick={copyPix} variant="outline" size="sm" className="w-full">
                   {copied ? <Check className="w-3.5 h-3.5 mr-1.5" /> : <Copy className="w-3.5 h-3.5 mr-1.5" />}
