@@ -838,7 +838,7 @@ const FootballPredictionForm = ({ poolId, userId, onSuccess, entryFee, pool, pix
               Cancelar
             </Button>
             <Button onClick={handleConfirmSubmit} disabled={!disclaimerAccepted || submitting}>
-              {submitting ? "Enviando..." : "Confirmar e Enviar"}
+              {submitting ? "Carregando..." : "Ir para o pagamento"}
             </Button>
           </DialogFooter>
         </DialogContent>
