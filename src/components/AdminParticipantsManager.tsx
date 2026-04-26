@@ -48,6 +48,7 @@ interface AdminParticipantsManagerProps {
   onSuccess?: () => void;
   entryFee?: number | null;
   firstMatchDate?: Date | null;
+  paymentMethod?: string | null;
 }
 
 const REJECTION_REASONS = [
