@@ -514,6 +514,19 @@ const CreateFootballPool = () => {
                         <li>Prêmio definido pelo estabelecimento (produto, serviço, etc.)</li>
                         <li>Apenas <strong>1 vencedor</strong> por bolão</li>
                       </>
+                    ) : paymentMethod === 'in_app' ? (
+                      <>
+                        <li>Prazo para palpites e pagamento: até <strong>10 minutos</strong> antes do primeiro jogo</li>
+                        <li>Pagamento <strong>100% automático via PIX</strong> dentro do app — sem comprovante e sem aprovação manual</li>
+                        <li>Participação confirmada <strong>automaticamente</strong> assim que o PIX for pago</li>
+                        <li>Quem não pagar até o início do primeiro jogo fica <strong>fora do bolão automaticamente</strong></li>
+                        <li>Prêmio enviado <strong>automaticamente via PIX</strong> para a chave cadastrada do(s) vencedor(es)</li>
+                        <li>Jogos são atualizados em tempo real</li>
+                        <li>Resultados sincronizados direto da fonte oficial</li>
+                        <li>Pontuação calculada conforme os resultados dos jogos</li>
+                        <li>Vencedor definido ao final de todos os jogos</li>
+                        <li>Em caso de <strong>0 pontos para todos</strong>, o desempate será pela <strong>ordem de envio dos palpites</strong> (quem enviou primeiro)</li>
+                      </>
                     ) : (
                       <>
                         <li>Prazo para palpites: <strong>3 horas</strong> antes do primeiro jogo</li>
