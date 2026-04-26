@@ -71,6 +71,7 @@ const CommunityDetail = () => {
       .select("*, participants(count)")
       .eq("owner_id", comm.responsible_user_id)
       .in("status", ["active", "finished"])
+      .eq("is_private", false)
       .order("created_at", { ascending: false });
 
     setPools(poolsData || []);
