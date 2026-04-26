@@ -1667,57 +1667,7 @@ const PoolDetail = () => {
               </>
             )}
 
-            {/* Notify Community Followers Button - owner only, one-time */}
-            {isOwner && pool.status === 'active' && ownerCommunityName && (
-              <>
-                <Separator />
-                <div className={`p-3 sm:p-4 rounded-xl border-2 space-y-2.5 ${pool.community_notified ? 'border-border bg-card' : 'border-orange-400/60 bg-orange-50/50 dark:bg-orange-950/20'}`}>
-                  <div className="flex items-start gap-2.5">
-                    <Send className={`w-4 h-4 sm:w-5 sm:h-5 mt-0.5 shrink-0 ${pool.community_notified ? 'text-muted-foreground' : 'text-orange-500'}`} />
-                    <div className="space-y-1 min-w-0">
-                      <h4 className="font-semibold text-xs sm:text-sm leading-tight">
-                        Divulgar para seguidores da {ownerCommunityName}
-                      </h4>
-                      <p className="text-[11px] sm:text-xs text-muted-foreground leading-relaxed">
-                        Envia uma mensagem via WhatsApp para <strong>todos</strong> os seguidores que ativaram notificações de novos bolões.
-                      </p>
-                      {!pool.community_notified && (
-                        <p className="text-[11px] sm:text-xs text-orange-600 dark:text-orange-400 font-medium mt-1 leading-relaxed">
-                          ⚠️ Envio em massa — só pode ser feito <strong>1 vez</strong> por bolão.
-                        </p>
-                      )}
-                      {pool.community_notified && (
-                        <p className="text-[11px] sm:text-xs font-medium flex items-center gap-1 text-green-600">
-                          <CheckCircle className="w-3 h-3 sm:w-3.5 sm:h-3.5 shrink-0" />
-                          Notificação já enviada
-                        </p>
-                      )}
-                    </div>
-                  </div>
-                  <Button
-                    size="sm"
-                    variant={pool.community_notified ? "outline" : "default"}
-                    className={`w-full text-xs sm:text-sm h-8 sm:h-9 ${!pool.community_notified ? 'bg-orange-500 hover:bg-orange-600 text-white' : ''}`}
-                    disabled={pool.community_notified || sendingCommunityNotification}
-                    onClick={handleNotifyCommunityFollowers}
-                  >
-                    {sendingCommunityNotification ? (
-                      "Enviando..."
-                    ) : pool.community_notified ? (
-                      <>
-                        <CheckCircle className="w-3.5 h-3.5 mr-1" />
-                        Já enviado
-                      </>
-                    ) : (
-                      <>
-                        <Send className="w-3.5 h-3.5 mr-1" />
-                        Notificar seguidores (apenas 1x)
-                      </>
-                    )}
-                  </Button>
-                </div>
-              </>
-            )}
+            {/* Notify Community Followers — removido (envio em massa desativado) */}
 
             {/* Informações importantes for joined users */}
             {((pool.status === "active" || pool.status === "finished") && (pool.pool_type === "football" || hasFootballMatches) && (currentUserParticipant?.status === 'approved' || isOwner || isFinishedCommunityPool)) && (
