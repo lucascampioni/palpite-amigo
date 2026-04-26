@@ -67,7 +67,9 @@ export const AdminParticipantsManager = ({
   onSuccess,
   entryFee,
   firstMatchDate,
+  paymentMethod,
 }: AdminParticipantsManagerProps) => {
+  const isAutoPayment = paymentMethod === "in_app";
   const { toast } = useToast();
   const [processing, setProcessing] = useState<string | null>(null);
   const hasPending = participants.some(p => p.status === "pending");
