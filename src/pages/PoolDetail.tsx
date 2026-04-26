@@ -1357,6 +1357,7 @@ const PoolDetail = () => {
                 participants={participants}
                 entryFee={pool.entry_fee}
                 firstMatchDate={firstMatchDate}
+                paymentMethod={pool.payment_method}
                 onParticipantUpdate={(id, changes) => {
                   setParticipants(prev => prev.map(p => p.id === id ? { ...p, ...changes } : p));
                   setCurrentUserParticipant((prev: any) => prev?.id === id ? { ...prev, ...changes } : prev);

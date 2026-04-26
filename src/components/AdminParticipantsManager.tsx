@@ -48,6 +48,7 @@ interface AdminParticipantsManagerProps {
   onSuccess?: () => void;
   entryFee?: number | null;
   firstMatchDate?: Date | null;
+  paymentMethod?: string | null;
 }
 
 const REJECTION_REASONS = [
@@ -66,7 +67,9 @@ export const AdminParticipantsManager = ({
   onSuccess,
   entryFee,
   firstMatchDate,
+  paymentMethod,
 }: AdminParticipantsManagerProps) => {
+  const isAutoPayment = paymentMethod === "in_app";
   const { toast } = useToast();
   const [processing, setProcessing] = useState<string | null>(null);
   const hasPending = participants.some(p => p.status === "pending");
@@ -379,17 +382,19 @@ export const AdminParticipantsManager = ({
                               <Eye className="w-4 h-4 text-blue-500" />
                             </Button>
                           )}
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => handleApproveClick(p)}
-                            disabled={processing === p.id}
-                            className="h-7 w-7 text-green-600 hover:text-green-700 hover:bg-green-50"
-                            title="Aprovar"
-                          >
-                            <Check className="w-4 h-4" />
-                          </Button>
-                          {p.payment_proof && (
+                          {!isAutoPayment && (
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => handleApproveClick(p)}
+                              disabled={processing === p.id}
+                              className="h-7 w-7 text-green-600 hover:text-green-700 hover:bg-green-50"
+                              title="Aprovar"
+                            >
+                              <Check className="w-4 h-4" />
+                            </Button>
+                          )}
+                          {!isAutoPayment && p.payment_proof && (
                             <Button
                               variant="ghost"
                               size="icon"
