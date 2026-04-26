@@ -382,17 +382,19 @@ export const AdminParticipantsManager = ({
                               <Eye className="w-4 h-4 text-blue-500" />
                             </Button>
                           )}
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => handleApproveClick(p)}
-                            disabled={processing === p.id}
-                            className="h-7 w-7 text-green-600 hover:text-green-700 hover:bg-green-50"
-                            title="Aprovar"
-                          >
-                            <Check className="w-4 h-4" />
-                          </Button>
-                          {p.payment_proof && (
+                          {!isAutoPayment && (
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => handleApproveClick(p)}
+                              disabled={processing === p.id}
+                              className="h-7 w-7 text-green-600 hover:text-green-700 hover:bg-green-50"
+                              title="Aprovar"
+                            >
+                              <Check className="w-4 h-4" />
+                            </Button>
+                          )}
+                          {!isAutoPayment && p.payment_proof && (
                             <Button
                               variant="ghost"
                               size="icon"
