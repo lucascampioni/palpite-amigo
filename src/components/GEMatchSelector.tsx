@@ -4,11 +4,12 @@ import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Calendar, Trophy, ChevronDown } from "lucide-react";
+import { Loader2, Calendar, Trophy, ChevronDown, Globe2 } from "lucide-react";
 import { format } from "date-fns";
 import { abbreviateTeamName } from "@/lib/team-utils";
 import { ptBR } from "date-fns/locale";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { WORLD_CUP_2026_MATCHES, WORLD_CUP_2026_CHAMPIONSHIP_PREFIX } from "@/lib/world-cup-2026";
 
 interface GEMatch {
   homeTeam: string;
@@ -48,6 +49,18 @@ const CHAMP_LABELS: Record<string, { label: string; emoji: string }> = {
   'cdb': { label: 'Copa do Brasil', emoji: '🏆' },
   'lib': { label: 'Libertadores', emoji: '🏆' },
   'sul': { label: 'Sul-Americana', emoji: '🏆' },
+  'wc26_a': { label: 'Copa 2026 — Grupo A', emoji: '🏆' },
+  'wc26_b': { label: 'Copa 2026 — Grupo B', emoji: '🏆' },
+  'wc26_c': { label: 'Copa 2026 — Grupo C 🇧🇷', emoji: '🏆' },
+  'wc26_d': { label: 'Copa 2026 — Grupo D', emoji: '🏆' },
+  'wc26_e': { label: 'Copa 2026 — Grupo E', emoji: '🏆' },
+  'wc26_f': { label: 'Copa 2026 — Grupo F', emoji: '🏆' },
+  'wc26_g': { label: 'Copa 2026 — Grupo G', emoji: '🏆' },
+  'wc26_h': { label: 'Copa 2026 — Grupo H', emoji: '🏆' },
+  'wc26_i': { label: 'Copa 2026 — Grupo I', emoji: '🏆' },
+  'wc26_j': { label: 'Copa 2026 — Grupo J', emoji: '🏆' },
+  'wc26_k': { label: 'Copa 2026 — Grupo K', emoji: '🏆' },
+  'wc26_l': { label: 'Copa 2026 — Grupo L', emoji: '🏆' },
 };
 
 export const GEMatchSelector = ({ open, onOpenChange, onMatchesSelected }: GEMatchSelectorProps) => {
@@ -214,6 +227,42 @@ export const GEMatchSelector = ({ open, onOpenChange, onMatchesSelected }: GEMat
     onMatchesSelected([]);
   };
 
+  const handleLoadWorldCup = () => {
+    const wcAsGEMatches: GEMatch[] = WORLD_CUP_2026_MATCHES.map((wc) => ({
+      homeTeam: `${wc.homeFlag} ${wc.homeTeam}`,
+      awayTeam: `${wc.awayTeam} ${wc.awayFlag}`,
+      matchDate: wc.matchDate,
+      championship: `${WORLD_CUP_2026_CHAMPIONSHIP_PREFIX} - Grupo ${wc.group}`,
+      externalId: wc.externalId,
+      round: `Grupo ${wc.group}`,
+      champCode: `wc26_${wc.group.toLowerCase()}`,
+    }));
+
+    setAllMatches((prev) => {
+      const existing = new Set(prev.map((p) => p.externalId));
+      const merged = [...prev];
+      wcAsGEMatches.forEach((mm) => {
+        if (!existing.has(mm.externalId)) merged.push(mm);
+      });
+      merged.sort((a, b) => new Date(a.matchDate).getTime() - new Date(b.matchDate).getTime());
+      return merged;
+    });
+
+    const newSelected = new Set(selectedMatches);
+    wcAsGEMatches.forEach((mm) => newSelected.add(mm.externalId));
+    setSelectedMatches(newSelected);
+
+    setFilterMode('championship');
+    setExpandedSections(new Set(wcAsGEMatches.map((mm) => mm.champCode!)));
+
+    onMatchesSelected(wcAsGEMatches);
+
+    toast({
+      title: "🏆 Copa do Mundo 2026 carregada!",
+      description: `${wcAsGEMatches.length} jogos da fase de grupos pré-selecionados.`,
+    });
+  };
+
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent className="w-[95vw] max-w-4xl h-[90vh] sm:h-auto sm:max-h-[85vh] flex flex-col p-3 sm:p-6 overflow-hidden">
@@ -223,6 +272,20 @@ export const GEMatchSelector = ({ open, onOpenChange, onMatchesSelected }: GEMat
             Filtre por dia ou campeonato e selecione os jogos do bolão.
           </DialogDescription>
         </DialogHeader>
+
+        {/* Macro: Copa do Mundo 2026 */}
+        <div className="rounded-lg border-2 border-primary/30 bg-gradient-to-r from-primary/10 to-secondary/10 p-3 flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2 min-w-0">
+            <Globe2 className="w-5 h-5 text-primary flex-shrink-0" />
+            <div className="min-w-0">
+              <p className="text-sm font-semibold truncate">🏆 Copa do Mundo 2026</p>
+              <p className="text-[11px] text-muted-foreground">Carregar todos os 48 jogos da fase de grupos</p>
+            </div>
+          </div>
+          <Button size="sm" onClick={handleLoadWorldCup} className="flex-shrink-0">
+            Carregar Copa
+          </Button>
+        </div>
 
         {loading ? (
           <div className="flex items-center justify-center py-12">
