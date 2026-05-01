@@ -358,9 +358,9 @@ export const InAppPaymentSubmission = ({ participantId, participantIds, poolId, 
         </CardDescription>
         <div className="rounded-md border bg-background/60 p-2.5 text-sm space-y-1 mt-2">
           <div className="flex justify-between"><span className="text-muted-foreground">Entrada do bolão</span><span className="font-medium">{fmtBRL(entryFee)}</span></div>
-          {platformFeePercent > 0 && (
+          {showFee && (
             <div className="flex justify-between text-muted-foreground">
-              <span>Taxa do app ({platformFeePercent}%)</span>
+              <span>{feeLabel}</span>
               <span>{fmtBRL(platformFee)}</span>
             </div>
           )}
