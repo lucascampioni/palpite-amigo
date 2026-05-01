@@ -47,6 +47,23 @@ export const InAppPaymentSubmission = ({ participantId, participantIds, poolId, 
   const [now, setNow] = useState<Date>(new Date());
   const [cancelling, setCancelling] = useState(false);
   const [cpfDialogOpen, setCpfDialogOpen] = useState(false);
+  const [platformFeePercent, setPlatformFeePercent] = useState<number>(0);
+
+  // Load app fee % from platform settings
+  useEffect(() => {
+    (async () => {
+      const { data } = await supabase
+        .from("platform_settings")
+        .select("value")
+        .eq("key", "delfos_fee_percent")
+        .maybeSingle();
+      if (data?.value != null) setPlatformFeePercent(Number(data.value));
+    })();
+  }, []);
+
+  const platformFee = +(entryFee * platformFeePercent / 100).toFixed(2);
+  const totalToPay = +(entryFee + platformFee).toFixed(2);
+  const fmtBRL = (n: number) => `R$ ${n.toFixed(2).replace(".", ",")}`;
 
   const cancelPix = async () => {
     if (!tx) return;
