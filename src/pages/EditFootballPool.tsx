@@ -545,9 +545,8 @@ const EditFootballPool = () => {
                     <div className="flex-1">
                       <div className="font-semibold mb-1">Sistema Completo</div>
                       <ul className="text-sm text-muted-foreground space-y-1">
-                        <li>• Placar exato: <strong>5 pontos</strong></li>
-                        <li>• Acertar o vencedor ou empate: <strong>3 pontos</strong></li>
-                        <li>• Acertar a diferença de gols (caso acerte o vencedor ou empate): <strong>+1 ponto</strong></li>
+                        <li>• Placar exato: <strong>3 pontos</strong></li>
+                        <li>• Acertar o vencedor ou empate: <strong>1 ponto</strong></li>
                       </ul>
                     </div>
                   </div>
@@ -596,9 +595,8 @@ const EditFootballPool = () => {
                       <div className="flex-1">
                         <div className="font-semibold mb-1">Sistema Completo</div>
                         <ul className="text-sm text-muted-foreground space-y-1">
-                          <li>• Placar exato: <strong>5 pontos</strong></li>
-                          <li>• Acertar o vencedor ou empate: <strong>3 pontos</strong></li>
-                          <li>• Acertar a diferença de gols (caso acerte o vencedor ou empate): <strong>+1 ponto</strong></li>
+                          <li>• Placar exato: <strong>3 pontos</strong></li>
+                          <li>• Acertar o vencedor ou empate: <strong>1 ponto</strong></li>
                         </ul>
                       </div>
                     </div>
