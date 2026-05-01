@@ -215,6 +215,42 @@ export const GEMatchSelector = ({ open, onOpenChange, onMatchesSelected }: GEMat
     onMatchesSelected([]);
   };
 
+  const handleLoadWorldCup = () => {
+    const wcAsGEMatches: GEMatch[] = WORLD_CUP_2026_MATCHES.map((wc) => ({
+      homeTeam: `${wc.homeFlag} ${wc.homeTeam}`,
+      awayTeam: `${wc.awayTeam} ${wc.awayFlag}`,
+      matchDate: wc.matchDate,
+      championship: `${WORLD_CUP_2026_CHAMPIONSHIP_PREFIX} - Grupo ${wc.group}`,
+      externalId: wc.externalId,
+      round: `Grupo ${wc.group}`,
+      champCode: `wc26_${wc.group.toLowerCase()}`,
+    }));
+
+    setAllMatches((prev) => {
+      const existing = new Set(prev.map((p) => p.externalId));
+      const merged = [...prev];
+      wcAsGEMatches.forEach((mm) => {
+        if (!existing.has(mm.externalId)) merged.push(mm);
+      });
+      merged.sort((a, b) => new Date(a.matchDate).getTime() - new Date(b.matchDate).getTime());
+      return merged;
+    });
+
+    const newSelected = new Set(selectedMatches);
+    wcAsGEMatches.forEach((mm) => newSelected.add(mm.externalId));
+    setSelectedMatches(newSelected);
+
+    setFilterMode('championship');
+    setExpandedSections(new Set(wcAsGEMatches.map((mm) => mm.champCode!)));
+
+    onMatchesSelected(wcAsGEMatches);
+
+    toast({
+      title: "🏆 Copa do Mundo 2026 carregada!",
+      description: `${wcAsGEMatches.length} jogos da fase de grupos pré-selecionados.`,
+    });
+  };
+
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent className="w-[95vw] max-w-4xl h-[90vh] sm:h-auto sm:max-h-[85vh] flex flex-col p-3 sm:p-6 overflow-hidden">
