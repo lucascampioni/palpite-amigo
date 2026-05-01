@@ -114,6 +114,21 @@ export const WorldCupPredictionGrid = ({
     }
   };
 
+  const toggleGroup = (g: string) => {
+    setCollapsed((prev) => {
+      const next = new Set(prev);
+      if (next.has(g)) next.delete(g);
+      else next.add(g);
+      return next;
+    });
+  };
+
+  const allCollapsed = grouped.length > 0 && collapsed.size === grouped.length;
+  const toggleAll = () => {
+    if (allCollapsed) setCollapsed(new Set());
+    else setCollapsed(new Set(grouped.map(([g]) => g)));
+  };
+
   return (
     <div className="space-y-3">
       {grouped.length > 1 && (
