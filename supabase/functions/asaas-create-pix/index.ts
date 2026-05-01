@@ -320,6 +320,10 @@ serve(async (req) => {
       qr_code_base64: qrCodeBase64,
       ticket_url: ticketUrl,
       expires_at: expiresAt.toISOString(),
+      base_amount: baseAmount,
+      platform_fee: platformFee,
+      platform_fee_percent: platformFeePercent,
+      gross_amount: grossAmount,
     }), { status: 200, headers: { "Content-Type": "application/json", ...corsHeaders } });
   } catch (e: any) {
     console.error("asaas-create-pix error:", e);
