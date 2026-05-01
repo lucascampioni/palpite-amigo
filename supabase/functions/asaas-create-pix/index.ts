@@ -46,6 +46,8 @@ serve(async (req) => {
     }
 
     const body = await req.json();
+    // `amount` é o valor BASE (entrada × nº palpites), sem a taxa do app.
+    // O servidor sempre recalcula a taxa para evitar fraude no cliente.
     const { pool_id, amount } = body;
     const participantIds: string[] = Array.isArray(body.participant_ids) && body.participant_ids.length > 0
       ? body.participant_ids
