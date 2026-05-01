@@ -1,4 +1,4 @@
-import { useMemo, useState, useEffect } from "react";
+import { useMemo, useState, useRef } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -67,6 +67,52 @@ export const WorldCupPredictionGrid = ({
   }, [matches]);
 
   const [collapsed, setCollapsed] = useState<Set<string>>(new Set());
+
+  // Sequência ordenada de inputs (por grupo, por jogo, home depois away) só pra jogos válidos
+  const inputSequence = useMemo(() => {
+    const seq: string[] = [];
+    grouped.forEach(([, gms]) => {
+      gms.forEach((mm) => {
+        const isPostponed =
+          mm.status === 'postponed' ||
+          mm.status === 'cancelled' ||
+          mm.status === 'abandoned';
+        if (isPostponed) return;
+        seq.push(`${mm.id}:home`);
+        seq.push(`${mm.id}:away`);
+      });
+    });
+    return seq;
+  }, [grouped]);
+
+  const inputRefs = useRef<Record<string, HTMLInputElement | null>>({});
+
+  const focusNext = (currentKey: string) => {
+    const idx = inputSequence.indexOf(currentKey);
+    if (idx < 0 || idx >= inputSequence.length - 1) return;
+    const nextKey = inputSequence[idx + 1];
+    const el = inputRefs.current[nextKey];
+    if (el) {
+      el.focus();
+      el.select?.();
+    }
+  };
+
+  const handleScoreChange = (
+    matchId: string,
+    field: 'homeScore' | 'awayScore',
+    value: string,
+  ) => {
+    // Limita a 2 dígitos
+    const clean = value.replace(/[^0-9]/g, '').slice(0, 2);
+    onChange(activeSetIndex, matchId, field, clean);
+    // Se digitou pelo menos 1 dígito, avança o foco
+    if (clean.length >= 1) {
+      const key = `${matchId}:${field === 'homeScore' ? 'home' : 'away'}`;
+      // Pequeno delay para garantir que o estado atualizou
+      requestAnimationFrame(() => focusNext(key));
+    }
+  };
 
   const toggleGroup = (g: string) => {
     setCollapsed((prev) => {
@@ -182,6 +228,9 @@ export const WorldCupPredictionGrid = ({
                     <div className="flex items-center gap-1 flex-shrink-0">
                       <span className="text-base sm:text-lg flex-shrink-0">{home.flag}</span>
                       <Input
+                        ref={(el) => {
+                          inputRefs.current[`${match.id}:home`] = el;
+                        }}
                         type="number"
                         inputMode="numeric"
                         min="0"
@@ -189,13 +238,17 @@ export const WorldCupPredictionGrid = ({
                         placeholder={isPostponed ? '—' : ''}
                         value={prediction?.homeScore || ''}
                         onChange={(e) =>
-                          onChange(activeSetIndex, match.id, 'homeScore', e.target.value)
+                          handleScoreChange(match.id, 'homeScore', e.target.value)
                         }
+                        onFocus={(e) => e.target.select()}
                         disabled={isPostponed}
                         className="w-10 sm:w-12 h-9 text-center text-base font-semibold p-0 px-1"
                       />
                       <span className="text-muted-foreground text-xs font-bold">×</span>
                       <Input
+                        ref={(el) => {
+                          inputRefs.current[`${match.id}:away`] = el;
+                        }}
                         type="number"
                         inputMode="numeric"
                         min="0"
@@ -203,8 +256,9 @@ export const WorldCupPredictionGrid = ({
                         placeholder={isPostponed ? '—' : ''}
                         value={prediction?.awayScore || ''}
                         onChange={(e) =>
-                          onChange(activeSetIndex, match.id, 'awayScore', e.target.value)
+                          handleScoreChange(match.id, 'awayScore', e.target.value)
                         }
+                        onFocus={(e) => e.target.select()}
                         disabled={isPostponed}
                         className="w-10 sm:w-12 h-9 text-center text-base font-semibold p-0 px-1"
                       />
