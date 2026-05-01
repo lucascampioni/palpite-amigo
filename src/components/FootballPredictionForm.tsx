@@ -16,6 +16,7 @@ import { InAppPaymentSubmission } from "@/components/InAppPaymentSubmission";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
+import { WorldCupPredictionGrid, isWorldCupPool } from "@/components/WorldCupPredictionGrid";
 
 interface FootballPredictionFormProps {
   poolId: string;
