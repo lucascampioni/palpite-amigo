@@ -50,11 +50,13 @@ const AdminPlatformSettings = () => {
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <Percent className="w-5 h-5" /> Taxa Delfos
+            <Percent className="w-5 h-5" /> Taxa do app
           </CardTitle>
           <CardDescription>
-            % retida pela Delfos sobre o total arrecadado em bolões com pagamento dentro do app.
-            Aplicada antes do cálculo dos prêmios.
+            % cobrada do participante <strong>por cima</strong> do valor de cada palpite no momento do PIX.
+            Esse valor não entra na premiação nem na comissão do organizador — vai direto para a manutenção do app.
+            <br />
+            Exemplo: entrada R$ 10 + taxa 15% = participante paga R$ 11,50.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-3">
