@@ -562,13 +562,13 @@ const Profile = () => {
             </CardHeader>
             <CardContent>
               <Tabs defaultValue="users" className="w-full">
-                <TabsList className="grid w-full grid-cols-6">
-                  <TabsTrigger value="users" className="text-[10px] sm:text-xs">Usuários</TabsTrigger>
-                  <TabsTrigger value="pools" className="text-[10px] sm:text-xs">Bolões</TabsTrigger>
-                  <TabsTrigger value="participants" className="text-[10px] sm:text-xs">Participantes</TabsTrigger>
-                  <TabsTrigger value="payouts" className="text-[10px] sm:text-xs">Repasses</TabsTrigger>
-                  <TabsTrigger value="settings" className="text-[10px] sm:text-xs">Config</TabsTrigger>
-                  <TabsTrigger value="other" className="text-[10px] sm:text-xs">Outros</TabsTrigger>
+                <TabsList className="grid w-full grid-cols-3 sm:grid-cols-6 h-auto gap-1 p-1">
+                  <TabsTrigger value="users" className="text-[10px] sm:text-xs px-1 py-1.5 whitespace-nowrap">Usuários</TabsTrigger>
+                  <TabsTrigger value="pools" className="text-[10px] sm:text-xs px-1 py-1.5 whitespace-nowrap">Bolões</TabsTrigger>
+                  <TabsTrigger value="participants" className="text-[10px] sm:text-xs px-1 py-1.5 whitespace-nowrap">Participantes</TabsTrigger>
+                  <TabsTrigger value="payouts" className="text-[10px] sm:text-xs px-1 py-1.5 whitespace-nowrap">Repasses</TabsTrigger>
+                  <TabsTrigger value="settings" className="text-[10px] sm:text-xs px-1 py-1.5 whitespace-nowrap">Config</TabsTrigger>
+                  <TabsTrigger value="other" className="text-[10px] sm:text-xs px-1 py-1.5 whitespace-nowrap">Outros</TabsTrigger>
                 </TabsList>
                 <TabsContent value="users" className="mt-4">
                   <AdminUserManagement />
