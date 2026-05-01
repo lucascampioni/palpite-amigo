@@ -228,6 +228,9 @@ export const WorldCupPredictionGrid = ({
                     <div className="flex items-center gap-1 flex-shrink-0">
                       <span className="text-base sm:text-lg flex-shrink-0">{home.flag}</span>
                       <Input
+                        ref={(el) => {
+                          inputRefs.current[`${match.id}:home`] = el;
+                        }}
                         type="number"
                         inputMode="numeric"
                         min="0"
@@ -235,13 +238,17 @@ export const WorldCupPredictionGrid = ({
                         placeholder={isPostponed ? '—' : ''}
                         value={prediction?.homeScore || ''}
                         onChange={(e) =>
-                          onChange(activeSetIndex, match.id, 'homeScore', e.target.value)
+                          handleScoreChange(match.id, 'homeScore', e.target.value)
                         }
+                        onFocus={(e) => e.target.select()}
                         disabled={isPostponed}
                         className="w-10 sm:w-12 h-9 text-center text-base font-semibold p-0 px-1"
                       />
                       <span className="text-muted-foreground text-xs font-bold">×</span>
                       <Input
+                        ref={(el) => {
+                          inputRefs.current[`${match.id}:away`] = el;
+                        }}
                         type="number"
                         inputMode="numeric"
                         min="0"
@@ -249,8 +256,9 @@ export const WorldCupPredictionGrid = ({
                         placeholder={isPostponed ? '—' : ''}
                         value={prediction?.awayScore || ''}
                         onChange={(e) =>
-                          onChange(activeSetIndex, match.id, 'awayScore', e.target.value)
+                          handleScoreChange(match.id, 'awayScore', e.target.value)
                         }
+                        onFocus={(e) => e.target.select()}
                         disabled={isPostponed}
                         className="w-10 sm:w-12 h-9 text-center text-base font-semibold p-0 px-1"
                       />
