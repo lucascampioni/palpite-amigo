@@ -754,20 +754,17 @@ const CreateFootballPool = () => {
                           <p>⚠️ A soma das porcentagens ({totalPercentage}%) ultrapassa 100%!</p>
                         ) : (
                           <>
-                            {paymentMethod === 'in_app' && delfosFeePercent > 0 && (
-                              <p>🏛️ {delfosFeePercent}% do valor arrecadado fica com o app (taxa Delfos, descontada automaticamente)</p>
+                            {remainingPercentage > 0 && (
+                              <p>💰 {remainingPercentage}% do valor arrecadado fica com você (organizador)</p>
                             )}
-                            {(() => {
-                              const appFee = paymentMethod === 'in_app' ? delfosFeePercent : 0;
-                              const organizerShare = +(remainingPercentage - appFee).toFixed(2);
-                              if (organizerShare > 0) {
-                                return <p>💰 {organizerShare}% do valor arrecadado fica com você (organizador)</p>;
-                              }
-                              if (organizerShare === 0) {
-                                return <p>✅ 100% do valor arrecadado distribuído (premiação + taxa do app)</p>;
-                              }
-                              return <p className="text-destructive">⚠️ A soma das premiações ({totalPercentage}%) + taxa do app ({appFee}%) ultrapassa 100%. Reduza as porcentagens.</p>;
-                            })()}
+                            {remainingPercentage === 0 && (
+                              <p>✅ 100% do valor arrecadado vai para a premiação</p>
+                            )}
+                            {paymentMethod === 'in_app' && delfosFeePercent > 0 && (
+                              <p className="text-xs mt-1 opacity-80">
+                                ℹ️ A taxa do app ({delfosFeePercent}%) é cobrada do participante por cima da entrada — não afeta a premiação nem o valor que vai para você.
+                              </p>
+                            )}
                           </>
                         )}
                       </div>
@@ -944,7 +941,7 @@ const CreateFootballPool = () => {
                     >
                       <div className="font-semibold text-sm mb-1">⚡ Receber dentro do app (PIX automático)</div>
                       <div className="text-xs text-muted-foreground">
-                        Os participantes pagam direto no app via PIX, são aprovados automaticamente e o valor é repassado a você (e ao vencedor) ao fim do bolão, descontada a taxa Delfos.
+                        Os participantes pagam direto no app via PIX (entrada + taxa do app cobrada deles por cima) e são aprovados automaticamente. Ao fim do bolão, o valor da entrada é repassado integralmente a você e ao vencedor.
                       </div>
                     </button>
                   </div>
