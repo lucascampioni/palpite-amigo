@@ -91,11 +91,30 @@ serve(async (req) => {
     const primaryParticipant = participants[0];
 
     // ===== Calcular taxa do app (server-side) =====
+    // amount recebido é a entrada total (entryFee × nº de palpites). A taxa pode ser:
+    //  - "percent": % sobre a entrada total
+    //  - "fixed":   valor fixo POR PALPITE (multiplicado pelo nº de participantes da cobrança)
     const baseAmount = +Number(amount).toFixed(2);
-    const { data: feeSetting } = await adminClient
-      .from("platform_settings").select("value").eq("key", "delfos_fee_percent").maybeSingle();
-    const platformFeePercent = Number(feeSetting?.value || 0);
-    const platformFee = +(baseAmount * platformFeePercent / 100).toFixed(2);
+    const numPalpites = participantIds.length;
+
+    const { data: feeSettings } = await adminClient
+      .from("platform_settings")
+      .select("key, value")
+      .in("key", ["delfos_fee_type", "delfos_fee_percent", "delfos_fee_fixed"]);
+    const feeMap: Record<string, any> = {};
+    for (const r of feeSettings || []) feeMap[r.key] = r.value;
+    const feeType: "percent" | "fixed" = feeMap.delfos_fee_type === "fixed" ? "fixed" : "percent";
+    const feePercentValue = Number(feeMap.delfos_fee_percent ?? 0);
+    const feeFixedValue = Number(feeMap.delfos_fee_fixed ?? 0);
+
+    let platformFee = 0;
+    if (feeType === "fixed") {
+      platformFee = +(feeFixedValue * numPalpites).toFixed(2);
+    } else {
+      platformFee = +(baseAmount * feePercentValue / 100).toFixed(2);
+    }
+    // Mantemos platformFeePercent só para compatibilidade do retorno/log
+    const platformFeePercent = feeType === "percent" ? feePercentValue : 0;
     const grossAmount = +(baseAmount + platformFee).toFixed(2);
 
     // ===== Anti-fraude: cancelar cobranças PIX pendentes anteriores =====
