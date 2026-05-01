@@ -48,22 +48,38 @@ export const InAppPaymentSubmission = ({ participantId, participantIds, poolId, 
   const [cancelling, setCancelling] = useState(false);
   const [cpfDialogOpen, setCpfDialogOpen] = useState(false);
   const [platformFeePercent, setPlatformFeePercent] = useState<number>(0);
+  const [platformFeeFixed, setPlatformFeeFixed] = useState<number>(0);
+  const [platformFeeType, setPlatformFeeType] = useState<"percent" | "fixed">("percent");
 
-  // Load app fee % from platform settings
+  // Load app fee config from platform settings
   useEffect(() => {
     (async () => {
       const { data } = await supabase
         .from("platform_settings")
-        .select("value")
-        .eq("key", "delfos_fee_percent")
-        .maybeSingle();
-      if (data?.value != null) setPlatformFeePercent(Number(data.value));
+        .select("key, value")
+        .in("key", ["delfos_fee_percent", "delfos_fee_fixed", "delfos_fee_type"]);
+      for (const row of data || []) {
+        if (row.key === "delfos_fee_percent") setPlatformFeePercent(Number(row.value ?? 0));
+        if (row.key === "delfos_fee_fixed") setPlatformFeeFixed(Number(row.value ?? 0));
+        if (row.key === "delfos_fee_type") setPlatformFeeType(row.value === "fixed" ? "fixed" : "percent");
+      }
     })();
   }, []);
 
-  const platformFee = +(entryFee * platformFeePercent / 100).toFixed(2);
+  // entryFee aqui é a entrada total (entryFee_unitário × nº palpites).
+  // Para taxa fixa precisamos saber o nº de palpites desta cobrança.
+  const numPalpites = Math.max(1, ids.length);
+  const platformFee = platformFeeType === "fixed"
+    ? +(platformFeeFixed * numPalpites).toFixed(2)
+    : +(entryFee * platformFeePercent / 100).toFixed(2);
   const totalToPay = +(entryFee + platformFee).toFixed(2);
   const fmtBRL = (n: number) => `R$ ${n.toFixed(2).replace(".", ",")}`;
+  const feeLabel = platformFeeType === "fixed"
+    ? (numPalpites > 1
+        ? `Taxa do app (${fmtBRL(platformFeeFixed)} × ${numPalpites} palpites)`
+        : `Taxa do app (${fmtBRL(platformFeeFixed)} por palpite)`)
+    : `Taxa do app (${platformFeePercent}%)`;
+  const showFee = (platformFeeType === "fixed" && platformFeeFixed > 0) || (platformFeeType === "percent" && platformFeePercent > 0);
 
   const cancelPix = async () => {
     if (!tx) return;
