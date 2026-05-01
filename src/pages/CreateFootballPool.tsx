@@ -1134,17 +1134,36 @@ const CreateFootballPool = () => {
               )}
 
               <div className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <Label className="text-lg">Jogos do Bolão</Label>
-                  <Button
-                    type="button"
-                    variant="default"
-                    size="sm"
-                    onClick={() => setShowGESelector(true)}
-                  >
-                    <Plus className="w-4 h-4 mr-2" />
-                    Adicionar Jogos
-                  </Button>
+                <div className="flex items-center justify-between gap-2 flex-wrap">
+                  <Label className="text-lg">Jogos do Bolão {matches.length > 0 && <span className="text-sm text-muted-foreground font-normal">({matches.length})</span>}</Label>
+                  <div className="flex items-center gap-2">
+                    {matches.length > 0 && (
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          if (window.confirm(`Excluir todos os ${matches.length} jogos selecionados?`)) {
+                            setMatches([]);
+                            setDeadline("");
+                            toast({ title: "Jogos removidos", description: "Todos os jogos foram excluídos." });
+                          }
+                        }}
+                      >
+                        <Trash2 className="w-4 h-4 mr-1" />
+                        Limpar todos
+                      </Button>
+                    )}
+                    <Button
+                      type="button"
+                      variant="default"
+                      size="sm"
+                      onClick={() => setShowGESelector(true)}
+                    >
+                      <Plus className="w-4 h-4 mr-2" />
+                      Adicionar Jogos
+                    </Button>
+                  </div>
                 </div>
 
                 {matches.length === 0 ? (
