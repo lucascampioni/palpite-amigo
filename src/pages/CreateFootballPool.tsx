@@ -62,6 +62,8 @@ const CreateFootballPool = () => {
   const [profilePixKeyType, setProfilePixKeyType] = useState<string | null>(null);
   const [pixSource, setPixSource] = useState<'profile' | 'custom' | null>(null);
   const [delfosFeePercent, setDelfosFeePercent] = useState<number>(0);
+  const [delfosFeeFixed, setDelfosFeeFixed] = useState<number>(0);
+  const [delfosFeeType, setDelfosFeeType] = useState<'percent' | 'fixed'>('percent');
   const [replaceProfilePix, setReplaceProfilePix] = useState(false);
   const [savePixToProfile, setSavePixToProfile] = useState(false);
   const [isOfficial, setIsOfficial] = useState(false);
@@ -184,15 +186,18 @@ const CreateFootballPool = () => {
     }
   };
 
-  // Load Delfos fee % from platform settings
+  // Load Delfos fee config from platform settings
   useEffect(() => {
     (async () => {
       const { data } = await supabase
         .from("platform_settings")
-        .select("value")
-        .eq("key", "delfos_fee_percent")
-        .maybeSingle();
-      if (data?.value != null) setDelfosFeePercent(Number(data.value));
+        .select("key, value")
+        .in("key", ["delfos_fee_percent", "delfos_fee_fixed", "delfos_fee_type"]);
+      for (const row of data || []) {
+        if (row.key === "delfos_fee_percent" && row.value != null) setDelfosFeePercent(Number(row.value));
+        if (row.key === "delfos_fee_fixed" && row.value != null) setDelfosFeeFixed(Number(row.value));
+        if (row.key === "delfos_fee_type" && row.value != null) setDelfosFeeType(row.value === "fixed" ? "fixed" : "percent");
+      }
     })();
   }, []);
 
@@ -760,9 +765,11 @@ const CreateFootballPool = () => {
                             {remainingPercentage === 0 && (
                               <p>✅ 100% do valor arrecadado vai para a premiação</p>
                             )}
-                            {paymentMethod === 'in_app' && delfosFeePercent > 0 && (
+                            {paymentMethod === 'in_app' && ((delfosFeeType === 'percent' && delfosFeePercent > 0) || (delfosFeeType === 'fixed' && delfosFeeFixed > 0)) && (
                               <p className="text-xs mt-1 opacity-80">
-                                ℹ️ A taxa do app ({delfosFeePercent}%) é cobrada do participante por cima da entrada — não afeta a premiação nem o valor que vai para você.
+                                ℹ️ A taxa do app ({delfosFeeType === 'fixed'
+                                  ? `R$ ${delfosFeeFixed.toFixed(2).replace('.', ',')} por palpite`
+                                  : `${delfosFeePercent}%`}) é cobrada do participante por cima da entrada — não afeta a premiação nem o valor que vai para você.
                               </p>
                             )}
                           </>
