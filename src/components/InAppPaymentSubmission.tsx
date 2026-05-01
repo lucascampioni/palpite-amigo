@@ -332,31 +332,27 @@ export const InAppPaymentSubmission = ({ participantId, participantIds, poolId, 
           <DollarSign className="w-5 h-5 text-primary" />
           Pagamento via PIX (instantâneo)
         </CardTitle>
-        <CardDescription asChild>
-          <div className="space-y-2">
-            <div className="rounded-md border bg-background/60 p-2.5 text-sm space-y-1">
-              <div className="flex justify-between"><span className="text-muted-foreground">Entrada do bolão</span><span className="font-medium">{fmtBRL(entryFee)}</span></div>
-              {platformFeePercent > 0 && (
-                <div className="flex justify-between text-muted-foreground">
-                  <span>Taxa do app ({platformFeePercent}%)</span>
-                  <span>{fmtBRL(platformFee)}</span>
-                </div>
-              )}
-              <div className="flex justify-between border-t pt-1 mt-1">
-                <span className="font-semibold">Total a pagar</span>
-                <span className="font-bold text-primary">{fmtBRL(totalToPay)}</span>
-              </div>
-            </div>
-            <p className="text-xs">
-              Confirme sua participação em <strong>{poolTitle}</strong>.
-              {firstMatchDate && (
-                <span className="block mt-1 text-primary font-medium">
-                  ⏰ Pague até {formatCutoff(firstMatchDate)} (início do 1º jogo).
-                </span>
-              )}
-            </p>
-          </div>
+        <CardDescription>
+          Confirme sua participação em <strong>{poolTitle}</strong>.
+          {firstMatchDate && (
+            <span className="block mt-1 text-primary font-medium">
+              ⏰ Pague até {formatCutoff(firstMatchDate)} (início do 1º jogo).
+            </span>
+          )}
         </CardDescription>
+        <div className="rounded-md border bg-background/60 p-2.5 text-sm space-y-1 mt-2">
+          <div className="flex justify-between"><span className="text-muted-foreground">Entrada do bolão</span><span className="font-medium">{fmtBRL(entryFee)}</span></div>
+          {platformFeePercent > 0 && (
+            <div className="flex justify-between text-muted-foreground">
+              <span>Taxa do app ({platformFeePercent}%)</span>
+              <span>{fmtBRL(platformFee)}</span>
+            </div>
+          )}
+          <div className="flex justify-between border-t pt-1 mt-1">
+            <span className="font-semibold">Total a pagar</span>
+            <span className="font-bold text-primary">{fmtBRL(totalToPay)}</span>
+          </div>
+        </div>
       </CardHeader>
       <CardContent className="space-y-4">
         {!tx ? (
