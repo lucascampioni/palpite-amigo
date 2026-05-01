@@ -106,18 +106,18 @@ export const WorldCupPredictionGrid = ({
                     )}
                   </div>
 
-                  {/* Match row: bandeira + time + input + x + input + time + bandeira */}
+                  {/* Match row: nome | bandeira + input + x + input + bandeira | nome */}
                   <div className="flex items-center gap-1 sm:gap-2">
-                    {/* Home: bandeira + nome (truncado em mobile) */}
-                    <div className="flex items-center gap-1 flex-1 min-w-0 justify-end">
-                      <span className="text-xs sm:text-sm font-medium truncate text-right">
+                    {/* Home name */}
+                    <div className="flex-1 min-w-0 text-right">
+                      <span className="text-xs sm:text-sm font-medium break-words leading-tight block">
                         {home.name}
                       </span>
-                      <span className="text-base sm:text-lg flex-shrink-0">{home.flag}</span>
                     </div>
 
-                    {/* Inputs */}
+                    {/* Center: flag + input + x + input + flag */}
                     <div className="flex items-center gap-1 flex-shrink-0">
+                      <span className="text-base sm:text-lg flex-shrink-0">{home.flag}</span>
                       <Input
                         type="number"
                         inputMode="numeric"
@@ -145,12 +145,14 @@ export const WorldCupPredictionGrid = ({
                         disabled={isPostponed}
                         className="w-10 sm:w-12 h-9 text-center text-base font-semibold p-0 px-1"
                       />
+                      <span className="text-base sm:text-lg flex-shrink-0">{away.flag}</span>
                     </div>
 
-                    {/* Away: bandeira + nome */}
-                    <div className="flex items-center gap-1 flex-1 min-w-0">
-                      <span className="text-base sm:text-lg flex-shrink-0">{away.flag}</span>
-                      <span className="text-xs sm:text-sm font-medium truncate">{away.name}</span>
+                    {/* Away name */}
+                    <div className="flex-1 min-w-0 text-left">
+                      <span className="text-xs sm:text-sm font-medium break-words leading-tight block">
+                        {away.name}
+                      </span>
                     </div>
                   </div>
                 </div>
