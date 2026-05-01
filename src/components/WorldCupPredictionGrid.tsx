@@ -66,18 +66,79 @@ export const WorldCupPredictionGrid = ({
     return Array.from(map.entries()).sort(([a], [b]) => a.localeCompare(b));
   }, [matches]);
 
+  const [collapsed, setCollapsed] = useState<Set<string>>(new Set());
+
+  const toggleGroup = (g: string) => {
+    setCollapsed((prev) => {
+      const next = new Set(prev);
+      if (next.has(g)) next.delete(g);
+      else next.add(g);
+      return next;
+    });
+  };
+
+  const allCollapsed = grouped.length > 0 && collapsed.size === grouped.length;
+  const toggleAll = () => {
+    if (allCollapsed) setCollapsed(new Set());
+    else setCollapsed(new Set(grouped.map(([g]) => g)));
+  };
+
   return (
     <div className="space-y-3">
-      {grouped.map(([group, groupMatches]) => (
+      {grouped.length > 1 && (
+        <div className="flex justify-end">
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={toggleAll}
+            className="h-7 text-xs"
+          >
+            {allCollapsed ? (
+              <>
+                <ChevronDown className="h-3.5 w-3.5 mr-1" /> Expandir todos
+              </>
+            ) : (
+              <>
+                <ChevronUp className="h-3.5 w-3.5 mr-1" /> Minimizar todos
+              </>
+            )}
+          </Button>
+        </div>
+      )}
+      {grouped.map(([group, groupMatches]) => {
+        const isCollapsed = collapsed.has(group);
+        const filledCount = groupMatches.filter((mm) => {
+          const p = currentPredictions.find((pp) => pp.matchId === mm.id);
+          return p && p.homeScore !== '' && p.awayScore !== '';
+        }).length;
+        const totalCount = groupMatches.length;
+        const allFilled = filledCount === totalCount;
+
+        return (
         <Card key={group} className="overflow-hidden">
-          <CardHeader className="pb-2 pt-3 px-3 sm:px-4 bg-primary/10 border-b border-primary/20">
-            <CardTitle className="text-sm sm:text-base flex items-center justify-between">
-              <span>🏆 Grupo {group}</span>
-              <Badge variant="outline" className="text-[10px]">
-                {groupMatches.length} jogos
+          <CardHeader
+            className="pb-2 pt-3 px-3 sm:px-4 bg-primary/10 border-b border-primary/20 cursor-pointer hover:bg-primary/15 transition-colors"
+            onClick={() => toggleGroup(group)}
+          >
+            <CardTitle className="text-sm sm:text-base flex items-center justify-between gap-2">
+              <span className="flex items-center gap-2">
+                {isCollapsed ? (
+                  <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                ) : (
+                  <ChevronUp className="h-4 w-4 text-muted-foreground" />
+                )}
+                <span>🏆 Grupo {group}</span>
+              </span>
+              <Badge
+                variant={allFilled ? 'default' : 'outline'}
+                className="text-[10px] whitespace-nowrap"
+              >
+                {filledCount} de {totalCount} preenchidos
               </Badge>
             </CardTitle>
           </CardHeader>
+          {!isCollapsed && (
           <CardContent className="p-2 sm:p-3 space-y-2">
             {groupMatches.map((match, idx) => {
               const prediction = currentPredictions.find((p) => p.matchId === match.id);
