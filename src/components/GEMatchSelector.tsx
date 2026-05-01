@@ -274,15 +274,15 @@ export const GEMatchSelector = ({ open, onOpenChange, onMatchesSelected }: GEMat
         </DialogHeader>
 
         {/* Macro: Copa do Mundo 2026 */}
-        <div className="rounded-lg border-2 border-primary/30 bg-gradient-to-r from-primary/10 to-secondary/10 p-3 flex items-center justify-between gap-2">
-          <div className="flex items-center gap-2 min-w-0">
-            <Globe2 className="w-5 h-5 text-primary flex-shrink-0" />
-            <div className="min-w-0">
-              <p className="text-sm font-semibold truncate">🏆 Copa do Mundo 2026</p>
-              <p className="text-[11px] text-muted-foreground">Carregar todos os 48 jogos da fase de grupos</p>
+        <div className="rounded-lg border-2 border-primary/30 bg-gradient-to-r from-primary/10 to-secondary/10 p-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+          <div className="flex items-start sm:items-center gap-2 min-w-0">
+            <Globe2 className="w-5 h-5 text-primary flex-shrink-0 mt-0.5 sm:mt-0" />
+            <div className="min-w-0 flex-1">
+              <p className="text-sm font-semibold break-words">🏆 Copa do Mundo 2026</p>
+              <p className="text-[11px] text-muted-foreground break-words">Carregar todos os 48 jogos da fase de grupos</p>
             </div>
           </div>
-          <Button size="sm" onClick={handleLoadWorldCup} className="flex-shrink-0">
+          <Button size="sm" onClick={handleLoadWorldCup} className="flex-shrink-0 w-full sm:w-auto">
             Carregar Copa
           </Button>
         </div>
