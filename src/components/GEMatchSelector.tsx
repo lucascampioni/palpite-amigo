@@ -201,12 +201,19 @@ export const GEMatchSelector = ({ open, onOpenChange, onMatchesSelected }: GEMat
     });
   };
 
-  // Auto-expand first section
+  // Auto-expand first section apenas no modo "Por Dia"
   useEffect(() => {
-    if (groupedMatches.length > 0 && expandedSections.size === 0) {
+    if (filterMode === 'day' && groupedMatches.length > 0 && expandedSections.size === 0) {
       setExpandedSections(new Set([groupedMatches[0].key]));
     }
-  }, [groupedMatches]);
+  }, [groupedMatches, filterMode]);
+
+  // Ao trocar para "Por Campeonato", recolhe todos
+  useEffect(() => {
+    if (filterMode === 'championship') {
+      setExpandedSections(new Set());
+    }
+  }, [filterMode]);
   const toggleMatch = (externalId: string, matchDate: string) => {
     const matchTime = new Date(matchDate);
     const now = new Date();
