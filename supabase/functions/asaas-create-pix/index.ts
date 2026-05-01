@@ -90,6 +90,14 @@ serve(async (req) => {
 
     const primaryParticipant = participants[0];
 
+    // ===== Calcular taxa do app (server-side) =====
+    const baseAmount = +Number(amount).toFixed(2);
+    const { data: feeSetting } = await adminClient
+      .from("platform_settings").select("value").eq("key", "delfos_fee_percent").maybeSingle();
+    const platformFeePercent = Number(feeSetting?.value || 0);
+    const platformFee = +(baseAmount * platformFeePercent / 100).toFixed(2);
+    const grossAmount = +(baseAmount + platformFee).toFixed(2);
+
     // ===== Anti-fraude: cancelar cobranças PIX pendentes anteriores =====
     const { data: existingPending } = await adminClient
       .from("pool_transactions")
