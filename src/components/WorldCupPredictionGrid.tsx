@@ -68,19 +68,50 @@ export const WorldCupPredictionGrid = ({
 
   const [collapsed, setCollapsed] = useState<Set<string>>(new Set());
 
-  const toggleGroup = (g: string) => {
-    setCollapsed((prev) => {
-      const next = new Set(prev);
-      if (next.has(g)) next.delete(g);
-      else next.add(g);
-      return next;
+  // Sequência ordenada de inputs (por grupo, por jogo, home depois away) só pra jogos válidos
+  const inputSequence = useMemo(() => {
+    const seq: string[] = [];
+    grouped.forEach(([, gms]) => {
+      gms.forEach((mm) => {
+        const isPostponed =
+          mm.status === 'postponed' ||
+          mm.status === 'cancelled' ||
+          mm.status === 'abandoned';
+        if (isPostponed) return;
+        seq.push(`${mm.id}:home`);
+        seq.push(`${mm.id}:away`);
+      });
     });
+    return seq;
+  }, [grouped]);
+
+  const inputRefs = useRef<Record<string, HTMLInputElement | null>>({});
+
+  const focusNext = (currentKey: string) => {
+    const idx = inputSequence.indexOf(currentKey);
+    if (idx < 0 || idx >= inputSequence.length - 1) return;
+    const nextKey = inputSequence[idx + 1];
+    const el = inputRefs.current[nextKey];
+    if (el) {
+      el.focus();
+      el.select?.();
+    }
   };
 
-  const allCollapsed = grouped.length > 0 && collapsed.size === grouped.length;
-  const toggleAll = () => {
-    if (allCollapsed) setCollapsed(new Set());
-    else setCollapsed(new Set(grouped.map(([g]) => g)));
+  const handleScoreChange = (
+    matchId: string,
+    field: 'homeScore' | 'awayScore',
+    value: string,
+  ) => {
+    // Limita a 2 dígitos
+    const clean = value.replace(/[^0-9]/g, '').slice(0, 2);
+    onChange(activeSetIndex, matchId, field, clean);
+    // Se digitou pelo menos 1 dígito, avança o foco
+    if (clean.length >= 1) {
+      const key = `${matchId}:${field === 'homeScore' ? 'home' : 'away'}`;
+      // Pequeno delay para garantir que o estado atualizou
+      requestAnimationFrame(() => focusNext(key));
+    }
   };
 
   return (
