@@ -535,9 +535,8 @@ const FootballPredictionForm = ({ poolId, userId, onSuccess, entryFee, pool, pix
                 </ul>
               ) : (
                 <ul className="list-disc list-inside space-y-0.5 text-muted-foreground text-xs mt-1">
-                  <li><strong>5 pontos</strong>: Placar exato</li>
-                  <li><strong>3 pontos</strong>: Acertar o vencedor ou empate</li>
-                  <li><strong>+1 ponto</strong>: Acertar a diferença de gols (caso acerte o vencedor ou empate)</li>
+                  <li><strong>3 pontos</strong>: Placar exato</li>
+                  <li><strong>1 ponto</strong>: Acertar o vencedor ou empate</li>
                 </ul>
               )}
             </div>

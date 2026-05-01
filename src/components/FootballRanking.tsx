@@ -133,7 +133,7 @@ const FootballRanking = ({ poolId, pool, approvedParticipantsCount, isOwner }: F
     if (predictedHome === actualHome && predictedAway === actualAway) {
       if (system === 'exact_only') return 1;
       if (system === 'simplified') return 3;
-      return 5;
+      return 3; // standard: 3pts placar exato
     }
 
     if (system === 'exact_only') return 0;
@@ -141,15 +141,8 @@ const FootballRanking = ({ poolId, pool, approvedParticipantsCount, isOwner }: F
     const predictedResult = predictedHome > predictedAway ? 'home' : predictedHome < predictedAway ? 'away' : 'draw';
     const actualResult = actualHome > actualAway ? 'home' : actualHome < actualAway ? 'away' : 'draw';
 
-    if (system === 'simplified') {
-      return predictedResult === actualResult ? 1 : 0;
-    }
-
-    // Standard
-    let points = 0;
-    if (predictedResult === actualResult) points += 3;
-    if ((predictedHome - predictedAway) === (actualHome - actualAway)) points += 1;
-    return points;
+    // Simplified and Standard: 1pt por acertar o resultado
+    return predictedResult === actualResult ? 1 : 0;
   };
 
   const loadRanking = async () => {
@@ -978,7 +971,7 @@ const FootballRanking = ({ poolId, pool, approvedParticipantsCount, isOwner }: F
     if (predictedHome === actualHome && predictedAway === actualAway) {
       if (system === 'exact_only') return `1pt por acertar o placar${suffix}${partialNote}`;
       if (system === 'simplified') return `3pts por acertar o placar${suffix}${partialNote}`;
-      return `5pts por acertar o placar exato${suffix}${partialNote}`;
+      return `3pts por acertar o placar exato${suffix}${partialNote}`;
     }
 
     // For exact_only, only exact score gives points
@@ -988,29 +981,11 @@ const FootballRanking = ({ poolId, pool, approvedParticipantsCount, isOwner }: F
     const predictedResult = predictedHome > predictedAway ? 'home' : predictedHome < predictedAway ? 'away' : 'draw';
     const actualResult = actualHome > actualAway ? 'home' : actualHome < actualAway ? 'away' : 'draw';
 
-    // For simplified system
-    if (system === 'simplified') {
-      if (predictedResult === actualResult) {
-        return `1pt por acertar o resultado${suffix}${partialNote}`;
-      }
-      return isLive ? "Sem pontos no momento — pode mudar até o fim do jogo" : "";
-    }
-
-    // Standard system - can have multiple reasons
-    const reasons: string[] = [];
-    
+    // Simplified and Standard: 1pt por acertar o resultado
     if (predictedResult === actualResult) {
-      reasons.push("3pts por acertar o resultado");
+      return `1pt por acertar o resultado${suffix}${partialNote}`;
     }
-
-    const predictedDiff = predictedHome - predictedAway;
-    const actualDiff = actualHome - actualAway;
-    if (predictedDiff === actualDiff) {
-      reasons.push("1pt por acertar a diferença");
-    }
-
-    const joined = reasons.join(" + ");
-    return isLive ? `${joined} (parcial) — pode mudar até o fim do jogo` : joined;
+    return isLive ? "Sem pontos no momento — pode mudar até o fim do jogo" : "";
   };
 
   const getMatchStatusLabel = (status: string): { label: string; className: string } | null => {
