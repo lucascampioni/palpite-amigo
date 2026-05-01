@@ -1155,64 +1155,82 @@ const CreateFootballPool = () => {
                       </p>
                     </CardContent>
                   </Card>
-                ) : (
-                  <>
-                    {matches.map((match, index) => (
-                      <Card key={index} className="relative border-primary/50 bg-primary/5">
-                        <CardContent className="py-4">
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="sm"
-                            className="absolute top-2 right-2"
-                            onClick={() => handleRemoveMatch(index)}
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </Button>
+                ) : (() => {
+                  const wcMatches = matches.filter(m => isWorldCupMatch(m.championship));
+                  const isWorldCup = wcMatches.length >= matches.length / 2 && wcMatches.length > 0;
 
-                          <div className="space-y-2 pr-10">
-                            <div className="flex items-center gap-2">
-                              <span className="text-xs text-muted-foreground">
-                                {match.championship}
-                              </span>
-                            </div>
-                            <div className="flex items-center justify-between">
-                              <div className="flex items-center gap-2">
-                                {match.homeTeamCrest && (
-                                  <img 
-                                    src={match.homeTeamCrest} 
-                                    alt={match.homeTeam}
-                                    className="w-6 h-6 object-contain"
-                                    onError={(e) => {
-                                      e.currentTarget.style.display = 'none';
-                                    }}
-                                  />
-                                )}
-                                <span className="font-semibold text-lg">{match.homeTeam}</span>
-                                <span className="text-muted-foreground">x</span>
-                                <span className="font-semibold text-lg">{match.awayTeam}</span>
-                                {match.awayTeamCrest && (
-                                  <img 
-                                    src={match.awayTeamCrest} 
-                                    alt={match.awayTeam}
-                                    className="w-6 h-6 object-contain"
-                                    onError={(e) => {
-                                      e.currentTarget.style.display = 'none';
-                                    }}
-                                  />
-                                )}
-                              </div>
-                            </div>
-                            <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                              {match.round && <span>📍 {match.round}</span>}
-                              <span>📅 {format(new Date(match.matchDate), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}</span>
-                            </div>
+                  const renderMatchCard = (match: Match, index: number) => (
+                    <Card key={index} className="relative border-primary/50 bg-primary/5">
+                      <CardContent className="py-3 px-3 sm:py-4 sm:px-6">
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          className="absolute top-1 right-1 h-7 w-7 p-0"
+                          onClick={() => handleRemoveMatch(index)}
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </Button>
+                        <div className="space-y-1.5 pr-8">
+                          {!isWorldCup && (
+                            <span className="text-xs text-muted-foreground">{match.championship}</span>
+                          )}
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            {match.homeTeamCrest && (
+                              <img src={match.homeTeamCrest} alt={match.homeTeam} className="w-5 h-5 object-contain" onError={(e) => { e.currentTarget.style.display = 'none'; }} />
+                            )}
+                            <span className="font-semibold text-sm sm:text-base">{match.homeTeam}</span>
+                            <span className="text-muted-foreground text-xs">x</span>
+                            <span className="font-semibold text-sm sm:text-base">{match.awayTeam}</span>
+                            {match.awayTeamCrest && (
+                              <img src={match.awayTeamCrest} alt={match.awayTeam} className="w-5 h-5 object-contain" onError={(e) => { e.currentTarget.style.display = 'none'; }} />
+                            )}
                           </div>
-                        </CardContent>
-                      </Card>
-                    ))}
-                  </>
-                )}
+                          <div className="flex items-center gap-2 text-[11px] text-muted-foreground">
+                            {match.round && !isWorldCup && <span>📍 {match.round}</span>}
+                            <span>📅 {format(new Date(match.matchDate), "dd/MM 'às' HH:mm", { locale: ptBR })}</span>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  );
+
+                  if (isWorldCup) {
+                    // Agrupa por grupo (A, B, C…) e renderiza em accordions
+                    const groups = new Map<string, { match: Match; index: number }[]>();
+                    matches.forEach((m, i) => {
+                      const g = extractGroup(m.championship) || '?';
+                      if (!groups.has(g)) groups.set(g, []);
+                      groups.get(g)!.push({ match: m, index: i });
+                    });
+                    const sortedGroups = Array.from(groups.entries()).sort(([a], [b]) => a.localeCompare(b));
+
+                    return (
+                      <div className="space-y-2">
+                        <div className="rounded-lg bg-primary/10 border border-primary/30 px-3 py-2 flex items-center justify-between">
+                          <span className="text-sm font-semibold">🏆 Copa do Mundo 2026</span>
+                          <Badge variant="secondary">{matches.length} jogos</Badge>
+                        </div>
+                        {sortedGroups.map(([group, items]) => (
+                          <Collapsible key={group}>
+                            <CollapsibleTrigger className="w-full flex items-center justify-between rounded-md border bg-card hover:bg-muted/40 px-3 py-2 transition-colors">
+                              <div className="flex items-center gap-2">
+                                <span className="font-semibold text-sm">Grupo {group}</span>
+                                <Badge variant="outline" className="text-[10px]">{items.length} jogos</Badge>
+                              </div>
+                              <ChevronDown className="w-4 h-4 transition-transform [&[data-state=open]]:rotate-180" />
+                            </CollapsibleTrigger>
+                            <CollapsibleContent className="pt-2 space-y-2">
+                              {items.map(({ match, index }) => renderMatchCard(match, index))}
+                            </CollapsibleContent>
+                          </Collapsible>
+                        ))}
+                      </div>
+                    );
+                  }
+
+                  return <>{matches.map((match, index) => renderMatchCard(match, index))}</>;
+                })()}
               </div>
 
 
