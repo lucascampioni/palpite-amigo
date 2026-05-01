@@ -246,7 +246,8 @@ serve(async (req) => {
       body: JSON.stringify({
         customer: asaasCustomerId,
         billingType: "PIX",
-        value: Number(Number(amount).toFixed(2)),
+        // Cobramos do participante a entrada + a taxa do app por cima
+        value: grossAmount,
         dueDate,
         description: description.slice(0, 500),
         externalReference: externalRef.slice(0, 250),
@@ -272,23 +273,36 @@ serve(async (req) => {
     const qrCodeBase64 = qrData.encodedImage; // base64 PNG (no prefix)
     const ticketUrl = paymentData.invoiceUrl;
 
-    // Save one transaction per participant
-    const perParticipantAmount = +(Number(amount) / participantIds.length).toFixed(2);
-    const txRows = participantIds.map((pid, idx) => ({
-      pool_id,
-      participant_id: pid,
-      user_id: user.id,
-      amount: idx === participantIds.length - 1
-        ? +(Number(amount) - perParticipantAmount * (participantIds.length - 1)).toFixed(2)
-        : perParticipantAmount,
-      asaas_payment_id: String(paymentData.id),
-      asaas_qr_code: qrCode,
-      asaas_qr_code_base64: qrCodeBase64,
-      asaas_invoice_url: ticketUrl,
-      status: "pending",
-      expires_at: expiresAt.toISOString(),
-      raw_response: { payment: paymentData, qr: qrData },
-    }));
+    // Save one transaction per participant.
+    // amount = valor BASE da entrada (usado para premiação/organizador no fim do bolão).
+    // platform_fee = taxa do app cobrada do participante por cima da entrada (vai para a Delfos).
+    // gross_amount = total efetivamente pago pelo participante (amount + platform_fee).
+    const perParticipantBase = +(baseAmount / participantIds.length).toFixed(2);
+    const perParticipantFee = +(platformFee / participantIds.length).toFixed(2);
+    const txRows = participantIds.map((pid, idx) => {
+      const isLast = idx === participantIds.length - 1;
+      const amountBase = isLast
+        ? +(baseAmount - perParticipantBase * (participantIds.length - 1)).toFixed(2)
+        : perParticipantBase;
+      const feeShare = isLast
+        ? +(platformFee - perParticipantFee * (participantIds.length - 1)).toFixed(2)
+        : perParticipantFee;
+      return {
+        pool_id,
+        participant_id: pid,
+        user_id: user.id,
+        amount: amountBase,
+        platform_fee: feeShare,
+        gross_amount: +(amountBase + feeShare).toFixed(2),
+        asaas_payment_id: String(paymentData.id),
+        asaas_qr_code: qrCode,
+        asaas_qr_code_base64: qrCodeBase64,
+        asaas_invoice_url: ticketUrl,
+        status: "pending",
+        expires_at: expiresAt.toISOString(),
+        raw_response: { payment: paymentData, qr: qrData },
+      };
+    });
 
     const { data: transactions, error: txError } = await adminClient
       .from("pool_transactions")
