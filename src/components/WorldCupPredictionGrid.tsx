@@ -1,4 +1,4 @@
-import { useMemo, useState, useRef } from "react";
+import { useMemo, useState, useRef, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -67,6 +67,15 @@ export const WorldCupPredictionGrid = ({
   }, [matches]);
 
   const [collapsed, setCollapsed] = useState<Set<string>>(new Set());
+  const [didInitCollapse, setDidInitCollapse] = useState(false);
+
+  // Por padrão, deixa todos os grupos minimizados (Copa do Mundo tem 12 grupos)
+  useEffect(() => {
+    if (!didInitCollapse && grouped.length > 0) {
+      setCollapsed(new Set(grouped.map(([g]) => g)));
+      setDidInitCollapse(true);
+    }
+  }, [grouped, didInitCollapse]);
 
   // Sequência ordenada de inputs (por grupo, por jogo, home depois away) só pra jogos válidos
   const inputSequence = useMemo(() => {
