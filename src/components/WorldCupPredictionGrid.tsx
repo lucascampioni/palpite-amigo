@@ -222,8 +222,10 @@ export const WorldCupPredictionGrid = ({
               );
             })}
           </CardContent>
+          )}
         </Card>
-      ))}
+        );
+      })}
     </div>
   );
 };
