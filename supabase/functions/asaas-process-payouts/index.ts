@@ -52,14 +52,15 @@ serve(async (req) => {
     }
 
     const { data: txs } = await adminClient
-      .from("pool_transactions").select("amount").eq("pool_id", pool_id).eq("status", "approved");
+      .from("pool_transactions")
+      .select("amount, platform_fee")
+      .eq("pool_id", pool_id)
+      .eq("status", "approved");
+    // totalCollected = soma das ENTRADAS (base), sem a taxa do app.
+    // A taxa do app foi cobrada do participante por cima e vai direto para a Delfos.
     const totalCollected = (txs || []).reduce((s, t) => s + Number(t.amount), 0);
+    const delfosFee = +((txs || []).reduce((s, t) => s + Number(t.platform_fee || 0), 0)).toFixed(2);
     if (totalCollected <= 0) throw new Error("Nenhum pagamento aprovado para este bolão");
-
-    const { data: feeSetting } = await adminClient
-      .from("platform_settings").select("value").eq("key", "delfos_fee_percent").maybeSingle();
-    const delfosFeePercent = Number(feeSetting?.value || 0);
-    const delfosFee = +(totalCollected * delfosFeePercent / 100).toFixed(2);
 
     const { data: ranking } = await adminClient.rpc("get_football_pool_ranking", { p_pool_id: pool_id });
     const sortedRanking = (ranking || []).sort((a: any, b: any) => b.total_points - a.total_points);
@@ -70,12 +71,15 @@ serve(async (req) => {
 
     let winnerAmounts: number[] = [];
     if (prizeType === "percentage") {
+      // % calculado em cima da entrada cheia (sem desconto da taxa do app)
       winnerAmounts = prizes.map((p: any) => +(totalCollected * Number(p || 0) / 100).toFixed(2));
     } else {
       winnerAmounts = prizes.map((p: any) => Number(p || 0));
     }
     const totalToWinners = winnerAmounts.reduce((s, v) => s + v, 0);
-    const organizerAmount = +(totalCollected - delfosFee - totalToWinners).toFixed(2);
+    // Organizador recebe o que sobra das ENTRADAS após pagar os vencedores.
+    // A taxa do app NÃO entra nessa conta — ela já foi paga pelo participante por cima.
+    const organizerAmount = +(totalCollected - totalToWinners).toFixed(2);
 
     // Always create as pending_approval — admin must explicitly approve in painel
     const initialStatus = "pending_approval";
@@ -86,7 +90,7 @@ serve(async (req) => {
       payouts.push({
         pool_id, recipient_user_id: null, recipient_type: "platform",
         amount: delfosFee, status: initialStatus,
-        notes: `Taxa Delfos ${delfosFeePercent}% sobre R$ ${totalCollected.toFixed(2)}`,
+        notes: `Taxa do app cobrada dos participantes (R$ ${delfosFee.toFixed(2)})`,
       });
     }
 
