@@ -68,15 +68,43 @@ const FootballPredictionForm = ({ poolId, userId, onSuccess, entryFee, pool, pix
   const [estabelecimentoReady, setEstabelecimentoReady] = useState(false);
   const [showHighScoreWarning, setShowHighScoreWarning] = useState(false);
   const [highScoreMatches, setHighScoreMatches] = useState<{ match: Match; homeScore: string; awayScore: string; setIndex: number }[]>([]);
+  const [appFee, setAppFee] = useState<{ type: 'percent' | 'fixed'; percent: number; fixed: number } | null>(null);
 
   const isEstabelecimento = pool?.prize_type === 'estabelecimento';
   const hasEntryFee = !isEstabelecimento && pool?.entry_fee && parseFloat(pool.entry_fee) > 0;
   const feePerSet = hasEntryFee ? parseFloat(pool.entry_fee) : 0;
   const totalFee = feePerSet * predictionSets.length;
+  const isInAppPayment = hasEntryFee && pool?.payment_method === 'in_app';
+
+  // Calcula taxa do app por palpite (para exibição)
+  const appFeePerSet = (() => {
+    if (!appFee || !isInAppPayment) return 0;
+    if (appFee.type === 'fixed') return appFee.fixed;
+    return +(feePerSet * appFee.percent / 100).toFixed(2);
+  })();
+  const appFeeTotal = +(appFeePerSet * predictionSets.length).toFixed(2);
 
   useEffect(() => {
     loadMatches();
   }, [poolId]);
+
+  useEffect(() => {
+    if (!isInAppPayment) return;
+    (async () => {
+      const { data } = await supabase
+        .from('platform_settings')
+        .select('key, value')
+        .in('key', ['delfos_fee_type', 'delfos_fee_percent', 'delfos_fee_fixed']);
+      if (!data) return;
+      const map: Record<string, any> = {};
+      for (const r of data) map[r.key] = r.value;
+      setAppFee({
+        type: map.delfos_fee_type === 'fixed' ? 'fixed' : 'percent',
+        percent: Number(map.delfos_fee_percent ?? 0),
+        fixed: Number(map.delfos_fee_fixed ?? 0),
+      });
+    })();
+  }, [isInAppPayment]);
 
   const loadMatches = async () => {
     const { data, error } = await supabase
@@ -744,6 +772,30 @@ const FootballPredictionForm = ({ poolId, userId, onSuccess, entryFee, pool, pix
                 {predictionSets.length} × R$ {feePerSet.toFixed(2).replace('.', ',')} cada
               </p>
             )}
+          </div>
+        )}
+        {isInAppPayment && appFee && (appFee.percent > 0 || appFee.fixed > 0) && (
+          <div className="p-3 rounded-lg bg-orange-500/10 border border-orange-500/30 text-xs text-orange-700 dark:text-orange-300 flex gap-2 items-start">
+            <Info className="w-4 h-4 flex-shrink-0 mt-0.5" />
+            <div className="space-y-1 text-left">
+              <p className="font-medium">
+                Além do valor do bolão, será cobrada uma taxa de manutenção do app de{' '}
+                <strong>
+                  {appFee.type === 'fixed'
+                    ? `R$ ${appFee.fixed.toFixed(2).replace('.', ',')}`
+                    : `${appFee.percent.toString().replace('.', ',')}%`}
+                </strong>{' '}
+                por palpite.
+              </p>
+              {appFeePerSet > 0 && (
+                <p className="text-[11px] opacity-90">
+                  Taxa: R$ {appFeePerSet.toFixed(2).replace('.', ',')} × {predictionSets.length} ={' '}
+                  <strong>R$ {appFeeTotal.toFixed(2).replace('.', ',')}</strong>
+                  {' · '}Total a pagar:{' '}
+                  <strong>R$ {(totalFee + appFeeTotal).toFixed(2).replace('.', ',')}</strong>
+                </p>
+              )}
+            </div>
           </div>
         )}
         <Button
