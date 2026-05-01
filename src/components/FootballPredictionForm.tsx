@@ -774,6 +774,30 @@ const FootballPredictionForm = ({ poolId, userId, onSuccess, entryFee, pool, pix
             )}
           </div>
         )}
+        {isInAppPayment && appFee && (appFee.percent > 0 || appFee.fixed > 0) && (
+          <div className="p-3 rounded-lg bg-orange-500/10 border border-orange-500/30 text-xs text-orange-700 dark:text-orange-300 flex gap-2 items-start">
+            <Info className="w-4 h-4 flex-shrink-0 mt-0.5" />
+            <div className="space-y-1 text-left">
+              <p className="font-medium">
+                Além do valor do bolão, será cobrada uma taxa de manutenção do app de{' '}
+                <strong>
+                  {appFee.type === 'fixed'
+                    ? `R$ ${appFee.fixed.toFixed(2).replace('.', ',')}`
+                    : `${appFee.percent.toString().replace('.', ',')}%`}
+                </strong>{' '}
+                por palpite.
+              </p>
+              {appFeePerSet > 0 && (
+                <p className="text-[11px] opacity-90">
+                  Taxa: R$ {appFeePerSet.toFixed(2).replace('.', ',')} × {predictionSets.length} ={' '}
+                  <strong>R$ {appFeeTotal.toFixed(2).replace('.', ',')}</strong>
+                  {' · '}Total a pagar:{' '}
+                  <strong>R$ {(totalFee + appFeeTotal).toFixed(2).replace('.', ',')}</strong>
+                </p>
+              )}
+            </div>
+          </div>
+        )}
         <Button
           onClick={handleSubmitClick}
           disabled={submitting || (isEstabelecimento && !estabelecimentoReady)}
