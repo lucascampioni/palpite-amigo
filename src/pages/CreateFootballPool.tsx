@@ -559,7 +559,7 @@ const CreateFootballPool = () => {
                 <Input
                   id="title"
                   name="title"
-                  placeholder="Ex: Brasileirão 2025 - Rodada 10"
+                  placeholder="Ex: Copa do Mundo dos Amigos"
                   required
                 />
               </div>
