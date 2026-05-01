@@ -342,6 +342,8 @@ serve(async (req) => {
       base_amount: baseAmount,
       platform_fee: platformFee,
       platform_fee_percent: platformFeePercent,
+      platform_fee_type: feeType,
+      platform_fee_fixed: feeType === "fixed" ? feeFixedValue : 0,
       gross_amount: grossAmount,
     }), { status: 200, headers: { "Content-Type": "application/json", ...corsHeaders } });
   } catch (e: any) {
