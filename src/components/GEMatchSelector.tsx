@@ -4,11 +4,12 @@ import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Calendar, Trophy, ChevronDown } from "lucide-react";
+import { Loader2, Calendar, Trophy, ChevronDown, Globe2 } from "lucide-react";
 import { format } from "date-fns";
 import { abbreviateTeamName } from "@/lib/team-utils";
 import { ptBR } from "date-fns/locale";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { WORLD_CUP_2026_MATCHES, WORLD_CUP_2026_CHAMPIONSHIP_PREFIX } from "@/lib/world-cup-2026";
 
 interface GEMatch {
   homeTeam: string;
