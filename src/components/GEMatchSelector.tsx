@@ -261,6 +261,8 @@ export const GEMatchSelector = ({ open, onOpenChange, onMatchesSelected }: GEMat
       title: "🏆 Copa do Mundo 2026 carregada!",
       description: `${wcAsGEMatches.length} jogos da fase de grupos pré-selecionados.`,
     });
+
+    onOpenChange(false);
   };
 
   return (
