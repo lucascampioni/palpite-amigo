@@ -68,15 +68,43 @@ const FootballPredictionForm = ({ poolId, userId, onSuccess, entryFee, pool, pix
   const [estabelecimentoReady, setEstabelecimentoReady] = useState(false);
   const [showHighScoreWarning, setShowHighScoreWarning] = useState(false);
   const [highScoreMatches, setHighScoreMatches] = useState<{ match: Match; homeScore: string; awayScore: string; setIndex: number }[]>([]);
+  const [appFee, setAppFee] = useState<{ type: 'percent' | 'fixed'; percent: number; fixed: number } | null>(null);
 
   const isEstabelecimento = pool?.prize_type === 'estabelecimento';
   const hasEntryFee = !isEstabelecimento && pool?.entry_fee && parseFloat(pool.entry_fee) > 0;
   const feePerSet = hasEntryFee ? parseFloat(pool.entry_fee) : 0;
   const totalFee = feePerSet * predictionSets.length;
+  const isInAppPayment = hasEntryFee && pool?.payment_method === 'in_app';
+
+  // Calcula taxa do app por palpite (para exibição)
+  const appFeePerSet = (() => {
+    if (!appFee || !isInAppPayment) return 0;
+    if (appFee.type === 'fixed') return appFee.fixed;
+    return +(feePerSet * appFee.percent / 100).toFixed(2);
+  })();
+  const appFeeTotal = +(appFeePerSet * predictionSets.length).toFixed(2);
 
   useEffect(() => {
     loadMatches();
   }, [poolId]);
+
+  useEffect(() => {
+    if (!isInAppPayment) return;
+    (async () => {
+      const { data } = await supabase
+        .from('platform_settings')
+        .select('key, value')
+        .in('key', ['delfos_fee_type', 'delfos_fee_percent', 'delfos_fee_fixed']);
+      if (!data) return;
+      const map: Record<string, any> = {};
+      for (const r of data) map[r.key] = r.value;
+      setAppFee({
+        type: map.delfos_fee_type === 'fixed' ? 'fixed' : 'percent',
+        percent: Number(map.delfos_fee_percent ?? 0),
+        fixed: Number(map.delfos_fee_fixed ?? 0),
+      });
+    })();
+  }, [isInAppPayment]);
 
   const loadMatches = async () => {
     const { data, error } = await supabase
