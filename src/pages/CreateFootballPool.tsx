@@ -13,6 +13,8 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/component
 import { Checkbox } from "@/components/ui/checkbox";
 import { Switch } from "@/components/ui/switch";
 import { GEMatchSelector } from "@/components/GEMatchSelector";
+import { extractGroup, isWorldCupMatch } from "@/lib/world-cup-2026";
+import { Badge } from "@/components/ui/badge";
 import { PixKeyInput } from "@/components/PixKeyInput";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
