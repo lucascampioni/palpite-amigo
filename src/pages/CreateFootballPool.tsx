@@ -941,7 +941,7 @@ const CreateFootballPool = () => {
                     >
                       <div className="font-semibold text-sm mb-1">⚡ Receber dentro do app (PIX automático)</div>
                       <div className="text-xs text-muted-foreground">
-                        Os participantes pagam direto no app via PIX, são aprovados automaticamente e o valor é repassado a você (e ao vencedor) ao fim do bolão, descontada a taxa Delfos.
+                        Os participantes pagam direto no app via PIX (entrada + taxa do app cobrada deles por cima) e são aprovados automaticamente. Ao fim do bolão, o valor da entrada é repassado integralmente a você e ao vencedor.
                       </div>
                     </button>
                   </div>
