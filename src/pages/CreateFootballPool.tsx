@@ -765,9 +765,11 @@ const CreateFootballPool = () => {
                             {remainingPercentage === 0 && (
                               <p>✅ 100% do valor arrecadado vai para a premiação</p>
                             )}
-                            {paymentMethod === 'in_app' && delfosFeePercent > 0 && (
+                            {paymentMethod === 'in_app' && ((delfosFeeType === 'percent' && delfosFeePercent > 0) || (delfosFeeType === 'fixed' && delfosFeeFixed > 0)) && (
                               <p className="text-xs mt-1 opacity-80">
-                                ℹ️ A taxa do app ({delfosFeePercent}%) é cobrada do participante por cima da entrada — não afeta a premiação nem o valor que vai para você.
+                                ℹ️ A taxa do app ({delfosFeeType === 'fixed'
+                                  ? `R$ ${delfosFeeFixed.toFixed(2).replace('.', ',')} por palpite`
+                                  : `${delfosFeePercent}%`}) é cobrada do participante por cima da entrada — não afeta a premiação nem o valor que vai para você.
                               </p>
                             )}
                           </>
