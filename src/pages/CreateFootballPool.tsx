@@ -186,15 +186,18 @@ const CreateFootballPool = () => {
     }
   };
 
-  // Load Delfos fee % from platform settings
+  // Load Delfos fee config from platform settings
   useEffect(() => {
     (async () => {
       const { data } = await supabase
         .from("platform_settings")
-        .select("value")
-        .eq("key", "delfos_fee_percent")
-        .maybeSingle();
-      if (data?.value != null) setDelfosFeePercent(Number(data.value));
+        .select("key, value")
+        .in("key", ["delfos_fee_percent", "delfos_fee_fixed", "delfos_fee_type"]);
+      for (const row of data || []) {
+        if (row.key === "delfos_fee_percent" && row.value != null) setDelfosFeePercent(Number(row.value));
+        if (row.key === "delfos_fee_fixed" && row.value != null) setDelfosFeeFixed(Number(row.value));
+        if (row.key === "delfos_fee_type" && row.value != null) setDelfosFeeType(row.value === "fixed" ? "fixed" : "percent");
+      }
     })();
   }, []);
 
