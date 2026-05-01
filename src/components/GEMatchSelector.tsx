@@ -49,6 +49,18 @@ const CHAMP_LABELS: Record<string, { label: string; emoji: string }> = {
   'cdb': { label: 'Copa do Brasil', emoji: '🏆' },
   'lib': { label: 'Libertadores', emoji: '🏆' },
   'sul': { label: 'Sul-Americana', emoji: '🏆' },
+  'wc26_a': { label: 'Copa 2026 — Grupo A', emoji: '🏆' },
+  'wc26_b': { label: 'Copa 2026 — Grupo B', emoji: '🏆' },
+  'wc26_c': { label: 'Copa 2026 — Grupo C 🇧🇷', emoji: '🏆' },
+  'wc26_d': { label: 'Copa 2026 — Grupo D', emoji: '🏆' },
+  'wc26_e': { label: 'Copa 2026 — Grupo E', emoji: '🏆' },
+  'wc26_f': { label: 'Copa 2026 — Grupo F', emoji: '🏆' },
+  'wc26_g': { label: 'Copa 2026 — Grupo G', emoji: '🏆' },
+  'wc26_h': { label: 'Copa 2026 — Grupo H', emoji: '🏆' },
+  'wc26_i': { label: 'Copa 2026 — Grupo I', emoji: '🏆' },
+  'wc26_j': { label: 'Copa 2026 — Grupo J', emoji: '🏆' },
+  'wc26_k': { label: 'Copa 2026 — Grupo K', emoji: '🏆' },
+  'wc26_l': { label: 'Copa 2026 — Grupo L', emoji: '🏆' },
 };
 
 export const GEMatchSelector = ({ open, onOpenChange, onMatchesSelected }: GEMatchSelectorProps) => {
