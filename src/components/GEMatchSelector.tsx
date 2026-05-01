@@ -290,8 +290,9 @@ export const GEMatchSelector = ({ open, onOpenChange, onMatchesSelected }: GEMat
         </div>
 
         {loading ? (
-          <div className="flex items-center justify-center py-12">
-            <Loader2 className="w-8 h-8 animate-spin" />
+          <div className="flex flex-col items-center justify-center py-12 gap-3">
+            <Loader2 className="w-8 h-8 animate-spin text-primary" />
+            <p className="text-sm text-muted-foreground">Carregando os próximos jogos...</p>
           </div>
         ) : allMatches.length === 0 ? (
           <div className="text-center py-12 text-muted-foreground">
