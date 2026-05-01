@@ -618,8 +618,16 @@ const FootballPredictionForm = ({ poolId, userId, onSuccess, entryFee, pool, pix
         ))}
       </div>
 
-      {/* Current set matches */}
-      {matches.map((match) => {
+      {/* Current set matches — Visual especial Copa do Mundo, ou padrão */}
+      {isWorldCupPool(matches) ? (
+        <WorldCupPredictionGrid
+          matches={matches}
+          currentPredictions={currentPredictions}
+          activeSetIndex={activeSetIndex}
+          onChange={handlePredictionChange}
+        />
+      ) : (
+        matches.map((match) => {
         const prediction = currentPredictions.find(p => p.matchId === match.id);
         const isPostponed = (match as any).status === 'postponed' || (match as any).status === 'cancelled' || (match as any).status === 'abandoned';
         return (
@@ -696,7 +704,8 @@ const FootballPredictionForm = ({ poolId, userId, onSuccess, entryFee, pool, pix
             </CardContent>
           </Card>
         );
-      })}
+      })
+      )}
 
       {/* Add prediction set button + fee warning (hide for estabelecimento) */}
       {!isEstabelecimento && (
