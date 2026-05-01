@@ -491,9 +491,11 @@ export type Database = {
           asaas_qr_code_base64: string | null
           created_at: string
           expires_at: string | null
+          gross_amount: number | null
           id: string
           paid_at: string | null
           participant_id: string | null
+          platform_fee: number
           pool_id: string
           raw_response: Json | null
           status: string
@@ -508,9 +510,11 @@ export type Database = {
           asaas_qr_code_base64?: string | null
           created_at?: string
           expires_at?: string | null
+          gross_amount?: number | null
           id?: string
           paid_at?: string | null
           participant_id?: string | null
+          platform_fee?: number
           pool_id: string
           raw_response?: Json | null
           status?: string
@@ -525,9 +529,11 @@ export type Database = {
           asaas_qr_code_base64?: string | null
           created_at?: string
           expires_at?: string | null
+          gross_amount?: number | null
           id?: string
           paid_at?: string | null
           participant_id?: string | null
+          platform_fee?: number
           pool_id?: string
           raw_response?: Json | null
           status?: string
