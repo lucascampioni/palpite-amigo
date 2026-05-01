@@ -186,7 +186,7 @@ export const WorldCupPredictionGrid = ({
                         inputMode="numeric"
                         min="0"
                         max="99"
-                        placeholder={isPostponed ? '—' : '0'}
+                        placeholder={isPostponed ? '—' : ''}
                         value={prediction?.homeScore || ''}
                         onChange={(e) =>
                           onChange(activeSetIndex, match.id, 'homeScore', e.target.value)
@@ -200,7 +200,7 @@ export const WorldCupPredictionGrid = ({
                         inputMode="numeric"
                         min="0"
                         max="99"
-                        placeholder={isPostponed ? '—' : '0'}
+                        placeholder={isPostponed ? '—' : ''}
                         value={prediction?.awayScore || ''}
                         onChange={(e) =>
                           onChange(activeSetIndex, match.id, 'awayScore', e.target.value)
