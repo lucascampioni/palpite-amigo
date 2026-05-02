@@ -119,7 +119,10 @@ export default function Privacy() {
               <h2 className="text-xl font-semibold mb-3">9. Contato</h2>
               <p className="text-muted-foreground">
                 Para questões sobre esta política ou seus dados pessoais, entre em contato 
-                através do suporte da plataforma.
+                pelo e-mail <a href="mailto:admin@delfos.app.br" className="text-primary hover:underline">admin@delfos.app.br</a>.
+              </p>
+              <p className="text-muted-foreground mt-2">
+                Delfos – CNPJ: 66.222.130/0001-87.
               </p>
             </section>
 
