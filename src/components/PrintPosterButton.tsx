@@ -147,11 +147,20 @@ const PrintPosterButton = ({
       // Promo text (alternative to info box) — usado p/ comunidades
       if (promoText) {
         pdf.setFont("helvetica", "normal");
-        pdf.setFontSize(12);
-        pdf.setTextColor(70, 70, 70);
-        const promoLines = pdf.splitTextToSize(promoText, pageW - 50);
-        pdf.text(promoLines, pageW / 2, belowY + 4, { align: "center" });
-        belowY += promoLines.length * 6 + 8;
+        pdf.setFontSize(10.5);
+        pdf.setTextColor(110, 110, 110);
+        const lineGap = 7;
+        const paragraphs = promoText.split(/\n+/).filter(Boolean);
+        let py = belowY + 8;
+        paragraphs.forEach((para, idx) => {
+          const wrapped = pdf.splitTextToSize(para, pageW - 70);
+          wrapped.forEach((ln: string) => {
+            pdf.text(ln, pageW / 2, py, { align: "center" });
+            py += lineGap;
+          });
+          if (idx < paragraphs.length - 1) py += 3;
+        });
+        belowY = py + 4;
       }
 
       // Info lines (entry fee etc.)
