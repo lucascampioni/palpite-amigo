@@ -1049,37 +1049,58 @@ const PoolDetail = () => {
                   )}
                 </div>
               </div>
-              {isOwner && participants.length === 0 && (
-                <div className="flex gap-2 shrink-0">
-                  <Button
-                    variant="destructive"
-                    size="sm"
-                    className="h-8 text-xs sm:text-sm"
-                    onClick={async () => {
-                      if (!confirm("Tem certeza que deseja excluir este bolão? Esta ação não pode ser desfeita.")) return;
-                      await supabase.from("pool_payment_info").delete().eq("pool_id", poolId!);
-                      await supabase.from("football_matches").delete().eq("pool_id", poolId!);
-                      const { error } = await supabase.from("pools").delete().eq("id", poolId!);
-                      if (error) {
-                        toast({ variant: "destructive", title: "Erro", description: "Não foi possível excluir o bolão." });
-                      } else {
-                        toast({ title: "Bolão excluído com sucesso!" });
-                        navigate("/");
-                      }
-                    }}
-                  >
-                    <Trash2 className="w-3.5 h-3.5 mr-1" />
-                    Excluir
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="h-8 text-xs sm:text-sm"
-                    onClick={() => navigate(`/editar-bolao/${poolId}`)}
-                  >
-                    <Edit className="w-3.5 h-3.5 mr-1" />
-                    Editar
-                  </Button>
+              {isOwner && (
+                <div className="flex gap-2 shrink-0 flex-wrap">
+                  <PrintPosterButton
+                    url={`https://delfos.app.br/bolao/${pool.slug || pool.id}`}
+                    title={pool.title}
+                    description={pool.description}
+                    subtitle="Bolão"
+                    fileName={`cartaz-${pool.slug || pool.id}.pdf`}
+                    callToAction="Aponte a câmera e participe do bolão!"
+                    infoLines={[
+                      ...(pool.entry_fee && parseFloat(pool.entry_fee) > 0
+                        ? [{ label: "Entrada", value: `R$ ${parseFloat(pool.entry_fee).toFixed(2).replace('.', ',')} por palpite` }]
+                        : [{ label: "Entrada", value: "Gratuito" }]),
+                      ...(pool.deadline
+                        ? [{ label: "Prazo", value: new Date(pool.deadline).toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" }) }]
+                        : []),
+                      ...(ownerName ? [{ label: "Organizador", value: ownerName }] : []),
+                    ]}
+                  />
+                  {participants.length === 0 && (
+                    <>
+                      <Button
+                        variant="destructive"
+                        size="sm"
+                        className="h-8 text-xs sm:text-sm"
+                        onClick={async () => {
+                          if (!confirm("Tem certeza que deseja excluir este bolão? Esta ação não pode ser desfeita.")) return;
+                          await supabase.from("pool_payment_info").delete().eq("pool_id", poolId!);
+                          await supabase.from("football_matches").delete().eq("pool_id", poolId!);
+                          const { error } = await supabase.from("pools").delete().eq("id", poolId!);
+                          if (error) {
+                            toast({ variant: "destructive", title: "Erro", description: "Não foi possível excluir o bolão." });
+                          } else {
+                            toast({ title: "Bolão excluído com sucesso!" });
+                            navigate("/");
+                          }
+                        }}
+                      >
+                        <Trash2 className="w-3.5 h-3.5 mr-1" />
+                        Excluir
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="h-8 text-xs sm:text-sm"
+                        onClick={() => navigate(`/editar-bolao/${poolId}`)}
+                      >
+                        <Edit className="w-3.5 h-3.5 mr-1" />
+                        Editar
+                      </Button>
+                    </>
+                  )}
                 </div>
               )}
             </div>
