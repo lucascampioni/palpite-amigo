@@ -13,6 +13,7 @@ type FeeType = "percent" | "fixed";
 const AdminPlatformSettings = () => {
   const [feeType, setFeeType] = useState<FeeType>("percent");
   const [feePercent, setFeePercent] = useState<string>("0");
+  const [feePercentMin, setFeePercentMin] = useState<string>("0");
   const [feeFixed, setFeeFixed] = useState<string>("0");
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -22,10 +23,11 @@ const AdminPlatformSettings = () => {
     const { data } = await supabase
       .from("platform_settings")
       .select("key, value")
-      .in("key", ["delfos_fee_percent", "delfos_fee_fixed", "delfos_fee_type"]);
+      .in("key", ["delfos_fee_percent", "delfos_fee_fixed", "delfos_fee_type", "delfos_fee_percent_min"]);
     for (const row of data || []) {
       if (row.key === "delfos_fee_percent") setFeePercent(String(row.value ?? 0));
       if (row.key === "delfos_fee_fixed") setFeeFixed(String(row.value ?? 0));
+      if (row.key === "delfos_fee_percent_min") setFeePercentMin(String(row.value ?? 0));
       if (row.key === "delfos_fee_type") setFeeType((row.value === "fixed" ? "fixed" : "percent") as FeeType);
     }
     setLoading(false);
@@ -38,6 +40,11 @@ const AdminPlatformSettings = () => {
       const n = Number(feePercent);
       if (isNaN(n) || n < 0 || n > 50) {
         toast({ title: "Valor inválido", description: "A taxa em % deve estar entre 0 e 50.", variant: "destructive" });
+        return;
+      }
+      const min = Number(feePercentMin);
+      if (isNaN(min) || min < 0 || min > 1000) {
+        toast({ title: "Valor inválido", description: "O valor mínimo deve estar entre R$ 0 e R$ 1000.", variant: "destructive" });
         return;
       }
     } else {
@@ -54,6 +61,7 @@ const AdminPlatformSettings = () => {
     const updates = [
       { key: "delfos_fee_type", value: feeType },
       { key: "delfos_fee_percent", value: Number(feePercent) || 0 },
+      { key: "delfos_fee_percent_min", value: Number(feePercentMin) || 0 },
       { key: "delfos_fee_fixed", value: Number(feeFixed) || 0 },
     ];
 
@@ -131,21 +139,40 @@ const AdminPlatformSettings = () => {
               </div>
 
               {feeType === "percent" ? (
-                <div className="space-y-2">
-                  <Label htmlFor="fee">Taxa (%)</Label>
-                  <Input
-                    id="fee"
-                    type="number"
-                    min={0}
-                    max={50}
-                    step={0.1}
-                    value={feePercent}
-                    onChange={(e) => setFeePercent(e.target.value)}
-                  />
-                  <p className="text-xs text-muted-foreground">
-                    Exemplo: entrada R$ 10 + taxa {Number(feePercent) || 0}% = participante paga R$ {(10 + 10 * (Number(feePercent) || 0) / 100).toFixed(2).replace(".", ",")}.
-                  </p>
-                </div>
+                <>
+                  <div className="space-y-2">
+                    <Label htmlFor="fee">Taxa (%)</Label>
+                    <Input
+                      id="fee"
+                      type="number"
+                      min={0}
+                      max={50}
+                      step={0.1}
+                      value={feePercent}
+                      onChange={(e) => setFeePercent(e.target.value)}
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Exemplo: entrada R$ 10 + taxa {Number(feePercent) || 0}% = participante paga R$ {(10 + 10 * (Number(feePercent) || 0) / 100).toFixed(2).replace(".", ",")}.
+                    </p>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="fee-min">Valor mínimo por palpite (R$)</Label>
+                    <Input
+                      id="fee-min"
+                      type="number"
+                      min={0}
+                      max={1000}
+                      step={0.01}
+                      value={feePercentMin}
+                      onChange={(e) => setFeePercentMin(e.target.value)}
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Garante que a taxa nunca fique abaixo desse valor por palpite. Ex: taxa {Number(feePercent) || 0}% com mínimo R$ {(Number(feePercentMin) || 0).toFixed(2).replace(".", ",")} → numa entrada de R$ 10, a taxa cobrada será R$ {Math.max(10 * (Number(feePercent) || 0) / 100, Number(feePercentMin) || 0).toFixed(2).replace(".", ",")}.
+                      Deixe em 0 para não aplicar mínimo.
+                    </p>
+                  </div>
+                </>
               ) : (
                 <div className="space-y-2">
                   <Label htmlFor="fee-fixed">Valor fixo por palpite (R$)</Label>

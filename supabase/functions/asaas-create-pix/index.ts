@@ -100,18 +100,23 @@ serve(async (req) => {
     const { data: feeSettings } = await adminClient
       .from("platform_settings")
       .select("key, value")
-      .in("key", ["delfos_fee_type", "delfos_fee_percent", "delfos_fee_fixed"]);
+      .in("key", ["delfos_fee_type", "delfos_fee_percent", "delfos_fee_fixed", "delfos_fee_percent_min"]);
     const feeMap: Record<string, any> = {};
     for (const r of feeSettings || []) feeMap[r.key] = r.value;
     const feeType: "percent" | "fixed" = feeMap.delfos_fee_type === "fixed" ? "fixed" : "percent";
     const feePercentValue = Number(feeMap.delfos_fee_percent ?? 0);
     const feeFixedValue = Number(feeMap.delfos_fee_fixed ?? 0);
+    const feePercentMinValue = Number(feeMap.delfos_fee_percent_min ?? 0);
 
     let platformFee = 0;
     if (feeType === "fixed") {
       platformFee = +(feeFixedValue * numPalpites).toFixed(2);
     } else {
-      platformFee = +(baseAmount * feePercentValue / 100).toFixed(2);
+      // Mínimo aplicado por palpite: usa o maior entre (% sobre entrada do palpite) e o mínimo configurado.
+      const entryPerPalpite = numPalpites > 0 ? baseAmount / numPalpites : baseAmount;
+      const percentPerPalpite = +(entryPerPalpite * feePercentValue / 100).toFixed(2);
+      const feePerPalpite = Math.max(percentPerPalpite, feePercentMinValue);
+      platformFee = +(feePerPalpite * numPalpites).toFixed(2);
     }
     // Mantemos platformFeePercent só para compatibilidade do retorno/log
     const platformFeePercent = feeType === "percent" ? feePercentValue : 0;
