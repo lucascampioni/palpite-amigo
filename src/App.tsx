@@ -5,6 +5,8 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import Index from "./pages/Index";
+import Landing from "./pages/Landing";
+import Terms from "./pages/Terms";
 import Auth from "./pages/Auth";
 import CreateFootballPool from "./pages/CreateFootballPool";
 import EditFootballPool from "./pages/EditFootballPool";
@@ -29,6 +31,9 @@ const App = () => (
       <BrowserRouter>
         <Routes>
           {/* Public routes */}
+          <Route path="/" element={<Landing />} />
+          <Route path="/termos-de-uso" element={<Terms />} />
+          <Route path="/politica-de-privacidade" element={<Privacy />} />
           <Route path="/entrar" element={<Auth />} />
           <Route path="/confirmar-email" element={<EmailConfirmation />} />
           <Route path="/redefinir-senha" element={<ResetPassword />} />
@@ -37,7 +42,7 @@ const App = () => (
           <Route path="/verificacao-whatsapp" element={<SmsVerification />} />
 
           {/* Protected routes */}
-          <Route path="/" element={<ProtectedRoute><Index /></ProtectedRoute>} />
+          <Route path="/app" element={<ProtectedRoute><Index /></ProtectedRoute>} />
           <Route path="/criar-bolao" element={<ProtectedRoute><CreateFootballPool /></ProtectedRoute>} />
           <Route path="/editar-bolao/:id" element={<ProtectedRoute><EditFootballPool /></ProtectedRoute>} />
           <Route path="/bolao/:slug" element={<ProtectedRoute><PoolDetail /></ProtectedRoute>} />
