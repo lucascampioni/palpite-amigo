@@ -628,14 +628,27 @@ const Index = () => {
           <TabsContent value="pendencias" className="space-y-5 mt-0">
             {pendenciasCount > 0 ? (
               <div className="space-y-3">
-                {myPendingPaymentPools.length > 0 && (
+                {myPendingPaymentPools.filter(p => p.payment_method === 'in_app').length > 0 && (
                   <AlertSection
                     icon="💳"
-                    title="Pagamento Pendente"
+                    title="Pendente Pagamento"
+                    subtitle="Pague o PIX para confirmar sua participação"
+                    bgClass="bg-orange-50 dark:bg-orange-950/50 border-orange-200 dark:border-orange-800"
+                  >
+                    {filterPools(myPendingPaymentPools.filter(p => p.payment_method === 'in_app')).map((pool) => (
+                      <PoolCard key={pool.id} pool={pool} isUserParticipating hasPendingPayment onClick={() => navigate(`/bolao/${pool.slug}`)} {...getCommunityProps(pool)} />
+                    ))}
+                  </AlertSection>
+                )}
+
+                {myPendingPaymentPools.filter(p => p.payment_method !== 'in_app').length > 0 && (
+                  <AlertSection
+                    icon="💳"
+                    title="Pendente Envio de Comprovante"
                     subtitle="Envie o comprovante para confirmar sua participação"
                     bgClass="bg-orange-50 dark:bg-orange-950/50 border-orange-200 dark:border-orange-800"
                   >
-                    {filterPools(myPendingPaymentPools).map((pool) => (
+                    {filterPools(myPendingPaymentPools.filter(p => p.payment_method !== 'in_app')).map((pool) => (
                       <PoolCard key={pool.id} pool={pool} isUserParticipating hasPendingPayment onClick={() => navigate(`/bolao/${pool.slug}`)} {...getCommunityProps(pool)} />
                     ))}
                   </AlertSection>
