@@ -95,7 +95,7 @@ const FootballPredictionForm = ({ poolId, userId, onSuccess, entryFee, pool, pix
       const { data } = await supabase
         .from('platform_settings')
         .select('key, value')
-        .in('key', ['delfos_fee_type', 'delfos_fee_percent', 'delfos_fee_fixed']);
+        .in('key', ['delfos_fee_type', 'delfos_fee_percent', 'delfos_fee_fixed', 'delfos_fee_percent_min']);
       if (!data) return;
       const map: Record<string, any> = {};
       for (const r of data) map[r.key] = r.value;
@@ -103,6 +103,7 @@ const FootballPredictionForm = ({ poolId, userId, onSuccess, entryFee, pool, pix
         type: map.delfos_fee_type === 'fixed' ? 'fixed' : 'percent',
         percent: Number(map.delfos_fee_percent ?? 0),
         fixed: Number(map.delfos_fee_fixed ?? 0),
+        percentMin: Number(map.delfos_fee_percent_min ?? 0),
       });
     })();
   }, [isInAppPayment]);
