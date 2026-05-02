@@ -51,6 +51,8 @@ export const InAppPaymentSubmission = ({ participantId, participantIds, poolId, 
   const [platformFeePercentMin, setPlatformFeePercentMin] = useState<number>(0);
   const [platformFeeFixed, setPlatformFeeFixed] = useState<number>(0);
   const [platformFeeType, setPlatformFeeType] = useState<"percent" | "fixed">("percent");
+  const [autoTriggered, setAutoTriggered] = useState(false);
+  const [txLoaded, setTxLoaded] = useState(false);
 
   // Load app fee config from platform settings
   useEffect(() => {
