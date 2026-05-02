@@ -782,17 +782,11 @@ const FootballPredictionForm = ({ poolId, userId, onSuccess, entryFee, pool, pix
             <div className="space-y-1 text-left">
               <p className="font-medium">
                 Além do valor do bolão, será cobrada uma taxa de manutenção do app de{' '}
-                <strong>
-                  {appFee.type === 'fixed'
-                    ? `R$ ${appFee.fixed.toFixed(2).replace('.', ',')}`
-                    : `${appFee.percent.toString().replace('.', ',')}%`}
-                </strong>{' '}
-                por palpite.
+                <strong>R$ {appFeePerSet.toFixed(2).replace('.', ',')}</strong> por palpite.
               </p>
               {appFeePerSet > 0 && (
                 <p className="text-[11px] opacity-90">
-                  Taxa: R$ {appFeePerSet.toFixed(2).replace('.', ',')} × {predictionSets.length} ={' '}
-                  <strong>R$ {appFeeTotal.toFixed(2).replace('.', ',')}</strong>
+                  Taxa total: <strong>R$ {appFeeTotal.toFixed(2).replace('.', ',')}</strong>
                   {' · '}Total a pagar:{' '}
                   <strong>R$ {(totalFee + appFeeTotal).toFixed(2).replace('.', ',')}</strong>
                 </p>
