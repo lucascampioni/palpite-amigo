@@ -99,7 +99,7 @@ const PrintPosterButton = ({
       pdf.setFontSize(28);
       pdf.setTextColor(20, 20, 20);
       const titleLines = pdf.splitTextToSize(title, pageW - 40);
-      const titleY = 56;
+      const titleY = 62;
       pdf.text(titleLines, pageW / 2, titleY, { align: "center" });
       const titleH = titleLines.length * 10;
 
