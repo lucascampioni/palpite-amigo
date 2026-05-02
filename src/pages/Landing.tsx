@@ -80,23 +80,16 @@ const Landing = () => {
         />
         <div className="relative max-w-6xl mx-auto px-4 py-20 md:py-28 text-center">
           <h1 className="text-4xl md:text-6xl font-bold tracking-tight mb-6">
-            Delfos – Plataforma de gestão de bolões
+            Delfos – Bolões com seus amigos
           </h1>
           <p className="text-lg md:text-xl text-muted-foreground max-w-3xl mx-auto mb-10">
-            Crie, gerencie e automatize bolões com notificações inteligentes para
-            participantes.
+            Participe de bolões com amigos, dê seus palpites e acompanhe o
+            ranking em tempo real — com notificações automáticas para você não
+            perder nada.
           </p>
           <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
             <Button size="lg" onClick={() => navigate("/entrar")} className="min-w-44">
               Entrar
-            </Button>
-            <Button
-              size="lg"
-              variant="outline"
-              onClick={() => navigate("/entrar?redirect=%2Fcriar-bolao")}
-              className="min-w-44"
-            >
-              Criar bolão
             </Button>
           </div>
         </div>
@@ -108,35 +101,36 @@ const Landing = () => {
           <div className="text-center mb-12">
             <h2 className="text-3xl md:text-4xl font-bold mb-4">Sobre o Delfos</h2>
             <p className="text-muted-foreground max-w-2xl mx-auto">
-              Uma plataforma completa para quem organiza bolões esportivos, comunidades
-              e grupos de palpites — do cadastro à premiação.
+              O Delfos é o jeito mais fácil de viver a emoção dos jogos junto
+              com a galera: entre em bolões com amigos, dê seus palpites e
+              dispute o topo do ranking.
             </p>
           </div>
           <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-4">
             {[
               {
-                icon: Trophy,
-                title: "Gestão de bolões",
+                icon: Users,
+                title: "Bolões com amigos",
                 desc:
-                  "Crie bolões personalizados de futebol com regras, prazos e premiações configuráveis.",
+                  "Participe de bolões privados com sua turma ou entre em comunidades públicas para disputar com mais gente.",
               },
               {
-                icon: Users,
-                title: "Controle de participantes",
+                icon: Trophy,
+                title: "Palpites e ranking",
                 desc:
-                  "Aprove inscrições, gerencie pagamentos e mantenha tudo organizado em um só lugar.",
+                  "Dê seus palpites antes dos jogos e acompanhe sua posição no ranking conforme os resultados saem.",
               },
               {
                 icon: CheckCircle2,
-                title: "Definição de ganhadores",
+                title: "Premiação justa",
                 desc:
-                  "Apuração automática de pontos e ranking, com regras claras de desempate e premiação.",
+                  "Apuração automática dos pontos e regras claras de desempate para definir os ganhadores sem dor de cabeça.",
               },
               {
                 icon: Bell,
-                title: "Notificações automáticas",
+                title: "Notificações no WhatsApp",
                 desc:
-                  "Avisos via WhatsApp para lembrar prazos, divulgar resultados e comunicar pagamentos.",
+                  "Receba lembretes de prazo, atualizações de resultado e avisos importantes direto no seu WhatsApp.",
               },
             ].map((f) => (
               <Card key={f.title} className="border-border/60">
@@ -164,24 +158,24 @@ const Landing = () => {
             {[
               {
                 n: "1",
-                icon: Settings,
-                title: "Crie seu bolão",
+                icon: Users,
+                title: "Entre em um bolão",
                 desc:
-                  "Escolha o campeonato, defina regras de pontuação, prazos e o valor de entrada.",
+                  "Encontre um bolão público ou aceite o convite dos seus amigos para participar.",
               },
               {
                 n: "2",
-                icon: Users,
-                title: "Adicione participantes",
+                icon: Settings,
+                title: "Faça seus palpites",
                 desc:
-                  "Compartilhe o link, aprove inscrições e acompanhe os palpites de cada participante.",
+                  "Escolha os placares dos jogos antes do prazo e confirme sua participação.",
               },
               {
                 n: "3",
                 icon: MessageSquare,
-                title: "Acompanhe e notifique",
+                title: "Acompanhe o ranking",
                 desc:
-                  "Resultados são apurados automaticamente e participantes recebem notificações via WhatsApp.",
+                  "Receba os resultados e notificações automáticas no WhatsApp e veja sua posição em tempo real.",
               },
             ].map((s) => (
               <Card key={s.n} className="border-border/60 relative">
@@ -210,10 +204,10 @@ const Landing = () => {
             <CardContent className="p-6 flex items-center gap-3">
               <Mail className="w-5 h-5 text-primary" />
               <a
-                href="mailto:contato@delfos.app.br"
+                href="mailto:admin@delfos.app.br"
                 className="font-medium hover:underline"
               >
-                contato@delfos.app.br
+                admin@delfos.app.br
               </a>
             </CardContent>
           </Card>
