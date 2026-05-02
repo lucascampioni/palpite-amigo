@@ -287,12 +287,12 @@ export const GEMatchSelector = ({ open, onOpenChange, onMatchesSelected }: GEMat
           <div className="flex items-start sm:items-center gap-2 min-w-0">
             <Globe2 className="w-5 h-5 text-primary flex-shrink-0 mt-0.5 sm:mt-0" />
             <div className="min-w-0 flex-1">
-              <p className="text-sm font-semibold break-words">🏆 Copa do Mundo 2026</p>
-              <p className="text-[11px] text-muted-foreground break-words">Carregar todos os 48 jogos da fase de grupos</p>
+              <p className="text-sm font-semibold break-words">🏆 Selecionar todos os jogos da fase de grupos da Copa do Mundo 2026</p>
+              <p className="text-[11px] text-muted-foreground break-words">Clique para incluir de uma vez os 48 jogos da fase de grupos no seu bolão</p>
             </div>
           </div>
           <Button size="sm" onClick={handleLoadWorldCup} className="flex-shrink-0 w-full sm:w-auto">
-            Carregar Copa
+            Selecionar fase de grupos
           </Button>
         </div>
 
