@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
 import PoolCard from "@/components/PoolCard";
+import PrintPosterButton from "@/components/PrintPosterButton";
 
 const CommunityDetail = () => {
   const { slug } = useParams();
@@ -165,6 +166,7 @@ const CommunityDetail = () => {
   const responsibleName = community.display_responsible_name || responsibleFullName || "Organizador";
   const isFollowing = !!membership;
   const notifyEnabled = membership?.notify_new_pools ?? false;
+  const isOwner = session?.user?.id === community.responsible_user_id;
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
@@ -221,6 +223,23 @@ const CommunityDetail = () => {
               {memberCount} {memberCount === 1 ? "membro" : "membros"}
             </span>
           </div>
+          {isOwner && (
+            <div className="pt-2">
+              <PrintPosterButton
+                url={`https://delfos.app.br/comunidade/${community.slug}`}
+                title={community.name}
+                description={community.description}
+                subtitle="Comunidade"
+                fileName={`cartaz-comunidade-${community.slug}.pdf`}
+                callToAction="Aponte a câmera e siga a comunidade!"
+                infoLines={[
+                  { label: "Organizador", value: responsibleName },
+                  { label: "Membros", value: `${memberCount} ${memberCount === 1 ? "membro" : "membros"}` },
+                  { label: "Bolões ativos", value: `${activePools.length}` },
+                ]}
+              />
+            </div>
+          )}
         </div>
 
         {/* Follow & Notify section */}
