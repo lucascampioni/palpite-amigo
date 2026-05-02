@@ -166,6 +166,7 @@ const CommunityDetail = () => {
   const responsibleName = community.display_responsible_name || responsibleFullName || "Organizador";
   const isFollowing = !!membership;
   const notifyEnabled = membership?.notify_new_pools ?? false;
+  const isOwner = session?.user?.id === community.responsible_user_id;
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
