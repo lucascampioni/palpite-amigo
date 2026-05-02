@@ -131,10 +131,10 @@ export default function Terms() {
               <p>
                 Em caso de dúvidas sobre estes termos, entre em contato pelo e-mail{" "}
                 <a
-                  href="mailto:contato@delfos.app.br"
+                  href="mailto:admin@delfos.app.br"
                   className="text-primary hover:underline"
                 >
-                  contato@delfos.app.br
+                  admin@delfos.app.br
                 </a>
                 .
               </p>
