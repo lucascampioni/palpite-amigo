@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
 import PoolCard from "@/components/PoolCard";
+import PrintPosterButton from "@/components/PrintPosterButton";
 
 const CommunityDetail = () => {
   const { slug } = useParams();
