@@ -51,6 +51,8 @@ export const InAppPaymentSubmission = ({ participantId, participantIds, poolId, 
   const [platformFeePercentMin, setPlatformFeePercentMin] = useState<number>(0);
   const [platformFeeFixed, setPlatformFeeFixed] = useState<number>(0);
   const [platformFeeType, setPlatformFeeType] = useState<"percent" | "fixed">("percent");
+  const [autoTriggered, setAutoTriggered] = useState(false);
+  const [txLoaded, setTxLoaded] = useState(false);
 
   // Load app fee config from platform settings
   useEffect(() => {
@@ -174,6 +176,7 @@ export const InAppPaymentSubmission = ({ participantId, participantIds, poolId, 
   // (evita mostrar QR antigo de 1 palpite quando o usuário agora quer pagar 2).
   useEffect(() => {
     if (ids.length === 0) return;
+    setTxLoaded(false);
     (async () => {
       // 1) Approved: qualquer transação aprovada de algum desses participantes já confirma
       const { data: approved } = await supabase
@@ -185,6 +188,7 @@ export const InAppPaymentSubmission = ({ participantId, participantIds, poolId, 
         .limit(1);
       if (approved && approved.length > 0) {
         setTx(approved[0] as Tx);
+        setTxLoaded(true);
         return;
       }
 
@@ -208,13 +212,47 @@ export const InAppPaymentSubmission = ({ participantId, participantIds, poolId, 
         const groupIds = rows.map((r) => r.participant_id).filter(Boolean).sort().join(",");
         if (groupIds === requestedSet) {
           setTx(rows[0] as Tx);
+          setTxLoaded(true);
           return;
         }
       }
       // nenhum match exato → não exibe QR antigo; usuário deve gerar um novo
       setTx(null);
+      setTxLoaded(true);
     })();
   }, [idsKey, poolId]);
+
+  // Auto-gerar QR Code assim que possível: usuário tem PIX, sem tx pendente, prazo aberto.
+  // Se já tem CPF salvo → gera direto. Se não → abre o diálogo de CPF automaticamente.
+  useEffect(() => {
+    if (autoTriggered) return;
+    if (!txLoaded) return;
+    if (tx) return;
+    if (hasProfilePix !== true) return;
+    if (editingPix) return;
+    if (paymentClosed) return;
+    if (generating) return;
+    setAutoTriggered(true);
+    (async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        setCpfDialogOpen(true);
+        return;
+      }
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("cpf")
+        .eq("id", user.id)
+        .maybeSingle();
+      const digits = (profile?.cpf || "").replace(/\D/g, "");
+      if (digits.length === 11) {
+        generatePixWithCpf(digits);
+      } else {
+        setCpfDialogOpen(true);
+      }
+    })();
+  }, [txLoaded, tx, hasProfilePix, editingPix, paymentClosed, generating, autoTriggered]);
+
 
   // Poll for approved status
   useEffect(() => {
