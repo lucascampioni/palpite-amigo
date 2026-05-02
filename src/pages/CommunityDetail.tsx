@@ -223,6 +223,23 @@ const CommunityDetail = () => {
               {memberCount} {memberCount === 1 ? "membro" : "membros"}
             </span>
           </div>
+          {isOwner && (
+            <div className="pt-2">
+              <PrintPosterButton
+                url={`https://delfos.app.br/comunidade/${community.slug}`}
+                title={community.name}
+                description={community.description}
+                subtitle="Comunidade"
+                fileName={`cartaz-comunidade-${community.slug}.pdf`}
+                callToAction="Aponte a câmera e siga a comunidade!"
+                infoLines={[
+                  { label: "Organizador", value: responsibleName },
+                  { label: "Membros", value: `${memberCount} ${memberCount === 1 ? "membro" : "membros"}` },
+                  { label: "Bolões ativos", value: `${activePools.length}` },
+                ]}
+              />
+            </div>
+          )}
         </div>
 
         {/* Follow & Notify section */}
