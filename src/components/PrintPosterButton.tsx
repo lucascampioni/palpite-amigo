@@ -79,7 +79,9 @@ const PrintPosterButton = ({
             reader.readAsDataURL(blob);
           })
         );
-        pdf.addImage(logoImg, "PNG", pageW / 2 - 14, 20, 28, 14, undefined, "FAST");
+        const logoW = 60;
+        const logoH = 24;
+        pdf.addImage(logoImg, "PNG", pageW / 2 - logoW / 2, 16, logoW, logoH, undefined, "FAST");
       } catch {
         // skip logo if it fails
       }
@@ -89,7 +91,7 @@ const PrintPosterButton = ({
         pdf.setFont("helvetica", "bold");
         pdf.setFontSize(11);
         pdf.setTextColor(120, 120, 120);
-        pdf.text(subtitle.toUpperCase(), pageW / 2, 44, { align: "center" });
+        pdf.text(subtitle.toUpperCase(), pageW / 2, 50, { align: "center" });
       }
 
       // Title
@@ -97,7 +99,7 @@ const PrintPosterButton = ({
       pdf.setFontSize(28);
       pdf.setTextColor(20, 20, 20);
       const titleLines = pdf.splitTextToSize(title, pageW - 40);
-      const titleY = 56;
+      const titleY = 62;
       pdf.text(titleLines, pageW / 2, titleY, { align: "center" });
       const titleH = titleLines.length * 10;
 
