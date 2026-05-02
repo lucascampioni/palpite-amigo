@@ -29,6 +29,7 @@ const PrintPosterButton = ({
   description,
   subtitle,
   infoLines = [],
+  promoText,
   callToAction = "Aponte a câmera para o QR Code e participe!",
   footerNote = "Bolões inteligentes em delfos.app.br",
   fileName = "cartaz-delfos.pdf",
