@@ -79,7 +79,9 @@ const PrintPosterButton = ({
             reader.readAsDataURL(blob);
           })
         );
-        pdf.addImage(logoImg, "PNG", pageW / 2 - 14, 20, 28, 14, undefined, "FAST");
+        const logoW = 60;
+        const logoH = 24;
+        pdf.addImage(logoImg, "PNG", pageW / 2 - logoW / 2, 16, logoW, logoH, undefined, "FAST");
       } catch {
         // skip logo if it fails
       }
