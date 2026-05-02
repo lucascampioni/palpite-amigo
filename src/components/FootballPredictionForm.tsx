@@ -68,7 +68,7 @@ const FootballPredictionForm = ({ poolId, userId, onSuccess, entryFee, pool, pix
   const [estabelecimentoReady, setEstabelecimentoReady] = useState(false);
   const [showHighScoreWarning, setShowHighScoreWarning] = useState(false);
   const [highScoreMatches, setHighScoreMatches] = useState<{ match: Match; homeScore: string; awayScore: string; setIndex: number }[]>([]);
-  const [appFee, setAppFee] = useState<{ type: 'percent' | 'fixed'; percent: number; fixed: number } | null>(null);
+  const [appFee, setAppFee] = useState<{ type: 'percent' | 'fixed'; percent: number; fixed: number; percentMin: number } | null>(null);
 
   const isEstabelecimento = pool?.prize_type === 'estabelecimento';
   const hasEntryFee = !isEstabelecimento && pool?.entry_fee && parseFloat(pool.entry_fee) > 0;
@@ -80,7 +80,8 @@ const FootballPredictionForm = ({ poolId, userId, onSuccess, entryFee, pool, pix
   const appFeePerSet = (() => {
     if (!appFee || !isInAppPayment) return 0;
     if (appFee.type === 'fixed') return appFee.fixed;
-    return +(feePerSet * appFee.percent / 100).toFixed(2);
+    const percentValue = +(feePerSet * appFee.percent / 100).toFixed(2);
+    return Math.max(percentValue, appFee.percentMin || 0);
   })();
   const appFeeTotal = +(appFeePerSet * predictionSets.length).toFixed(2);
 
