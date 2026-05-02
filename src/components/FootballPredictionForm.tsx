@@ -731,6 +731,7 @@ const FootballPredictionForm = ({ poolId, userId, onSuccess, entryFee, pool, pix
                     onChange={(e) => handlePredictionChange(activeSetIndex, match.id, 'homeScore', e.target.value)}
                     required={!isPostponed}
                     disabled={isPostponed}
+                    ref={(el) => { inputRefs.current[`${match.id}:home`] = el; }}
                   />
                 </div>
                 <div className="space-y-2">
