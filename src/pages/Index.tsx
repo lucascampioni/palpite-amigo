@@ -628,14 +628,14 @@ const Index = () => {
           <TabsContent value="pendencias" className="space-y-5 mt-0">
             {pendenciasCount > 0 ? (
               <div className="space-y-3">
-                {myPendingPaymentPools.filter(p => p.payment_method === 'in_app').length > 0 && (
+                {myPendingPaymentPools.filter(p => p.payment_method !== 'pix_manual').length > 0 && (
                   <AlertSection
                     icon="💳"
-                    title="Pendente Pagamento"
+                    title="Pagamento Pendente"
                     subtitle="Pague o PIX para confirmar sua participação"
                     bgClass="bg-orange-50 dark:bg-orange-950/50 border-orange-200 dark:border-orange-800"
                   >
-                    {filterPools(myPendingPaymentPools.filter(p => p.payment_method === 'in_app')).map((pool) => (
+                    {filterPools(myPendingPaymentPools.filter(p => p.payment_method !== 'pix_manual')).map((pool) => (
                       <PoolCard key={pool.id} pool={pool} isUserParticipating hasPendingPayment onClick={() => navigate(`/bolao/${pool.slug}`)} {...getCommunityProps(pool)} />
                     ))}
                   </AlertSection>
