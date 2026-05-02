@@ -755,6 +755,7 @@ const FootballPredictionForm = ({ poolId, userId, onSuccess, entryFee, pool, pix
                     onChange={(e) => handlePredictionChange(activeSetIndex, match.id, 'awayScore', e.target.value)}
                     required={!isPostponed}
                     disabled={isPostponed}
+                    ref={(el) => { inputRefs.current[`${match.id}:away`] = el; }}
                   />
                 </div>
               </div>
