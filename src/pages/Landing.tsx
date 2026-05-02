@@ -217,11 +217,14 @@ const Landing = () => {
       {/* Footer */}
       <footer className="border-t border-border/60 py-10 bg-muted/20">
         <div className="max-w-6xl mx-auto px-4 flex flex-col md:flex-row items-center justify-between gap-4">
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-3">
             <img src={delfosLogo} alt="Delfos" className="h-7 w-auto" />
-            <span className="text-sm text-muted-foreground">
-              © {new Date().getFullYear()} Delfos. Todos os direitos reservados.
-            </span>
+            <div className="flex flex-col">
+              <span className="text-sm text-muted-foreground">
+                © {new Date().getFullYear()} Delfos. Todos os direitos reservados.
+              </span>
+              <span className="text-xs text-muted-foreground">CNPJ: 66.222.130/0001-87</span>
+            </div>
           </div>
           <div className="flex items-center gap-6 text-sm">
             <Link
