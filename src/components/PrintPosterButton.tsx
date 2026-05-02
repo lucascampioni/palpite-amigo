@@ -79,8 +79,8 @@ const PrintPosterButton = ({
             reader.readAsDataURL(blob);
           })
         );
-        const logoW = 78;
-        const logoH = 24;
+        const logoW = 95;
+        const logoH = 26;
         pdf.addImage(logoImg, "PNG", pageW / 2 - logoW / 2, 16, logoW, logoH, undefined, "FAST");
       } catch {
         // skip logo if it fails
@@ -144,7 +144,7 @@ const PrintPosterButton = ({
 
       // Info lines (entry fee etc.)
       if (infoLines.length > 0) {
-        const boxW = pageW - 50;
+        const boxW = pageW - 90;
         const boxX = (pageW - boxW) / 2;
         const lineH = 8;
         const boxH = infoLines.length * lineH + 8;
@@ -159,7 +159,7 @@ const PrintPosterButton = ({
           pdf.text(`${line.label}:`, boxX + 6, infoY);
           pdf.setFont("helvetica", "normal");
           pdf.setTextColor(20, 20, 20);
-          const valueLines = pdf.splitTextToSize(line.value, boxW - 50);
+          const valueLines = pdf.splitTextToSize(line.value, boxW - 40);
           pdf.text(valueLines[0] || "", boxX + boxW - 6, infoY, { align: "right" });
           infoY += lineH;
         });
