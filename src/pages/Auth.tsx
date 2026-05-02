@@ -92,7 +92,7 @@ const Auth = () => {
   const [loginPhone, setLoginPhone] = useState("");
   const [activeTab, setActiveTab] = useState("login");
   
-  const redirectUrl = searchParams.get('redirect') || '/';
+  const redirectUrl = searchParams.get('redirect') || '/app';
   
   useEffect(() => {
     const checkUser = async () => {
