@@ -3,12 +3,18 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Trophy, Users, Bell, CheckCircle2, Mail, MessageSquare, Settings } from "lucide-react";
 import { useEffect } from "react";
+import { supabase } from "@/integrations/supabase/client";
 import delfosLogo from "@/assets/delfos-logo.png";
 
 const Landing = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
+    // If already authenticated, send user straight to the app
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session) navigate("/app", { replace: true });
+    });
+
     document.title = "Delfos – Plataforma de gestão de bolões";
     const meta = document.querySelector('meta[name="description"]');
     const content =
