@@ -28,6 +28,7 @@ import { AdminParticipantsManager } from "@/components/AdminParticipantsManager"
 import { useUserRole } from "@/hooks/useUserRole";
 import WhatsAppMessagePanel from "@/components/WhatsAppMessagePanel";
 import VipGroupInviteModal from "@/components/VipGroupInviteModal";
+import PrintPosterButton from "@/components/PrintPosterButton";
 import VoucherManager from "@/components/VoucherManager";
 
 const PoolDetail = () => {
