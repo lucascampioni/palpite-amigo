@@ -139,21 +139,40 @@ const AdminPlatformSettings = () => {
               </div>
 
               {feeType === "percent" ? (
-                <div className="space-y-2">
-                  <Label htmlFor="fee">Taxa (%)</Label>
-                  <Input
-                    id="fee"
-                    type="number"
-                    min={0}
-                    max={50}
-                    step={0.1}
-                    value={feePercent}
-                    onChange={(e) => setFeePercent(e.target.value)}
-                  />
-                  <p className="text-xs text-muted-foreground">
-                    Exemplo: entrada R$ 10 + taxa {Number(feePercent) || 0}% = participante paga R$ {(10 + 10 * (Number(feePercent) || 0) / 100).toFixed(2).replace(".", ",")}.
-                  </p>
-                </div>
+                <>
+                  <div className="space-y-2">
+                    <Label htmlFor="fee">Taxa (%)</Label>
+                    <Input
+                      id="fee"
+                      type="number"
+                      min={0}
+                      max={50}
+                      step={0.1}
+                      value={feePercent}
+                      onChange={(e) => setFeePercent(e.target.value)}
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Exemplo: entrada R$ 10 + taxa {Number(feePercent) || 0}% = participante paga R$ {(10 + 10 * (Number(feePercent) || 0) / 100).toFixed(2).replace(".", ",")}.
+                    </p>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="fee-min">Valor mínimo por palpite (R$)</Label>
+                    <Input
+                      id="fee-min"
+                      type="number"
+                      min={0}
+                      max={1000}
+                      step={0.01}
+                      value={feePercentMin}
+                      onChange={(e) => setFeePercentMin(e.target.value)}
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Garante que a taxa nunca fique abaixo desse valor por palpite. Ex: taxa {Number(feePercent) || 0}% com mínimo R$ {(Number(feePercentMin) || 0).toFixed(2).replace(".", ",")} → numa entrada de R$ 10, a taxa cobrada será R$ {Math.max(10 * (Number(feePercent) || 0) / 100, Number(feePercentMin) || 0).toFixed(2).replace(".", ",")}.
+                      Deixe em 0 para não aplicar mínimo.
+                    </p>
+                  </div>
+                </>
               ) : (
                 <div className="space-y-2">
                   <Label htmlFor="fee-fixed">Valor fixo por palpite (R$)</Label>
