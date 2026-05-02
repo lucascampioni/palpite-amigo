@@ -14,6 +14,7 @@ interface PrintPosterButtonProps {
   description?: string | null;
   subtitle?: string;
   infoLines?: InfoLine[];
+  promoText?: string;
   callToAction?: string;
   footerNote?: string;
   fileName?: string;
