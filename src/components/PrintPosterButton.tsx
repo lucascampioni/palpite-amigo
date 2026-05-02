@@ -14,6 +14,7 @@ interface PrintPosterButtonProps {
   description?: string | null;
   subtitle?: string;
   infoLines?: InfoLine[];
+  promoText?: string;
   callToAction?: string;
   footerNote?: string;
   fileName?: string;
@@ -28,6 +29,7 @@ const PrintPosterButton = ({
   description,
   subtitle,
   infoLines = [],
+  promoText,
   callToAction = "Aponte a câmera para o QR Code e participe!",
   footerNote = "Bolões inteligentes em delfos.app.br",
   fileName = "cartaz-delfos.pdf",
@@ -142,8 +144,18 @@ const PrintPosterButton = ({
       pdf.text(cleanUrl, pageW / 2, belowY, { align: "center" });
       belowY += 8;
 
+      // Promo text (alternative to info box) — usado p/ comunidades
+      if (promoText) {
+        pdf.setFont("helvetica", "normal");
+        pdf.setFontSize(12);
+        pdf.setTextColor(70, 70, 70);
+        const promoLines = pdf.splitTextToSize(promoText, pageW - 50);
+        pdf.text(promoLines, pageW / 2, belowY + 4, { align: "center" });
+        belowY += promoLines.length * 6 + 8;
+      }
+
       // Info lines (entry fee etc.)
-      if (infoLines.length > 0) {
+      if (!promoText && infoLines.length > 0) {
         const boxW = pageW - 90;
         const boxX = (pageW - boxW) / 2;
         const lineH = 8;

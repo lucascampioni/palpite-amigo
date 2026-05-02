@@ -232,11 +232,7 @@ const CommunityDetail = () => {
                 subtitle="Comunidade"
                 fileName={`cartaz-comunidade-${community.slug}.pdf`}
                 callToAction="Aponte a câmera e siga a comunidade!"
-                infoLines={[
-                  { label: "Organizador", value: responsibleName },
-                  { label: "Membros", value: `${memberCount} ${memberCount === 1 ? "membro" : "membros"}` },
-                  { label: "Bolões ativos", value: `${activePools.length}` },
-                ]}
+                promoText={`O Delfos é o app onde você participa de bolões esportivos com seus amigos, faz palpites em jogos do mundo todo e concorre a prêmios reais. Siga a comunidade "${community.name}" para acompanhar todos os bolões organizados por ${responsibleName}, receber avisos de novos bolões e disputar o topo do ranking. Já somos ${memberCount} ${memberCount === 1 ? "membro" : "membros"} e temos ${activePools.length} ${activePools.length === 1 ? "bolão ativo" : "bolões ativos"}. Aponte a câmera, baixe o app e venha jogar com a gente!`}
               />
             </div>
           )}
