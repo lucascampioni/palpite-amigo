@@ -77,13 +77,10 @@ export const InAppPaymentSubmission = ({ participantId, participantIds, poolId, 
     : +(Math.max(+(entryPerPalpite * platformFeePercent / 100).toFixed(2), platformFeePercentMin) * numPalpites).toFixed(2);
   const totalToPay = +(entryFee + platformFee).toFixed(2);
   const fmtBRL = (n: number) => `R$ ${n.toFixed(2).replace(".", ",")}`;
-  const feeLabel = platformFeeType === "fixed"
-    ? (numPalpites > 1
-        ? `Taxa do app (${fmtBRL(platformFeeFixed)} × ${numPalpites} palpites)`
-        : `Taxa do app (${fmtBRL(platformFeeFixed)} por palpite)`)
-    : (platformFeePercentMin > 0 && +(entryPerPalpite * platformFeePercent / 100).toFixed(2) < platformFeePercentMin
-        ? `Taxa do app (mínimo ${fmtBRL(platformFeePercentMin)} por palpite)`
-        : `Taxa do app (${platformFeePercent}%)`);
+  const feePerPalpite = numPalpites > 0 ? +(platformFee / numPalpites).toFixed(2) : 0;
+  const feeLabel = numPalpites > 1
+    ? `Taxa do app (${fmtBRL(feePerPalpite)} × ${numPalpites} palpites)`
+    : `Taxa do app (${fmtBRL(feePerPalpite)} por palpite)`;
   const showFee = (platformFeeType === "fixed" && platformFeeFixed > 0) || (platformFeeType === "percent" && (platformFeePercent > 0 || platformFeePercentMin > 0));
 
   const cancelPix = async () => {
