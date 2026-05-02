@@ -91,7 +91,7 @@ const PrintPosterButton = ({
         pdf.setFont("helvetica", "bold");
         pdf.setFontSize(11);
         pdf.setTextColor(120, 120, 120);
-        pdf.text(subtitle.toUpperCase(), pageW / 2, 44, { align: "center" });
+        pdf.text(subtitle.toUpperCase(), pageW / 2, 50, { align: "center" });
       }
 
       // Title
