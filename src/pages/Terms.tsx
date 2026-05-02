@@ -138,6 +138,9 @@ export default function Terms() {
                 </a>
                 .
               </p>
+              <p className="mt-2">
+                Delfos – CNPJ: 66.222.130/0001-87.
+              </p>
             </section>
 
             <div className="pt-4 border-t">
