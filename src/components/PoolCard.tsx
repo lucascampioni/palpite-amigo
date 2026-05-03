@@ -192,16 +192,16 @@ const PoolCard = ({ pool, onClick, isUserParticipating = false, hasWonPrize = fa
           const total = p1 + p2 + p3;
           if (total <= 0) return null;
           return (
-            <div className="flex items-center justify-between gap-3 rounded-xl border border-accent/40 bg-gradient-to-r from-accent/15 via-accent/10 to-primary/10 px-3 py-3">
-              <div className="flex items-center gap-2 min-w-0">
-                <Trophy className="w-5 h-5 text-accent shrink-0" />
-                <span className="text-xs font-semibold uppercase tracking-wide text-accent truncate">
+            <div className="rounded-xl border border-primary/15 bg-primary/5 p-3">
+              <div className="flex items-center gap-2 mb-1">
+                <Trophy className="w-5 h-5 text-primary shrink-0" />
+                <span className="text-xs font-semibold uppercase tracking-wide text-primary">
                   Premiação garantida
                 </span>
               </div>
-              <span className="text-2xl font-extrabold text-accent whitespace-nowrap drop-shadow-sm">
+              <p className="text-2xl sm:text-3xl font-extrabold text-primary leading-tight">
                 R$ {total.toFixed(2).replace('.', ',')}
-              </span>
+              </p>
             </div>
           );
         })()}
