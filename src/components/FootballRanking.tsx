@@ -7,6 +7,8 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/component
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { abbreviateTeamName } from "@/lib/team-utils";
+import { Button } from "@/components/ui/button";
+import { isWorldCupMatch, extractGroup } from "@/lib/world-cup-2026";
 
 interface FootballRankingProps {
   poolId: string;
