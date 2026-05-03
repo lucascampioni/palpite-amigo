@@ -1,0 +1,1 @@
+ALTER TABLE public.pools ADD COLUMN IF NOT EXISTS guaranteed_prize boolean NOT NULL DEFAULT false;
