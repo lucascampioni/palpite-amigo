@@ -1,7 +1,7 @@
 import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Trophy, Users, Bell, CheckCircle2, Mail, MessageSquare, Settings } from "lucide-react";
+import { Trophy, Users, Bell, CheckCircle2, Mail, MessageSquare, Settings, Sparkles } from "lucide-react";
 import { useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import delfosLogo from "@/assets/delfos-logo.png";
