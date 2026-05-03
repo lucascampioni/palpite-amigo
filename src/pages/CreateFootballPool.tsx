@@ -644,7 +644,7 @@ const CreateFootballPool = () => {
                 <div className="space-y-2">
                   <Label>Tipo de premiação</Label>
                   <div className="flex gap-2">
-                    {userRole?.isAdmin && (
+                    {!userRole?.isEstabelecimento && (
                       <button
                         type="button"
                         onClick={() => setPrizeType('fixed')}
