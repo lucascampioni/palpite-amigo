@@ -118,6 +118,7 @@ const CreateFootballPool = () => {
   const [firstPlacePrize, setFirstPlacePrize] = useState("");
   const [secondPlacePrize, setSecondPlacePrize] = useState("");
   const [thirdPlacePrize, setThirdPlacePrize] = useState("");
+  const [entryFeeValue, setEntryFeeValue] = useState("");
 
   const totalPercentage = prizeType === 'percentage'
     ? (parseFloat(firstPlacePrize) || 0) + (maxWinners >= 2 ? (parseFloat(secondPlacePrize) || 0) : 0) + (maxWinners >= 3 ? (parseFloat(thirdPlacePrize) || 0) : 0)
