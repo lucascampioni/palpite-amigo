@@ -70,7 +70,7 @@ const CreateFootballPool = () => {
   const [hasWhatsappGroup, setHasWhatsappGroup] = useState(false);
   const [scoringSystem, setScoringSystem] = useState<'standard' | 'exact_only'>('exact_only');
   const [maxWinners, setMaxWinners] = useState<number>(1);
-  const [prizeType, setPrizeType] = useState<'fixed' | 'percentage' | 'estabelecimento'>('fixed');
+  const [prizeType, setPrizeType] = useState<'fixed' | 'percentage' | 'estabelecimento'>('percentage');
   const [estabelecimentoPrizeDescription, setEstabelecimentoPrizeDescription] = useState("");
   const [addressName, setAddressName] = useState("");
   const [addressStreet, setAddressStreet] = useState("");
