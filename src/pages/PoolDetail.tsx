@@ -1354,7 +1354,12 @@ const PoolDetail = () => {
                             </p>
                           );
                         })()}
-                        {isFixed && minToGuarantee > 0 && !isFinished && (
+                        {isFixed && pool.guaranteed_prize && !isFinished && (
+                          <p className="mt-2 text-[0.7rem] text-center text-emerald-700 dark:text-emerald-400 font-medium">
+                            🛡️ Premiação garantida pelo Delfos — paga integralmente, independente do valor arrecadado.
+                          </p>
+                        )}
+                        {isFixed && !pool.guaranteed_prize && minToGuarantee > 0 && !isFinished && (
                           <div className="mt-2 text-[0.7rem] text-center space-y-0.5">
                             {fixedFallbackActive ? (
                               <p className="text-amber-700 dark:text-amber-400 font-medium">
