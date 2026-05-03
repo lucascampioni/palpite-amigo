@@ -1083,6 +1083,21 @@ const CreateFootballPool = () => {
                       </Button>
                     </div>
                   )}
+                  {userRole?.isAdmin && paymentMethod === 'in_app' && (
+                    <div className="text-xs space-y-2 bg-primary/10 border border-primary/30 p-3 rounded-md">
+                      <label className="flex items-start gap-2 cursor-pointer">
+                        <Checkbox
+                          checked={waivePlatformFee}
+                          onCheckedChange={(c) => setWaivePlatformFee(!!c)}
+                          className="mt-0.5"
+                        />
+                        <div>
+                          <p className="font-semibold text-primary">🎁 Sem taxa do app (admin)</p>
+                          <p className="text-muted-foreground">Os participantes pagam apenas o valor da entrada — a taxa do Delfos não é cobrada por cima.</p>
+                        </div>
+                      </label>
+                    </div>
+                  )}
                 </div>
               )}
 
