@@ -17,6 +17,11 @@ interface PoolCardProps {
     participant_count?: number;
     is_official?: boolean;
     entry_fee?: number | null;
+    guaranteed_prize?: boolean | null;
+    prize_type?: string | null;
+    first_place_prize?: number | string | null;
+    second_place_prize?: number | string | null;
+    third_place_prize?: number | string | null;
   };
   onClick: () => void;
   isUserParticipating?: boolean;
@@ -177,6 +182,33 @@ const PoolCard = ({ pool, onClick, isUserParticipating = false, hasWonPrize = fa
             <span>{pool.participant_count} participante(s)</span>
           </div>
         )}
+        {(() => {
+          const isFixed = pool.prize_type === 'fixed';
+          const guaranteed = isFixed && pool.guaranteed_prize && pool.status !== 'finished';
+          if (!guaranteed) return null;
+          const p1 = parseFloat((pool.first_place_prize as any) || '0') || 0;
+          const p2 = parseFloat((pool.second_place_prize as any) || '0') || 0;
+          const p3 = parseFloat((pool.third_place_prize as any) || '0') || 0;
+          const total = p1 + p2 + p3;
+          if (total <= 0) return null;
+          return (
+            <div className="relative overflow-hidden rounded-xl border-2 border-secondary/60 bg-gradient-to-br from-secondary/20 via-secondary/10 to-accent/10 p-3 shadow-md">
+              <div className="flex items-center gap-3">
+                <div className="w-11 h-11 rounded-full bg-gradient-to-br from-secondary to-secondary/70 flex items-center justify-center shadow-lg shrink-0">
+                  <Trophy className="w-6 h-6 text-white" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-[10px] uppercase tracking-wider font-bold text-secondary/90">
+                    🛡️ Premiação garantida pelo app
+                  </p>
+                  <p className="text-xl font-extrabold text-foreground leading-tight">
+                    R$ {total.toFixed(2).replace('.', ',')}
+                  </p>
+                </div>
+              </div>
+            </div>
+          );
+        })()}
         {pool.status === "finished" && totalPrize != null && totalPrize > 0 && (
           <div className="flex items-center gap-2 text-sm font-semibold text-secondary bg-secondary/10 p-3 rounded-xl border border-secondary/20">
             <Trophy className="w-5 h-5 text-secondary" />
