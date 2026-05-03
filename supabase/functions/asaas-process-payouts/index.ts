@@ -74,7 +74,19 @@ serve(async (req) => {
       // % calculado em cima da entrada cheia (sem desconto da taxa do app)
       winnerAmounts = prizes.map((p: any) => +(totalCollected * Number(p || 0) / 100).toFixed(2));
     } else {
-      winnerAmounts = prizes.map((p: any) => Number(p || 0));
+      // Valor fixo: regra de proteção. Se o arrecadado não cobrir premiação + 25% de margem,
+      // a premiação vira 80% do arrecadado dividido proporcionalmente entre os lugares.
+      const fixedNumbers = prizes.map((p: any) => Number(p || 0));
+      const totalFixed = fixedNumbers.reduce((s, v) => s + v, 0);
+      const guaranteeThreshold = totalFixed * 1.25;
+      if (totalFixed > 0 && totalCollected < guaranteeThreshold) {
+        const pool80 = totalCollected * 0.8;
+        winnerAmounts = fixedNumbers.map((v) =>
+          totalFixed > 0 ? +((pool80 * v) / totalFixed).toFixed(2) : 0
+        );
+      } else {
+        winnerAmounts = fixedNumbers;
+      }
     }
     const totalToWinners = winnerAmounts.reduce((s, v) => s + v, 0);
     // Organizador recebe o que sobra das ENTRADAS após pagar os vencedores.
