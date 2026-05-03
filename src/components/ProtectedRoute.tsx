@@ -29,7 +29,11 @@ const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       if (!session) {
-        navigate(`/entrar?redirect=${encodeURIComponent(location.pathname)}`);
+        if (event === "SIGNED_OUT") {
+          navigate("/");
+        } else {
+          navigate(`/entrar?redirect=${encodeURIComponent(location.pathname)}`);
+        }
       }
     });
 
