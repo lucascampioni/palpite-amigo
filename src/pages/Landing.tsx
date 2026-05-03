@@ -82,11 +82,14 @@ const Landing = () => {
           <h1 className="text-4xl md:text-6xl font-bold tracking-tight mb-6">
             Delfos – Bolões com seus amigos
           </h1>
-          <p className="text-lg md:text-xl text-muted-foreground max-w-3xl mx-auto mb-10">
-            Participe de bolões com amigos, dê seus palpites e acompanhe o
-            ranking em tempo real — com notificações automáticas para você não
-            perder nada.
+          <p className="text-lg md:text-xl text-muted-foreground max-w-3xl mx-auto mb-6">
+            Crie e participe de bolões com amigos, dê seus palpites e acompanhe
+            o ranking em tempo real — com pagamento automático via PIX e
+            notificações no WhatsApp.
           </p>
+          <div className="inline-flex items-center gap-2 rounded-full bg-primary/10 text-primary text-sm font-medium px-4 py-1.5 mb-8">
+            ✨ Novidade: criação de bolões liberada para todos!
+          </div>
           <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
             <Button size="lg" onClick={() => navigate("/entrar")} className="min-w-44">
               Entrar
