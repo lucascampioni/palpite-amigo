@@ -80,6 +80,8 @@ const FootballRanking = ({ poolId, pool, approvedParticipantsCount, isOwner }: F
   const [currentPage, setCurrentPage] = useState(1);
   const [userPhoneSuffix, setUserPhoneSuffix] = useState<Record<string, string>>({});
   const ITEMS_PER_PAGE = 10;
+  const [predictionsViewMode, setPredictionsViewMode] = useState<'group' | 'chrono'>('chrono');
+  const [isWorldCupPool, setIsWorldCupPool] = useState(false);
 
   useEffect(() => {
     loadRanking();
