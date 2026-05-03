@@ -321,6 +321,19 @@ const CreateFootballPool = () => {
         }
       }
 
+      // Premiação é obrigatória (exceto estabelecimento que usa descrição do prêmio)
+      if (prizeType === 'fixed') {
+        if (!firstPlacePrize || parseFloat(firstPlacePrize) <= 0) {
+          throw new Error("O prêmio do 1º lugar é obrigatório");
+        }
+        if (maxWinners >= 2 && (!secondPlacePrize || parseFloat(secondPlacePrize) <= 0)) {
+          throw new Error("O prêmio do 2º lugar é obrigatório");
+        }
+        if (maxWinners >= 3 && (!thirdPlacePrize || parseFloat(thirdPlacePrize) <= 0)) {
+          throw new Error("O prêmio do 3º lugar é obrigatório");
+        }
+      }
+
       // Validate percentage total
       if (prizeType === 'percentage') {
         if (totalPercentage > 100) {
@@ -621,7 +634,7 @@ const CreateFootballPool = () => {
               )}
 
               <div className="space-y-4">
-                <Label className="text-lg">🏆 Premiação {userRole?.isEstabelecimento ? '*' : '(opcional)'}</Label>
+                <Label className="text-lg">🏆 Premiação *</Label>
 
                 <div className="space-y-2">
                   <Label>Tipo de premiação</Label>
