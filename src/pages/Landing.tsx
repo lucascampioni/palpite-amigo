@@ -67,6 +67,9 @@ const Landing = () => {
             <Button variant="ghost" size="sm" onClick={() => navigate("/entrar")}>
               Entrar
             </Button>
+            <Button size="sm" onClick={() => navigate("/entrar?mode=signup")}>
+              Criar conta
+            </Button>
           </nav>
         </div>
       </header>
