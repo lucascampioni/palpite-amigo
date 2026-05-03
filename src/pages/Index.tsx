@@ -13,6 +13,7 @@ import delfosLogo from "@/assets/delfos-logo.png";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import CommunitiesTab from "@/components/CommunitiesTab";
+import AnnouncementModal from "@/components/AnnouncementModal";
 
 const Index = () => {
   const navigate = useNavigate();
