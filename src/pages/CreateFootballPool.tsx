@@ -84,6 +84,7 @@ const CreateFootballPool = () => {
   const [inlinePixKeyType, setInlinePixKeyType] = useState<string>("");
   const [savingInlinePix, setSavingInlinePix] = useState(false);
   const [guaranteedPrize, setGuaranteedPrize] = useState(false);
+  const [waivePlatformFee, setWaivePlatformFee] = useState(false);
 
   const buildFullAddress = () => {
     const addressParts = [
