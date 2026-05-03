@@ -634,7 +634,7 @@ const CreateFootballPool = () => {
               )}
 
               <div className="space-y-4">
-                <Label className="text-lg">🏆 Premiação {userRole?.isEstabelecimento ? '*' : '(opcional)'}</Label>
+                <Label className="text-lg">🏆 Premiação *</Label>
 
                 <div className="space-y-2">
                   <Label>Tipo de premiação</Label>
