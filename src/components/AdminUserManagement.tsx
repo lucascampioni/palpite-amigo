@@ -208,23 +208,6 @@ const AdminUserManagement = () => {
 
                   <Button
                     size="sm"
-                    variant={user.roles.includes("pool_creator") ? "secondary" : "outline"}
-                    onClick={() => toggleRole(user.id, "pool_creator", user.roles.includes("pool_creator"))}
-                    disabled={actionLoading === `role-${user.id}-pool_creator`}
-                    className="text-xs"
-                  >
-                    {actionLoading === `role-${user.id}-pool_creator` ? (
-                      <Loader2 className="w-3 h-3 animate-spin mr-1" />
-                    ) : user.roles.includes("pool_creator") ? (
-                      <ShieldOff className="w-3 h-3 mr-1" />
-                    ) : (
-                      <Shield className="w-3 h-3 mr-1" />
-                    )}
-                    {user.roles.includes("pool_creator") ? "Remover Organizador" : "Tornar Organizador"}
-                  </Button>
-
-                  <Button
-                    size="sm"
                     variant={user.roles.includes("estabelecimento") ? "secondary" : "outline"}
                     onClick={() => toggleRole(user.id, "estabelecimento", user.roles.includes("estabelecimento"))}
                     disabled={actionLoading === `role-${user.id}-estabelecimento`}
@@ -238,21 +221,6 @@ const AdminUserManagement = () => {
                       <Shield className="w-3 h-3 mr-1" />
                     )}
                     {user.roles.includes("estabelecimento") ? "Remover Estabelecimento" : "Tornar Estabelecimento"}
-                  </Button>
-
-                  <Button
-                    size="sm"
-                    variant={user.roles.includes("in_app_payment") ? "secondary" : "outline"}
-                    onClick={() => toggleRole(user.id, "in_app_payment", user.roles.includes("in_app_payment"))}
-                    disabled={actionLoading === `role-${user.id}-in_app_payment`}
-                    className="text-xs"
-                  >
-                    {actionLoading === `role-${user.id}-in_app_payment` ? (
-                      <Loader2 className="w-3 h-3 animate-spin mr-1" />
-                    ) : (
-                      <Wallet className="w-3 h-3 mr-1" />
-                    )}
-                    {user.roles.includes("in_app_payment") ? "Remover Recebimento no app" : "Habilitar Recebimento no app"}
                   </Button>
 
                   <Button
