@@ -17,6 +17,11 @@ interface PoolCardProps {
     participant_count?: number;
     is_official?: boolean;
     entry_fee?: number | null;
+    guaranteed_prize?: boolean | null;
+    prize_type?: string | null;
+    first_place_prize?: number | string | null;
+    second_place_prize?: number | string | null;
+    third_place_prize?: number | string | null;
   };
   onClick: () => void;
   isUserParticipating?: boolean;
