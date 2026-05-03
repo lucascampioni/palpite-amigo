@@ -436,6 +436,7 @@ const CreateFootballPool = () => {
         estabelecimento_prize_description: prizeType === 'estabelecimento' ? estabelecimentoPrizeDescription.trim() : null,
         estabelecimento_prize_address: prizeType === 'estabelecimento' ? buildFullAddress() : null,
         payment_method: (userRole?.canReceiveInApp && entryFee && parseFloat(entryFee) > 0) ? paymentMethod : 'pix_manual',
+        guaranteed_prize: userRole?.isAdmin && prizeType === 'fixed' ? guaranteedPrize : false,
       } as any])
       .select()
       .single();
