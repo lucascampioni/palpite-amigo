@@ -329,6 +329,16 @@ const CreateFootballPool = () => {
         if (maxWinners >= 3 && (!thirdPlacePrize || parseFloat(thirdPlacePrize) <= 0)) {
           throw new Error("O prêmio do 3º lugar é obrigatório");
         }
+        // 1º > 2º > 3º
+        const p1 = parseFloat(firstPlacePrize) || 0;
+        const p2 = parseFloat(secondPlacePrize) || 0;
+        const p3 = parseFloat(thirdPlacePrize) || 0;
+        if (maxWinners >= 2 && p2 >= p1) {
+          throw new Error("O prêmio do 2º lugar deve ser menor que o do 1º lugar");
+        }
+        if (maxWinners >= 3 && p3 >= p2) {
+          throw new Error("O prêmio do 3º lugar deve ser menor que o do 2º lugar");
+        }
       }
 
       // Validate percentage total
@@ -344,6 +354,15 @@ const CreateFootballPool = () => {
         }
         if (maxWinners >= 3 && (!thirdPlacePrize || parseFloat(thirdPlacePrize) <= 0)) {
           throw new Error("O prêmio do 3º lugar não pode ser 0% no modelo percentual");
+        }
+        const p1 = parseFloat(firstPlacePrize) || 0;
+        const p2 = parseFloat(secondPlacePrize) || 0;
+        const p3 = parseFloat(thirdPlacePrize) || 0;
+        if (maxWinners >= 2 && p2 >= p1) {
+          throw new Error("O percentual do 2º lugar deve ser menor que o do 1º lugar");
+        }
+        if (maxWinners >= 3 && p3 >= p2) {
+          throw new Error("O percentual do 3º lugar deve ser menor que o do 2º lugar");
         }
       }
     } catch (error) {
