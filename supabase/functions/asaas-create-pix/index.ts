@@ -71,7 +71,7 @@ serve(async (req) => {
     // Verify pool + organizer eligibility
     const { data: pool, error: poolError } = await adminClient
       .from("pools")
-      .select("id, title, owner_id, payment_method, entry_fee")
+      .select("id, title, owner_id, payment_method, entry_fee, waive_platform_fee")
       .eq("id", pool_id)
       .maybeSingle();
     if (poolError || !pool) throw new Error("Bolão não encontrado");
