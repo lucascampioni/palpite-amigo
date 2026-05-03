@@ -66,11 +66,22 @@ const CommunityDetail = () => {
     setUserProfile(profile);
     setMemberCount(members?.length || 0);
 
-    // Get all pools by responsible user (active + finished)
+    // Get all owners (responsible + co-owners)
+    const { data: coOwners } = await supabase
+      .from("community_owners")
+      .select("user_id")
+      .eq("community_id", comm.id);
+
+    const ownerIds = Array.from(new Set([
+      comm.responsible_user_id,
+      ...((coOwners || []).map((o: any) => o.user_id)),
+    ]));
+
+    // Get all pools by any of the owners (active + finished)
     const { data: poolsData } = await supabase
       .from("pools")
       .select("*, participants(count)")
-      .eq("owner_id", comm.responsible_user_id)
+      .in("owner_id", ownerIds)
       .in("status", ["active", "finished"])
       .eq("is_private", false)
       .order("created_at", { ascending: false });
