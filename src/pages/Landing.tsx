@@ -75,29 +75,16 @@ const Landing = () => {
       </header>
 
       {/* Hero */}
-      <section className="relative overflow-hidden">
-        <div
-          className="absolute inset-0 pointer-events-none"
-          style={{ background: "var(--gradient-hero)" }}
-          aria-hidden
-        />
-        <div className="absolute inset-0 pointer-events-none bg-[radial-gradient(ellipse_at_top,hsl(var(--primary)/0.25),transparent_60%)]" aria-hidden />
-        <div className="absolute -top-24 -left-24 w-72 h-72 rounded-full bg-primary/20 blur-3xl pointer-events-none" aria-hidden />
-        <div className="absolute -bottom-24 -right-24 w-80 h-80 rounded-full bg-accent/20 blur-3xl pointer-events-none" aria-hidden />
-
-        <div className="relative max-w-6xl mx-auto px-4 py-20 md:py-28 text-center">
-          <div className="inline-flex items-center gap-2 rounded-full border border-primary/30 bg-primary/10 text-primary text-xs sm:text-sm font-medium px-4 py-1.5 mb-6 backdrop-blur-sm">
-            <Sparkles className="w-3.5 h-3.5" />
-            Novidade: criação de bolões liberada para todos
-          </div>
-          <h1 className="text-4xl md:text-6xl font-bold tracking-tight mb-6 bg-gradient-to-br from-foreground via-foreground to-primary bg-clip-text text-transparent">
+      <section className="relative">
+        <div className="max-w-4xl mx-auto px-4 py-24 md:py-32 text-center">
+          <h1 className="text-4xl md:text-6xl font-semibold tracking-tight mb-6">
             Bolões com seus amigos, sem complicação
           </h1>
-          <p className="text-base md:text-xl text-muted-foreground max-w-2xl mx-auto mb-10 leading-relaxed">
+          <p className="text-base md:text-lg text-muted-foreground max-w-xl mx-auto mb-10 leading-relaxed">
             Crie e participe de bolões, dê seus palpites e acompanhe o ranking em tempo real — com pagamento automático via PIX e notificações no WhatsApp.
           </p>
           <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
-            <Button size="lg" onClick={() => navigate("/entrar?mode=signup")} className="min-w-44 shadow-lg shadow-primary/30">
+            <Button size="lg" onClick={() => navigate("/entrar?mode=signup")} className="min-w-44">
               Criar conta grátis
             </Button>
             <Button size="lg" variant="outline" onClick={() => navigate("/entrar")} className="min-w-44">
