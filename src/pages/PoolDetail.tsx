@@ -1265,7 +1265,7 @@ const PoolDetail = () => {
                 const minToGuarantee = isFixed && (pool.entry_fee || 0) > 0 && totalFixed > 0
                   ? Math.ceil((totalFixed * 1.25) / (pool.entry_fee || 1))
                   : 0;
-                const fixedFallbackActive = isFixed && totalFixed > 0 && totalCollected > 0 && totalPredictionSets < minToGuarantee;
+                const fixedFallbackActive = isFixed && !pool.guaranteed_prize && totalFixed > 0 && totalCollected > 0 && totalPredictionSets < minToGuarantee;
                 const calcPrize = (pct: number, idx: number) => {
                   if (isPercentage) return (pct / 100) * totalCollected;
                   if (fixedFallbackActive) {
