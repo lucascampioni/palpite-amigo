@@ -473,6 +473,7 @@ const Index = () => {
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
+      <AnnouncementModal />
       {/* Impersonation banner */}
       {impersonationInfo && (
         <div className="sticky top-0 z-50 bg-destructive text-destructive-foreground px-4 py-2 flex items-center justify-between text-sm">
