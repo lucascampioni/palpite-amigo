@@ -109,7 +109,9 @@ serve(async (req) => {
     const feePercentMinValue = Number(feeMap.delfos_fee_percent_min ?? 0);
 
     let platformFee = 0;
-    if (feeType === "fixed") {
+    if ((pool as any).waive_platform_fee) {
+      platformFee = 0;
+    } else if (feeType === "fixed") {
       platformFee = +(feeFixedValue * numPalpites).toFixed(2);
     } else {
       // Mínimo aplicado por palpite: usa o maior entre (% sobre entrada do palpite) e o mínimo configurado.
