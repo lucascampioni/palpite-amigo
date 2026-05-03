@@ -805,7 +805,7 @@ const FootballPredictionForm = ({ poolId, userId, onSuccess, entryFee, pool, pix
             )}
           </div>
         )}
-        {isInAppPayment && appFee && (appFee.percent > 0 || appFee.fixed > 0) && (
+        {isInAppPayment && !pool?.waive_platform_fee && appFee && (appFee.percent > 0 || appFee.fixed > 0) && appFeePerSet > 0 && (
           <div className="p-3 rounded-lg bg-orange-500/10 border border-orange-500/30 text-xs text-orange-700 dark:text-orange-300 flex gap-2 items-start">
             <Info className="w-4 h-4 flex-shrink-0 mt-0.5" />
             <div className="space-y-1 text-left">
