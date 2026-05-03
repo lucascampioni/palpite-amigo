@@ -77,9 +77,8 @@ serve(async (req) => {
     if (poolError || !pool) throw new Error("Bolão não encontrado");
     if (pool.payment_method !== "in_app") throw new Error("Este bolão não aceita pagamento dentro do app");
 
-    const { data: canReceive } = await adminClient.rpc("can_receive_in_app_payments", { _user_id: pool.owner_id });
-    const { data: ownerIsAdmin } = await adminClient.rpc("has_role", { _user_id: pool.owner_id, _role: "admin" });
-    if (!canReceive && !ownerIsAdmin) throw new Error("Organizador não está habilitado para receber pagamentos no app");
+    // Pagamentos dentro do app estão liberados para bolões `in_app`.
+    // Quem gera o QR é o participante autenticado; não devemos bloquear pelo papel do organizador.
 
     // Verify participants belong to user
     const { data: participants } = await adminClient
