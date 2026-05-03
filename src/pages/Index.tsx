@@ -426,6 +426,7 @@ const Index = () => {
       title: "Logout realizado",
       description: "Até logo!",
     });
+    navigate("/", { replace: true });
   };
 
   // Counts for badges
