@@ -777,6 +777,13 @@ const FootballRanking = ({ poolId, pool, approvedParticipantsCount, isOwner }: F
     }
 
     setParticipantPredictions(prev => ({ ...prev, ...grouped }));
+
+    // Detect World Cup pool from championships
+    const wcCount = allPredictions.filter((p: any) => isWorldCupMatch(p.football_matches?.championship)).length;
+    if (wcCount >= allPredictions.length / 2 && allPredictions.length > 0) {
+      setIsWorldCupPool(true);
+      setPredictionsViewMode(prev => prev === 'chrono' ? 'group' : prev);
+    }
   };
 
   const renderCompactPredictions = (rankingKey: string) => {
