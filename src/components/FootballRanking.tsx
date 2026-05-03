@@ -52,6 +52,7 @@ interface MatchPrediction {
   home_team_crest: string | null;
   away_team_crest: string | null;
   status: string;
+  championship?: string | null;
 }
 
 
