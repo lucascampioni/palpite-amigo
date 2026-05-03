@@ -225,21 +225,6 @@ const AdminUserManagement = () => {
 
                   <Button
                     size="sm"
-                    variant={user.roles.includes("in_app_payment") ? "secondary" : "outline"}
-                    onClick={() => toggleRole(user.id, "in_app_payment", user.roles.includes("in_app_payment"))}
-                    disabled={actionLoading === `role-${user.id}-in_app_payment`}
-                    className="text-xs"
-                  >
-                    {actionLoading === `role-${user.id}-in_app_payment` ? (
-                      <Loader2 className="w-3 h-3 animate-spin mr-1" />
-                    ) : (
-                      <Wallet className="w-3 h-3 mr-1" />
-                    )}
-                    {user.roles.includes("in_app_payment") ? "Remover Recebimento no app" : "Habilitar Recebimento no app"}
-                  </Button>
-
-                  <Button
-                    size="sm"
                     variant="outline"
                     onClick={() => impersonateUser(user.id, user.full_name)}
                     disabled={actionLoading === `impersonate-${user.id}`}
