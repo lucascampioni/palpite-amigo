@@ -192,8 +192,8 @@ const PoolCard = ({ pool, onClick, isUserParticipating = false, hasWonPrize = fa
           const total = p1 + p2 + p3;
           if (total <= 0) return null;
           return (
-            <div className="rounded-xl border border-primary/15 bg-primary/5 p-3">
-              <div className="flex items-center gap-2 mb-1">
+            <div className="rounded-xl border border-primary/15 bg-primary/5 p-3 text-center">
+              <div className="flex items-center justify-center gap-2 mb-1">
                 <Trophy className="w-5 h-5 text-primary shrink-0" />
                 <span className="text-xs font-semibold uppercase tracking-wide text-primary">
                   Premiação garantida
