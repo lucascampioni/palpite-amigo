@@ -54,7 +54,7 @@ const CommunitiesTab = ({ userId }: CommunitiesTabProps) => {
 
       const [{ data: counts }, { data: poolsData }, ...profileResults] = await Promise.all([
         supabase.from("community_members").select("community_id"),
-        supabase.from("pools").select("owner_id").in("status", ["active"]),
+        supabase.from("pools").select("owner_id").in("status", ["active"]).eq("is_private", false),
         ...(responsibleIds.length > 0
           ? [supabase.from("profiles").select("id, full_name").in("id", responsibleIds)]
           : []),
