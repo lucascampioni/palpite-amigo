@@ -680,9 +680,20 @@ const CreateFootballPool = () => {
                     )}
                   </div>
                   {prizeType === 'percentage' && (
-                    <p className="text-xs text-muted-foreground">
-                      O valor do prêmio será calculado automaticamente com base no total arrecadado (nº de participantes × valor de entrada).
-                    </p>
+                    <div className="text-xs text-muted-foreground space-y-1.5 bg-muted/40 p-3 rounded-md border border-border">
+                      <p>
+                        💡 <strong>Como funciona:</strong> você define qual porcentagem do total arrecadado vai para cada vencedor. O valor cresce conforme mais gente entra.
+                      </p>
+                      <p>
+                        📊 <strong>Total arrecadado</strong> = nº de palpites pagos × valor de entrada.
+                      </p>
+                      <p>
+                        🧮 <strong>Exemplo:</strong> entrada R$ 10, 20 palpites pagos = R$ 200 arrecadados. Se o 1º lugar leva 80%, o vencedor recebe R$ 160. O restante (20%) fica com você como organizador.
+                      </p>
+                      <p>
+                        ✅ A soma dos percentuais (vencedores + organizador) é sempre 100% do arrecadado.
+                      </p>
+                    </div>
                   )}
                   {prizeType === 'estabelecimento' && (
                     <p className="text-xs text-muted-foreground">
