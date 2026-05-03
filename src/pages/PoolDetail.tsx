@@ -1105,7 +1105,7 @@ const PoolDetail = () => {
               )}
             </div>
             {pool.description && (
-              <CardDescription className="mt-4 text-sm sm:text-base leading-relaxed text-foreground/80 whitespace-pre-line bg-muted/40 border border-border/50 rounded-xl p-4">
+              <CardDescription className="mt-4 text-sm sm:text-base leading-relaxed text-foreground/80 whitespace-pre-line bg-muted/40 border border-border/50 rounded-xl p-4 text-center">
                 {pool.description}
               </CardDescription>
             )}
