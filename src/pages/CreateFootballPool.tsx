@@ -684,6 +684,38 @@ const CreateFootballPool = () => {
                       </button>
                     )}
                   </div>
+                  {prizeType === 'fixed' && (() => {
+                    const entry = parseFloat(entryFeeValue) || 0;
+                    const totalPrizes =
+                      (parseFloat(firstPlacePrize) || 0) +
+                      (maxWinners >= 2 ? (parseFloat(secondPlacePrize) || 0) : 0) +
+                      (maxWinners >= 3 ? (parseFloat(thirdPlacePrize) || 0) : 0);
+                    const breakeven = entry > 0 && totalPrizes > 0 ? Math.ceil(totalPrizes / entry) : 0;
+                    return (
+                      <div className="text-xs text-muted-foreground space-y-1.5 bg-muted/40 p-3 rounded-md border border-border">
+                        <p>
+                          💡 <strong>Como funciona:</strong> você define um valor fixo em reais para cada vencedor, independente de quantas pessoas entrarem.
+                        </p>
+                        <p>
+                          ⚠️ <strong>Atenção:</strong> você é responsável por pagar o prêmio mesmo se entrarem poucas pessoas. Se entrarem muitas, o lucro fica com você.
+                        </p>
+                        {entry > 0 && totalPrizes > 0 ? (
+                          <p>
+                            📈 Com entrada de R$ {entry.toFixed(2).replace('.', ',')} e premiação total de R$ {totalPrizes.toFixed(2).replace('.', ',')}, você precisa de pelo menos <strong>{breakeven} {breakeven === 1 ? 'palpite pago' : 'palpites pagos'}</strong> para empatar. A partir do {breakeven + 1}º palpite, tudo vira lucro.
+                          </p>
+                        ) : (
+                          <p>
+                            🧮 <strong>Exemplo:</strong> entrada R$ 10, prêmio R$ 100. Você precisa de pelo menos 10 palpites pagos para empatar — a partir do 11º, vira lucro seu.
+                          </p>
+                        )}
+                        {paymentMethod === 'in_app' && ((delfosFeeType === 'percent' && delfosFeePercent > 0) || (delfosFeeType === 'fixed' && delfosFeeFixed > 0)) && (
+                          <p className="text-xs opacity-80">
+                            ℹ️ A taxa do app (10%, mínimo R$ 2,00 por palpite) é cobrada do participante por cima da entrada — não afeta a premiação nem o valor que vai para você.
+                          </p>
+                        )}
+                      </div>
+                    );
+                  })()}
                   {prizeType === 'percentage' && (
                     <div className="text-xs text-muted-foreground space-y-1.5 bg-muted/40 p-3 rounded-md border border-border">
                       <p>
