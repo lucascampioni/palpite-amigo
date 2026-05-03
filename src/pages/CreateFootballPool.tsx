@@ -70,7 +70,7 @@ const CreateFootballPool = () => {
   const [hasWhatsappGroup, setHasWhatsappGroup] = useState(false);
   const [scoringSystem, setScoringSystem] = useState<'standard' | 'exact_only'>('exact_only');
   const [maxWinners, setMaxWinners] = useState<number>(1);
-  const [prizeType, setPrizeType] = useState<'fixed' | 'percentage' | 'estabelecimento'>('fixed');
+  const [prizeType, setPrizeType] = useState<'fixed' | 'percentage' | 'estabelecimento'>('percentage');
   const [estabelecimentoPrizeDescription, setEstabelecimentoPrizeDescription] = useState("");
   const [addressName, setAddressName] = useState("");
   const [addressStreet, setAddressStreet] = useState("");
@@ -662,19 +662,6 @@ const CreateFootballPool = () => {
                     {!userRole?.isEstabelecimento && (
                       <button
                         type="button"
-                        onClick={() => setPrizeType('fixed')}
-                        className={`flex-1 py-2 px-4 rounded-lg border-2 font-semibold transition-colors text-sm ${
-                          prizeType === 'fixed'
-                            ? 'border-primary bg-primary/10 text-primary'
-                            : 'border-muted hover:border-primary/50'
-                        }`}
-                      >
-                        💰 Valor Fixo (R$)
-                      </button>
-                    )}
-                    {!userRole?.isEstabelecimento && (
-                      <button
-                        type="button"
                         onClick={() => setPrizeType('percentage')}
                         className={`flex-1 py-2 px-4 rounded-lg border-2 font-semibold transition-colors text-sm ${
                           prizeType === 'percentage'
@@ -683,6 +670,19 @@ const CreateFootballPool = () => {
                         }`}
                       >
                         📊 % do Arrecadado
+                      </button>
+                    )}
+                    {!userRole?.isEstabelecimento && (
+                      <button
+                        type="button"
+                        onClick={() => setPrizeType('fixed')}
+                        className={`flex-1 py-2 px-4 rounded-lg border-2 font-semibold transition-colors text-sm ${
+                          prizeType === 'fixed'
+                            ? 'border-primary bg-primary/10 text-primary'
+                            : 'border-muted hover:border-primary/50'
+                        }`}
+                      >
+                        💰 Valor Fixo (R$)
                       </button>
                     )}
                     {userRole?.isEstabelecimento && (
@@ -707,45 +707,47 @@ const CreateFootballPool = () => {
                       (maxWinners >= 3 ? (parseFloat(thirdPlacePrize) || 0) : 0);
                     const breakeven = entry > 0 && totalPrizes > 0 ? Math.ceil(totalPrizes / entry) : 0;
                     return (
-                      <div className="text-xs text-muted-foreground space-y-1.5 bg-muted/40 p-3 rounded-md border border-border">
-                        <p>
-                          💡 <strong>Como funciona:</strong> você define um valor fixo em reais para cada vencedor, independente de quantas pessoas entrarem.
-                        </p>
-                        <p>
-                          ⚠️ <strong>Atenção:</strong> você é responsável por pagar o prêmio mesmo se entrarem poucas pessoas. Se entrarem muitas, o lucro fica com você.
-                        </p>
-                        {entry > 0 && totalPrizes > 0 ? (
-                          <p>
-                            📈 Com entrada de R$ {entry.toFixed(2).replace('.', ',')} e premiação total de R$ {totalPrizes.toFixed(2).replace('.', ',')}, você precisa de pelo menos <strong>{breakeven} {breakeven === 1 ? 'palpite pago' : 'palpites pagos'}</strong> para empatar. A partir do {breakeven + 1}º palpite, tudo vira lucro.
-                          </p>
-                        ) : (
-                          <p>
-                            🧮 <strong>Exemplo:</strong> entrada R$ 10, prêmio R$ 100. Você precisa de pelo menos 10 palpites pagos para empatar — a partir do 11º, vira lucro seu.
-                          </p>
-                        )}
-                        {paymentMethod === 'in_app' && ((delfosFeeType === 'percent' && delfosFeePercent > 0) || (delfosFeeType === 'fixed' && delfosFeeFixed > 0)) && (
-                          <p className="text-xs opacity-80">
-                            ℹ️ A taxa do app (10%, mínimo R$ 2,00 por palpite) é cobrada do participante por cima da entrada — não afeta a premiação nem o valor que vai para você.
-                          </p>
-                        )}
-                      </div>
+                      <Collapsible>
+                        <CollapsibleTrigger asChild>
+                          <button type="button" className="flex items-center justify-between w-full text-xs text-muted-foreground bg-muted/40 px-3 py-2 rounded-md border border-border hover:bg-muted/60 transition-colors">
+                            <span>💡 Como funciona o Valor Fixo</span>
+                            <ChevronDown className="w-4 h-4 transition-transform duration-200 [[data-state=open]>&]:rotate-180" />
+                          </button>
+                        </CollapsibleTrigger>
+                        <CollapsibleContent>
+                          <div className="text-xs text-muted-foreground space-y-1.5 bg-muted/40 p-3 rounded-md border border-border mt-1">
+                            <p>Você define um valor fixo em reais para cada vencedor, independente de quantas pessoas entrarem.</p>
+                            <p>⚠️ <strong>Atenção:</strong> você é responsável por pagar o prêmio mesmo se entrarem poucas pessoas. Se entrarem muitas, o lucro fica com você.</p>
+                            {entry > 0 && totalPrizes > 0 ? (
+                              <p>📈 Com entrada de R$ {entry.toFixed(2).replace('.', ',')} e premiação total de R$ {totalPrizes.toFixed(2).replace('.', ',')}, você precisa de pelo menos <strong>{breakeven} {breakeven === 1 ? 'palpite pago' : 'palpites pagos'}</strong> para empatar. A partir do {breakeven + 1}º palpite, tudo vira lucro.</p>
+                            ) : (
+                              <p>🧮 <strong>Exemplo:</strong> entrada R$ 10, prêmio R$ 100. Você precisa de pelo menos 10 palpites pagos para empatar — a partir do 11º, vira lucro seu.</p>
+                            )}
+                            {paymentMethod === 'in_app' && ((delfosFeeType === 'percent' && delfosFeePercent > 0) || (delfosFeeType === 'fixed' && delfosFeeFixed > 0)) && (
+                              <p className="opacity-80">ℹ️ A taxa do app (10%, mínimo R$ 2,00 por palpite) é cobrada do participante por cima da entrada — não afeta a premiação nem o valor que vai para você.</p>
+                            )}
+                          </div>
+                        </CollapsibleContent>
+                      </Collapsible>
                     );
                   })()}
                   {prizeType === 'percentage' && (
-                    <div className="text-xs text-muted-foreground space-y-1.5 bg-muted/40 p-3 rounded-md border border-border">
-                      <p>
-                        💡 <strong>Como funciona:</strong> você define qual porcentagem do total arrecadado vai para cada vencedor. O valor cresce conforme mais gente entra.
-                      </p>
-                      <p>
-                        📊 <strong>Total arrecadado</strong> = nº de palpites pagos × valor de entrada.
-                      </p>
-                      <p>
-                        🧮 <strong>Exemplo:</strong> entrada R$ 10, 20 palpites pagos = R$ 200 arrecadados. Se o 1º lugar leva 80%, o vencedor recebe R$ 160. O restante (20%) fica com você como organizador.
-                      </p>
-                      <p>
-                        ✅ A soma dos percentuais (vencedores + organizador) é sempre 100% do arrecadado.
-                      </p>
-                    </div>
+                    <Collapsible>
+                      <CollapsibleTrigger asChild>
+                        <button type="button" className="flex items-center justify-between w-full text-xs text-muted-foreground bg-muted/40 px-3 py-2 rounded-md border border-border hover:bg-muted/60 transition-colors">
+                          <span>💡 Como funciona o % do Arrecadado</span>
+                          <ChevronDown className="w-4 h-4 transition-transform duration-200 [[data-state=open]>&]:rotate-180" />
+                        </button>
+                      </CollapsibleTrigger>
+                      <CollapsibleContent>
+                        <div className="text-xs text-muted-foreground space-y-1.5 bg-muted/40 p-3 rounded-md border border-border mt-1">
+                          <p>Você define qual porcentagem do total arrecadado vai para cada vencedor. O valor cresce conforme mais gente entra.</p>
+                          <p>📊 <strong>Total arrecadado</strong> = nº de palpites pagos × valor de entrada.</p>
+                          <p>🧮 <strong>Exemplo:</strong> entrada R$ 10, 20 palpites pagos = R$ 200 arrecadados. Se o 1º lugar leva 80%, o vencedor recebe R$ 160. O restante (20%) fica com você como organizador.</p>
+                          <p>✅ A soma dos percentuais (vencedores + organizador) é sempre 100% do arrecadado.</p>
+                        </div>
+                      </CollapsibleContent>
+                    </Collapsible>
                   )}
                   {prizeType === 'estabelecimento' && (
                     <p className="text-xs text-muted-foreground">
