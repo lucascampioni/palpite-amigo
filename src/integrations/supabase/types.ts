@@ -657,6 +657,7 @@ export type Database = {
           tiebreaker_method: string | null
           title: string
           updated_at: string
+          waive_platform_fee: boolean
           winner_id: string | null
         }
         Insert: {
@@ -696,6 +697,7 @@ export type Database = {
           tiebreaker_method?: string | null
           title: string
           updated_at?: string
+          waive_platform_fee?: boolean
           winner_id?: string | null
         }
         Update: {
@@ -735,6 +737,7 @@ export type Database = {
           tiebreaker_method?: string | null
           title?: string
           updated_at?: string
+          waive_platform_fee?: boolean
           winner_id?: string | null
         }
         Relationships: [
