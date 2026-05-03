@@ -202,15 +202,11 @@ const CreateFootballPool = () => {
     })();
   }, []);
 
-  // Non-admin pool creators default to percentage prize type
+  // Estabelecimento creators are forced to estabelecimento prize type
   useEffect(() => {
-    if (!isLoadingRole && userRole?.canCreatePools && !userRole?.isAdmin) {
-      if (userRole?.isEstabelecimento) {
-        setPrizeType('estabelecimento');
-        setScoringSystem('standard');
-      } else {
-        setPrizeType('percentage');
-      }
+    if (!isLoadingRole && userRole?.canCreatePools && userRole?.isEstabelecimento) {
+      setPrizeType('estabelecimento');
+      setScoringSystem('standard');
     }
   }, [isLoadingRole, userRole]);
   const [showGESelector, setShowGESelector] = useState(false);
