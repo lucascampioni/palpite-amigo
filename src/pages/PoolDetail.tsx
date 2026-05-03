@@ -1104,7 +1104,11 @@ const PoolDetail = () => {
                 </div>
               )}
             </div>
-            <CardDescription className="text-sm sm:text-base mt-3">{pool.description}</CardDescription>
+            {pool.description && (
+              <CardDescription className="mt-4 text-sm sm:text-base leading-relaxed text-foreground/80 whitespace-pre-line bg-muted/40 border border-border/50 rounded-xl p-4">
+                {pool.description}
+              </CardDescription>
+            )}
           </CardHeader>
           <CardContent className="space-y-6">
             {/* Winner Display - hidden from rejected participants */}
