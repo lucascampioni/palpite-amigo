@@ -27,7 +27,8 @@ export const useUserRole = () => {
       }
 
       const roles = data?.map(r => r.role) || [];
-      const canReceiveInApp = roles.includes("in_app_payment" as any);
+      // Plataforma agora libera criação de bolões e pagamento automático para todos
+      const canReceiveInApp = true;
 
       if (isAppAdmin) {
         return { isAdmin: true, isPoolCreator: false, isEstabelecimento: false, canReceiveInApp, canCreatePools: true, role: "admin" };
@@ -42,7 +43,7 @@ export const useUserRole = () => {
         isPoolCreator,
         isEstabelecimento,
         canReceiveInApp,
-        canCreatePools: isAdmin || isPoolCreator || isEstabelecimento,
+        canCreatePools: true,
         role: isAdmin ? "admin" : isPoolCreator ? "pool_creator" : isEstabelecimento ? "estabelecimento" : (roles[0] || null),
       };
     },

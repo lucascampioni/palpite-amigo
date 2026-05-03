@@ -29,9 +29,9 @@ export default function Privacy() {
                 Coletamos apenas as informações necessárias para o funcionamento dos bolões, incluindo:
               </p>
               <ul className="list-disc pl-6 text-muted-foreground space-y-1">
-                <li>Nome de usuário e e-mail para autenticação</li>
-                <li>Chaves PIX para processamento de pagamentos dos prêmios</li>
-                <li>Comprovantes de pagamento para validação de participação</li>
+                <li>Nome de usuário, e-mail e telefone para autenticação e comunicação</li>
+                <li>Chaves PIX para repasse automático dos valores de entrada e dos prêmios</li>
+                <li>Dados de transações de pagamento processadas pelo provedor PIX integrado ao app</li>
                 <li>Palpites e previsões dos jogos</li>
               </ul>
             </section>

@@ -72,10 +72,14 @@ export default function Terms() {
                 4. Bolões e pagamentos
               </h2>
               <p>
-                Os valores de entrada e premiação são definidos pelos próprios
-                organizadores. O Delfos atua como ferramenta de gestão e não se
-                responsabiliza pela transferência financeira entre participantes e
-                organizadores, salvo quando explicitamente indicado.
+                Qualquer usuário cadastrado pode criar bolões no Delfos. Os
+                valores de entrada e premiação são definidos pelos próprios
+                organizadores. Todas as inscrições são processadas via
+                pagamento automático por PIX dentro do app, com confirmação
+                imediata da participação. O repasse dos prêmios aos
+                vencedores e do valor de entrada ao organizador é realizado
+                automaticamente pela plataforma, conforme as regras de cada
+                bolão e a taxa de serviço informada no momento da criação.
               </p>
             </section>
 
