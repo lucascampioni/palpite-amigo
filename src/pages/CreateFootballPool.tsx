@@ -711,7 +711,22 @@ const CreateFootballPool = () => {
                     const minToGuarantee = entry > 0 && totalPrizes > 0 ? Math.ceil((totalPrizes * 1.25) / entry) : 0;
                     return (
                       <>
-                        {entry > 0 && totalPrizes > 0 && (
+                        {userRole?.isAdmin && (
+                          <div className="text-xs space-y-2 bg-primary/10 border border-primary/30 p-3 rounded-md mt-1">
+                            <label className="flex items-start gap-2 cursor-pointer">
+                              <Checkbox
+                                checked={guaranteedPrize}
+                                onCheckedChange={(c) => setGuaranteedPrize(!!c)}
+                                className="mt-0.5"
+                              />
+                              <div>
+                                <p className="font-semibold text-primary">🛡️ Premiação garantida pelo app (admin)</p>
+                                <p className="text-muted-foreground">Os prêmios fixos são pagos integralmente pelo Delfos, independente do valor arrecadado. A regra dos 80% e o mínimo de palpites não se aplicam.</p>
+                              </div>
+                            </label>
+                          </div>
+                        )}
+                        {entry > 0 && totalPrizes > 0 && !guaranteedPrize && (
                           <div className="text-xs space-y-1.5 bg-amber-500/10 border border-amber-500/30 p-3 rounded-md mt-1">
                             <p className="font-semibold text-amber-700 dark:text-amber-400">⚠️ Regra de proteção do Valor Fixo</p>
                             <p>Para garantir a premiação cheia de <strong>R$ {totalPrizes.toFixed(2).replace('.', ',')}</strong>, o bolão precisa de pelo menos <strong>{minToGuarantee} palpites pagos</strong> (premiação + 25% de margem).</p>
