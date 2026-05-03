@@ -105,17 +105,18 @@ const Landing = () => {
             <h2 className="text-3xl md:text-4xl font-bold mb-4">Sobre o Delfos</h2>
             <p className="text-muted-foreground max-w-2xl mx-auto">
               O Delfos é o jeito mais fácil de viver a emoção dos jogos junto
-              com a galera: entre em bolões com amigos, dê seus palpites e
-              dispute o topo do ranking.
+              com a galera: crie seu próprio bolão, entre nos bolões dos
+              amigos e dispute o topo do ranking — tudo com pagamento
+              automático via PIX.
             </p>
           </div>
           <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-4">
             {[
               {
                 icon: Users,
-                title: "Bolões com amigos",
+                title: "Crie e participe",
                 desc:
-                  "Participe de bolões privados com sua turma ou entre em comunidades públicas para disputar com mais gente.",
+                  "Agora qualquer pessoa pode criar bolões no Delfos. Monte o seu, convide a turma ou entre em bolões públicos da comunidade.",
               },
               {
                 icon: Trophy,
@@ -125,9 +126,9 @@ const Landing = () => {
               },
               {
                 icon: CheckCircle2,
-                title: "Premiação justa",
+                title: "Pagamento automático",
                 desc:
-                  "Apuração automática dos pontos e regras claras de desempate para definir os ganhadores sem dor de cabeça.",
+                  "Todos os bolões funcionam com PIX automático no app: inscrição confirmada na hora e repasse de prêmios feito por nós.",
               },
               {
                 icon: Bell,
