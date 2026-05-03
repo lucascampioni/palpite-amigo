@@ -250,6 +250,11 @@ const FootballPredictionForm = ({ poolId, userId, onSuccess, entryFee, pool, pix
   }, [isEstabelecimento, matches, poolId, userId]);
 
   const proceedToDisclaimer = () => {
+    // When payment is handled in-app, no disclaimer is needed
+    if (isInAppPayment || !hasEntryFee) {
+      handleConfirmSubmit();
+      return;
+    }
     setDisclaimerAccepted(false);
     setShowDisclaimerDialog(true);
   };
