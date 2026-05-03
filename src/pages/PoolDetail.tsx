@@ -1256,20 +1256,37 @@ const PoolDetail = () => {
                 const totalPredictionSets = rankingData.length > 0 ? rankingData.length : participants.filter(p => p.status === 'approved').length;
                 const totalCollected = (pool.entry_fee || 0) * totalPredictionSets;
                 const isPercentage = pool.prize_type === 'percentage';
-                const calcPrize = (pct: number) => isPercentage ? (pct / 100) * totalCollected : pct;
+                const isFixed = pool.prize_type === 'fixed';
+                const fixedPrizes: number[] = [];
+                if (pool.first_place_prize) fixedPrizes.push(parseFloat(pool.first_place_prize));
+                if (pool.second_place_prize) fixedPrizes.push(parseFloat(pool.second_place_prize));
+                if (pool.third_place_prize) fixedPrizes.push(parseFloat(pool.third_place_prize));
+                const totalFixed = fixedPrizes.reduce((s, v) => s + v, 0);
+                const minToGuarantee = isFixed && (pool.entry_fee || 0) > 0 && totalFixed > 0
+                  ? Math.ceil((totalFixed * 1.25) / (pool.entry_fee || 1))
+                  : 0;
+                const fixedFallbackActive = isFixed && totalFixed > 0 && totalCollected > 0 && totalPredictionSets < minToGuarantee;
+                const calcPrize = (pct: number, idx: number) => {
+                  if (isPercentage) return (pct / 100) * totalCollected;
+                  if (fixedFallbackActive) {
+                    const proportion = totalFixed > 0 ? fixedPrizes[idx] / totalFixed : 0;
+                    return totalCollected * 0.8 * proportion;
+                  }
+                  return pct;
+                };
                 const formatPrize = (val: number) => `R$ ${val.toFixed(2).replace('.', ',')}`;
                 const items: { emoji: string; val: string }[] = [];
                 if (pool.first_place_prize) {
                   const pct = parseFloat(pool.first_place_prize);
-                  items.push({ emoji: '🥇', val: formatPrize(isPercentage ? calcPrize(pct) : pct) });
+                  items.push({ emoji: '🥇', val: formatPrize(calcPrize(pct, 0)) });
                 }
                 if (pool.second_place_prize) {
                   const pct = parseFloat(pool.second_place_prize);
-                  items.push({ emoji: '🥈', val: formatPrize(isPercentage ? calcPrize(pct) : pct) });
+                  items.push({ emoji: '🥈', val: formatPrize(calcPrize(pct, 1)) });
                 }
                 if (pool.third_place_prize) {
                   const pct = parseFloat(pool.third_place_prize);
-                  items.push({ emoji: '🥉', val: formatPrize(isPercentage ? calcPrize(pct) : pct) });
+                  items.push({ emoji: '🥉', val: formatPrize(calcPrize(pct, 2)) });
                 }
                 const isFinished = pool.status === 'finished';
                 const showPercentageOnly = isPercentage && !isFinished && !isPastDeadline;
@@ -1337,6 +1354,22 @@ const PoolDetail = () => {
                             </p>
                           );
                         })()}
+                        {isFixed && minToGuarantee > 0 && !isFinished && (
+                          <div className="mt-2 text-[0.7rem] text-center space-y-0.5">
+                            {fixedFallbackActive ? (
+                              <p className="text-amber-700 dark:text-amber-400 font-medium">
+                                ⚠️ Faltam {minToGuarantee - totalPredictionSets} palpite(s) para garantir a premiação cheia (R$ {totalFixed.toFixed(2).replace('.', ',')}). Enquanto isso, premiação = 80% do arrecadado.
+                              </p>
+                            ) : (
+                              <p className="text-emerald-700 dark:text-emerald-400 font-medium">
+                                ✅ Premiação fixa garantida ({totalPredictionSets}/{minToGuarantee} palpites mínimos atingidos).
+                              </p>
+                            )}
+                            <p className="text-muted-foreground">
+                              Regra: se &lt; {minToGuarantee} palpites pagos, premiação vira 80% do arrecadado, proporcional aos lugares.
+                            </p>
+                          </div>
+                        )}
                       </>
                     )}
                   </div>

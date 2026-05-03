@@ -706,29 +706,44 @@ const CreateFootballPool = () => {
                       (maxWinners >= 2 ? (parseFloat(secondPlacePrize) || 0) : 0) +
                       (maxWinners >= 3 ? (parseFloat(thirdPlacePrize) || 0) : 0);
                     const breakeven = entry > 0 && totalPrizes > 0 ? Math.ceil(totalPrizes / entry) : 0;
+                    const minToGuarantee = entry > 0 && totalPrizes > 0 ? Math.ceil((totalPrizes * 1.25) / entry) : 0;
                     return (
-                      <Collapsible>
-                        <CollapsibleTrigger asChild>
-                          <button type="button" className="flex items-center justify-between w-full text-xs text-muted-foreground bg-muted/40 px-3 py-2 rounded-md border border-border hover:bg-muted/60 transition-colors">
-                            <span>💡 Como funciona o Valor Fixo</span>
-                            <ChevronDown className="w-4 h-4 transition-transform duration-200 [[data-state=open]>&]:rotate-180" />
-                          </button>
-                        </CollapsibleTrigger>
-                        <CollapsibleContent>
-                          <div className="text-xs text-muted-foreground space-y-1.5 bg-muted/40 p-3 rounded-md border border-border mt-1">
-                            <p>Você define um valor fixo em reais para cada vencedor, independente de quantas pessoas entrarem.</p>
-                            <p>⚠️ <strong>Atenção:</strong> você é responsável por pagar o prêmio mesmo se entrarem poucas pessoas. Se entrarem muitas, o lucro fica com você.</p>
-                            {entry > 0 && totalPrizes > 0 ? (
-                              <p>📈 Com entrada de R$ {entry.toFixed(2).replace('.', ',')} e premiação total de R$ {totalPrizes.toFixed(2).replace('.', ',')}, você precisa de pelo menos <strong>{breakeven} {breakeven === 1 ? 'palpite pago' : 'palpites pagos'}</strong> para empatar. A partir do {breakeven + 1}º palpite, tudo vira lucro.</p>
-                            ) : (
-                              <p>🧮 <strong>Exemplo:</strong> entrada R$ 10, prêmio R$ 100. Você precisa de pelo menos 10 palpites pagos para empatar — a partir do 11º, vira lucro seu.</p>
-                            )}
-                            {paymentMethod === 'in_app' && ((delfosFeeType === 'percent' && delfosFeePercent > 0) || (delfosFeeType === 'fixed' && delfosFeeFixed > 0)) && (
-                              <p className="opacity-80">ℹ️ A taxa do app (10%, mínimo R$ 2,00 por palpite) é cobrada do participante por cima da entrada — não afeta a premiação nem o valor que vai para você.</p>
-                            )}
+                      <>
+                        {entry > 0 && totalPrizes > 0 && (
+                          <div className="text-xs space-y-1.5 bg-amber-500/10 border border-amber-500/30 p-3 rounded-md mt-1">
+                            <p className="font-semibold text-amber-700 dark:text-amber-400">⚠️ Regra de proteção do Valor Fixo</p>
+                            <p>Para garantir a premiação cheia de <strong>R$ {totalPrizes.toFixed(2).replace('.', ',')}</strong>, o bolão precisa de pelo menos <strong>{minToGuarantee} palpites pagos</strong> (premiação + 25% de margem).</p>
+                            <p>Se entrarem <strong>menos de {minToGuarantee} palpites</strong>, a premiação passa automaticamente a ser <strong>80% do valor arrecadado</strong>, dividido entre os vencedores na mesma proporção definida.</p>
                           </div>
-                        </CollapsibleContent>
-                      </Collapsible>
+                        )}
+                        <Collapsible>
+                          <CollapsibleTrigger asChild>
+                            <button type="button" className="flex items-center justify-between w-full text-xs text-muted-foreground bg-muted/40 px-3 py-2 rounded-md border border-border hover:bg-muted/60 transition-colors">
+                              <span>💡 Como funciona o Valor Fixo</span>
+                              <ChevronDown className="w-4 h-4 transition-transform duration-200 [[data-state=open]>&]:rotate-180" />
+                            </button>
+                          </CollapsibleTrigger>
+                          <CollapsibleContent>
+                            <div className="text-xs text-muted-foreground space-y-1.5 bg-muted/40 p-3 rounded-md border border-border mt-1">
+                              <p>Você define um valor fixo em reais para cada vencedor, independente de quantas pessoas entrarem — <strong>desde que o bolão atinja o mínimo de palpites necessários</strong>.</p>
+                              <p>🛡️ <strong>Proteção automática:</strong> se o arrecadado não cobrir a premiação + 25% de margem, a premiação vira <strong>80% do arrecadado</strong> (proporcional aos lugares). Assim ninguém sai no prejuízo.</p>
+                              {entry > 0 && totalPrizes > 0 ? (
+                                <>
+                                  <p>📈 Com entrada de R$ {entry.toFixed(2).replace('.', ',')} e premiação total de R$ {totalPrizes.toFixed(2).replace('.', ',')}:</p>
+                                  <p>• <strong>{minToGuarantee}+ palpites pagos</strong> → premiação fixa garantida (R$ {totalPrizes.toFixed(2).replace('.', ',')}).</p>
+                                  <p>• <strong>Menos de {minToGuarantee} palpites</strong> → premiação vira 80% do arrecadado.</p>
+                                  <p>• <strong>{breakeven}+ palpites</strong> → você empata os custos. Acima disso, vira lucro seu.</p>
+                                </>
+                              ) : (
+                                <p>🧮 <strong>Exemplo:</strong> entrada R$ 10, prêmio R$ 100. Mínimo para garantir prêmio cheio = 13 palpites (100 + 25% ÷ 10). Com menos que isso, premiação = 80% do arrecadado.</p>
+                              )}
+                              {paymentMethod === 'in_app' && ((delfosFeeType === 'percent' && delfosFeePercent > 0) || (delfosFeeType === 'fixed' && delfosFeeFixed > 0)) && (
+                                <p className="opacity-80">ℹ️ A taxa do app (10%, mínimo R$ 2,00 por palpite) é cobrada do participante por cima da entrada — não afeta a premiação nem o valor que vai para você.</p>
+                              )}
+                            </div>
+                          </CollapsibleContent>
+                        </Collapsible>
+                      </>
                     );
                   })()}
                   {prizeType === 'percentage' && (
