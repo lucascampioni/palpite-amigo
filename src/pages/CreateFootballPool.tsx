@@ -614,6 +614,8 @@ const CreateFootballPool = () => {
                       step="0.01"
                       min="0"
                       placeholder="Ex: 10.00"
+                      value={entryFeeValue}
+                      onChange={(e) => setEntryFeeValue(e.target.value)}
                       required={!userRole?.isAdmin}
                     />
                   </div>
