@@ -659,7 +659,8 @@ const FootballRanking = ({ poolId, pool, approvedParticipantsCount, isOwner }: F
           match_date,
           home_team_crest,
           away_team_crest,
-          status
+          status,
+          championship
         )
       `)
       .eq("participant_id", participantId)
@@ -680,6 +681,7 @@ const FootballRanking = ({ poolId, pool, approvedParticipantsCount, isOwner }: F
         home_team_crest: p.football_matches.home_team_crest,
         away_team_crest: p.football_matches.away_team_crest,
         status: p.football_matches.status,
+        championship: p.football_matches.championship,
       }));
 
       setParticipantPredictions(prev => ({
