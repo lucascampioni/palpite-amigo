@@ -84,6 +84,7 @@ const CreateFootballPool = () => {
   const [inlinePixKeyType, setInlinePixKeyType] = useState<string>("");
   const [savingInlinePix, setSavingInlinePix] = useState(false);
   const [guaranteedPrize, setGuaranteedPrize] = useState(false);
+  const [waivePlatformFee, setWaivePlatformFee] = useState(false);
 
   const buildFullAddress = () => {
     const addressParts = [
@@ -437,6 +438,7 @@ const CreateFootballPool = () => {
         estabelecimento_prize_address: prizeType === 'estabelecimento' ? buildFullAddress() : null,
         payment_method: (userRole?.canReceiveInApp && entryFee && parseFloat(entryFee) > 0) ? paymentMethod : 'pix_manual',
         guaranteed_prize: userRole?.isAdmin && prizeType === 'fixed' ? guaranteedPrize : false,
+        waive_platform_fee: userRole?.isAdmin ? waivePlatformFee : false,
       } as any])
       .select()
       .single();
@@ -1079,6 +1081,21 @@ const CreateFootballPool = () => {
                       >
                         {savingInlinePix ? "Salvando..." : "Salvar chave PIX"}
                       </Button>
+                    </div>
+                  )}
+                  {userRole?.isAdmin && paymentMethod === 'in_app' && (
+                    <div className="text-xs space-y-2 bg-primary/10 border border-primary/30 p-3 rounded-md">
+                      <label className="flex items-start gap-2 cursor-pointer">
+                        <Checkbox
+                          checked={waivePlatformFee}
+                          onCheckedChange={(c) => setWaivePlatformFee(!!c)}
+                          className="mt-0.5"
+                        />
+                        <div>
+                          <p className="font-semibold text-primary">🎁 Sem taxa do app (admin)</p>
+                          <p className="text-muted-foreground">Os participantes pagam apenas o valor da entrada — a taxa do Delfos não é cobrada por cima.</p>
+                        </div>
+                      </label>
                     </div>
                   )}
                 </div>

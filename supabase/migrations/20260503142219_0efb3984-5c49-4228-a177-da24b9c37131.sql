@@ -1,0 +1,1 @@
+ALTER TABLE public.pools ADD COLUMN IF NOT EXISTS waive_platform_fee boolean NOT NULL DEFAULT false;

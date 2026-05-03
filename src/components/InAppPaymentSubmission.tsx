@@ -53,6 +53,7 @@ export const InAppPaymentSubmission = ({ participantId, participantIds, poolId, 
   const [platformFeeType, setPlatformFeeType] = useState<"percent" | "fixed">("percent");
   const [autoTriggered, setAutoTriggered] = useState(false);
   const [txLoaded, setTxLoaded] = useState(false);
+  const [waivePlatformFee, setWaivePlatformFee] = useState(false);
 
   // Load app fee config from platform settings
   useEffect(() => {
@@ -70,20 +71,32 @@ export const InAppPaymentSubmission = ({ participantId, participantIds, poolId, 
     })();
   }, []);
 
+  // Fetch waive_platform_fee flag for this pool
+  useEffect(() => {
+    (async () => {
+      const { data } = await supabase
+        .from("pools")
+        .select("waive_platform_fee")
+        .eq("id", poolId)
+        .maybeSingle();
+      setWaivePlatformFee(!!(data as any)?.waive_platform_fee);
+    })();
+  }, [poolId]);
+
   // entryFee aqui é a entrada total (entryFee_unitário × nº palpites).
   // Para taxa fixa precisamos saber o nº de palpites desta cobrança.
   const numPalpites = Math.max(1, ids.length);
   const entryPerPalpite = entryFee / numPalpites;
-  const platformFee = platformFeeType === "fixed"
+  const platformFee = waivePlatformFee ? 0 : (platformFeeType === "fixed"
     ? +(platformFeeFixed * numPalpites).toFixed(2)
-    : +(Math.max(+(entryPerPalpite * platformFeePercent / 100).toFixed(2), platformFeePercentMin) * numPalpites).toFixed(2);
+    : +(Math.max(+(entryPerPalpite * platformFeePercent / 100).toFixed(2), platformFeePercentMin) * numPalpites).toFixed(2));
   const totalToPay = +(entryFee + platformFee).toFixed(2);
   const fmtBRL = (n: number) => `R$ ${n.toFixed(2).replace(".", ",")}`;
   const feePerPalpite = numPalpites > 0 ? +(platformFee / numPalpites).toFixed(2) : 0;
   const feeLabel = numPalpites > 1
     ? `Taxa do app (${fmtBRL(feePerPalpite)} × ${numPalpites} palpites)`
     : `Taxa do app (${fmtBRL(feePerPalpite)} por palpite)`;
-  const showFee = (platformFeeType === "fixed" && platformFeeFixed > 0) || (platformFeeType === "percent" && (platformFeePercent > 0 || platformFeePercentMin > 0));
+  const showFee = !waivePlatformFee && ((platformFeeType === "fixed" && platformFeeFixed > 0) || (platformFeeType === "percent" && (platformFeePercent > 0 || platformFeePercentMin > 0)));
 
   const cancelPix = async () => {
     if (!tx) return;
