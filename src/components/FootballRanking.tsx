@@ -733,7 +733,8 @@ const FootballRanking = ({ poolId, pool, approvedParticipantsCount, isOwner }: F
             match_date,
             home_team_crest,
             away_team_crest,
-            status
+            status,
+            championship
           )
         `)
         .in("participant_id", participantIds)
