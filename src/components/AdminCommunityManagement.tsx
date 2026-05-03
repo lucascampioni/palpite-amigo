@@ -1,12 +1,14 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Trash2, Users, Pencil, X, Check, ChevronUp, Bell } from "lucide-react";
+import { Plus, Trash2, Users, Pencil, X, Check, ChevronUp, Bell, Search } from "lucide-react";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Badge } from "@/components/ui/badge";
 
 interface Props {
   onRefresh: () => void;
@@ -15,14 +17,17 @@ interface Props {
 const AdminCommunityManagement = ({ onRefresh }: Props) => {
   const { toast } = useToast();
   const [communities, setCommunities] = useState<any[]>([]);
-  const [eligibleUsers, setEligibleUsers] = useState<any[]>([]);
+  const [allUsers, setAllUsers] = useState<any[]>([]);
+  const [communityOwners, setCommunityOwners] = useState<Record<string, string[]>>({});
   const [newName, setNewName] = useState("");
   const [newDescription, setNewDescription] = useState("");
-  const [newResponsibleId, setNewResponsibleId] = useState("");
+  const [newOwnerIds, setNewOwnerIds] = useState<string[]>([]);
   const [newDisplayName, setNewDisplayName] = useState("");
+  const [newOwnerSearch, setNewOwnerSearch] = useState("");
   const [loading, setLoading] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [editForm, setEditForm] = useState({ name: "", description: "", responsible_user_id: "", display_responsible_name: "" });
+  const [editForm, setEditForm] = useState({ name: "", description: "", owner_ids: [] as string[], display_responsible_name: "" });
+  const [editOwnerSearch, setEditOwnerSearch] = useState("");
   const [saving, setSaving] = useState(false);
   const [expandedMembers, setExpandedMembers] = useState<string | null>(null);
   const [membersData, setMembersData] = useState<Record<string, any[]>>({});
@@ -40,57 +45,109 @@ const AdminCommunityManagement = ({ onRefresh }: Props) => {
       .order("created_at", { ascending: true });
     setCommunities(comms || []);
 
-    const { data: roles } = await supabase
-      .from("user_roles")
-      .select("user_id, role")
-      .in("role", ["admin", "pool_creator"]);
+    // Load ALL users from profiles
+    const { data: profiles } = await supabase
+      .from("profiles")
+      .select("id, full_name, phone")
+      .order("full_name", { ascending: true })
+      .range(0, 9999);
+    setAllUsers(profiles || []);
 
-    if (roles && roles.length > 0) {
-      const userIds = [...new Set(roles.map(r => r.user_id))];
-      const { data: profiles } = await supabase
-        .from("profiles")
-        .select("id, full_name")
-        .in("id", userIds);
-      setEligibleUsers(profiles || []);
+    // Load extra owners per community
+    const { data: extraOwners } = await supabase
+      .from("community_owners")
+      .select("community_id, user_id");
+
+    const ownersMap: Record<string, string[]> = {};
+    (comms || []).forEach((c: any) => {
+      ownersMap[c.id] = c.responsible_user_id ? [c.responsible_user_id] : [];
+    });
+    (extraOwners || []).forEach((o: any) => {
+      if (!ownersMap[o.community_id]) ownersMap[o.community_id] = [];
+      if (!ownersMap[o.community_id].includes(o.user_id)) {
+        ownersMap[o.community_id].push(o.user_id);
+      }
+    });
+    setCommunityOwners(ownersMap);
+  };
+
+  const toggleNewOwner = (userId: string) => {
+    setNewOwnerIds(prev => prev.includes(userId) ? prev.filter(id => id !== userId) : [...prev, userId]);
+  };
+
+  const toggleEditOwner = (userId: string) => {
+    setEditForm(f => ({
+      ...f,
+      owner_ids: f.owner_ids.includes(userId) ? f.owner_ids.filter(id => id !== userId) : [...f.owner_ids, userId],
+    }));
+  };
+
+  const filteredNewUsers = useMemo(() => {
+    const q = newOwnerSearch.trim().toLowerCase();
+    if (!q) return allUsers;
+    return allUsers.filter(u => (u.full_name || "").toLowerCase().includes(q) || (u.phone || "").includes(q));
+  }, [allUsers, newOwnerSearch]);
+
+  const filteredEditUsers = useMemo(() => {
+    const q = editOwnerSearch.trim().toLowerCase();
+    if (!q) return allUsers;
+    return allUsers.filter(u => (u.full_name || "").toLowerCase().includes(q) || (u.phone || "").includes(q));
+  }, [allUsers, editOwnerSearch]);
+
+  const persistOwners = async (communityId: string, ownerIds: string[]) => {
+    const primary = ownerIds[0];
+    if (primary) {
+      await supabase.from("communities").update({ responsible_user_id: primary }).eq("id", communityId);
+    }
+    // Reset extras
+    await supabase.from("community_owners").delete().eq("community_id", communityId);
+    const extras = ownerIds.slice(1);
+    if (extras.length > 0) {
+      await supabase.from("community_owners").insert(extras.map(uid => ({ community_id: communityId, user_id: uid })));
     }
   };
 
   const handleCreate = async () => {
-    if (!newName.trim() || !newResponsibleId) {
-      toast({ title: "Preencha o nome e selecione o responsável", variant: "destructive" });
+    if (!newName.trim() || newOwnerIds.length === 0) {
+      toast({ title: "Preencha o nome e selecione ao menos um responsável", variant: "destructive" });
       return;
     }
 
     setLoading(true);
     const { data: { user } } = await supabase.auth.getUser();
 
-    const { error } = await supabase.from("communities").insert({
+    const { data: created, error } = await supabase.from("communities").insert({
       name: newName.trim(),
       description: newDescription.trim() || null,
-      responsible_user_id: newResponsibleId,
+      responsible_user_id: newOwnerIds[0],
       display_responsible_name: newDisplayName.trim() || null,
       created_by: user!.id,
-    });
+    }).select("id").single();
 
-    setLoading(false);
-
-    if (error) {
-      toast({ title: "Erro ao criar comunidade", description: error.message, variant: "destructive" });
+    if (error || !created) {
+      setLoading(false);
+      toast({ title: "Erro ao criar comunidade", description: error?.message, variant: "destructive" });
       return;
     }
 
+    const extras = newOwnerIds.slice(1);
+    if (extras.length > 0) {
+      await supabase.from("community_owners").insert(extras.map(uid => ({ community_id: created.id, user_id: uid })));
+    }
+
+    setLoading(false);
     toast({ title: "Comunidade criada! 🎉" });
     setNewName("");
     setNewDescription("");
-    setNewResponsibleId("");
+    setNewOwnerIds([]);
     setNewDisplayName("");
+    setNewOwnerSearch("");
     loadData();
     onRefresh();
   };
 
   const handleDelete = async (id: string, name: string) => {
     if (!confirm(`Tem certeza que deseja excluir a comunidade "${name}"?`)) return;
-
     const { error } = await supabase.from("communities").delete().eq("id", id);
     if (error) {
       toast({ title: "Erro", description: error.message, variant: "destructive" });
@@ -106,9 +163,10 @@ const AdminCommunityManagement = ({ onRefresh }: Props) => {
     setEditForm({
       name: c.name || "",
       description: c.description || "",
-      responsible_user_id: c.responsible_user_id || "",
+      owner_ids: communityOwners[c.id] || (c.responsible_user_id ? [c.responsible_user_id] : []),
       display_responsible_name: c.display_responsible_name || "",
     });
+    setEditOwnerSearch("");
   };
 
   const cancelEdit = () => {
@@ -152,8 +210,8 @@ const AdminCommunityManagement = ({ onRefresh }: Props) => {
   };
 
   const handleSaveEdit = async () => {
-    if (!editingId || !editForm.name.trim() || !editForm.responsible_user_id) {
-      toast({ title: "Preencha o nome e selecione o responsável", variant: "destructive" });
+    if (!editingId || !editForm.name.trim() || editForm.owner_ids.length === 0) {
+      toast({ title: "Preencha o nome e selecione ao menos um responsável", variant: "destructive" });
       return;
     }
 
@@ -161,22 +219,31 @@ const AdminCommunityManagement = ({ onRefresh }: Props) => {
     const { error } = await supabase.from("communities").update({
       name: editForm.name.trim(),
       description: editForm.description.trim() || null,
-      responsible_user_id: editForm.responsible_user_id,
+      responsible_user_id: editForm.owner_ids[0],
       display_responsible_name: editForm.display_responsible_name.trim() || null,
     }).eq("id", editingId);
 
-    setSaving(false);
-
     if (error) {
+      setSaving(false);
       toast({ title: "Erro ao salvar", description: error.message, variant: "destructive" });
       return;
     }
 
+    // Update extras
+    await supabase.from("community_owners").delete().eq("community_id", editingId);
+    const extras = editForm.owner_ids.slice(1);
+    if (extras.length > 0) {
+      await supabase.from("community_owners").insert(extras.map(uid => ({ community_id: editingId, user_id: uid })));
+    }
+
+    setSaving(false);
     toast({ title: "Comunidade atualizada! ✅" });
     setEditingId(null);
     loadData();
     onRefresh();
   };
+
+  const userById = (id: string) => allUsers.find(u => u.id === id);
 
   return (
     <div className="space-y-6">
@@ -197,17 +264,45 @@ const AdminCommunityManagement = ({ onRefresh }: Props) => {
             <Input value={newDescription} onChange={e => setNewDescription(e.target.value)} placeholder="Descrição breve..." />
           </div>
           <div>
-            <Label>Responsável (criador de bolões)</Label>
-            <select
-              className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-              value={newResponsibleId}
-              onChange={e => setNewResponsibleId(e.target.value)}
-            >
-              <option value="">Selecione...</option>
-              {eligibleUsers.map(u => (
-                <option key={u.id} value={u.id}>{u.full_name}</option>
+            <Label>Responsáveis (selecione um ou mais)</Label>
+            {newOwnerIds.length > 0 && (
+              <div className="flex flex-wrap gap-1 mt-1 mb-2">
+                {newOwnerIds.map((uid, idx) => {
+                  const u = userById(uid);
+                  return (
+                    <Badge key={uid} variant="secondary" className="text-xs gap-1">
+                      {idx === 0 && <span className="text-primary">★</span>}
+                      {u?.full_name || "Usuário"}
+                      <button onClick={() => toggleNewOwner(uid)} className="ml-1 hover:text-destructive">
+                        <X className="w-3 h-3" />
+                      </button>
+                    </Badge>
+                  );
+                })}
+              </div>
+            )}
+            <div className="relative">
+              <Search className="absolute left-2 top-2.5 w-4 h-4 text-muted-foreground" />
+              <Input
+                className="pl-8"
+                placeholder="Buscar usuário..."
+                value={newOwnerSearch}
+                onChange={e => setNewOwnerSearch(e.target.value)}
+              />
+            </div>
+            <div className="mt-2 max-h-48 overflow-y-auto border border-border rounded-md divide-y divide-border/50">
+              {filteredNewUsers.slice(0, 100).map(u => (
+                <label key={u.id} className="flex items-center gap-2 px-2 py-1.5 cursor-pointer hover:bg-muted/60 text-sm">
+                  <Checkbox checked={newOwnerIds.includes(u.id)} onCheckedChange={() => toggleNewOwner(u.id)} />
+                  <span className="flex-1 truncate">{u.full_name}</span>
+                  {u.phone && <span className="text-xs text-muted-foreground">{u.phone}</span>}
+                </label>
               ))}
-            </select>
+              {filteredNewUsers.length === 0 && (
+                <p className="p-2 text-xs text-muted-foreground text-center">Nenhum usuário</p>
+              )}
+            </div>
+            <p className="text-[10px] text-muted-foreground mt-1">★ O primeiro selecionado será o responsável principal.</p>
           </div>
           <div>
             <Label>Nome de exibição do responsável (opcional)</Label>
@@ -241,17 +336,42 @@ const AdminCommunityManagement = ({ onRefresh }: Props) => {
                       <Input value={editForm.description} onChange={e => setEditForm(f => ({ ...f, description: e.target.value }))} />
                     </div>
                     <div>
-                      <Label className="text-xs">Responsável</Label>
-                      <select
-                        className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm"
-                        value={editForm.responsible_user_id}
-                        onChange={e => setEditForm(f => ({ ...f, responsible_user_id: e.target.value }))}
-                      >
-                        <option value="">Selecione...</option>
-                        {eligibleUsers.map(u => (
-                          <option key={u.id} value={u.id}>{u.full_name}</option>
+                      <Label className="text-xs">Responsáveis</Label>
+                      {editForm.owner_ids.length > 0 && (
+                        <div className="flex flex-wrap gap-1 mt-1 mb-2">
+                          {editForm.owner_ids.map((uid, idx) => {
+                            const u = userById(uid);
+                            return (
+                              <Badge key={uid} variant="secondary" className="text-xs gap-1">
+                                {idx === 0 && <span className="text-primary">★</span>}
+                                {u?.full_name || "Usuário"}
+                                <button onClick={() => toggleEditOwner(uid)} className="ml-1 hover:text-destructive">
+                                  <X className="w-3 h-3" />
+                                </button>
+                              </Badge>
+                            );
+                          })}
+                        </div>
+                      )}
+                      <div className="relative">
+                        <Search className="absolute left-2 top-2.5 w-4 h-4 text-muted-foreground" />
+                        <Input
+                          className="pl-8 h-9"
+                          placeholder="Buscar usuário..."
+                          value={editOwnerSearch}
+                          onChange={e => setEditOwnerSearch(e.target.value)}
+                        />
+                      </div>
+                      <div className="mt-2 max-h-40 overflow-y-auto border border-border rounded-md divide-y divide-border/50">
+                        {filteredEditUsers.slice(0, 100).map(u => (
+                          <label key={u.id} className="flex items-center gap-2 px-2 py-1.5 cursor-pointer hover:bg-muted/60 text-sm">
+                            <Checkbox checked={editForm.owner_ids.includes(u.id)} onCheckedChange={() => toggleEditOwner(u.id)} />
+                            <span className="flex-1 truncate">{u.full_name}</span>
+                            {u.phone && <span className="text-xs text-muted-foreground">{u.phone}</span>}
+                          </label>
                         ))}
-                      </select>
+                      </div>
+                      <p className="text-[10px] text-muted-foreground mt-1">★ Primeiro = responsável principal.</p>
                     </div>
                     <div>
                       <Label className="text-xs">Nome de exibição</Label>
@@ -269,12 +389,14 @@ const AdminCommunityManagement = ({ onRefresh }: Props) => {
                 </>
               ) : (
                 <div className="flex items-center justify-between">
-                  <div>
+                  <div className="min-w-0 flex-1">
                     <p className="font-semibold text-sm">{c.name} {c.is_official && "⭐"}</p>
-                    <p className="text-xs text-muted-foreground">{c.display_responsible_name || eligibleUsers.find(u => u.id === c.responsible_user_id)?.full_name || "Sem responsável"}</p>
+                    <p className="text-xs text-muted-foreground truncate">
+                      {c.display_responsible_name || (communityOwners[c.id] || []).map(uid => userById(uid)?.full_name).filter(Boolean).join(", ") || "Sem responsável"}
+                    </p>
                     {c.description && <p className="text-xs text-muted-foreground mt-0.5">{c.description}</p>}
                   </div>
-                  <div className="flex items-center gap-1">
+                  <div className="flex items-center gap-1 shrink-0">
                     <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => toggleMembers(c.id)} title="Ver membros">
                       <Users className="w-4 h-4" />
                     </Button>
@@ -290,7 +412,6 @@ const AdminCommunityManagement = ({ onRefresh }: Props) => {
                 </div>
               )}
 
-              {/* Members list */}
               {expandedMembers === c.id && (
                 <div className="mt-2 pt-2 border-t border-border/50 space-y-1.5">
                   <div className="flex items-center justify-between">
