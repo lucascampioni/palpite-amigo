@@ -78,7 +78,8 @@ serve(async (req) => {
     if (pool.payment_method !== "in_app") throw new Error("Este bolão não aceita pagamento dentro do app");
 
     const { data: canReceive } = await adminClient.rpc("can_receive_in_app_payments", { _user_id: pool.owner_id });
-    if (!canReceive) throw new Error("Organizador não está habilitado para receber pagamentos no app");
+    const { data: ownerIsAdmin } = await adminClient.rpc("has_role", { _user_id: pool.owner_id, _role: "admin" });
+    if (!canReceive && !ownerIsAdmin) throw new Error("Organizador não está habilitado para receber pagamentos no app");
 
     // Verify participants belong to user
     const { data: participants } = await adminClient
