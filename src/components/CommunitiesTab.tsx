@@ -52,9 +52,10 @@ const CommunitiesTab = ({ userId }: CommunitiesTabProps) => {
       // Get responsible user IDs that don't have display names
       const responsibleIds = [...new Set(comms.filter((c: any) => !c.display_responsible_name).map((c: any) => c.responsible_user_id))];
 
-      const [{ data: counts }, { data: poolsData }, ...profileResults] = await Promise.all([
+      const [{ data: counts }, { data: poolsData }, { data: ownersData }, ...profileResults] = await Promise.all([
         supabase.from("community_members").select("community_id"),
         supabase.from("pools").select("owner_id").in("status", ["active"]).eq("is_private", false),
+        supabase.from("community_owners").select("community_id, user_id"),
         ...(responsibleIds.length > 0
           ? [supabase.from("profiles").select("id, full_name").in("id", responsibleIds)]
           : []),
@@ -70,10 +71,21 @@ const CommunitiesTab = ({ userId }: CommunitiesTabProps) => {
       }
       setResponsibleNames(namesMap);
 
-      // Map pools to communities by responsible_user_id
+      // Map owners (responsible + co-owners) per community
+      const ownersMap: Record<string, Set<string>> = {};
+      (comms || []).forEach((comm: any) => {
+        ownersMap[comm.id] = new Set([comm.responsible_user_id]);
+      });
+      (ownersData || []).forEach((o: any) => {
+        if (!ownersMap[o.community_id]) ownersMap[o.community_id] = new Set();
+        ownersMap[o.community_id].add(o.user_id);
+      });
+
+      // Map pools to communities by any owner
       const poolCountMap: Record<string, number> = {};
       (comms || []).forEach(comm => {
-        const count = (poolsData || []).filter(p => p.owner_id === comm.responsible_user_id).length;
+        const owners = ownersMap[comm.id] || new Set();
+        const count = (poolsData || []).filter(p => owners.has(p.owner_id)).length;
         poolCountMap[comm.id] = count;
       });
       setPoolCounts(poolCountMap);
