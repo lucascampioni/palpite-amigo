@@ -1265,7 +1265,7 @@ const PoolDetail = () => {
                 const minToGuarantee = isFixed && (pool.entry_fee || 0) > 0 && totalFixed > 0
                   ? Math.ceil((totalFixed * 1.25) / (pool.entry_fee || 1))
                   : 0;
-                const fixedFallbackActive = isFixed && totalFixed > 0 && totalCollected > 0 && totalPredictionSets < minToGuarantee;
+                const fixedFallbackActive = isFixed && !pool.guaranteed_prize && totalFixed > 0 && totalCollected > 0 && totalPredictionSets < minToGuarantee;
                 const calcPrize = (pct: number, idx: number) => {
                   if (isPercentage) return (pct / 100) * totalCollected;
                   if (fixedFallbackActive) {
@@ -1354,7 +1354,12 @@ const PoolDetail = () => {
                             </p>
                           );
                         })()}
-                        {isFixed && minToGuarantee > 0 && !isFinished && (
+                        {isFixed && pool.guaranteed_prize && !isFinished && (
+                          <p className="mt-2 text-[0.7rem] text-center text-emerald-700 dark:text-emerald-400 font-medium">
+                            🛡️ Premiação garantida pelo Delfos — paga integralmente, independente do valor arrecadado.
+                          </p>
+                        )}
+                        {isFixed && !pool.guaranteed_prize && minToGuarantee > 0 && !isFinished && (
                           <div className="mt-2 text-[0.7rem] text-center space-y-0.5">
                             {fixedFallbackActive ? (
                               <p className="text-amber-700 dark:text-amber-400 font-medium">

@@ -76,10 +76,12 @@ serve(async (req) => {
     } else {
       // Valor fixo: regra de proteção. Se o arrecadado não cobrir premiação + 25% de margem,
       // a premiação vira 80% do arrecadado dividido proporcionalmente entre os lugares.
+      // EXCEÇÃO: bolões com `guaranteed_prize` (criados por admin) sempre pagam o valor fixo cheio,
+      // independente do arrecadado — a diferença é coberta pelo app.
       const fixedNumbers = prizes.map((p: any) => Number(p || 0));
       const totalFixed = fixedNumbers.reduce((s, v) => s + v, 0);
       const guaranteeThreshold = totalFixed * 1.25;
-      if (totalFixed > 0 && totalCollected < guaranteeThreshold) {
+      if (!pool.guaranteed_prize && totalFixed > 0 && totalCollected < guaranteeThreshold) {
         const pool80 = totalCollected * 0.8;
         winnerAmounts = fixedNumbers.map((v) =>
           totalFixed > 0 ? +((pool80 * v) / totalFixed).toFixed(2) : 0
