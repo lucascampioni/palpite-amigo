@@ -238,6 +238,24 @@ const EditFootballPool = () => {
       }
     }
 
+    // 1º > 2º > 3º para fixo e percentual
+    if (prizeType === 'fixed' || prizeType === 'percentage') {
+      const p1 = parseFloat(firstPlacePrize) || 0;
+      const p2 = parseFloat(secondPlacePrize) || 0;
+      const p3 = parseFloat(thirdPlacePrize) || 0;
+      const unit = prizeType === 'percentage' ? 'percentual' : 'prêmio';
+      if (maxWinners >= 2 && p2 >= p1) {
+        toast({ variant: "destructive", title: "Erro de validação", description: `O ${unit} do 2º lugar deve ser menor que o do 1º lugar` });
+        setLoading(false);
+        return;
+      }
+      if (maxWinners >= 3 && p3 >= p2) {
+        toast({ variant: "destructive", title: "Erro de validação", description: `O ${unit} do 3º lugar deve ser menor que o do 2º lugar` });
+        setLoading(false);
+        return;
+      }
+    }
+
     try {
       // Update pool
       const { error: poolError } = await supabase
