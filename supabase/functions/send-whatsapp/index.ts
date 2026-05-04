@@ -5,13 +5,81 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version',
 };
 
+const GATEWAY_URL = 'https://connector-gateway.lovable.dev/twilio';
+
 interface SendMessageRequest {
   phone: string;
-  message: string;
+  // Free-form text (only delivered inside Twilio's 24h session window).
+  message?: string;
+  // Optional Content Template SID (HX...). When provided, uses Twilio Content API
+  // (required for messages outside the 24h window).
+  contentSid?: string;
+  // Variables for the template, keyed by position: { "1": "value", "2": "value" }
+  contentVariables?: Record<string, string>;
 }
 
 interface BulkSendRequest {
   messages: SendMessageRequest[];
+  contentSid?: string;
+  contentVariables?: Record<string, string>;
+}
+
+// Default approved template (no variables): "Venha participar dos bolões da Delfos."
+const DEFAULT_CONTENT_SID = 'HXff844077144fa7023eb2c0f54d8f2982';
+
+async function sendOne(
+  lovableKey: string,
+  twilioKey: string,
+  fromWhatsapp: string,
+  msg: SendMessageRequest,
+  fallbackContentSid?: string,
+  fallbackContentVariables?: Record<string, string>,
+): Promise<{ phone: string; success: boolean; error?: string; sid?: string }> {
+  const digits = msg.phone.replace(/\D/g, '');
+  const phoneWithCountry = digits.startsWith('55') ? digits : `55${digits}`;
+  const to = `whatsapp:+${phoneWithCountry}`;
+
+  const params = new URLSearchParams();
+  params.append('To', to);
+  params.append('From', fromWhatsapp);
+
+  const contentSid = msg.contentSid || fallbackContentSid;
+  const contentVariables = msg.contentVariables || fallbackContentVariables;
+
+  if (contentSid) {
+    params.append('ContentSid', contentSid);
+    if (contentVariables && Object.keys(contentVariables).length > 0) {
+      params.append('ContentVariables', JSON.stringify(contentVariables));
+    }
+  } else if (msg.message) {
+    // Free-form text — only works inside the 24h session window.
+    params.append('Body', msg.message);
+  } else {
+    return { phone: phoneWithCountry, success: false, error: 'No message body or contentSid provided' };
+  }
+
+  try {
+    const response = await fetch(`${GATEWAY_URL}/Messages.json`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${lovableKey}`,
+        'X-Connection-Api-Key': twilioKey,
+        'Content-Type': 'application/x-www-form-urlencoded',
+      },
+      body: params.toString(),
+    });
+
+    const data = await response.json();
+    if (!response.ok) {
+      console.error(`Twilio error for ${to}:`, data);
+      return { phone: phoneWithCountry, success: false, error: data?.message || `HTTP ${response.status}` };
+    }
+    return { phone: phoneWithCountry, success: true, sid: data?.sid };
+  } catch (err) {
+    const errorMsg = err instanceof Error ? err.message : 'Unknown error';
+    console.error(`Error sending to ${to}:`, errorMsg);
+    return { phone: phoneWithCountry, success: false, error: errorMsg };
+  }
 }
 
 serve(async (req) => {
@@ -20,65 +88,52 @@ serve(async (req) => {
   }
 
   try {
-    const ZAPI_INSTANCE_ID = Deno.env.get('ZAPI_INSTANCE_ID');
-    const ZAPI_TOKEN = Deno.env.get('ZAPI_TOKEN');
-    const ZAPI_CLIENT_TOKEN = Deno.env.get('ZAPI_CLIENT_TOKEN');
+    const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
+    if (!LOVABLE_API_KEY) throw new Error('LOVABLE_API_KEY is not configured');
 
-    if (!ZAPI_INSTANCE_ID || !ZAPI_TOKEN) {
-      throw new Error('Z-API credentials not configured');
-    }
+    const TWILIO_API_KEY = Deno.env.get('TWILIO_API_KEY');
+    if (!TWILIO_API_KEY) throw new Error('TWILIO_API_KEY is not configured (link Twilio in Connectors)');
 
-    const body = await req.json();
-    const isBulk = Array.isArray(body.messages);
+    const TWILIO_PHONE_NUMBER = Deno.env.get('TWILIO_PHONE_NUMBER');
+    if (!TWILIO_PHONE_NUMBER) throw new Error('TWILIO_PHONE_NUMBER is not configured');
 
-    const messages: SendMessageRequest[] = isBulk ? body.messages : [{ phone: body.phone, message: body.message }];
+    // Normalize From: must be in the form whatsapp:+E164
+    const fromDigits = TWILIO_PHONE_NUMBER.replace(/\D/g, '');
+    const fromWhatsapp = TWILIO_PHONE_NUMBER.startsWith('whatsapp:')
+      ? TWILIO_PHONE_NUMBER
+      : `whatsapp:+${fromDigits}`;
 
-    if (!messages.length) {
-      throw new Error('No messages provided');
-    }
+    const body = await req.json() as BulkSendRequest & SendMessageRequest;
+    const isBulk = Array.isArray((body as BulkSendRequest).messages);
 
-    const results: { phone: string; success: boolean; error?: string }[] = [];
+    const messages: SendMessageRequest[] = isBulk
+      ? (body as BulkSendRequest).messages
+      : [{ phone: body.phone, message: body.message, contentSid: body.contentSid, contentVariables: body.contentVariables }];
 
-    for (const msg of messages) {
-      const digits = msg.phone.replace(/\D/g, '');
-      const phoneWithCountry = digits.startsWith('55') ? digits : `55${digits}`;
+    if (!messages.length) throw new Error('No messages provided');
 
-      try {
-        const url = `https://api.z-api.io/instances/${ZAPI_INSTANCE_ID}/token/${ZAPI_TOKEN}/send-text`;
+    // If caller didn't specify a contentSid AND didn't pass a message body, use default approved template
+    const fallbackContentSid = body.contentSid;
+    const fallbackContentVariables = body.contentVariables;
 
-        const headers: Record<string, string> = {
-          'Content-Type': 'application/json',
-        };
-        if (ZAPI_CLIENT_TOKEN) {
-          headers['Client-Token'] = ZAPI_CLIENT_TOKEN;
-        }
+    const results: { phone: string; success: boolean; error?: string; sid?: string }[] = [];
 
-        const response = await fetch(url, {
-          method: 'POST',
-          headers,
-          body: JSON.stringify({
-            phone: phoneWithCountry,
-            message: msg.message,
-          }),
-        });
+    for (let i = 0; i < messages.length; i++) {
+      const msg = messages[i];
+      // If neither template nor message provided, fall back to default approved template
+      const effectiveSid = msg.contentSid || fallbackContentSid || (!msg.message ? DEFAULT_CONTENT_SID : undefined);
+      const result = await sendOne(
+        LOVABLE_API_KEY,
+        TWILIO_API_KEY,
+        fromWhatsapp,
+        { ...msg, contentSid: effectiveSid },
+        undefined,
+        msg.contentVariables || fallbackContentVariables,
+      );
+      results.push(result);
 
-        const data = await response.json();
-
-        if (!response.ok) {
-          console.error(`Z-API error for ${phoneWithCountry}:`, data);
-          results.push({ phone: phoneWithCountry, success: false, error: data?.message || `HTTP ${response.status}` });
-        } else {
-          results.push({ phone: phoneWithCountry, success: true });
-        }
-      } catch (err) {
-        const errorMsg = err instanceof Error ? err.message : 'Unknown error';
-        console.error(`Error sending to ${phoneWithCountry}:`, errorMsg);
-        results.push({ phone: phoneWithCountry, success: false, error: errorMsg });
-      }
-
-      // Small delay between messages to avoid rate limiting
-      if (messages.length > 1) {
-        await new Promise(resolve => setTimeout(resolve, 1000));
+      if (messages.length > 1 && i < messages.length - 1) {
+        await new Promise(resolve => setTimeout(resolve, 500));
       }
     }
 
