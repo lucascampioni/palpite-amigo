@@ -130,6 +130,13 @@ export default function InstallAppDialog() {
               Abra o Delfos no seu celular para instalar como app.
             </div>
           )}
+
+          {pushSupported() && Notification.permission !== "denied" && (
+            <Button onClick={enableNotifications} variant="outline" className="w-full" size="lg">
+              <Bell className="mr-2 h-4 w-4" />
+              Ativar notificações
+            </Button>
+          )}
         </div>
 
         <DialogFooter>
