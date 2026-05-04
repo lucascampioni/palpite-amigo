@@ -15,7 +15,10 @@ serve(async (req) => {
     const service = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const pub = Deno.env.get('VAPID_PUBLIC_KEY')!;
     const priv = Deno.env.get('VAPID_PRIVATE_KEY')!;
-    const subject = Deno.env.get('VAPID_SUBJECT') || 'mailto:contato@delfos.app.br';
+    const rawSubject = Deno.env.get('VAPID_SUBJECT') || 'contato@delfos.app.br';
+    const subject = rawSubject.startsWith('mailto:') || rawSubject.startsWith('http://') || rawSubject.startsWith('https://')
+      ? rawSubject
+      : `mailto:${rawSubject}`;
     if (!pub || !priv) throw new Error('VAPID keys not configured');
 
     const auth = req.headers.get('Authorization');
