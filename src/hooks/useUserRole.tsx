@@ -6,7 +6,7 @@ export const useUserRole = () => {
     queryKey: ["user-role"],
     queryFn: async () => {
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return { isAdmin: false, isPoolCreator: false, isEstabelecimento: false, canReceiveInApp: false, canCreatePools: false, role: null };
+      if (!user) return { isAdmin: false, isPoolCreator: false, isEstabelecimento: false, canReceiveInApp: false, paysByProof: false, canCreatePools: false, role: null };
 
       // Check if user is app admin (via email check)
       const { data: isAppAdmin, error: appAdminError } = await supabase
@@ -27,11 +27,13 @@ export const useUserRole = () => {
       }
 
       const roles = data?.map(r => r.role) || [];
-      // Plataforma agora libera criação de bolões e pagamento automático para todos
-      const canReceiveInApp = true;
+      // Nova regra: por padrão todos recebem via PIX automático (in_app).
+      // Quem tem a role 'in_app_payment' fica no MODELO ANTIGO (comprovante manual, sem taxa do app).
+      const paysByProof = roles.includes("in_app_payment");
+      const canReceiveInApp = !paysByProof;
 
       if (isAppAdmin) {
-        return { isAdmin: true, isPoolCreator: false, isEstabelecimento: false, canReceiveInApp, canCreatePools: true, role: "admin" };
+        return { isAdmin: true, isPoolCreator: false, isEstabelecimento: false, canReceiveInApp, paysByProof, canCreatePools: true, role: "admin" };
       }
 
       const isAdmin = roles.includes("admin");
@@ -43,6 +45,7 @@ export const useUserRole = () => {
         isPoolCreator,
         isEstabelecimento,
         canReceiveInApp,
+        paysByProof,
         canCreatePools: true,
         role: isAdmin ? "admin" : isPoolCreator ? "pool_creator" : isEstabelecimento ? "estabelecimento" : (roles[0] || null),
       };
