@@ -1,7 +1,9 @@
 import { useEffect, useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Download, Share, Plus, Smartphone } from "lucide-react";
+import { Download, Share, Plus, Smartphone, Bell } from "lucide-react";
+import { pushSupported, subscribeToPush } from "@/lib/push";
+import { toast } from "@/hooks/use-toast";
 
 const STORAGE_KEY = "delfos_install_prompt_dismissed_v1";
 
@@ -52,8 +54,23 @@ export default function InstallAppDialog() {
   const install = async () => {
     if (!deferred) return;
     await deferred.prompt();
-    await deferred.userChoice;
+    const choice = await deferred.userChoice;
+    if (choice.outcome === "accepted") {
+      // tenta inscrever em push após instalar
+      const r = await subscribeToPush();
+      if (r.ok) toast({ title: "Notificações ativadas!" });
+    }
     dismiss();
+  };
+
+  const enableNotifications = async () => {
+    const r = await subscribeToPush();
+    if (r.ok) {
+      toast({ title: "Notificações ativadas!", description: "Você receberá avisos importantes da Delfos." });
+      dismiss();
+    } else {
+      toast({ title: "Não foi possível ativar", description: r.error, variant: "destructive" });
+    }
   };
 
   return (
