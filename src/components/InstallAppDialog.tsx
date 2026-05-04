@@ -30,7 +30,17 @@ export default function InstallAppDialog() {
   const { isIOS, isAndroid } = detectPlatform();
 
   useEffect(() => {
-    if (isStandalone()) return;
+    // Caso já instalado: tentar inscrever silenciosamente se permissão já concedida
+    if (isStandalone()) {
+      if (pushSupported() && Notification.permission === "granted") {
+        subscribeToPush();
+      } else if (pushSupported() && Notification.permission === "default" && !localStorage.getItem(STORAGE_KEY)) {
+        // mostra dialog só pedindo notificações
+        const t = setTimeout(() => setOpen(true), 800);
+        return () => clearTimeout(t);
+      }
+      return;
+    }
     if (localStorage.getItem(STORAGE_KEY)) return;
 
     const onBIP = (e: Event) => {
