@@ -6,7 +6,60 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { toast } from "@/hooks/use-toast";
-import { Loader2, Save, Percent } from "lucide-react";
+import { Loader2, Save, Percent, Send } from "lucide-react";
+import { Textarea } from "@/components/ui/textarea";
+
+const PushTestCard = () => {
+  const [title, setTitle] = useState("Delfos");
+  const [message, setMessage] = useState("Notificação de teste 🎉");
+  const [url, setUrl] = useState("/");
+  const [sending, setSending] = useState(false);
+  const [scope, setScope] = useState<"all" | "me">("all");
+
+  const send = async () => {
+    setSending(true);
+    const { data, error } = await supabase.functions.invoke("send-push-test", {
+      body: { title, body: message, url, onlyMe: scope === "me" },
+    });
+    setSending(false);
+    if (error || !data?.success) {
+      toast({ title: "Erro", description: error?.message || data?.error || "Falha ao enviar", variant: "destructive" });
+      return;
+    }
+    toast({ title: "Enviado!", description: `${data.sent}/${data.total} entregue(s).` });
+  };
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>Push notifications (teste)</CardTitle>
+        <CardDescription>Envia uma notificação para quem ativou push no app.</CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-3">
+        <div className="space-y-2">
+          <Label>Título</Label>
+          <Input value={title} onChange={(e) => setTitle(e.target.value)} />
+        </div>
+        <div className="space-y-2">
+          <Label>Mensagem</Label>
+          <Textarea value={message} onChange={(e) => setMessage(e.target.value)} rows={3} />
+        </div>
+        <div className="space-y-2">
+          <Label>URL ao clicar</Label>
+          <Input value={url} onChange={(e) => setUrl(e.target.value)} placeholder="/" />
+        </div>
+        <RadioGroup value={scope} onValueChange={(v) => setScope(v as any)} className="flex gap-4">
+          <div className="flex items-center gap-2"><RadioGroupItem id="scope-all" value="all" /><Label htmlFor="scope-all">Todos inscritos</Label></div>
+          <div className="flex items-center gap-2"><RadioGroupItem id="scope-me" value="me" /><Label htmlFor="scope-me">Só para mim</Label></div>
+        </RadioGroup>
+        <Button onClick={send} disabled={sending}>
+          {sending ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Send className="w-4 h-4 mr-2" />}
+          Enviar push
+        </Button>
+      </CardContent>
+    </Card>
+  );
+};
 
 type FeeType = "percent" | "fixed";
 

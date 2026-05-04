@@ -1,7 +1,9 @@
 import { useEffect, useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Download, Share, Plus, Smartphone } from "lucide-react";
+import { Download, Share, Plus, Smartphone, Bell } from "lucide-react";
+import { pushSupported, subscribeToPush } from "@/lib/push";
+import { toast } from "@/hooks/use-toast";
 
 const STORAGE_KEY = "delfos_install_prompt_dismissed_v1";
 
@@ -28,7 +30,17 @@ export default function InstallAppDialog() {
   const { isIOS, isAndroid } = detectPlatform();
 
   useEffect(() => {
-    if (isStandalone()) return;
+    // Caso já instalado: tentar inscrever silenciosamente se permissão já concedida
+    if (isStandalone()) {
+      if (pushSupported() && Notification.permission === "granted") {
+        subscribeToPush();
+      } else if (pushSupported() && Notification.permission === "default" && !localStorage.getItem(STORAGE_KEY)) {
+        // mostra dialog só pedindo notificações
+        const t = setTimeout(() => setOpen(true), 800);
+        return () => clearTimeout(t);
+      }
+      return;
+    }
     if (localStorage.getItem(STORAGE_KEY)) return;
 
     const onBIP = (e: Event) => {
@@ -52,8 +64,23 @@ export default function InstallAppDialog() {
   const install = async () => {
     if (!deferred) return;
     await deferred.prompt();
-    await deferred.userChoice;
+    const choice = await deferred.userChoice;
+    if (choice.outcome === "accepted") {
+      // tenta inscrever em push após instalar
+      const r = await subscribeToPush();
+      if (r.ok) toast({ title: "Notificações ativadas!" });
+    }
     dismiss();
+  };
+
+  const enableNotifications = async () => {
+    const r = await subscribeToPush();
+    if (r.ok) {
+      toast({ title: "Notificações ativadas!", description: "Você receberá avisos importantes da Delfos." });
+      dismiss();
+    } else {
+      toast({ title: "Não foi possível ativar", description: r.error, variant: "destructive" });
+    }
   };
 
   return (
@@ -102,6 +129,13 @@ export default function InstallAppDialog() {
             <div className="rounded-lg border border-border bg-muted/30 p-3 text-muted-foreground">
               Abra o Delfos no seu celular para instalar como app.
             </div>
+          )}
+
+          {pushSupported() && Notification.permission !== "denied" && (
+            <Button onClick={enableNotifications} variant="outline" className="w-full" size="lg">
+              <Bell className="mr-2 h-4 w-4" />
+              Ativar notificações
+            </Button>
           )}
         </div>
 
