@@ -253,6 +253,8 @@ const AdminPlatformSettings = () => {
           )}
         </CardContent>
       </Card>
+
+      <PushTestCard />
     </div>
   );
 };
