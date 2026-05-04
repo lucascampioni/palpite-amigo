@@ -14,6 +14,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import CommunitiesTab from "@/components/CommunitiesTab";
 import AnnouncementModal from "@/components/AnnouncementModal";
+import InstallAppDialog from "@/components/InstallAppDialog";
 
 const Index = () => {
   const navigate = useNavigate();
@@ -475,6 +476,7 @@ const Index = () => {
   return (
     <div className="min-h-screen bg-background flex flex-col">
       <AnnouncementModal />
+      <InstallAppDialog />
       {/* Impersonation banner */}
       {impersonationInfo && (
         <div className="sticky top-0 z-50 bg-destructive text-destructive-foreground px-4 py-2 flex items-center justify-between text-sm">
