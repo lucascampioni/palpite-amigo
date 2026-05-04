@@ -14,6 +14,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import CommunitiesTab from "@/components/CommunitiesTab";
 import AnnouncementModal from "@/components/AnnouncementModal";
+import InstallAppDialog from "@/components/InstallAppDialog";
 
 const Index = () => {
   const navigate = useNavigate();
