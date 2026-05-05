@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { ToastAction } from "@/components/ui/toast";
 import { useToast } from "@/hooks/use-toast";
 import { Trophy } from "lucide-react";
 import { z } from "zod";
@@ -93,6 +94,53 @@ const Auth = () => {
   const [activeTab, setActiveTab] = useState("login");
   
   const redirectUrl = searchParams.get('redirect') || '/app';
+
+  const resendConfirmationEmail = async (email: string) => {
+    const { error } = await supabase.auth.resend({
+      type: "signup",
+      email,
+      options: { emailRedirectTo: `${window.location.origin}/` },
+    });
+
+    toast({
+      variant: error ? "destructive" : undefined,
+      title: error ? "Erro ao reenviar email" : "Email reenviado!",
+      description: error
+        ? "Não foi possível reenviar agora. Tente novamente em alguns minutos."
+        : "Verifique sua caixa de entrada e confirme a conta antes de entrar.",
+    });
+  };
+
+  const showExistingEmailToast = (email: string, status?: { email_confirmed?: boolean }) => {
+    setActiveTab("login");
+    setLoginMethod("email");
+    setResetEmail(email);
+
+    if (status?.email_confirmed === false) {
+      toast({
+        variant: "destructive",
+        title: "Cadastro já iniciado",
+        description: "Este e-mail já iniciou um cadastro, mas ainda precisa ser confirmado. Confirme pelo e-mail recebido ou reenvie a confirmação.",
+        action: (
+          <ToastAction altText="Reenviar email" onClick={() => void resendConfirmationEmail(email)}>
+            Reenviar
+          </ToastAction>
+        ),
+      });
+      return;
+    }
+
+    toast({
+      variant: "destructive",
+      title: "E-mail já cadastrado",
+      description: "Este e-mail já tem conta. Entre com a senha correta ou use a recuperação de senha para liberar o acesso.",
+      action: (
+        <ToastAction altText="Recuperar senha" onClick={() => setForgotPasswordOpen(true)}>
+          Recuperar
+        </ToastAction>
+      ),
+    });
+  };
   
   useEffect(() => {
     const checkUser = async () => {
