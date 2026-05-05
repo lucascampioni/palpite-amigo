@@ -153,6 +153,32 @@ const Auth = () => {
       ),
     });
   };
+
+  const verifyRealExistingEmail = async (email: string) => {
+    try {
+      const { data, error: fnError } = await supabase.functions.invoke("check-email-exists", {
+        body: { email },
+      });
+
+      if (!fnError && data?.recovered_orphan) {
+        toast({
+          title: "Cadastro liberado",
+          description: "Encontramos um cadastro incompleto e liberamos este e-mail. Tente criar a conta novamente.",
+        });
+        setActiveTab("signup");
+        return true;
+      }
+
+      if (!fnError && data?.exists && data?.has_profile !== false) {
+        showExistingEmailToast(email, data);
+        return true;
+      }
+    } catch {
+      // Se a checagem falhar, não bloqueia o cadastro com mensagem de conta existente.
+    }
+
+    return false;
+  };
   
   useEffect(() => {
     const checkUser = async () => {
@@ -325,17 +351,26 @@ const Auth = () => {
       },
     });
 
-    // Verifica se o e-mail já existe (Supabase não retorna erro, mas user e session serão null)
+    // Evita falso positivo de "e-mail já cadastrado" em respostas obfuscadas do provedor de auth.
     if (!error && !data.user && !data.session) {
-      showExistingEmailToast(email);
+      toast({
+        title: "Cadastro solicitado",
+        description: "Se o cadastro não entrar automaticamente, tente fazer login ou crie a conta novamente em alguns segundos.",
+      });
       setLoading(false);
       return;
     }
 
-    // Repetição de cadastro: Supabase retorna user com identities vazio
+    // Só considera duplicado se nossa checagem do backend confirmar uma conta real com perfil.
     const userIdentities = data.user ? (data.user as { identities?: unknown[] }).identities : undefined;
     if (!error && data.user && Array.isArray(userIdentities) && userIdentities.length === 0) {
-      showExistingEmailToast(email);
+      const handled = await verifyRealExistingEmail(email);
+      if (!handled) {
+        toast({
+          title: "Cadastro solicitado",
+          description: "Tente entrar com a senha informada. Se não funcionar, crie a conta novamente em alguns segundos.",
+        });
+      }
       setLoading(false);
       return;
     }
@@ -347,7 +382,15 @@ const Auth = () => {
       if (/user already registered|email.*already.*registered|email.*exists/i.test(error.message) || 
           error.status === 422 || 
           error.code === 'user_already_exists') {
-        showExistingEmailToast(email);
+        const handled = await verifyRealExistingEmail(email);
+        if (!handled) {
+          toast({
+            variant: "destructive",
+            title: "Cadastro não concluído",
+          description: "Este e-mail não aparece como conta ativa. Verifique CPF/telefone e tente criar a conta novamente em alguns segundos.",
+          });
+          setActiveTab("signup");
+        }
         setLoading(false);
         return;
       } else if (/duplicate key|cpf_hash/i.test(error.message)) {
