@@ -447,6 +447,31 @@ const FootballPredictionForm = ({ poolId, userId, onSuccess, entryFee, pool, pix
     } else {
       // No need to update voucher for estabelecimento - already linked by owner
 
+      // Registra indicação se o usuário entrou via link de referência
+      const refUserId = getReferral(poolId);
+      if (refUserId && refUserId !== userId) {
+        const { error: refErr } = await supabase
+          .from("pool_referrals")
+          .insert({
+            pool_id: poolId,
+            referrer_user_id: refUserId,
+            referred_user_id: userId,
+            referred_participant_id: participant.id,
+            status: "pending",
+          });
+        if (!refErr) {
+          clearReferral(poolId);
+          // Se já entrou aprovado (sem taxa), tenta processar recompensa imediatamente
+          if (initialStatus === "approved") {
+            supabase.functions
+              .invoke("process-referral-rewards", {
+                body: { pool_id: poolId, referred_user_id: userId },
+              })
+              .catch(() => {});
+          }
+        }
+      }
+
       if (hasEntryFee) {
         setCreatedParticipantId(participant.id);
         setShowPaymentDialog(true);
