@@ -142,9 +142,30 @@ serve(async (req) => {
       const participantIds = new Set<string>();
       (updatedTxs || []).forEach((t: any) => { if (t.participant_id) participantIds.add(t.participant_id); });
       if (participantIds.size > 0) {
-        const { error: approveError } = await adminClient
-          .from("participants").update({ status: "approved" }).in("id", Array.from(participantIds));
+        const idsArr = Array.from(participantIds);
+        const { data: approvedRows, error: approveError } = await adminClient
+          .from("participants").update({ status: "approved" }).in("id", idsArr).select("user_id, pool_id");
         if (approveError) console.error("Error approving participants:", approveError);
+
+        // Disparar recompensas de indicação (best-effort)
+        const seen = new Set<string>();
+        for (const r of approvedRows || []) {
+          const key = `${r.pool_id}:${r.user_id}`;
+          if (seen.has(key)) continue;
+          seen.add(key);
+          try {
+            await fetch(`${SUPABASE_URL}/functions/v1/process-referral-rewards`, {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                "Authorization": `Bearer ${SERVICE_ROLE_KEY}`,
+              },
+              body: JSON.stringify({ pool_id: r.pool_id, referred_user_id: r.user_id }),
+            });
+          } catch (err) {
+            console.warn("referral reward call failed:", err);
+          }
+        }
       }
     }
 
