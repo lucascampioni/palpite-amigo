@@ -413,10 +413,18 @@ const PoolDetail = () => {
 
   useEffect(() => {
     const checkAuthAndLoadData = async () => {
+      // Captura referral por slug ANTES de qualquer redirect (sobrevive ao login/cadastro)
+      const refParam = searchParams.get("ref");
+      if (refParam && slug) {
+        captureReferralBySlug(slug, refParam);
+      }
+
       const { data: { user } } = await supabase.auth.getUser();
       
       if (!user) {
-        const redirectUrl = `/bolao/${slug}`;
+        // Preserva ?ref no redirect para que após o login a URL volte completa
+        const refQuery = refParam ? `?ref=${encodeURIComponent(refParam)}` : "";
+        const redirectUrl = `/bolao/${slug}${refQuery}`;
         navigate(`/entrar?redirect=${encodeURIComponent(redirectUrl)}`);
         return;
       }
@@ -426,10 +434,8 @@ const PoolDetail = () => {
       
       let resolvedId: string | null = null;
       if (isUUID) {
-        // Direct UUID access (backward compatibility)
         resolvedId = slug!;
       } else {
-        // Slug-based lookup
         const { data: poolBySlug } = await supabase
           .from("pools")
           .select("id")
@@ -448,20 +454,21 @@ const PoolDetail = () => {
     };
     
     checkAuthAndLoadData();
-  }, [slug, navigate]);
+  }, [slug, navigate, searchParams]);
 
   useEffect(() => {
     if (poolId) loadPoolData();
   }, [poolId]);
 
-  // Captura código de indicação ?ref=<userId>
+  // Captura código de indicação ?ref=<userId> e migra captura por slug
   useEffect(() => {
     if (!poolId) return;
+    if (slug) migrateReferralFromSlug(slug, poolId);
     const ref = searchParams.get("ref");
     if (ref && ref !== userId) {
       captureReferral(poolId, ref);
     }
-  }, [poolId, searchParams, userId]);
+  }, [poolId, slug, searchParams, userId]);
 
   // Listen for scroll-to-prize events from FootballRanking
   useEffect(() => {
