@@ -380,10 +380,19 @@ const Auth = () => {
     if (error) {
       let errorMessage = error.message;
 
+      if (isPasswordSignupError(error.message)) {
+        errorMessage = "Senha inválida ou muito fraca. Use pelo menos 8 caracteres com maiúscula, minúscula, número e caractere especial, evitando senhas vazadas ou muito comuns.";
+        toast({
+          variant: "destructive",
+          title: "Senha recusada",
+          description: errorMessage,
+        });
+        setLoading(false);
+        return;
+      }
+
       // Tratamento específico para email já cadastrado
-      if (/user already registered|email.*already.*registered|email.*exists/i.test(error.message) || 
-          error.status === 422 || 
-          error.code === 'user_already_exists') {
+      if (isExistingEmailError(error.message, error.code)) {
         const handled = await verifyRealExistingEmail(email);
         if (!handled) {
           toast({
@@ -395,12 +404,12 @@ const Auth = () => {
         }
         setLoading(false);
         return;
+      } else if (error.status === 422) {
+        errorMessage = "Algum dado do cadastro foi recusado. Verifique senha, CPF e telefone e tente novamente.";
       } else if (/duplicate key|cpf_hash/i.test(error.message)) {
         errorMessage = "Este CPF já está cadastrado no sistema.";
       } else if (/rate limit/i.test(error.message)) {
         errorMessage = "Muitas tentativas. Tente novamente em alguns minutos.";
-      } else if (/password/i.test(error.message)) {
-        errorMessage = "Senha inválida. Verifique os requisitos de segurança.";
       } else if (/database error saving new user/i.test(error.message) || error.status === 500) {
         errorMessage = "Não foi possível criar a conta agora. Verifique os dados e tente novamente.";
       }
