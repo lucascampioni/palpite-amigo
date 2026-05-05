@@ -219,8 +219,11 @@ export const GEMatchSelector = ({ open, onOpenChange, onMatchesSelected, minMinu
     const matchTime = new Date(matchDate);
     const now = new Date();
     const minutesUntilMatch = (matchTime.getTime() - now.getTime()) / (1000 * 60);
-    if (minutesUntilMatch < 300) {
-      toast({ variant: "destructive", title: "Jogo não disponível", description: "Jogos que começam em menos de 5 horas não podem ser adicionados." });
+    if (minutesUntilMatch < minMinutesBeforeMatch) {
+      const hoursLabel = minMinutesBeforeMatch >= 60
+        ? `${Math.round(minMinutesBeforeMatch / 60)} horas`
+        : `${minMinutesBeforeMatch} minutos`;
+      toast({ variant: "destructive", title: "Jogo não disponível", description: `Jogos que começam em menos de ${hoursLabel} não podem ser adicionados.` });
       return;
     }
     const newSelected = new Set(selectedMatches);
@@ -363,7 +366,7 @@ export const GEMatchSelector = ({ open, onOpenChange, onMatchesSelected, minMinu
                             const matchTime = new Date(match.matchDate);
                             const now = new Date();
                             const minutesUntilMatch = (matchTime.getTime() - now.getTime()) / (1000 * 60);
-                            const isUnavailable = minutesUntilMatch < 300;
+                            const isUnavailable = minutesUntilMatch < minMinutesBeforeMatch;
                             const champInfo = CHAMP_LABELS[match.champCode || ''];
 
                             return (
