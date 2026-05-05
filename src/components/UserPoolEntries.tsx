@@ -130,27 +130,28 @@ const UserPoolEntries = ({
     });
   };
 
-  // For estabelecimento pools: if approved but no predictions, show form
-  if (isEstabelecimento) {
-    const estabEntry = entries.find(
-      (e) => e.status === "approved" && !e._hasPredictions
+  // For estabelecimento pools OR referral reward entries: if approved but no predictions, show form
+  const needsPredictionsEntry = entries.find(
+    (e) =>
+      e.status === "approved" &&
+      !e._hasPredictions &&
+      (isEstabelecimento || (typeof e.payment_proof === "string" && e.payment_proof.startsWith("referral_reward")))
+  );
+  if (needsPredictionsEntry) {
+    return (
+      <>
+        <Separator />
+        <FootballPredictionForm
+          poolId={poolId}
+          userId={userId}
+          onSuccess={onReload}
+          pool={pool}
+          pixKey={pixKey}
+          firstMatchDate={firstMatchDate}
+          ownerName={ownerName || undefined}
+        />
+      </>
     );
-    if (estabEntry) {
-      return (
-        <>
-          <Separator />
-          <FootballPredictionForm
-            poolId={poolId}
-            userId={userId}
-            onSuccess={onReload}
-            pool={pool}
-            pixKey={pixKey}
-            firstMatchDate={firstMatchDate}
-            ownerName={ownerName || undefined}
-          />
-        </>
-      );
-    }
   }
 
   // Consolidated in_app payment: aggregate all pending entries without proof into a single QR
