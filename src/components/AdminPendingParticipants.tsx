@@ -60,12 +60,23 @@ export const AdminPendingParticipants = ({
     setProcessing(participantId);
 
     try {
-      const { error } = await supabase
+      const { data: updated, error } = await supabase
         .from("participants")
         .update({ status: "approved" })
-        .eq("id", participantId);
+        .eq("id", participantId)
+        .select("user_id, pool_id")
+        .single();
 
       if (error) throw error;
+
+      // Trigger referral reward (if applicable)
+      if (updated?.user_id && updated?.pool_id) {
+        supabase.functions
+          .invoke("process-referral-rewards", {
+            body: { pool_id: updated.pool_id, referred_user_id: updated.user_id },
+          })
+          .catch((e) => console.warn("referral reward error:", e));
+      }
 
       toast({
         title: "Participante aprovado!",

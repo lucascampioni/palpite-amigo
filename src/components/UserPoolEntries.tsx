@@ -11,6 +11,7 @@ import FootballPredictionForm from "./FootballPredictionForm";
 import { PaymentProofSubmission } from "./PaymentProofSubmission";
 import { InAppPaymentSubmission } from "./InAppPaymentSubmission";
 import UserPredictionsSummary from "./UserPredictionsSummary";
+import ReferralCard from "./ReferralCard";
 
 interface UserPoolEntriesProps {
   entries: any[];
@@ -129,27 +130,28 @@ const UserPoolEntries = ({
     });
   };
 
-  // For estabelecimento pools: if approved but no predictions, show form
-  if (isEstabelecimento) {
-    const estabEntry = entries.find(
-      (e) => e.status === "approved" && !e._hasPredictions
+  // For estabelecimento pools OR referral reward entries: if approved but no predictions, show form
+  const needsPredictionsEntry = entries.find(
+    (e) =>
+      e.status === "approved" &&
+      !e._hasPredictions &&
+      (isEstabelecimento || (typeof e.payment_proof === "string" && e.payment_proof.startsWith("referral_reward")))
+  );
+  if (needsPredictionsEntry) {
+    return (
+      <>
+        <Separator />
+        <FootballPredictionForm
+          poolId={poolId}
+          userId={userId}
+          onSuccess={onReload}
+          pool={pool}
+          pixKey={pixKey}
+          firstMatchDate={firstMatchDate}
+          ownerName={ownerName || undefined}
+        />
+      </>
     );
-    if (estabEntry) {
-      return (
-        <>
-          <Separator />
-          <FootballPredictionForm
-            poolId={poolId}
-            userId={userId}
-            onSuccess={onReload}
-            pool={pool}
-            pixKey={pixKey}
-            firstMatchDate={firstMatchDate}
-            ownerName={ownerName || undefined}
-          />
-        </>
-      );
-    }
   }
 
   // Consolidated in_app payment: aggregate all pending entries without proof into a single QR
@@ -179,7 +181,16 @@ const UserPoolEntries = ({
         </div>
       )}
 
-      {/* Consolidated in-app payment card (one QR for all pending entries) */}
+      {/* Referral program — bem em destaque após primeiro palpite aprovado */}
+      {approved.length > 0 && pool?.slug && (
+        <ReferralCard
+          poolId={poolId}
+          poolSlug={pool.slug}
+          poolTitle={pool.title}
+          userId={userId}
+        />
+      )}
+
       {showConsolidatedInApp && (
         <div className="p-3 rounded-lg bg-primary/5 border border-primary/20 space-y-3">
           <p className="text-sm font-semibold">

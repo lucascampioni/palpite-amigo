@@ -17,6 +17,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { WorldCupPredictionGrid, isWorldCupPool } from "@/components/WorldCupPredictionGrid";
+import { getReferral, clearReferral } from "@/lib/referral";
 
 interface FootballPredictionFormProps {
   poolId: string;
@@ -333,55 +334,67 @@ const FootballPredictionForm = ({ poolId, userId, onSuccess, entryFee, pool, pix
       }
     }
 
-    // For estabelecimento pools, find existing approved participant created by the owner
-    if (isEstabelecimento) {
-      const { data: existingParticipant } = await supabase
+
+    // Reuse "approved without predictions" entry (estabelecimento OR referral reward)
+    {
+      const { data: approvedRows } = await supabase
         .from("participants")
-        .select("id, status")
+        .select("id, payment_proof")
         .eq("pool_id", poolId)
         .eq("user_id", userId)
-        .eq("status", "approved")
-        .maybeSingle();
+        .eq("status", "approved");
 
-      if (existingParticipant) {
-        // Use existing participant for predictions
-        await supabase
-          .from("participants")
-          .update({ guess_value: `${predictionSets.length} palpite${predictionSets.length > 1 ? 's' : ''}` })
-          .eq("id", existingParticipant.id);
-
-        const allPredictions = predictionSets.flatMap((set, setIndex) =>
-          set.filter(p => {
-            const match = matches.find(m => m.id === p.matchId);
-            return !['postponed', 'cancelled', 'abandoned'].includes(match?.status || '');
-          }).map(p => ({
-            participant_id: existingParticipant.id,
-            match_id: p.matchId,
-            home_score_prediction: parseInt(p.homeScore),
-            away_score_prediction: parseInt(p.awayScore),
-            prediction_set: maxExistingSet + setIndex + 1,
-          }))
-        );
-
-        const { error: predictionsError } = await supabase
-          .from("football_predictions")
-          .insert(allPredictions);
-
-        if (predictionsError) {
-          toast({ variant: "destructive", title: "Erro", description: predictionsError.message });
-        } else {
-          toast({
-            title: "🎉 Palpites enviados!",
-            description: `${predictionSets.length} palpite${predictionSets.length > 1 ? 's' : ''} salvo${predictionSets.length > 1 ? 's' : ''}. Boa sorte! 🍀`,
-            duration: 5000,
-          });
-          setSubmitted(true);
-          onSuccess();
+      if (approvedRows && approvedRows.length > 0) {
+        let reusableId: string | null = null;
+        for (const row of approvedRows) {
+          if (!isEstabelecimento && !((row.payment_proof || "").startsWith("referral_reward"))) continue;
+          const { count } = await supabase
+            .from("football_predictions")
+            .select("id", { count: "exact", head: true })
+            .eq("participant_id", row.id);
+          if ((count || 0) === 0) { reusableId = row.id; break; }
         }
-        setSubmitting(false);
-        return;
+
+        if (reusableId) {
+          await supabase
+            .from("participants")
+            .update({ guess_value: `${predictionSets.length} palpite${predictionSets.length > 1 ? 's' : ''}` })
+            .eq("id", reusableId);
+
+          const allPredictions = predictionSets.flatMap((set, setIndex) =>
+            set.filter(p => {
+              const match = matches.find(m => m.id === p.matchId);
+              return !['postponed', 'cancelled', 'abandoned'].includes(match?.status || '');
+            }).map(p => ({
+              participant_id: reusableId!,
+              match_id: p.matchId,
+              home_score_prediction: parseInt(p.homeScore),
+              away_score_prediction: parseInt(p.awayScore),
+              prediction_set: maxExistingSet + setIndex + 1,
+            }))
+          );
+
+          const { error: predictionsError } = await supabase
+            .from("football_predictions")
+            .insert(allPredictions);
+
+          if (predictionsError) {
+            toast({ variant: "destructive", title: "Erro", description: predictionsError.message });
+          } else {
+            toast({
+              title: "🎉 Palpites enviados!",
+              description: `${predictionSets.length} palpite${predictionSets.length > 1 ? 's' : ''} salvo${predictionSets.length > 1 ? 's' : ''}. Boa sorte! 🍀`,
+              duration: 5000,
+            });
+            setSubmitted(true);
+            onSuccess();
+          }
+          setSubmitting(false);
+          return;
+        }
       }
     }
+
 
     const { data: profile } = await supabase
       .from("profiles")
@@ -445,6 +458,31 @@ const FootballPredictionForm = ({ poolId, userId, onSuccess, entryFee, pool, pix
       await supabase.from("participants").delete().eq("id", participant.id);
     } else {
       // No need to update voucher for estabelecimento - already linked by owner
+
+      // Registra indicação se o usuário entrou via link de referência
+      const refUserId = getReferral(poolId);
+      if (refUserId && refUserId !== userId) {
+        const { error: refErr } = await supabase
+          .from("pool_referrals")
+          .insert({
+            pool_id: poolId,
+            referrer_user_id: refUserId,
+            referred_user_id: userId,
+            referred_participant_id: participant.id,
+            status: "pending",
+          });
+        if (!refErr) {
+          clearReferral(poolId);
+          // Se já entrou aprovado (sem taxa), tenta processar recompensa imediatamente
+          if (initialStatus === "approved") {
+            supabase.functions
+              .invoke("process-referral-rewards", {
+                body: { pool_id: poolId, referred_user_id: userId },
+              })
+              .catch(() => {});
+          }
+        }
+      }
 
       if (hasEntryFee) {
         setCreatedParticipantId(participant.id);

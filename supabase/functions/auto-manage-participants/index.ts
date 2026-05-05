@@ -139,7 +139,7 @@ serve(async (req) => {
         // Auto-approve pending with proof
         const { data: pendingWithProof, error: pErr2 } = await supabase
           .from('participants')
-          .select('id, participant_name')
+          .select('id, participant_name, user_id')
           .eq('pool_id', pool.id)
           .eq('status', 'pending')
           .not('payment_proof', 'is', null);
@@ -167,6 +167,24 @@ serve(async (req) => {
 
           if (!updateErr) {
             console.log(`Auto-approved ${ids.length} participants with proof in pool "${pool.title}"`);
+            // Trigger referral rewards
+            const seen = new Set<string>();
+            for (const p of pendingWithProof) {
+              if (!p.user_id || seen.has(p.user_id)) continue;
+              seen.add(p.user_id);
+              try {
+                await fetch(`${Deno.env.get('SUPABASE_URL')}/functions/v1/process-referral-rewards`, {
+                  method: 'POST',
+                  headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')}`,
+                  },
+                  body: JSON.stringify({ pool_id: pool.id, referred_user_id: p.user_id }),
+                });
+              } catch (err) {
+                console.warn('referral reward call failed:', err);
+              }
+            }
           }
         }
       }

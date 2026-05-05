@@ -219,11 +219,20 @@ export const AdminParticipantsManager = ({
 
     setProcessing(participantId);
     try {
-      const { error } = await supabase
+      const { data: updated, error } = await supabase
         .from("participants")
         .update({ status: "approved", rejection_reason: null, rejection_details: null })
-        .eq("id", participantId);
+        .eq("id", participantId)
+        .select("user_id, pool_id")
+        .single();
       if (error) throw error;
+      if (updated?.user_id && updated?.pool_id) {
+        supabase.functions
+          .invoke("process-referral-rewards", {
+            body: { pool_id: updated.pool_id, referred_user_id: updated.user_id },
+          })
+          .catch((e) => console.warn("referral reward error:", e));
+      }
       toast({ title: "Participante aprovado!" });
       onParticipantUpdate(participantId, { status: "approved", rejection_reason: null, rejection_details: null });
     } catch (error: any) {

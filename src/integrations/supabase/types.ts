@@ -511,6 +511,42 @@ export type Database = {
         }
         Relationships: []
       }
+      pool_referrals: {
+        Row: {
+          created_at: string
+          id: string
+          pool_id: string
+          referred_participant_id: string | null
+          referred_user_id: string
+          referrer_user_id: string
+          reward_participant_id: string | null
+          rewarded_at: string | null
+          status: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          pool_id: string
+          referred_participant_id?: string | null
+          referred_user_id: string
+          referrer_user_id: string
+          reward_participant_id?: string | null
+          rewarded_at?: string | null
+          status?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          pool_id?: string
+          referred_participant_id?: string | null
+          referred_user_id?: string
+          referrer_user_id?: string
+          reward_participant_id?: string | null
+          rewarded_at?: string | null
+          status?: string
+        }
+        Relationships: []
+      }
       pool_transactions: {
         Row: {
           amount: number
@@ -996,6 +1032,10 @@ export type Database = {
       is_pool_finished: { Args: { pool_uuid: string }; Returns: boolean }
       is_pool_owner: {
         Args: { pool_uuid: string; user_uuid: string }
+        Returns: boolean
+      }
+      is_pool_referral_eligible: {
+        Args: { p_pool_id: string }
         Returns: boolean
       }
       is_user_admin: { Args: never; Returns: boolean }

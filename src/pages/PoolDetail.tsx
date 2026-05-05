@@ -1,5 +1,6 @@
 import { useEffect, useState, useMemo } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, useSearchParams } from "react-router-dom";
+import { captureReferral } from "@/lib/referral";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -33,6 +34,7 @@ import VoucherManager from "@/components/VoucherManager";
 
 const PoolDetail = () => {
   const { slug } = useParams();
+  const [searchParams] = useSearchParams();
   const [poolId, setPoolId] = useState<string | null>(null);
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -451,6 +453,15 @@ const PoolDetail = () => {
   useEffect(() => {
     if (poolId) loadPoolData();
   }, [poolId]);
+
+  // Captura código de indicação ?ref=<userId>
+  useEffect(() => {
+    if (!poolId) return;
+    const ref = searchParams.get("ref");
+    if (ref && ref !== userId) {
+      captureReferral(poolId, ref);
+    }
+  }, [poolId, searchParams, userId]);
 
   // Listen for scroll-to-prize events from FootballRanking
   useEffect(() => {
