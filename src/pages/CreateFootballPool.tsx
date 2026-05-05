@@ -1427,6 +1427,7 @@ const CreateFootballPool = () => {
           open={showGESelector}
           onOpenChange={setShowGESelector}
           onMatchesSelected={handleGEMatchesSelected}
+          minMinutesBeforeMatch={paymentMethod === 'in_app' ? 30 : 300}
         />
       </div>
     </div>
