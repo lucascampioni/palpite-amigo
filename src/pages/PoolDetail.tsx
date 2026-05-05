@@ -34,6 +34,7 @@ import VoucherManager from "@/components/VoucherManager";
 
 const PoolDetail = () => {
   const { slug } = useParams();
+  const [searchParams] = useSearchParams();
   const [poolId, setPoolId] = useState<string | null>(null);
   const navigate = useNavigate();
   const { toast } = useToast();
