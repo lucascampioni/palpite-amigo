@@ -485,7 +485,40 @@ const Auth = () => {
     e.preventDefault();
     setResetLoading(true);
 
-    const { error } = await supabase.auth.resetPasswordForEmail(resetEmail, {
+    const normalizedResetEmail = normalizeEmail(resetEmail);
+
+    try {
+      const { data, error: fnError } = await supabase.functions.invoke("check-email-exists", {
+        body: { email: normalizedResetEmail },
+      });
+
+      if (!fnError && data?.recovered_orphan) {
+        toast({
+          title: "Cadastro incompleto corrigido",
+          description: "Este e-mail foi liberado. Crie a conta novamente para concluir o acesso.",
+        });
+        setForgotPasswordOpen(false);
+        setActiveTab("signup");
+        setResetLoading(false);
+        return;
+      }
+
+      if (!fnError && data && !data.exists) {
+        toast({
+          variant: "destructive",
+          title: "E-mail não cadastrado",
+          description: "Não existe uma conta ativa com este e-mail. Clique em “Criar Conta” para se cadastrar.",
+        });
+        setForgotPasswordOpen(false);
+        setActiveTab("signup");
+        setResetLoading(false);
+        return;
+      }
+    } catch {
+      // Se a verificação falhar, mantém a tentativa padrão de recuperação.
+    }
+
+    const { error } = await supabase.auth.resetPasswordForEmail(normalizedResetEmail, {
       redirectTo: `${window.location.origin}/redefinir-senha`,
     });
 
