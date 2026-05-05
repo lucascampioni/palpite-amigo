@@ -454,6 +454,15 @@ const PoolDetail = () => {
     if (poolId) loadPoolData();
   }, [poolId]);
 
+  // Captura código de indicação ?ref=<userId>
+  useEffect(() => {
+    if (!poolId) return;
+    const ref = searchParams.get("ref");
+    if (ref && ref !== userId) {
+      captureReferral(poolId, ref);
+    }
+  }, [poolId, searchParams, userId]);
+
   // Listen for scroll-to-prize events from FootballRanking
   useEffect(() => {
     const handler = (e: Event) => {
