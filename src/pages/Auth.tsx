@@ -261,14 +261,15 @@ const Auth = () => {
         body: { email },
       });
       if (!fnError && data?.exists) {
-        toast({
-          variant: "destructive",
-          title: "E-mail já cadastrado",
-          description: "Já existe uma conta com este e-mail. Faça login ou use 'Esqueci minha senha' para recuperar o acesso.",
-        });
-        setActiveTab("login");
+        showExistingEmailToast(email, data);
         setLoading(false);
         return;
+      }
+      if (!fnError && data?.recovered_orphan) {
+        toast({
+          title: "Cadastro liberado",
+          description: "Encontramos um cadastro incompleto e liberamos este e-mail. Pode continuar criando a conta.",
+        });
       }
     } catch (err) {
       console.error("Falha ao verificar email duplicado");
@@ -314,22 +315,14 @@ const Auth = () => {
 
     // Verifica se o e-mail já existe (Supabase não retorna erro, mas user e session serão null)
     if (!error && !data.user && !data.session) {
-      toast({
-        variant: "destructive",
-        title: "E-mail já cadastrado",
-        description: "Este e-mail já está cadastrado. Por favor, faça login ou use outro e-mail.",
-      });
+      showExistingEmailToast(email);
       setLoading(false);
       return;
     }
 
     // Repetição de cadastro: Supabase retorna user com identities vazio
     if (!error && data.user && Array.isArray((data.user as any).identities) && (data.user as any).identities.length === 0) {
-      toast({
-        variant: "destructive",
-        title: "E-mail já cadastrado",
-        description: "Este e-mail já está cadastrado. Por favor, faça login ou use outro e-mail.",
-      });
+      showExistingEmailToast(email);
       setLoading(false);
       return;
     }
@@ -341,7 +334,9 @@ const Auth = () => {
       if (/user already registered|email.*already.*registered|email.*exists/i.test(error.message) || 
           error.status === 422 || 
           error.code === 'user_already_exists') {
-        errorMessage = "Este e-mail já está cadastrado. Por favor, faça login ou use outro e-mail.";
+        showExistingEmailToast(email);
+        setLoading(false);
+        return;
       } else if (/duplicate key|cpf_hash/i.test(error.message)) {
         errorMessage = "Este CPF já está cadastrado no sistema.";
       } else if (/rate limit/i.test(error.message)) {
