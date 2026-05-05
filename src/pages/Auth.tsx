@@ -559,7 +559,7 @@ const Auth = () => {
                         maxLength={15}
                         value={loginPhone}
                         onChange={(e) => {
-                          let raw = e.target.value.replace(/\D/g, "");
+                          const raw = e.target.value.replace(/\D/g, "");
                           let value = raw;
                           if (raw.length <= 2) {
                             // no formatting
@@ -665,7 +665,7 @@ const Auth = () => {
                       maxLength={14}
                       value={cpf}
                       onChange={(e) => {
-                        let raw = e.target.value.replace(/\D/g, "");
+                        const raw = e.target.value.replace(/\D/g, "");
                         let value = raw;
                         if (raw.length <= 3) {
                           // no formatting
@@ -714,7 +714,7 @@ const Auth = () => {
                       maxLength={15}
                       value={phone}
                       onChange={(e) => {
-                        let raw = e.target.value.replace(/\D/g, "");
+                        const raw = e.target.value.replace(/\D/g, "");
                         let value = raw;
                         if (raw.length <= 2) {
                           // no formatting
