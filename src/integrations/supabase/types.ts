@@ -996,6 +996,7 @@ export type Database = {
         Returns: boolean
       }
       check_email_exists: { Args: { _email: string }; Returns: boolean }
+      check_email_status: { Args: { _email: string }; Returns: Json }
       cleanup_expired_otp: { Args: never; Returns: undefined }
       generate_slug: { Args: { title: string }; Returns: string }
       get_football_pool_ranking: {

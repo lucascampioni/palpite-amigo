@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { ToastAction } from "@/components/ui/toast";
 import { useToast } from "@/hooks/use-toast";
 import { Trophy } from "lucide-react";
 import { z } from "zod";
@@ -93,6 +94,53 @@ const Auth = () => {
   const [activeTab, setActiveTab] = useState("login");
   
   const redirectUrl = searchParams.get('redirect') || '/app';
+
+  const resendConfirmationEmail = async (email: string) => {
+    const { error } = await supabase.auth.resend({
+      type: "signup",
+      email,
+      options: { emailRedirectTo: `${window.location.origin}/` },
+    });
+
+    toast({
+      variant: error ? "destructive" : undefined,
+      title: error ? "Erro ao reenviar email" : "Email reenviado!",
+      description: error
+        ? "Não foi possível reenviar agora. Tente novamente em alguns minutos."
+        : "Verifique sua caixa de entrada e confirme a conta antes de entrar.",
+    });
+  };
+
+  const showExistingEmailToast = (email: string, status?: { email_confirmed?: boolean }) => {
+    setActiveTab("login");
+    setLoginMethod("email");
+    setResetEmail(email);
+
+    if (status?.email_confirmed === false) {
+      toast({
+        variant: "destructive",
+        title: "Cadastro já iniciado",
+        description: "Este e-mail já iniciou um cadastro, mas ainda precisa ser confirmado. Confirme pelo e-mail recebido ou reenvie a confirmação.",
+        action: (
+          <ToastAction altText="Reenviar email" onClick={() => void resendConfirmationEmail(email)}>
+            Reenviar
+          </ToastAction>
+        ),
+      });
+      return;
+    }
+
+    toast({
+      variant: "destructive",
+      title: "E-mail já cadastrado",
+      description: "Este e-mail já tem conta. Entre com a senha correta ou use a recuperação de senha para liberar o acesso.",
+      action: (
+        <ToastAction altText="Recuperar senha" onClick={() => setForgotPasswordOpen(true)}>
+          Recuperar
+        </ToastAction>
+      ),
+    });
+  };
   
   useEffect(() => {
     const checkUser = async () => {
@@ -191,7 +239,7 @@ const Auth = () => {
       const { data, error: fnError } = await supabase.functions.invoke("check-cpf-exists", {
         body: { cpf },
       });
-      if (fnError) throw fnError as any;
+      if (fnError) throw fnError;
       if (data?.exists) {
         setCpfError("CPF já cadastrado");
         toast({
@@ -213,14 +261,15 @@ const Auth = () => {
         body: { email },
       });
       if (!fnError && data?.exists) {
-        toast({
-          variant: "destructive",
-          title: "E-mail já cadastrado",
-          description: "Já existe uma conta com este e-mail. Faça login ou use 'Esqueci minha senha' para recuperar o acesso.",
-        });
-        setActiveTab("login");
+        showExistingEmailToast(email, data);
         setLoading(false);
         return;
+      }
+      if (!fnError && data?.recovered_orphan) {
+        toast({
+          title: "Cadastro liberado",
+          description: "Encontramos um cadastro incompleto e liberamos este e-mail. Pode continuar criando a conta.",
+        });
       }
     } catch (err) {
       console.error("Falha ao verificar email duplicado");
@@ -231,7 +280,7 @@ const Auth = () => {
       const { data, error: fnError } = await supabase.functions.invoke("check-phone-exists", {
         body: { phone },
       });
-      if (fnError) throw fnError as any;
+      if (fnError) throw fnError;
       if (data?.exists) {
         toast({
           variant: "destructive",
@@ -266,22 +315,15 @@ const Auth = () => {
 
     // Verifica se o e-mail já existe (Supabase não retorna erro, mas user e session serão null)
     if (!error && !data.user && !data.session) {
-      toast({
-        variant: "destructive",
-        title: "E-mail já cadastrado",
-        description: "Este e-mail já está cadastrado. Por favor, faça login ou use outro e-mail.",
-      });
+      showExistingEmailToast(email);
       setLoading(false);
       return;
     }
 
     // Repetição de cadastro: Supabase retorna user com identities vazio
-    if (!error && data.user && Array.isArray((data.user as any).identities) && (data.user as any).identities.length === 0) {
-      toast({
-        variant: "destructive",
-        title: "E-mail já cadastrado",
-        description: "Este e-mail já está cadastrado. Por favor, faça login ou use outro e-mail.",
-      });
+    const userIdentities = data.user ? (data.user as { identities?: unknown[] }).identities : undefined;
+    if (!error && data.user && Array.isArray(userIdentities) && userIdentities.length === 0) {
+      showExistingEmailToast(email);
       setLoading(false);
       return;
     }
@@ -293,7 +335,9 @@ const Auth = () => {
       if (/user already registered|email.*already.*registered|email.*exists/i.test(error.message) || 
           error.status === 422 || 
           error.code === 'user_already_exists') {
-        errorMessage = "Este e-mail já está cadastrado. Por favor, faça login ou use outro e-mail.";
+        showExistingEmailToast(email);
+        setLoading(false);
+        return;
       } else if (/duplicate key|cpf_hash/i.test(error.message)) {
         errorMessage = "Este CPF já está cadastrado no sistema.";
       } else if (/rate limit/i.test(error.message)) {
@@ -328,6 +372,7 @@ const Auth = () => {
     const password = formData.get("login-password") as string;
     
     let email = '';
+    let checkedEmailStatus: { exists?: boolean; email_confirmed?: boolean } | null = null;
     
     if (loginMethod === 'phone') {
       const phoneDigits = loginPhone.replace(/\D/g, '');
@@ -382,6 +427,7 @@ const Auth = () => {
         const { data, error: fnError } = await supabase.functions.invoke("check-email-exists", {
           body: { email },
         });
+        if (!fnError && data) checkedEmailStatus = data;
         if (!fnError && data && !data.exists) {
           toast({
             variant: "destructive",
@@ -400,13 +446,12 @@ const Auth = () => {
 
     if (error) {
       const errorMap: Record<string, string> = {
-        'Invalid login credentials': 'Credenciais incorretas. Verifique e tente novamente.',
         'Too many requests': 'Muitas tentativas. Aguarde alguns minutos e tente novamente.',
         'User not found': 'Usuário não encontrado.',
-        'Invalid email or password': 'Credenciais incorretas.',
       };
       const translatedMessage = errorMap[error.message] || 
-        (/invalid.*credentials/i.test(error.message) ? 'Credenciais incorretas. Verifique e tente novamente.' :
+        (/confirm|verified/i.test(error.message) || checkedEmailStatus?.email_confirmed === false ? 'Cadastro encontrado, mas o e-mail ainda não foi confirmado. Confirme pelo e-mail recebido ou use “Reenviar” na tela de cadastro.' :
+        /invalid.*credentials|invalid email or password/i.test(error.message) ? 'Credenciais incorretas. Se você não lembra a senha, use “Esqueci minha senha”.' :
         /rate limit|too many/i.test(error.message) ? 'Muitas tentativas. Aguarde alguns minutos.' :
         error.message);
       toast({ variant: "destructive", title: "Erro ao fazer login", description: translatedMessage });
@@ -514,7 +559,7 @@ const Auth = () => {
                         maxLength={15}
                         value={loginPhone}
                         onChange={(e) => {
-                          let raw = e.target.value.replace(/\D/g, "");
+                          const raw = e.target.value.replace(/\D/g, "");
                           let value = raw;
                           if (raw.length <= 2) {
                             // no formatting
@@ -620,7 +665,7 @@ const Auth = () => {
                       maxLength={14}
                       value={cpf}
                       onChange={(e) => {
-                        let raw = e.target.value.replace(/\D/g, "");
+                        const raw = e.target.value.replace(/\D/g, "");
                         let value = raw;
                         if (raw.length <= 3) {
                           // no formatting
@@ -669,7 +714,7 @@ const Auth = () => {
                       maxLength={15}
                       value={phone}
                       onChange={(e) => {
-                        let raw = e.target.value.replace(/\D/g, "");
+                        const raw = e.target.value.replace(/\D/g, "");
                         let value = raw;
                         if (raw.length <= 2) {
                           // no formatting
