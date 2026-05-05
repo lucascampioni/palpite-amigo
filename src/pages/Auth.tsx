@@ -397,8 +397,8 @@ const Auth = () => {
         if (!handled) {
           toast({
             variant: "destructive",
-            title: "Cadastro não concluído",
-          description: "Este e-mail não aparece como conta ativa. Verifique CPF/telefone e tente criar a conta novamente em alguns segundos.",
+            title: "Cadastro bloqueado pelo servidor",
+            description: "O e-mail não aparece como conta ativa. A correção do backend precisa estar publicada; se já publicou, tente novamente em 1 minuto.",
           });
           setActiveTab("signup");
         }
