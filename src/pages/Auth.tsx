@@ -445,14 +445,12 @@ const Auth = () => {
 
     if (error) {
       const errorMap: Record<string, string> = {
-        'Invalid login credentials': 'Credenciais incorretas. Verifique e tente novamente.',
         'Too many requests': 'Muitas tentativas. Aguarde alguns minutos e tente novamente.',
         'User not found': 'Usuário não encontrado.',
-        'Invalid email or password': 'Credenciais incorretas.',
       };
       const translatedMessage = errorMap[error.message] || 
-        (/invalid.*credentials/i.test(error.message) ? 'Credenciais incorretas. Verifique e tente novamente.' :
-        /confirm|verified/i.test(error.message) || checkedEmailStatus?.email_confirmed === false ? 'Cadastro encontrado, mas o e-mail ainda não foi confirmado. Confirme pelo e-mail recebido ou use “Reenviar” na tela de cadastro.' :
+        (/confirm|verified/i.test(error.message) || checkedEmailStatus?.email_confirmed === false ? 'Cadastro encontrado, mas o e-mail ainda não foi confirmado. Confirme pelo e-mail recebido ou use “Reenviar” na tela de cadastro.' :
+        /invalid.*credentials|invalid email or password/i.test(error.message) ? 'Credenciais incorretas. Se você não lembra a senha, use “Esqueci minha senha”.' :
         /rate limit|too many/i.test(error.message) ? 'Muitas tentativas. Aguarde alguns minutos.' :
         error.message);
       toast({ variant: "destructive", title: "Erro ao fazer login", description: translatedMessage });
