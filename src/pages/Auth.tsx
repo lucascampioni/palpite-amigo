@@ -144,13 +144,8 @@ const Auth = () => {
 
     toast({
       variant: "destructive",
-      title: "E-mail já cadastrado",
-      description: "Este e-mail já tem conta. Entre com a senha correta ou use a recuperação de senha para liberar o acesso.",
-      action: (
-        <ToastAction altText="Recuperar senha" onClick={() => setForgotPasswordOpen(true)}>
-          Recuperar
-        </ToastAction>
-      ),
+      title: "Não foi possível criar a conta",
+      description: "Verifique se CPF ou telefone já foram usados. Se você já tem conta, entre com a senha correta ou use “Esqueci minha senha”.",
     });
   };
 
@@ -169,7 +164,7 @@ const Auth = () => {
         return true;
       }
 
-      if (!fnError && data?.exists && data?.has_profile !== false) {
+      if (!fnError && data?.exists && data?.email_confirmed === false) {
         showExistingEmailToast(email, data);
         return true;
       }
