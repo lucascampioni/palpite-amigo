@@ -129,58 +129,61 @@ serve(async (req) => {
       const apiFixtureId = String(fixture.fixture?.id);
       const externalId = `apifb_${apiFixtureId}`;
 
-      // 1) Try exact external_id match
-      let { data: dbMatch } = await supabase
+      // 1) Try exact external_id match — there can be MULTIPLE rows (one per pool)
+      const { data: dbMatches } = await supabase
         .from('football_matches')
         .select('*, pools!inner(scoring_system)')
-        .eq('external_id', externalId)
-        .maybeSingle();
+        .eq('external_id', externalId);
 
-      // 2) If external_id is stale/wrong, reconcile by team names + kickoff proximity
-      if (!dbMatch) {
-        dbMatch = await findDbMatchForLiveFixture(supabase, fixture);
+      let matchesToUpdate: any[] = dbMatches || [];
+
+      // 2) If no rows by external_id, fallback to reconciliation by team names + kickoff
+      if (matchesToUpdate.length === 0) {
+        const reconciled = await findDbMatchForLiveFixture(supabase, fixture);
+        if (reconciled) matchesToUpdate = [reconciled];
       }
 
-      if (!dbMatch) continue;
+      if (matchesToUpdate.length === 0) continue;
 
-      const apiStatus = fixture.fixture?.status?.short; // NS, 1H, HT, 2H, FT, etc.
+      const apiStatus = fixture.fixture?.status?.short;
       const mappedStatus = mapApiStatus(apiStatus);
       const homeGoals = fixture.goals?.home ?? null;
       const awayGoals = fixture.goals?.away ?? null;
 
-      const statusChanged = dbMatch.status !== mappedStatus;
-      const homeScoreChanged = homeGoals !== null && dbMatch.home_score !== homeGoals;
-      const awayScoreChanged = awayGoals !== null && dbMatch.away_score !== awayGoals;
-      const scoreChanged = homeScoreChanged || awayScoreChanged;
-      const externalIdChanged = dbMatch.external_id !== externalId;
+      for (const dbMatch of matchesToUpdate) {
+        const statusChanged = dbMatch.status !== mappedStatus;
+        const homeScoreChanged = homeGoals !== null && dbMatch.home_score !== homeGoals;
+        const awayScoreChanged = awayGoals !== null && dbMatch.away_score !== awayGoals;
+        const scoreChanged = homeScoreChanged || awayScoreChanged;
+        const externalIdChanged = dbMatch.external_id !== externalId;
 
-      if (!statusChanged && !scoreChanged && !externalIdChanged) continue;
+        if (!statusChanged && !scoreChanged && !externalIdChanged) continue;
 
-      const updateData: any = {
-        status: mappedStatus,
-        last_sync_at: new Date().toISOString(),
-      };
-      if (homeGoals !== null) updateData.home_score = homeGoals;
-      if (awayGoals !== null) updateData.away_score = awayGoals;
-      if (externalIdChanged) updateData.external_id = externalId;
+        const updateData: any = {
+          status: mappedStatus,
+          last_sync_at: new Date().toISOString(),
+        };
+        if (homeGoals !== null) updateData.home_score = homeGoals;
+        if (awayGoals !== null) updateData.away_score = awayGoals;
+        if (externalIdChanged) updateData.external_id = externalId;
 
-      const { error: updateError } = await supabase
-        .from('football_matches')
-        .update(updateData)
-        .eq('id', dbMatch.id);
+        const { error: updateError } = await supabase
+          .from('football_matches')
+          .update(updateData)
+          .eq('id', dbMatch.id);
 
-      if (updateError) {
-        console.error(`❌ Error updating match ${dbMatch.id}:`, updateError);
-        continue;
-      }
+        if (updateError) {
+          console.error(`❌ Error updating match ${dbMatch.id}:`, updateError);
+          continue;
+        }
 
-      updatedCount++;
-      console.log(`✅ Updated: ${dbMatch.home_team} ${homeGoals ?? '-'} x ${awayGoals ?? '-'} ${dbMatch.away_team} [${dbMatch.status} → ${mappedStatus}]`);
+        updatedCount++;
+        console.log(`✅ Updated: ${dbMatch.home_team} ${homeGoals ?? '-'} x ${awayGoals ?? '-'} ${dbMatch.away_team} [${dbMatch.status} → ${mappedStatus}] (pool ${dbMatch.pool_id})`);
 
-      // If match finished, calculate points
-      if (mappedStatus === 'finished' && homeGoals !== null && awayGoals !== null) {
-        finishedPoolIds.add(dbMatch.pool_id);
-        await calculateMatchPoints(supabase, dbMatch, homeGoals, awayGoals);
+        if (mappedStatus === 'finished' && homeGoals !== null && awayGoals !== null) {
+          finishedPoolIds.add(dbMatch.pool_id);
+          await calculateMatchPoints(supabase, dbMatch, homeGoals, awayGoals);
+        }
       }
     }
 
