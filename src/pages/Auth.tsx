@@ -371,6 +371,7 @@ const Auth = () => {
     const password = formData.get("login-password") as string;
     
     let email = '';
+    let checkedEmailStatus: { exists?: boolean; email_confirmed?: boolean } | null = null;
     
     if (loginMethod === 'phone') {
       const phoneDigits = loginPhone.replace(/\D/g, '');
@@ -425,6 +426,7 @@ const Auth = () => {
         const { data, error: fnError } = await supabase.functions.invoke("check-email-exists", {
           body: { email },
         });
+        if (!fnError && data) checkedEmailStatus = data;
         if (!fnError && data && !data.exists) {
           toast({
             variant: "destructive",
@@ -450,6 +452,7 @@ const Auth = () => {
       };
       const translatedMessage = errorMap[error.message] || 
         (/invalid.*credentials/i.test(error.message) ? 'Credenciais incorretas. Verifique e tente novamente.' :
+        /confirm|verified/i.test(error.message) || checkedEmailStatus?.email_confirmed === false ? 'Cadastro encontrado, mas o e-mail ainda não foi confirmado. Confirme pelo e-mail recebido ou use “Reenviar” na tela de cadastro.' :
         /rate limit|too many/i.test(error.message) ? 'Muitas tentativas. Aguarde alguns minutos.' :
         error.message);
       toast({ variant: "destructive", title: "Erro ao fazer login", description: translatedMessage });
