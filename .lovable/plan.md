@@ -1,56 +1,57 @@
-## O que muda
+## Sistema de Indicação para Bolões Oficiais
 
-Hoje a Taxa Delfos é descontada do **bolo total arrecadado** no fim do bolão (sai do prêmio/organizador). Vamos mudar para uma **taxa cobrada por cima** do valor de cada palpite, paga pelo participante no momento do PIX. O organizador e o vencedor passam a receber 100% sobre a entrada cheia, e a Delfos recebe a taxa diretamente do pagamento extra.
+### Objetivo
+Permitir que participantes de bolões com **premiação fixa** da comunidade **Delfos Oficial** indiquem outras pessoas. Quando o indicado entrar e pagar, o indicador ganha **1 palpite extra grátis** no mesmo bolão.
 
-**Padrão**: 15% (atualmente está 5% no banco — vai virar 15%).
+### Critérios de elegibilidade do bolão
+- `prize_type = 'fixed'`
+- Pool pertence à comunidade Delfos Oficial (owner_id = responsible_user_id da `communities.is_official=true`)
+- Status = `active`
 
-### Exemplo
-- Entrada: R$ 10, prêmio: 80% do arrecadado, organizador: 20%
-- 1 palpite → participante paga R$ 10 + R$ 1,50 = **R$ 11,50**
-- 2 palpites → R$ 20 + R$ 3,00 = **R$ 23,00**
-- O bolão considera só os R$ 10 (ou R$ 20) para premiação/organizador. R$ 1,50 (ou R$ 3,00) vai direto para a Delfos.
+### Fluxo
+1. **Após o usuário ter pelo menos 1 palpite aprovado** no bolão elegível, exibir um **card grande em destaque** dentro do `UserPoolEntries`:
+   - Texto: "🎁 Indique e ganhe 1 palpite grátis! Para cada amigo que entrar pelo seu link e pagar, você ganha um palpite extra automaticamente."
+   - Link copiável: `https://delfos.app.br/bolao/<slug>?ref=<user_id>`
+   - Botões: Copiar link, Compartilhar (WhatsApp).
+   - Mostrar contador: "X amigos indicados • Y palpites grátis ganhos".
 
-## Mudanças necessárias
+2. **Captura do referral**: ao abrir `/bolao/<slug>?ref=<id>`, salvar em `localStorage` (`referral_<poolId>=<id>`) e `sessionStorage`. Persiste mesmo se fizer login/cadastro depois.
 
-**1. Frontend — cobrança PIX (`InAppPaymentSubmission` + `UserPoolEntries`)**
-- Buscar `delfos_fee_percent` do `platform_settings`.
-- Calcular `feeAmount = entryFee * fee%` e enviar `total = entryFee + feeAmount` para o `asaas-create-pix`.
-- Mostrar para o usuário a quebra: "Entrada: R$ X · Taxa do app (15%): R$ Y · **Total: R$ Z**".
+3. **Registro do referral**: ao criar um participante (`FootballPredictionForm.handleConfirmSubmit`), se houver `referral_<poolId>` no storage e o referrer ≠ self e o pool for elegível, inserir registro em `pool_referrals` com `status='pending'` e `referred_participant_id`.
 
-**2. Edge function `asaas-create-pix`**
-- Recalcular a taxa no servidor (não confiar no cliente). Receber `entry_fee_total` (base) e calcular `fee` server-side.
-- Cobrar `entry_fee_total + fee` no Asaas.
-- Em `pool_transactions`, gravar **só o valor da entrada (base)** em `amount` — assim o cálculo de premiação/organizador continua correto. Adicionar duas colunas: `platform_fee` (valor cobrado da Delfos) e `gross_amount` (total cobrado).
+4. **Conversão**: edge function `process-referral-rewards` (chamada após webhook Asaas aprovar OU após approve manual) verifica:
+   - Indicado tem participante `approved` no pool
+   - Pool elegível
+   - Indicador também está `approved` no pool
+   Se sim:
+   - Cria novo participante para o referrer: `status='approved'`, `guess_value='Indicação grátis'`, `payment_proof='referral_reward:<referred_user_id>'`
+   - Atualiza `pool_referrals.status='rewarded'`, `rewarded_participant_id`
+   - Envia notificação push/WhatsApp ao referrer
 
-**3. Edge function `asaas-process-payouts`**
-- Remover o desconto da Taxa Delfos do `totalCollected`.
-- `totalCollected` agora é só a soma das entradas (sem fee).
-- Premiações e organizador são calculados em cima de `totalCollected` cheio.
-- Payout da Delfos passa a vir da soma de `platform_fee` das transações aprovadas (registro `recipient_type = 'platform'`).
+5. **Preenchimento do palpite ganho**: O participante "approved sem predictions" (criado pela recompensa) aparecerá como uma entrada que precisa preencher palpites. Estender lógica do `UserPoolEntries`/`FootballPredictionForm` (hoje só trata `estabelecimento`) para também tratar `payment_proof LIKE 'referral_reward%'` da mesma forma — mostrar formulário de palpite, sem cobrança.
 
-**4. UI do criador (`CreateFootballPool` / `EditFootballPool`)**
-- Remover o aviso "🏛️ X% do valor arrecadado fica com o app (taxa Delfos, descontada automaticamente)".
-- Remover a subtração da taxa do `organizerShare` no resumo de %.
-- Adicionar nota informativa no campo de entrada do bolão: "💡 A taxa do app (15%) é cobrada do participante por cima da entrada — não afeta o valor da premiação ou da sua comissão."
+### Mudanças técnicas
 
-**5. Painel admin (`AdminPlatformSettings`)**
-- Atualizar texto: deixar de descrever como "% retida sobre o arrecadado" e passar a descrever como "% cobrado do participante por cima do valor de cada palpite (vai direto para a manutenção do app)".
-- Atualizar o valor padrão no banco de 5% para 15%.
+**Banco** (migration):
+- Tabela `pool_referrals`: `id, pool_id, referrer_user_id, referred_user_id, referred_participant_id, reward_participant_id, status (pending|rewarded|cancelled), created_at, rewarded_at`. Unique `(pool_id, referred_user_id)`. RLS: usuário lê os próprios (como referrer ou referred); pool owner lê do seu pool; admins.
+- Função `is_pool_referral_eligible(pool_id)` SECURITY DEFINER que valida prize_type=fixed + owner pertence a community oficial.
 
-## Migração
+**Edge function** `process-referral-rewards/index.ts`:
+- Input: `{ pool_id, referred_user_id }`
+- Lógica acima usando service role.
+- Disparada por:
+  - `asaas-webhook` após aprovar participantes (loop sobre participantIds)
+  - `admin-actions` / approval manual (encontrar onde aprovação manual ocorre — provavelmente em `AdminPendingParticipants` ou owner approval)
 
-```sql
--- Atualiza taxa padrão para 15%
-UPDATE platform_settings SET value = '15'::jsonb WHERE key = 'delfos_fee_percent';
+**Frontend**:
+- `src/lib/referral.ts`: helpers `captureReferral(poolId)`, `getReferral(poolId)`, `clearReferral(poolId)`.
+- `PoolDetail.tsx`: chamar `captureReferral` no mount usando `searchParams.ref`.
+- `FootballPredictionForm.tsx`: após criar participant, inserir em `pool_referrals` se aplicável.
+- `UserPoolEntries.tsx`: adicionar `<ReferralCard />` em destaque quando `approved.length > 0` e pool elegível.
+- Novo componente `ReferralCard.tsx`: link, copiar, share, contador (consulta `pool_referrals`).
+- Estender lógica de "approved sem predictions" para tratar `payment_proof LIKE 'referral_reward%'` (usar form sem cobrança).
 
--- Novas colunas em pool_transactions
-ALTER TABLE pool_transactions
-  ADD COLUMN platform_fee numeric DEFAULT 0,
-  ADD COLUMN gross_amount numeric;
-```
-
-`amount` continua sendo o valor da **entrada** (base). `gross_amount` é o que o usuário pagou de fato. `platform_fee` é a fatia da Delfos.
-
-## Compatibilidade
-- Bolões antigos com transações já pagas: `platform_fee = 0`, `gross_amount = amount`. Para esses, o `process-payouts` continua funcionando (Delfos = 0 no novo modelo, então o organizador recebe o valor que sobrou — mesmo comportamento de hoje, já que esses bolões já tiveram payouts processados ou ainda não chegaram lá).
-- Para bolões em andamento, a próxima cobrança PIX já usa o novo modelo; cobranças anteriores não são afetadas.
+### Observações
+- Recompensa é dada **uma vez por indicado** (não por cada palpite que o indicado fizer).
+- Se o referido cancelar/for refundado, opcionalmente cancelar a recompensa (out of scope inicial — manter simples).
+- Pools sem entry_fee: não há "pagar", então qualquer aprovação conta como conversão.
