@@ -196,14 +196,34 @@ const Auth = () => {
         setCpfError("CPF já cadastrado");
         toast({
           variant: "destructive",
-          title: "Cadastro não permitido",
-          description: "Este CPF já está cadastrado no sistema.",
+          title: "CPF já cadastrado",
+          description: "Já existe uma conta com este CPF. Faça login ou use 'Esqueci minha senha' para recuperar o acesso.",
         });
+        setActiveTab("login");
         setLoading(false);
         return;
       }
     } catch (err) {
       console.error("Falha ao verificar CPF duplicado");
+    }
+
+    // Verificar duplicidade de email antes de criar a conta
+    try {
+      const { data, error: fnError } = await supabase.functions.invoke("check-email-exists", {
+        body: { email },
+      });
+      if (!fnError && data?.exists) {
+        toast({
+          variant: "destructive",
+          title: "E-mail já cadastrado",
+          description: "Já existe uma conta com este e-mail. Faça login ou use 'Esqueci minha senha' para recuperar o acesso.",
+        });
+        setActiveTab("login");
+        setLoading(false);
+        return;
+      }
+    } catch (err) {
+      console.error("Falha ao verificar email duplicado");
     }
 
     // Verificar duplicidade de telefone antes de criar a conta
@@ -215,9 +235,10 @@ const Auth = () => {
       if (data?.exists) {
         toast({
           variant: "destructive",
-          title: "Cadastro não permitido",
-          description: "Este telefone já está cadastrado no sistema.",
+          title: "Telefone já cadastrado",
+          description: "Já existe uma conta com este telefone. Faça login ou use 'Esqueci minha senha' para recuperar o acesso.",
         });
+        setActiveTab("login");
         setLoading(false);
         return;
       }
@@ -327,10 +348,10 @@ const Auth = () => {
         });
         if (fnError || !data?.exists) {
           toast({
+            variant: "destructive",
             title: "Telefone não cadastrado",
-            description: "Esse número não está cadastrado. Redirecionando para o cadastro...",
+            description: "Não encontramos uma conta com este número. Verifique se digitou corretamente ou clique em 'Criar Conta' para se cadastrar.",
           });
-          setTimeout(() => setActiveTab("signup"), 1500);
           setLoading(false);
           return;
         }
@@ -363,10 +384,10 @@ const Auth = () => {
         });
         if (!fnError && data && !data.exists) {
           toast({
-            title: "Email não cadastrado",
-            description: "Esse email não está cadastrado. Redirecionando para o cadastro...",
+            variant: "destructive",
+            title: "E-mail não cadastrado",
+            description: "Não encontramos uma conta com este e-mail. Verifique se digitou corretamente ou clique em 'Criar Conta' para se cadastrar.",
           });
-          setTimeout(() => setActiveTab("signup"), 1500);
           setLoading(false);
           return;
         }
