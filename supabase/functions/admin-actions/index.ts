@@ -61,6 +61,56 @@ serve(async (req) => {
       case "list_users": {
         const { search, page = 1, limit = 20 } = body;
         const offset = (page - 1) * limit;
+        const normalizedSearch = typeof search === "string" ? search.trim().toLowerCase() : "";
+        const looksLikeEmail = normalizedSearch.includes("@");
+
+        if (looksLikeEmail) {
+          const { data: authPage, error: authListError } = await adminClient.auth.admin.listUsers({ page: 1, perPage: 1000 });
+          if (authListError) throw authListError;
+
+          const matchedAuthUsers = (authPage?.users || []).filter((user: any) =>
+            user.email?.toLowerCase().includes(normalizedSearch)
+          );
+          const matchedIds = matchedAuthUsers.map((user: any) => user.id);
+
+          if (matchedIds.length === 0) {
+            return new Response(JSON.stringify({ users: [], total: 0 }), {
+              status: 200,
+              headers: { "Content-Type": "application/json", ...corsHeaders },
+            });
+          }
+
+          const { data: profilesByEmail, error: profilesByEmailError } = await adminClient
+            .from("profiles")
+            .select("id, full_name, phone, phone_verified, avatar_url, created_at")
+            .in("id", matchedIds)
+            .order("created_at", { ascending: false });
+          if (profilesByEmailError) throw profilesByEmailError;
+
+          const { data: rolesByEmail } = await adminClient
+            .from("user_roles")
+            .select("user_id, role")
+            .in("user_id", matchedIds);
+
+          const usersWithEmails = matchedAuthUsers.map((authUser: any) => {
+            const profile = profilesByEmail?.find((p: any) => p.id === authUser.id);
+            return {
+              id: authUser.id,
+              full_name: profile?.full_name || authUser.user_metadata?.full_name || "Cadastro incompleto",
+              phone: profile?.phone || authUser.user_metadata?.phone || null,
+              phone_verified: profile?.phone_verified || false,
+              avatar_url: profile?.avatar_url || null,
+              created_at: profile?.created_at || authUser.created_at,
+              email: authUser.email || "",
+              roles: rolesByEmail?.filter((r: any) => r.user_id === authUser.id).map((r: any) => r.role) || [],
+            };
+          });
+
+          return new Response(JSON.stringify({ users: usersWithEmails, total: usersWithEmails.length }), {
+            status: 200,
+            headers: { "Content-Type": "application/json", ...corsHeaders },
+          });
+        }
         
         let query = adminClient
           .from("profiles")
