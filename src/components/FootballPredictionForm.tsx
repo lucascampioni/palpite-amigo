@@ -17,6 +17,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { WorldCupPredictionGrid, isWorldCupPool } from "@/components/WorldCupPredictionGrid";
+import { getReferral, clearReferral } from "@/lib/referral";
 
 interface FootballPredictionFormProps {
   poolId: string;
