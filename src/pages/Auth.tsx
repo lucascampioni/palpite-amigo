@@ -78,6 +78,13 @@ const signInPhoneSchema = z.object({
 
 const normalizeEmail = (value: string) => value.trim().toLowerCase();
 
+const isExistingEmailError = (message: string, code?: string) =>
+  code === "user_already_exists" ||
+  /user already registered|email.*already.*registered|email.*exists|already.*been registered/i.test(message);
+
+const isPasswordSignupError = (message: string) =>
+  /password|senha|weak|leaked|pwned|hibp|compromised/i.test(message);
+
 const Auth = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
@@ -164,7 +171,7 @@ const Auth = () => {
         return true;
       }
 
-      if (!fnError && data?.exists && data?.email_confirmed === false) {
+      if (!fnError && data?.exists && data?.has_profile !== false) {
         showExistingEmailToast(email, data);
         return true;
       }
