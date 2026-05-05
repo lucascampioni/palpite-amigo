@@ -973,8 +973,8 @@ const PoolDetail = () => {
   if (!pool) return null;
 
   // Determine user status from entries (for banners)
-  const hasAnyPending = !isOwner && userEntries.some(e => e.status === 'pending');
-  const hasAnyRejected = !isOwner && userEntries.some(e => e.status === 'rejected');
+  const hasAnyPending = userEntries.some(e => e.status === 'pending');
+  const hasAnyRejected = userEntries.some(e => e.status === 'rejected');
   const hasAnyApproved = userEntries.some(e => e.status === 'approved');
   const isFinishedCommunityPool = pool.status === 'finished' && !!ownerCommunityName;
 
@@ -1487,7 +1487,7 @@ const PoolDetail = () => {
               </>
             )}
 
-            {!isOwner && pool.status === "active" && (
+            {pool.status === "active" && (
               <>
                 {hasJoined ? (
                   <>
