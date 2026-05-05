@@ -11,6 +11,7 @@ import FootballPredictionForm from "./FootballPredictionForm";
 import { PaymentProofSubmission } from "./PaymentProofSubmission";
 import { InAppPaymentSubmission } from "./InAppPaymentSubmission";
 import UserPredictionsSummary from "./UserPredictionsSummary";
+import ReferralCard from "./ReferralCard";
 
 interface UserPoolEntriesProps {
   entries: any[];
