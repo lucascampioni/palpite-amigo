@@ -387,7 +387,7 @@ const Auth = () => {
           toast({
             variant: "destructive",
             title: "Cadastro não concluído",
-            description: "Este e-mail não aparece como conta ativa. Tente criar a conta novamente em alguns segundos.",
+          description: "Este e-mail não aparece como conta ativa. Verifique CPF/telefone e tente criar a conta novamente em alguns segundos.",
           });
           setActiveTab("signup");
         }
