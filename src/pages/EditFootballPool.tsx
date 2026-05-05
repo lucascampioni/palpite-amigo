@@ -739,6 +739,7 @@ const EditFootballPool = () => {
           open={showGESelector}
           onOpenChange={setShowGESelector}
           onMatchesSelected={handleGEMatchesSelected}
+          minMinutesBeforeMatch={pool?.payment_method === 'in_app' ? 30 : 300}
         />
       </div>
     </div>
