@@ -19,6 +19,7 @@ serve(async (req) => {
         headers: { "Content-Type": "application/json", ...corsHeaders },
       });
     }
+    const normalizedEmail = email.trim().toLowerCase();
 
     const supabase = createClient(
       Deno.env.get("SUPABASE_URL")!,
@@ -26,19 +27,41 @@ serve(async (req) => {
       { auth: { persistSession: false } }
     );
 
-    const { data, error } = await supabase.rpc("check_email_exists", {
-      _email: email.trim().toLowerCase(),
+    const { data, error } = await supabase.rpc("check_email_status", {
+      _email: normalizedEmail,
     });
 
     if (error) {
-      console.error("Error checking email:", error);
-      return new Response(JSON.stringify({ exists: false }), {
+      console.error("Error checking email status, falling back:", error);
+      const { data: existsFallback } = await supabase.rpc("check_email_exists", {
+        _email: normalizedEmail,
+      });
+      return new Response(JSON.stringify({ exists: !!existsFallback }), {
         status: 200,
         headers: { "Content-Type": "application/json", ...corsHeaders },
       });
     }
 
-    return new Response(JSON.stringify({ exists: !!data }), {
+    const status = data || { exists: false };
+
+    // Remove auth records that were created without a profile, so the person can retry signup.
+    if (status.exists && status.has_profile === false && status.user_id) {
+      const { error: deleteError } = await supabase.auth.admin.deleteUser(status.user_id);
+      if (deleteError) {
+        console.error("Error deleting orphan auth user:", deleteError);
+      } else {
+        return new Response(JSON.stringify({ exists: false, recovered_orphan: true }), {
+          status: 200,
+          headers: { "Content-Type": "application/json", ...corsHeaders },
+        });
+      }
+    }
+
+    return new Response(JSON.stringify({
+      exists: !!status.exists,
+      email_confirmed: !!status.email_confirmed,
+      has_profile: status.has_profile !== false,
+    }), {
       status: 200,
       headers: { "Content-Type": "application/json", ...corsHeaders },
     });
