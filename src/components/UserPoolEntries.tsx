@@ -181,7 +181,16 @@ const UserPoolEntries = ({
         </div>
       )}
 
-      {/* Consolidated in-app payment card (one QR for all pending entries) */}
+      {/* Referral program — bem em destaque após primeiro palpite aprovado */}
+      {approved.length > 0 && pool?.slug && (
+        <ReferralCard
+          poolId={poolId}
+          poolSlug={pool.slug}
+          poolTitle={pool.title}
+          userId={userId}
+        />
+      )}
+
       {showConsolidatedInApp && (
         <div className="p-3 rounded-lg bg-primary/5 border border-primary/20 space-y-3">
           <p className="text-sm font-semibold">
