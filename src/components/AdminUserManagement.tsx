@@ -144,7 +144,7 @@ const AdminUserManagement = () => {
     <div className="space-y-4">
       <div className="flex gap-2">
         <Input
-          placeholder="Buscar por nome ou telefone..."
+          placeholder="Buscar por nome, email ou telefone..."
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           onKeyDown={(e) => e.key === "Enter" && handleSearch()}
