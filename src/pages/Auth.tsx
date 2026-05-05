@@ -239,7 +239,7 @@ const Auth = () => {
       const { data, error: fnError } = await supabase.functions.invoke("check-cpf-exists", {
         body: { cpf },
       });
-      if (fnError) throw fnError as any;
+      if (fnError) throw fnError;
       if (data?.exists) {
         setCpfError("CPF já cadastrado");
         toast({
@@ -280,7 +280,7 @@ const Auth = () => {
       const { data, error: fnError } = await supabase.functions.invoke("check-phone-exists", {
         body: { phone },
       });
-      if (fnError) throw fnError as any;
+      if (fnError) throw fnError;
       if (data?.exists) {
         toast({
           variant: "destructive",
@@ -321,7 +321,8 @@ const Auth = () => {
     }
 
     // Repetição de cadastro: Supabase retorna user com identities vazio
-    if (!error && data.user && Array.isArray((data.user as any).identities) && (data.user as any).identities.length === 0) {
+    const userIdentities = data.user ? (data.user as { identities?: unknown[] }).identities : undefined;
+    if (!error && data.user && Array.isArray(userIdentities) && userIdentities.length === 0) {
       showExistingEmailToast(email);
       setLoading(false);
       return;
