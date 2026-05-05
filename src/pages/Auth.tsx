@@ -76,6 +76,8 @@ const signInPhoneSchema = z.object({
   password: z.string().min(1, "Senha é obrigatória").max(128, "Senha muito longa"),
 });
 
+const normalizeEmail = (value: string) => value.trim().toLowerCase();
+
 const Auth = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
@@ -111,10 +113,20 @@ const Auth = () => {
     });
   };
 
-  const showExistingEmailToast = (email: string, status?: { email_confirmed?: boolean }) => {
+  const showExistingEmailToast = (email: string, status?: { email_confirmed?: boolean; has_profile?: boolean }) => {
     setActiveTab("login");
     setLoginMethod("email");
     setResetEmail(email);
+
+    if (status?.has_profile === false) {
+      toast({
+        variant: "destructive",
+        title: "Cadastro incompleto",
+        description: "Este e-mail ficou preso em um cadastro incompleto. Tente criar a conta novamente; se persistir, peça ao admin para excluir o cadastro incompleto.",
+      });
+      setActiveTab("signup");
+      return;
+    }
 
     if (status?.email_confirmed === false) {
       toast({
@@ -165,7 +177,7 @@ const Auth = () => {
     setLoading(true);
 
     const formData = new FormData(e.currentTarget);
-    const email = formData.get("signup-email") as string;
+    const email = normalizeEmail(formData.get("signup-email") as string);
     const password = formData.get("signup-password") as string;
     const confirmPassword = formData.get("confirm-password") as string;
     const firstName = formData.get("first-name") as string;
@@ -405,14 +417,14 @@ const Auth = () => {
           setLoading(false);
           return;
         }
-        email = data.email;
+        email = normalizeEmail(data.email);
       } catch {
         toast({ variant: "destructive", title: "Erro", description: "Não foi possível verificar o telefone." });
         setLoading(false);
         return;
       }
     } else {
-      email = formData.get("login-email") as string;
+      email = normalizeEmail(formData.get("login-email") as string);
       try {
         signInEmailSchema.parse({ identifier: email, password });
       } catch (error) {
@@ -428,6 +440,15 @@ const Auth = () => {
           body: { email },
         });
         if (!fnError && data) checkedEmailStatus = data;
+        if (!fnError && data?.recovered_orphan) {
+          toast({
+            title: "Cadastro incompleto corrigido",
+            description: "Liberamos este e-mail. Clique em “Criar Conta” e finalize o cadastro novamente.",
+          });
+          setActiveTab("signup");
+          setLoading(false);
+          return;
+        }
         if (!fnError && data && !data.exists) {
           toast({
             variant: "destructive",
