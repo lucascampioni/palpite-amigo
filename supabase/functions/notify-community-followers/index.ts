@@ -104,7 +104,6 @@ serve(async (req) => {
     const CONTENT_SID = 'HXff844077144fa7023eb2c0f54d8f2982';
     const GATEWAY_URL = 'https://connector-gateway.lovable.dev/twilio';
 
-    const results: { phone: string; success: boolean; error?: string }[] = [];
 
     for (const profile of eligibleProfiles) {
       const digits = profile.phone!.replace(/\D/g, '');
