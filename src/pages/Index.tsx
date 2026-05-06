@@ -704,6 +704,19 @@ const Index = () => {
                   </AlertSection>
                 )}
 
+                {inAppAutoPayoutPools.length > 0 && (
+                  <AlertSection
+                    icon="🏆"
+                    title="Você Ganhou! Aguarde o Pagamento pela Delfos"
+                    subtitle="O prêmio será enviado automaticamente para a chave PIX do seu perfil"
+                    bgClass="bg-yellow-50 dark:bg-yellow-950/50 border-yellow-200 dark:border-yellow-800"
+                  >
+                    {filterPools(inAppAutoPayoutPools).map((pool) => (
+                      <PoolCard key={pool.id} pool={pool} isUserParticipating hasWonPrize onClick={() => navigate(`/bolao/${pool.slug}`)} {...getCommunityProps(pool)} />
+                    ))}
+                  </AlertSection>
+                )}
+
                 {myPoolsPendingApprovals.length > 0 && (
                   <AlertSection
                     icon="📋"
