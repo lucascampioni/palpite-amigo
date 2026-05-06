@@ -299,25 +299,31 @@ const Index = () => {
       }
 
       // Fetch winners with unpaid prizes in pools the user created
-      // Include both awaiting_pix (winner hasn't sent key yet) and pix_submitted (waiting for organizer to pay)
-      const { data: prizePendingParticipants } = await supabase
-        .from("participants")
-        .select("pool_id, prize_status")
-        .in("pool_id", ownedPoolIds)
-        .in("prize_status", ["pix_submitted", "awaiting_pix"]);
-      
-      if (prizePendingParticipants && prizePendingParticipants.length > 0) {
-        const infoByPool: Record<string, { total: number; awaitingPix: number; readyToPay: number }> = {};
-        prizePendingParticipants.forEach(p => {
-          if (!infoByPool[p.pool_id]) infoByPool[p.pool_id] = { total: 0, awaitingPix: 0, readyToPay: 0 };
-          infoByPool[p.pool_id].total++;
-          if (p.prize_status === 'awaiting_pix') infoByPool[p.pool_id].awaitingPix++;
-          if (p.prize_status === 'pix_submitted') infoByPool[p.pool_id].readyToPay++;
-        });
-        Object.entries(infoByPool).forEach(([poolId, info]) => {
-          const pool = ownedPools.find(p => p.id === poolId);
-          if (pool) poolsPendingPrizeSend.push({ pool, winnersCount: info.total, awaitingPixCount: info.awaitingPix, readyToPayCount: info.readyToPay } as any);
-        });
+      // Skip pools with in_app payment — Delfos handles payouts automatically.
+      const ownedNonInAppPoolIds = ownedPools
+        .filter(p => p.payment_method !== 'in_app')
+        .map(p => p.id);
+
+      if (ownedNonInAppPoolIds.length > 0) {
+        const { data: prizePendingParticipants } = await supabase
+          .from("participants")
+          .select("pool_id, prize_status")
+          .in("pool_id", ownedNonInAppPoolIds)
+          .in("prize_status", ["pix_submitted", "awaiting_pix"]);
+
+        if (prizePendingParticipants && prizePendingParticipants.length > 0) {
+          const infoByPool: Record<string, { total: number; awaitingPix: number; readyToPay: number }> = {};
+          prizePendingParticipants.forEach(p => {
+            if (!infoByPool[p.pool_id]) infoByPool[p.pool_id] = { total: 0, awaitingPix: 0, readyToPay: 0 };
+            infoByPool[p.pool_id].total++;
+            if (p.prize_status === 'awaiting_pix') infoByPool[p.pool_id].awaitingPix++;
+            if (p.prize_status === 'pix_submitted') infoByPool[p.pool_id].readyToPay++;
+          });
+          Object.entries(infoByPool).forEach(([poolId, info]) => {
+            const pool = ownedPools.find(p => p.id === poolId);
+            if (pool) poolsPendingPrizeSend.push({ pool, winnersCount: info.total, awaitingPixCount: info.awaitingPix, readyToPayCount: info.readyToPay } as any);
+          });
+        }
       }
     }
 
