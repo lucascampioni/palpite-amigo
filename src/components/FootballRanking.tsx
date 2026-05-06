@@ -22,6 +22,7 @@ interface FootballRankingProps {
     entry_fee?: number;
     estabelecimento_prize_description?: string;
     tiebreaker_method?: string | null;
+    payment_method?: string | null;
   };
   approvedParticipantsCount?: number;
   isOwner?: boolean;
