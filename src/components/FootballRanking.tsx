@@ -8,7 +8,7 @@ import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { abbreviateTeamName } from "@/lib/team-utils";
 import { Button } from "@/components/ui/button";
-import { isWorldCupMatch, extractGroup } from "@/lib/world-cup-2026";
+import { isWorldCupMatch, extractGroup, hasAllWorldCupGroupMatches } from "@/lib/world-cup-2026";
 
 interface FootballRankingProps {
   poolId: string;
@@ -778,9 +778,8 @@ const FootballRanking = ({ poolId, pool, approvedParticipantsCount, isOwner }: F
 
     setParticipantPredictions(prev => ({ ...prev, ...grouped }));
 
-    // Detect World Cup pool from championships
-    const wcCount = allPredictions.filter((p: any) => isWorldCupMatch(p.football_matches?.championship)).length;
-    if (wcCount >= allPredictions.length / 2 && allPredictions.length > 0) {
+    // Detect World Cup pool only if ALL group-stage matches are present
+    if (allPredictions.length > 0 && hasAllWorldCupGroupMatches(allPredictions.map((p: any) => ({ championship: p.football_matches?.championship })))) {
       setIsWorldCupPool(true);
       setPredictionsViewMode(prev => prev === 'chrono' ? 'group' : prev);
     }

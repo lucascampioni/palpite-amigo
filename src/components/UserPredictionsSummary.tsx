@@ -4,7 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { ChevronDown } from "lucide-react";
-import { isWorldCupMatch, extractGroup } from "@/lib/world-cup-2026";
+import { isWorldCupMatch, extractGroup, hasAllWorldCupGroupMatches } from "@/lib/world-cup-2026";
 
 interface PredictionItem {
   matchId: string;
@@ -98,7 +98,7 @@ const UserPredictionsSummary = ({ poolId, participantId }: UserPredictionsSummar
   const isWC = useMemo(() => {
     const all = Object.values(sets).flat();
     if (all.length === 0) return false;
-    return all.filter(p => isWorldCupMatch(p.championship)).length >= all.length / 2;
+    return hasAllWorldCupGroupMatches(all.map(p => ({ championship: p.championship })));
   }, [sets]);
 
   // Default to "group" view if it's a World Cup pool

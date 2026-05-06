@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { ChevronDown, ChevronUp } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { TEAM_FLAGS, isWorldCupMatch, extractGroup } from "@/lib/world-cup-2026";
+import { TEAM_FLAGS, isWorldCupMatch, extractGroup, hasAllWorldCupGroupMatches } from "@/lib/world-cup-2026";
 
 interface Match {
   id: string;
@@ -295,7 +295,6 @@ export const WorldCupPredictionGrid = ({
 
 export const isWorldCupPool = (matches: { championship: string }[]): boolean => {
   if (matches.length === 0) return false;
-  // Pool é "Copa" se a maioria dos jogos é de Copa do Mundo 2026
-  const wcCount = matches.filter((m) => isWorldCupMatch(m.championship)).length;
-  return wcCount >= matches.length / 2;
+  // Só usar visual especial de grupos quando TODOS os 72 jogos da fase de grupos estão presentes
+  return hasAllWorldCupGroupMatches(matches);
 };
