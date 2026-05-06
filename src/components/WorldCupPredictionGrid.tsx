@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { ChevronDown, ChevronUp } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { TEAM_FLAGS, isWorldCupMatch, extractGroup, hasAllWorldCupGroupMatches } from "@/lib/world-cup-2026";
+import { TEAM_FLAGS, isWorldCupMatch, extractGroup, hasAllWorldCupGroupMatches, getFlagUrl } from "@/lib/world-cup-2026";
 
 interface Match {
   id: string;
