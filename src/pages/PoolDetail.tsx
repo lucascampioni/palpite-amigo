@@ -1919,7 +1919,7 @@ const PoolDetail = () => {
             })()}
 
             {/* Admin Prize Management Section */}
-            {isOwner && pool.status === "finished" && (
+            {isOwner && pool.status === "finished" && pool.payment_method !== 'in_app' && (
               <>
                 <Separator />
                 <div className="space-y-4" id="gerenciar-premios">
