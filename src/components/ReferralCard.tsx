@@ -115,9 +115,15 @@ const ReferralCard = ({ poolId, poolSlug, poolTitle, userId }: ReferralCardProps
         </div>
 
         {stats.total > 0 && (
-          <div className="text-xs text-center pt-2 border-t border-primary/20">
-            <span className="font-semibold text-primary">{stats.rewarded}</span> palpite(s) grátis ganho(s) ·{" "}
-            <span className="font-semibold">{stats.total}</span> indicação(ões)
+          <div className="text-xs text-center pt-2 border-t border-primary/20 space-y-1">
+            <div>
+              <span className="font-semibold text-primary">{stats.rewarded}</span> palpite(s) grátis ganho(s) ·{" "}
+              <span className="font-semibold text-green-600 dark:text-green-400">{stats.used}</span> usado(s) ·{" "}
+              <span className="font-semibold">{Math.max(stats.rewarded - stats.used, 0)}</span> disponível(is)
+            </div>
+            <div className="text-muted-foreground">
+              {stats.total} indicação(ões) no total
+            </div>
           </div>
         )}
       </div>
