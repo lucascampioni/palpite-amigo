@@ -309,9 +309,18 @@ serve(async (req) => {
         await new Promise(resolve => setTimeout(resolve, 1000));
       }
 
+      const finPushUserIds = recipients.map(r => r.user_id);
+      const finPushRes = await sendWebPushToUsers(
+        finPushUserIds,
+        '🏆 Bolão finalizado!',
+        `O ranking final do bolão "${pool.title}" está disponível.`,
+        `/bolao/${pool.slug || pool.id}`,
+      );
+      pushResults.push({ type: 'pool_finished', pool: pool.title, ...finPushRes });
+
       // Mark pool as notified
       await supabase.from('pools').update({ finished_notified: true }).eq('id', pool.id);
-      console.log(`✅ Finished notifications sent for pool "${pool.title}"`);
+      console.log(`✅ Finished notifications sent for pool "${pool.title}" (push: ${finPushRes.sent}/${finPushRes.total})`);
     }
 
     // ═══════════════════════════════════════════════════════════════
