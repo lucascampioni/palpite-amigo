@@ -15,7 +15,7 @@ const ReferralCard = ({ poolId, poolSlug, poolTitle, userId }: ReferralCardProps
   const { toast } = useToast();
   const [eligible, setEligible] = useState(false);
   const [loading, setLoading] = useState(true);
-  const [stats, setStats] = useState({ total: 0, rewarded: 0 });
+  const [stats, setStats] = useState({ total: 0, rewarded: 0, used: 0 });
 
   const link = `https://delfos.app.br/bolao/${poolSlug}?ref=${userId}`;
 
@@ -28,13 +28,29 @@ const ReferralCard = ({ poolId, poolSlug, poolTitle, userId }: ReferralCardProps
       if (data) {
         const { data: refs } = await supabase
           .from("pool_referrals")
-          .select("status")
+          .select("status, reward_participant_id")
           .eq("pool_id", poolId)
           .eq("referrer_user_id", userId);
         if (refs) {
+          const rewardedRefs = refs.filter((r: any) => r.status === "rewarded");
+          const rewardParticipantIds = rewardedRefs
+            .map((r: any) => r.reward_participant_id)
+            .filter(Boolean);
+          let usedCount = 0;
+          if (rewardParticipantIds.length > 0) {
+            const { data: preds } = await supabase
+              .from("football_predictions")
+              .select("participant_id")
+              .in("participant_id", rewardParticipantIds);
+            if (preds) {
+              const usedSet = new Set(preds.map((p: any) => p.participant_id));
+              usedCount = usedSet.size;
+            }
+          }
           setStats({
             total: refs.length,
-            rewarded: refs.filter((r: any) => r.status === "rewarded").length,
+            rewarded: rewardedRefs.length,
+            used: usedCount,
           });
         }
       }
@@ -99,9 +115,15 @@ const ReferralCard = ({ poolId, poolSlug, poolTitle, userId }: ReferralCardProps
         </div>
 
         {stats.total > 0 && (
-          <div className="text-xs text-center pt-2 border-t border-primary/20">
-            <span className="font-semibold text-primary">{stats.rewarded}</span> palpite(s) grátis ganho(s) ·{" "}
-            <span className="font-semibold">{stats.total}</span> indicação(ões)
+          <div className="text-xs text-center pt-2 border-t border-primary/20 space-y-1">
+            <div>
+              <span className="font-semibold text-primary">{stats.rewarded}</span> palpite(s) grátis ganho(s) ·{" "}
+              <span className="font-semibold text-green-600 dark:text-green-400">{stats.used}</span> usado(s) ·{" "}
+              <span className="font-semibold">{Math.max(stats.rewarded - stats.used, 0)}</span> disponível(is)
+            </div>
+            <div className="text-muted-foreground">
+              {stats.total} indicação(ões) no total
+            </div>
           </div>
         )}
       </div>
