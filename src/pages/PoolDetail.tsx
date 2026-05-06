@@ -1865,20 +1865,59 @@ const PoolDetail = () => {
                 );
               }
 
-              // Approved but first match hasn't started yet
+              // Approved but first match hasn't started yet — show participants list (no predictions yet)
               if (isApproved && !anyMatchStarted) {
+                const approvedList = participants.filter(p => p.status === 'approved');
+                // Group by user_id to show unique participants with their entry counts
+                const grouped = new Map<string, { name: string; count: number }>();
+                approvedList.forEach(p => {
+                  const key = p.user_id || p.id;
+                  const existing = grouped.get(key);
+                  if (existing) {
+                    existing.count += 1;
+                  } else {
+                    grouped.set(key, { name: p.participant_name, count: 1 });
+                  }
+                });
+                const uniqueParticipants = Array.from(grouped.values()).sort((a, b) => a.name.localeCompare(b.name));
                 return (
                   <>
                     <Separator />
                     <Card className="border-2 border-amber-500/20 bg-gradient-to-br from-amber-500/5 to-amber-500/10">
-                      <CardContent className="p-6 text-center space-y-2">
-                        <Lock className="w-8 h-8 mx-auto text-amber-500" />
-                        <p className="text-lg font-semibold text-amber-600 dark:text-amber-400">
-                          Ranking disponível em breve
+                      <CardContent className="p-6 space-y-3">
+                        <div className="text-center space-y-2">
+                          <Lock className="w-8 h-8 mx-auto text-amber-500" />
+                          <p className="text-lg font-semibold text-amber-600 dark:text-amber-400">
+                            Ranking parcial
+                          </p>
+                          <p className="text-sm text-muted-foreground">
+                            Os palpites dos outros participantes serão liberados quando o primeiro jogo começar. Por enquanto, veja quem já está no bolão:
+                          </p>
+                        </div>
+                      </CardContent>
+                    </Card>
+                    <Card>
+                      <CardContent className="p-4 space-y-2">
+                        <p className="text-sm font-semibold flex items-center gap-2">
+                          👥 Participantes confirmados ({uniqueParticipants.length})
                         </p>
-                        <p className="text-sm text-muted-foreground">
-                          O ranking e os palpites dos outros participantes serão liberados quando o primeiro jogo começar.
-                        </p>
+                        <div className="space-y-1 max-h-96 overflow-y-auto">
+                          {uniqueParticipants.map((p, idx) => (
+                            <div key={idx} className="flex items-center justify-between p-2 rounded-md bg-muted/40 text-sm">
+                              <span className="truncate">{p.name}</span>
+                              {p.count > 1 && (
+                                <span className="text-xs text-muted-foreground ml-2 shrink-0">
+                                  {p.count} palpites
+                                </span>
+                              )}
+                            </div>
+                          ))}
+                          {uniqueParticipants.length === 0 && (
+                            <p className="text-xs text-muted-foreground text-center py-4">
+                              Nenhum participante aprovado ainda.
+                            </p>
+                          )}
+                        </div>
                       </CardContent>
                     </Card>
                   </>
