@@ -488,6 +488,8 @@ const Index = () => {
   const myPoolsFinishedCount = myCreatedPools.filter(p => p.status === "finished").length;
   const participatingActiveCount = myParticipatingPools.filter(p => p.status === "active").length;
   const participatingFinishedCount = myParticipatingPools.filter(p => p.status === "finished").length;
+  const unseenFinishedCount = myParticipatingPools.filter(p => p.status === "finished" && !seenFinishedPools.has(p.id)).length;
+  const meusBoloesBadgeCount = participatingActiveCount + unseenFinishedCount;
   const exploreCount = officialPools.length + availablePools.length;
 
   const filterPools = (pools: any[]) => {
