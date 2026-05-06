@@ -3,7 +3,7 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Trophy, LogOut, User, ChevronDown, ChevronUp, Users, Home, Search, Settings, X, AlertTriangle, Users2 } from "lucide-react";
+import { Plus, Trophy, LogOut, User, ChevronDown, ChevronUp, Users, Home, Search, Settings, X, AlertTriangle, Users2, HelpCircle } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import PoolCard from "@/components/PoolCard";
 import { Session } from "@supabase/supabase-js";
