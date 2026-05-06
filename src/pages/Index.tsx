@@ -442,7 +442,11 @@ const Index = () => {
   };
 
   // Counts for badges
-  const pendenciasCount = myPendingPaymentPools.length + myAwaitingPixPools.length + myPoolsPendingApprovals.length + myPoolsPendingPrizeSend.length + myPendingPredictionPools.length;
+  // Pools de pagamento automático (in_app) com prêmio em awaiting_pix são pagos automaticamente pela Delfos —
+  // mostramos como informativo, não como pendência ativa do usuário.
+  const inAppAutoPayoutPools = myAwaitingPixPools.filter(p => p.payment_method === 'in_app');
+  const manualAwaitingPixPools = myAwaitingPixPools.filter(p => p.payment_method !== 'in_app');
+  const pendenciasCount = myPendingPaymentPools.length + manualAwaitingPixPools.length + myPoolsPendingApprovals.length + myPoolsPendingPrizeSend.length + myPendingPredictionPools.length + inAppAutoPayoutPools.length;
   const myPoolsActiveCount = myCreatedPools.filter(p => p.status === "active").length;
   const myPoolsFinishedCount = myCreatedPools.filter(p => p.status === "finished").length;
   const participatingActiveCount = myParticipatingPools.filter(p => p.status === "active").length;
