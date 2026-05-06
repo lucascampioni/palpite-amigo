@@ -115,8 +115,23 @@ const Index = () => {
     });
     setParticipantPrizeStatus(prizeStatusMap);
     
-    const awaitingPixParticipants = participantRecords?.filter(p => p.prize_status === 'awaiting_pix') || [];
-    const pixSubmittedParticipants = participantRecords?.filter(p => p.prize_status === 'pix_submitted') || [];
+    const possiblePrizePendingParticipants = participantRecords?.filter(p => p.prize_status === 'awaiting_pix' || p.prize_status === 'pix_submitted') || [];
+    const possiblePrizePendingPoolIds = [...new Set(possiblePrizePendingParticipants.map(p => p.pool_id))];
+    let sentInAppPayoutKeys = new Set<string>();
+    if (possiblePrizePendingPoolIds.length > 0) {
+      const { data: sentPayouts } = await supabase
+        .from("pool_payouts")
+        .select("pool_id, recipient_user_id")
+        .in("pool_id", possiblePrizePendingPoolIds)
+        .eq("recipient_user_id", session.user.id)
+        .eq("recipient_type", "winner")
+        .eq("status", "sent");
+      sentInAppPayoutKeys = new Set((sentPayouts || []).map((p: any) => `${p.pool_id}:${p.recipient_user_id}`));
+    }
+
+    const isAlreadyPaidByDelfos = (p: any) => sentInAppPayoutKeys.has(`${p.pool_id}:${session.user.id}`);
+    const awaitingPixParticipants = participantRecords?.filter(p => p.prize_status === 'awaiting_pix' && !isAlreadyPaidByDelfos(p)) || [];
+    const pixSubmittedParticipants = participantRecords?.filter(p => p.prize_status === 'pix_submitted' && !isAlreadyPaidByDelfos(p)) || [];
     
     const awaitingPixPoolIds = awaitingPixParticipants.map(p => p.pool_id);
     const pixSubmittedPoolIds = pixSubmittedParticipants.map(p => p.pool_id);

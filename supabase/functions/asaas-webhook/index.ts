@@ -208,7 +208,25 @@ async function handleTransferEvent(body: any, url: string, key: string) {
     update.status = "processing";
   }
 
-  await adminClient.from("pool_payouts").update(update).eq("asaas_transfer_id", String(transfer.id));
+  const { data: updatedPayouts, error: payoutUpdateError } = await adminClient
+    .from("pool_payouts")
+    .update(update)
+    .eq("asaas_transfer_id", String(transfer.id))
+    .select("pool_id, recipient_user_id, recipient_type");
+  if (payoutUpdateError) console.error("Error updating payout from transfer webhook:", payoutUpdateError);
+
+  if (status === "sent") {
+    for (const payout of updatedPayouts || []) {
+      if (payout.recipient_type !== "winner" || !payout.pool_id || !payout.recipient_user_id) continue;
+      const { error } = await adminClient
+        .from("participants")
+        .update({ prize_status: "prize_sent" })
+        .eq("pool_id", payout.pool_id)
+        .eq("user_id", payout.recipient_user_id)
+        .in("prize_status", ["awaiting_pix", "pix_submitted"]);
+      if (error) console.error("Error marking winner prize as sent from webhook:", error);
+    }
+  }
 
   return jsonResp({ received: true, transfer_status: status }, 200);
 }
