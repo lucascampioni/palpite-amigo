@@ -320,8 +320,9 @@ serve(async (req) => {
         let query = adminClient
           .from("participants")
           .select(`
-            id, participant_name, status, payment_proof, created_at, pool_id, user_id,
-            rejection_reason, rejection_details, guess_value
+            id, participant_name, status, created_at, pool_id, user_id,
+            rejection_reason, rejection_details, guess_value,
+            participant_financials(payment_proof)
           `, { count: "exact" })
           .order("created_at", { ascending: false })
           .range(offset, offset + limit - 1);
@@ -330,8 +331,14 @@ serve(async (req) => {
           query = query.eq("status", filterStatus);
         }
 
-        const { data: participantsData, error: pError, count } = await query;
+        const { data: participantsRaw, error: pError, count } = await query;
         if (pError) throw pError;
+
+        const participantsData = (participantsRaw || []).map((p: any) => {
+          const f = Array.isArray(p.participant_financials) ? p.participant_financials[0] : p.participant_financials;
+          const { participant_financials, ...rest } = p;
+          return { ...rest, payment_proof: f?.payment_proof ?? null };
+        });
 
         // Get unique pool IDs and fetch pool titles
         const poolIds = [...new Set((participantsData || []).map((p: any) => p.pool_id))];

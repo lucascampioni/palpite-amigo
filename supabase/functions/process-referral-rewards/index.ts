@@ -78,7 +78,6 @@ serve(async (req) => {
         participant_name: profile?.full_name || "Participante",
         guess_value: "Indicação grátis",
         status: "approved",
-        payment_proof: `referral_reward:${referred_user_id}`,
       })
       .select()
       .single();
@@ -87,6 +86,14 @@ serve(async (req) => {
       console.error("Erro criando recompensa:", insErr);
       return json({ error: insErr?.message || "insert_failed" }, 500);
     }
+
+    // Marcar via tabela financials que esta entrada é uma recompensa de indicação
+    await supabase.from("participant_financials").insert({
+      participant_id: newPart.id,
+      pool_id,
+      user_id: ref.referrer_user_id,
+      payment_proof: `referral_reward:${referred_user_id}`,
+    });
 
     await supabase
       .from("pool_referrals")

@@ -137,17 +137,20 @@ export const AdminPendingParticipants = ({
         rejection_details: rejectionDetails.trim(),
       };
 
-      // If it's a payment issue, clear the proof so they can resend
-      if (isPaymentIssue) {
-        updateData.payment_proof = null;
-      }
-
       const { error } = await supabase
         .from("participants")
         .update(updateData)
         .eq("id", rejectingParticipant.id);
 
       if (error) throw error;
+
+      // If it's a payment issue, clear the proof in the separate financials table
+      if (isPaymentIssue) {
+        await supabase
+          .from("participant_financials")
+          .update({ payment_proof: null })
+          .eq("participant_id", rejectingParticipant.id);
+      }
 
       toast({
         title: isPaymentIssue ? "Pagamento recusado" : "Participante rejeitado",

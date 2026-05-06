@@ -90,17 +90,21 @@ serve(async (req) => {
 
       // Get participants with pending payment (no proof uploaded)
       // Status could be 'pending' or 'awaiting_proof' depending on flow
-      const { data: participants, error: partError } = await supabase
+      const { data: participantsRaw, error: partError } = await supabase
         .from('participants')
-        .select('id, participant_name, user_id')
+        .select('id, participant_name, user_id, participant_financials(payment_proof)')
         .eq('pool_id', pool.id)
-        .is('payment_proof', null)
         .in('status', ['pending', 'awaiting_proof']);
 
       if (partError) {
         console.error(`Error fetching participants for pool ${pool.id}:`, partError);
         continue;
       }
+
+      const participants = (participantsRaw || []).filter((p: any) => {
+        const f = Array.isArray(p.participant_financials) ? p.participant_financials[0] : p.participant_financials;
+        return !f?.payment_proof;
+      });
 
       if (!participants || participants.length === 0) continue;
 

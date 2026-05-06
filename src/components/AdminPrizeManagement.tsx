@@ -117,11 +117,27 @@ export const AdminPrizeManagement = ({ participant, poolId, poolTitle, participa
 
       // Update all participant entries for this user
       const idsToUpdate = allParticipantIds && allParticipantIds.length > 0 ? allParticipantIds : [participant.id];
+
+      // Save the proof URL into participant_financials for each entry
+      const { data: ctxRows } = await supabase
+        .from("participants")
+        .select("id, pool_id, user_id")
+        .in("id", idsToUpdate);
+
+      const { upsertParticipantFinancials } = await import("@/lib/participant-financials");
+      for (const ctx of ctxRows || []) {
+        await upsertParticipantFinancials({
+          participant_id: ctx.id,
+          pool_id: ctx.pool_id,
+          user_id: ctx.user_id,
+          data: { prize_proof_url: fileName },
+        });
+      }
+
       const { error: updateError } = await supabase
         .from("participants")
         .update({
           prize_status: "prize_sent",
-          prize_proof_url: fileName,
           prize_sent_at: new Date().toISOString(),
         })
         .in("id", idsToUpdate);

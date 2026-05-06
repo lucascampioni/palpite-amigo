@@ -65,15 +65,19 @@ serve(async (req) => {
       // AUTO-REJECT: 2h30 before match (150 min) - reject participants without proof
       // Window: 142-157 min (15-min cron window)
       if (diffMinutes >= 142 && diffMinutes <= 157) {
-        const { data: pendingNoProof, error: pErr } = await supabase
+        const { data: pendingAll } = await supabase
           .from('participants')
-          .select('id, participant_name')
+          .select('id, participant_name, participant_financials(payment_proof)')
           .eq('pool_id', pool.id)
-          .eq('status', 'pending')
-          .is('payment_proof', null);
+          .eq('status', 'pending');
 
-        if (!pErr && pendingNoProof && pendingNoProof.length > 0) {
-          const ids = pendingNoProof.map(p => p.id);
+        const pendingNoProof = (pendingAll || []).filter((p: any) => {
+          const f = Array.isArray(p.participant_financials) ? p.participant_financials[0] : p.participant_financials;
+          return !f?.payment_proof;
+        });
+
+        if (pendingNoProof.length > 0) {
+          const ids = pendingNoProof.map((p: any) => p.id);
           const { error: updateErr } = await supabase
             .from('participants')
             .update({
@@ -83,7 +87,7 @@ serve(async (req) => {
             })
             .in('id', ids);
 
-          pendingNoProof.forEach(p => {
+          pendingNoProof.forEach((p: any) => {
             results.push({
               action: 'auto_reject',
               pool: pool.title,
@@ -102,16 +106,23 @@ serve(async (req) => {
       // AUTO-APPROVE & FINAL REJECT: At match time (0 min) - approve participants with proof, reject all remaining without proof
       // Window: -8 to 8 min (around match start, 15-min cron window)
       if (diffMinutes >= -8 && diffMinutes <= 8) {
-        // Reject any remaining pending without proof (definitive rejection)
-        const { data: pendingNoProofFinal, error: pErr3 } = await supabase
+        // Fetch all pending with their financials, then split client-side
+        const { data: pendingAll2 } = await supabase
           .from('participants')
-          .select('id, participant_name')
+          .select('id, participant_name, user_id, participant_financials(payment_proof)')
           .eq('pool_id', pool.id)
-          .eq('status', 'pending')
-          .is('payment_proof', null);
+          .eq('status', 'pending');
 
-        if (!pErr3 && pendingNoProofFinal && pendingNoProofFinal.length > 0) {
-          const ids = pendingNoProofFinal.map(p => p.id);
+        const hasProof = (p: any) => {
+          const f = Array.isArray(p.participant_financials) ? p.participant_financials[0] : p.participant_financials;
+          return !!f?.payment_proof;
+        };
+
+        const pendingNoProofFinal = (pendingAll2 || []).filter((p: any) => !hasProof(p));
+        const pendingWithProof = (pendingAll2 || []).filter((p: any) => hasProof(p));
+
+        if (pendingNoProofFinal.length > 0) {
+          const ids = pendingNoProofFinal.map((p: any) => p.id);
           const { error: updateErr } = await supabase
             .from('participants')
             .update({
@@ -121,7 +132,7 @@ serve(async (req) => {
             })
             .in('id', ids);
 
-          pendingNoProofFinal.forEach(p => {
+          pendingNoProofFinal.forEach((p: any) => {
             results.push({
               action: 'auto_reject_final',
               pool: pool.title,
@@ -136,16 +147,8 @@ serve(async (req) => {
           }
         }
 
-        // Auto-approve pending with proof
-        const { data: pendingWithProof, error: pErr2 } = await supabase
-          .from('participants')
-          .select('id, participant_name, user_id')
-          .eq('pool_id', pool.id)
-          .eq('status', 'pending')
-          .not('payment_proof', 'is', null);
-
-        if (!pErr2 && pendingWithProof && pendingWithProof.length > 0) {
-          const ids = pendingWithProof.map(p => p.id);
+        if (pendingWithProof.length > 0) {
+          const ids = pendingWithProof.map((p: any) => p.id);
           const { error: updateErr } = await supabase
             .from('participants')
             .update({
@@ -155,7 +158,7 @@ serve(async (req) => {
             })
             .in('id', ids);
 
-          pendingWithProof.forEach(p => {
+          pendingWithProof.forEach((p: any) => {
             results.push({
               action: 'auto_approve',
               pool: pool.title,
@@ -188,6 +191,7 @@ serve(async (req) => {
           }
         }
       }
+    }
     }
 
     // === ESTABELECIMENTO POOLS: reject approved participants without predictions after deadline ===
