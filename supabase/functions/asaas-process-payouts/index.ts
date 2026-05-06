@@ -108,30 +108,80 @@ serve(async (req) => {
       });
     }
 
-    for (let i = 0; i < winnerAmounts.length; i++) {
-      const amount = winnerAmounts[i];
-      if (amount <= 0) continue;
-      const winnerEntry = sortedRanking[i];
-      if (!winnerEntry) continue;
-      const { data: winnerProfile } = await adminClient
-        .from("profiles").select("pix_key, pix_key_type").eq("id", winnerEntry.user_id).maybeSingle();
-      payouts.push({
-        pool_id, recipient_user_id: winnerEntry.user_id, recipient_type: "winner",
-        pix_key: winnerProfile?.pix_key || null,
-        pix_key_type: winnerProfile?.pix_key_type || null,
-        amount, status: initialStatus,
-        notes: `${i + 1}º lugar: ${winnerEntry.participant_name}`,
-      });
+    // Detecta grupos de empate e divide igualmente o prêmio das posições cobertas
+    // Regra: para empates com pontos > 0, soma os prêmios das posições do grupo
+    // que caem dentro do pódio e divide igualmente entre TODAS as entradas empatadas.
+    // Para empates com 0 pontos, atribui individualmente por ordem cronológica (já vem ordenado).
+    const prizeCount = winnerAmounts.length;
+    let i = 0;
+    while (i < sortedRanking.length && i < prizeCount) {
+      const entry = sortedRanking[i];
+      const points = Number(entry.total_points || 0);
+
+      if (points > 0) {
+        // Encontra fim do grupo de empate (mesmo número de pontos)
+        let end = i;
+        while (end < sortedRanking.length && Number(sortedRanking[end].total_points || 0) === points) {
+          end++;
+        }
+        // Soma prêmios das posições deste grupo que estão dentro do pódio
+        const prizeEnd = Math.min(end, prizeCount);
+        let prizePool = 0;
+        for (let k = i; k < prizeEnd; k++) prizePool += winnerAmounts[k];
+        const groupSize = end - i;
+        const share = groupSize > 0 ? +(prizePool / groupSize).toFixed(2) : 0;
+
+        if (share > 0) {
+          for (let k = i; k < end; k++) {
+            const winnerEntry = sortedRanking[k];
+            const { data: winnerProfile } = await adminClient
+              .from("profiles").select("pix_key, pix_key_type").eq("id", winnerEntry.user_id).maybeSingle();
+            const positionLabel = groupSize > 1
+              ? `Empate ${i + 1}º lugar (${groupSize} ganhadores): ${winnerEntry.participant_name}`
+              : `${i + 1}º lugar: ${winnerEntry.participant_name}`;
+            payouts.push({
+              pool_id, recipient_user_id: winnerEntry.user_id, recipient_type: "winner",
+              pix_key: winnerProfile?.pix_key || null,
+              pix_key_type: winnerProfile?.pix_key_type || null,
+              amount: share, status: initialStatus,
+              notes: positionLabel,
+            });
+          }
+        }
+        i = end;
+      } else {
+        // 0 pontos: atribui individualmente por ordem cronológica
+        const amount = winnerAmounts[i];
+        if (amount > 0) {
+          const winnerEntry = sortedRanking[i];
+          const { data: winnerProfile } = await adminClient
+            .from("profiles").select("pix_key, pix_key_type").eq("id", winnerEntry.user_id).maybeSingle();
+          payouts.push({
+            pool_id, recipient_user_id: winnerEntry.user_id, recipient_type: "winner",
+            pix_key: winnerProfile?.pix_key || null,
+            pix_key_type: winnerProfile?.pix_key_type || null,
+            amount, status: initialStatus,
+            notes: `${i + 1}º lugar: ${winnerEntry.participant_name}`,
+          });
+        }
+        i++;
+      }
     }
 
-    if (organizerAmount > 0) {
+    // Recalcula totalToWinners pois com empates pode ter mudado (arredondamentos)
+    const actualTotalToWinners = payouts
+      .filter((p) => p.recipient_type === "winner")
+      .reduce((s, p) => s + Number(p.amount), 0);
+
+    const actualOrganizerAmount = +(totalCollected - actualTotalToWinners).toFixed(2);
+    if (actualOrganizerAmount > 0) {
       const { data: ownerProfile } = await adminClient
         .from("profiles").select("pix_key, pix_key_type, full_name").eq("id", pool.owner_id).maybeSingle();
       payouts.push({
         pool_id, recipient_user_id: pool.owner_id, recipient_type: "organizer",
         pix_key: ownerProfile?.pix_key || null,
         pix_key_type: ownerProfile?.pix_key_type || null,
-        amount: organizerAmount, status: initialStatus,
+        amount: actualOrganizerAmount, status: initialStatus,
         notes: `Comissão organizador (${ownerProfile?.full_name || ""})`,
       });
     }
