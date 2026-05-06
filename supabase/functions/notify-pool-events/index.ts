@@ -26,7 +26,44 @@ serve(async (req) => {
       throw new Error('Z-API credentials not configured');
     }
 
+    // Setup web push
+    const VAPID_PUBLIC_KEY = Deno.env.get('VAPID_PUBLIC_KEY');
+    const VAPID_PRIVATE_KEY = Deno.env.get('VAPID_PRIVATE_KEY');
+    const rawSubject = Deno.env.get('VAPID_SUBJECT') || 'contato@delfos.app.br';
+    const vapidSubject = rawSubject.startsWith('mailto:') || rawSubject.startsWith('http') ? rawSubject : `mailto:${rawSubject}`;
+    if (VAPID_PUBLIC_KEY && VAPID_PRIVATE_KEY) {
+      webpush.setVapidDetails(vapidSubject, VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY);
+    }
+
+    async function sendWebPushToUsers(userIds: string[], title: string, body: string, url: string) {
+      if (!VAPID_PUBLIC_KEY || !VAPID_PRIVATE_KEY || userIds.length === 0) return { sent: 0, total: 0 };
+      const { data: subs } = await supabase
+        .from('push_subscriptions')
+        .select('id, endpoint, p256dh, auth')
+        .in('user_id', userIds);
+      if (!subs || subs.length === 0) return { sent: 0, total: 0 };
+      const payload = JSON.stringify({ title, body, url });
+      let sent = 0;
+      await Promise.all(subs.map(async (s: any) => {
+        try {
+          await webpush.sendNotification(
+            { endpoint: s.endpoint, keys: { p256dh: s.p256dh, auth: s.auth } },
+            payload,
+          );
+          sent++;
+        } catch (err: any) {
+          const status = err?.statusCode;
+          if (status === 404 || status === 410) {
+            await supabase.from('push_subscriptions').delete().eq('id', s.id);
+          }
+          console.error('webpush error:', status, err?.body || err?.message);
+        }
+      }));
+      return { sent, total: subs.length };
+    }
+
     const results: { type: string; pool: string; phone: string; success: boolean; error?: string }[] = [];
+    const pushResults: { type: string; pool: string; sent: number; total: number }[] = [];
 
     // ═══════════════════════════════════════════════════════════════
     // 1. FIRST MATCH STARTED - notify participants when first match kicks off
