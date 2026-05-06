@@ -971,6 +971,11 @@ const Auth = () => {
             </Card>
           </TabsContent>
         </Tabs>
+        <div className="text-center mt-6">
+          <a href="/ajuda" className="text-sm text-muted-foreground hover:text-primary underline">
+            Precisa de ajuda? Fale conosco
+          </a>
+        </div>
       </div>
     </div>
   );
