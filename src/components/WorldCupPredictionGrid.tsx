@@ -32,21 +32,29 @@ interface WorldCupPredictionGridProps {
   onChange: (setIndex: number, matchId: string, field: 'homeScore' | 'awayScore', value: string) => void;
 }
 
-// Remove emoji prefixos/sufixos (incluindo regional indicators e flag tags)
-// e devolve nome limpo do time. Sem isso, no Windows os emojis viram texto tipo "MX".
+// Remove emoji prefixos/sufixos. Ordem importa: tag-flag (🏴 + tags) primeiro,
+// depois regional indicators, depois pictográficos genéricos. Sem isso, 🏴 sozinho
+// é casado como pictográfico e os tag chars sobram no nome.
 const EMOJI_FLAG_RE =
-  /(?:\p{Regional_Indicator}\p{Regional_Indicator})|(?:\p{Extended_Pictographic}(?:\u200d\p{Extended_Pictographic})*(?:\uFE0F)?)|[\u{1F3F4}][\u{E0020}-\u{E007F}]+/gu;
+  /[\u{1F3F4}][\u{E0020}-\u{E007F}]+|(?:\p{Regional_Indicator}\p{Regional_Indicator})|(?:\p{Extended_Pictographic}(?:\u200d\p{Extended_Pictographic})*(?:\uFE0F)?)/gu;
+
+const TAG_CHARS_RE = /[\u{E0020}-\u{E007F}]/gu;
 
 const cleanTeamName = (name: string): { name: string; flag: string } => {
   const trimmed = (name || '').trim();
   const flags = trimmed.match(EMOJI_FLAG_RE) || [];
-  const cleaned = trimmed.replace(EMOJI_FLAG_RE, '').replace(/\s+/g, ' ').trim();
+  const cleaned = trimmed
+    .replace(EMOJI_FLAG_RE, '')
+    .replace(TAG_CHARS_RE, '')
+    .replace(/\s+/g, ' ')
+    .trim();
   const finalName = cleaned || trimmed;
   return {
     flag: flags[0] || TEAM_FLAGS[finalName] || '',
     name: finalName,
   };
 };
+
 
 export const WorldCupPredictionGrid = ({
   matches,
