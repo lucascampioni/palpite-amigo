@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.75.0';
+import webpush from "npm:web-push@3.6.7";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -25,7 +26,44 @@ serve(async (req) => {
       throw new Error('Z-API credentials not configured');
     }
 
+    // Setup web push
+    const VAPID_PUBLIC_KEY = Deno.env.get('VAPID_PUBLIC_KEY');
+    const VAPID_PRIVATE_KEY = Deno.env.get('VAPID_PRIVATE_KEY');
+    const rawSubject = Deno.env.get('VAPID_SUBJECT') || 'contato@delfos.app.br';
+    const vapidSubject = rawSubject.startsWith('mailto:') || rawSubject.startsWith('http') ? rawSubject : `mailto:${rawSubject}`;
+    if (VAPID_PUBLIC_KEY && VAPID_PRIVATE_KEY) {
+      webpush.setVapidDetails(vapidSubject, VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY);
+    }
+
+    async function sendWebPushToUsers(userIds: string[], title: string, body: string, url: string) {
+      if (!VAPID_PUBLIC_KEY || !VAPID_PRIVATE_KEY || userIds.length === 0) return { sent: 0, total: 0 };
+      const { data: subs } = await supabase
+        .from('push_subscriptions')
+        .select('id, endpoint, p256dh, auth')
+        .in('user_id', userIds);
+      if (!subs || subs.length === 0) return { sent: 0, total: 0 };
+      const payload = JSON.stringify({ title, body, url });
+      let sent = 0;
+      await Promise.all(subs.map(async (s: any) => {
+        try {
+          await webpush.sendNotification(
+            { endpoint: s.endpoint, keys: { p256dh: s.p256dh, auth: s.auth } },
+            payload,
+          );
+          sent++;
+        } catch (err: any) {
+          const status = err?.statusCode;
+          if (status === 404 || status === 410) {
+            await supabase.from('push_subscriptions').delete().eq('id', s.id);
+          }
+          console.error('webpush error:', status, err?.body || err?.message);
+        }
+      }));
+      return { sent, total: subs.length };
+    }
+
     const results: { type: string; pool: string; phone: string; success: boolean; error?: string }[] = [];
+    const pushResults: { type: string; pool: string; sent: number; total: number }[] = [];
 
     // ═══════════════════════════════════════════════════════════════
     // 1. FIRST MATCH STARTED - notify participants when first match kicks off
@@ -109,9 +147,19 @@ serve(async (req) => {
         await new Promise(resolve => setTimeout(resolve, 1000));
       }
 
+      // Send web push to ALL recipients (works even when app is closed)
+      const pushUserIds = recipients.map(r => r.user_id);
+      const pushRes = await sendWebPushToUsers(
+        pushUserIds,
+        '⚽ Os jogos começaram!',
+        `O bolão "${pool.title}" começou. Acompanhe ao vivo!`,
+        `/bolao/${pool.slug || pool.id}`,
+      );
+      pushResults.push({ type: 'first_match_started', pool: pool.title, ...pushRes });
+
       // Mark pool as notified
       await supabase.from('pools').update({ first_match_notified: true }).eq('id', pool.id);
-      console.log(`✅ First match notifications sent for pool "${pool.title}"`);
+      console.log(`✅ First match notifications sent for pool "${pool.title}" (push: ${pushRes.sent}/${pushRes.total})`);
     }
 
     // ═══════════════════════════════════════════════════════════════
@@ -177,8 +225,17 @@ serve(async (req) => {
         await new Promise(resolve => setTimeout(resolve, 1000));
       }
 
+      const cancelledPushUserIds = recipients.map(r => r.user_id);
+      const cancelledPushRes = await sendWebPushToUsers(
+        cancelledPushUserIds,
+        '🚫 Bolão cancelado',
+        `O bolão "${pool.title}" foi cancelado.`,
+        `/bolao/${pool.slug || pool.id}`,
+      );
+      pushResults.push({ type: 'pool_cancelled', pool: pool.title, ...cancelledPushRes });
+
       await supabase.from('pools').update({ cancelled_notified: true }).eq('id', pool.id);
-      console.log(`✅ Cancellation notifications sent for pool "${pool.title}"`);
+      console.log(`✅ Cancellation notifications sent for pool "${pool.title}" (push: ${cancelledPushRes.sent}/${cancelledPushRes.total})`);
     }
 
     // ═══════════════════════════════════════════════════════════════
@@ -252,9 +309,18 @@ serve(async (req) => {
         await new Promise(resolve => setTimeout(resolve, 1000));
       }
 
+      const finPushUserIds = recipients.map(r => r.user_id);
+      const finPushRes = await sendWebPushToUsers(
+        finPushUserIds,
+        '🏆 Bolão finalizado!',
+        `O ranking final do bolão "${pool.title}" está disponível.`,
+        `/bolao/${pool.slug || pool.id}`,
+      );
+      pushResults.push({ type: 'pool_finished', pool: pool.title, ...finPushRes });
+
       // Mark pool as notified
       await supabase.from('pools').update({ finished_notified: true }).eq('id', pool.id);
-      console.log(`✅ Finished notifications sent for pool "${pool.title}"`);
+      console.log(`✅ Finished notifications sent for pool "${pool.title}" (push: ${finPushRes.sent}/${finPushRes.total})`);
     }
 
     // ═══════════════════════════════════════════════════════════════
@@ -369,7 +435,7 @@ serve(async (req) => {
     console.log(`📨 Pool event notifications: ${sent}/${results.length} sent`);
 
     return new Response(
-      JSON.stringify({ success: true, sent, total: results.length, results }),
+      JSON.stringify({ success: true, sent, total: results.length, results, pushResults }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
 

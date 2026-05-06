@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import webpush from "npm:web-push@3.6.7";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -70,7 +71,7 @@ serve(async (req) => {
     // Get unique user IDs
     const uniqueUserIds = [...new Set(members.map(m => m.user_id))];
 
-    // Filter: only users who also have notify_new_pools = true in their profile AND have a phone
+    // For WhatsApp: filter only users who also have notify_new_pools = true in their profile AND have a phone
     const { data: profiles } = await supabase
       .from('profiles')
       .select('id, phone, notify_new_pools')
@@ -78,24 +79,12 @@ serve(async (req) => {
       .eq('notify_new_pools', true)
       .not('phone', 'is', null);
 
-    if (!profiles || profiles.length === 0) {
-      await supabase.from('pools').update({ community_notified: true }).eq('id', pool_id);
-      return new Response(
-        JSON.stringify({ success: true, sent: 0, message: 'No eligible members with phone and notifications enabled' }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-
     // Exclude the pool owner from receiving the notification
-    const eligibleProfiles = profiles.filter(p => p.id !== user.id);
+    const eligibleProfiles = (profiles || []).filter(p => p.id !== user.id);
 
-    if (eligibleProfiles.length === 0) {
-      await supabase.from('pools').update({ community_notified: true }).eq('id', pool_id);
-      return new Response(
-        JSON.stringify({ success: true, sent: 0, message: 'No other eligible members to notify' }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
+    const results: { phone: string; success: boolean; error?: string }[] = [];
+
+    if (eligibleProfiles.length > 0) {
 
     // Send via Twilio WhatsApp (approved template — no variables)
     const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
@@ -115,7 +104,6 @@ serve(async (req) => {
     const CONTENT_SID = 'HXff844077144fa7023eb2c0f54d8f2982';
     const GATEWAY_URL = 'https://connector-gateway.lovable.dev/twilio';
 
-    const results: { phone: string; success: boolean; error?: string }[] = [];
 
     for (const profile of eligibleProfiles) {
       const digits = profile.phone!.replace(/\D/g, '');
@@ -154,6 +142,56 @@ serve(async (req) => {
         await new Promise(resolve => setTimeout(resolve, 500));
       }
     }
+    } // end if eligibleProfiles.length > 0
+
+    // Send web push to ALL community members with notify_new_pools enabled (regardless of phone)
+    let pushSent = 0;
+    let pushTotal = 0;
+    const VAPID_PUBLIC_KEY = Deno.env.get('VAPID_PUBLIC_KEY');
+    const VAPID_PRIVATE_KEY = Deno.env.get('VAPID_PRIVATE_KEY');
+    const rawSubject = Deno.env.get('VAPID_SUBJECT') || 'contato@delfos.app.br';
+    const vapidSubject = rawSubject.startsWith('mailto:') || rawSubject.startsWith('http') ? rawSubject : `mailto:${rawSubject}`;
+    if (VAPID_PUBLIC_KEY && VAPID_PRIVATE_KEY) {
+      try {
+        webpush.setVapidDetails(vapidSubject, VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY);
+        const { data: pushProfiles } = await supabase
+          .from('profiles')
+          .select('id')
+          .in('id', uniqueUserIds)
+          .eq('notify_new_pools', true);
+        const pushUserIds = (pushProfiles || []).map(p => p.id).filter(id => id !== user.id);
+        if (pushUserIds.length > 0) {
+          const { data: subs } = await supabase
+            .from('push_subscriptions')
+            .select('id, endpoint, p256dh, auth')
+            .in('user_id', pushUserIds);
+          if (subs && subs.length > 0) {
+            pushTotal = subs.length;
+            const payload = JSON.stringify({
+              title: '🎯 Novo bolão disponível!',
+              body: `"${pool.title}" acaba de ser publicado. Participe!`,
+              url: `/bolao/${pool.slug || pool.id}`,
+            });
+            await Promise.all(subs.map(async (s: any) => {
+              try {
+                await webpush.sendNotification(
+                  { endpoint: s.endpoint, keys: { p256dh: s.p256dh, auth: s.auth } },
+                  payload,
+                );
+                pushSent++;
+              } catch (err: any) {
+                const status = err?.statusCode;
+                if (status === 404 || status === 410) {
+                  await supabase.from('push_subscriptions').delete().eq('id', s.id);
+                }
+              }
+            }));
+          }
+        }
+      } catch (err) {
+        console.error('webpush dispatch error:', err);
+      }
+    }
 
     // Mark pool as community_notified
     await supabase.from('pools').update({ community_notified: true }).eq('id', pool_id);
@@ -162,7 +200,7 @@ serve(async (req) => {
     const failCount = results.filter(r => !r.success).length;
 
     return new Response(
-      JSON.stringify({ success: true, sent: successCount, failed: failCount, total: eligibleProfiles.length }),
+      JSON.stringify({ success: true, sent: successCount, failed: failCount, total: eligibleProfiles.length, push: { sent: pushSent, total: pushTotal } }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   } catch (error) {
