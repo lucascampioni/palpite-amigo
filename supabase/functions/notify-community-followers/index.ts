@@ -71,7 +71,7 @@ serve(async (req) => {
     // Get unique user IDs
     const uniqueUserIds = [...new Set(members.map(m => m.user_id))];
 
-    // Filter: only users who also have notify_new_pools = true in their profile AND have a phone
+    // For WhatsApp: filter only users who also have notify_new_pools = true in their profile AND have a phone
     const { data: profiles } = await supabase
       .from('profiles')
       .select('id, phone, notify_new_pools')
@@ -79,16 +79,8 @@ serve(async (req) => {
       .eq('notify_new_pools', true)
       .not('phone', 'is', null);
 
-    if (!profiles || profiles.length === 0) {
-      await supabase.from('pools').update({ community_notified: true }).eq('id', pool_id);
-      return new Response(
-        JSON.stringify({ success: true, sent: 0, message: 'No eligible members with phone and notifications enabled' }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-
     // Exclude the pool owner from receiving the notification
-    const eligibleProfiles = profiles.filter(p => p.id !== user.id);
+    const eligibleProfiles = (profiles || []).filter(p => p.id !== user.id);
 
     if (eligibleProfiles.length === 0) {
       await supabase.from('pools').update({ community_notified: true }).eq('id', pool_id);
