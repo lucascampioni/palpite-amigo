@@ -435,7 +435,7 @@ serve(async (req) => {
     console.log(`📨 Pool event notifications: ${sent}/${results.length} sent`);
 
     return new Response(
-      JSON.stringify({ success: true, sent, total: results.length, results }),
+      JSON.stringify({ success: true, sent, total: results.length, results, pushResults }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
 
