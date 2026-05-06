@@ -294,7 +294,8 @@ const Index = () => {
         });
         Object.entries(countByPool).forEach(([poolId, count]) => {
           const pool = ownedPools.find(p => p.id === poolId);
-          if (pool) poolsPendingApprovals.push({ pool, pendingCount: count });
+          // Em bolões com pagamento automático, aprovação é feita pelo gateway, não pelo criador
+          if (pool && pool.payment_method !== 'in_app') poolsPendingApprovals.push({ pool, pendingCount: count });
         });
       }
 
