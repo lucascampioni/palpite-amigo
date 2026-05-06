@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { ChevronDown, ChevronUp } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { TEAM_FLAGS, isWorldCupMatch, extractGroup, hasAllWorldCupGroupMatches } from "@/lib/world-cup-2026";
+import { TEAM_FLAGS, isWorldCupMatch, extractGroup, hasAllWorldCupGroupMatches, getFlagUrl } from "@/lib/world-cup-2026";
 
 interface Match {
   id: string;
@@ -235,7 +235,14 @@ export const WorldCupPredictionGrid = ({
 
                     {/* Center: flag + input + x + input + flag */}
                     <div className="flex items-center gap-1 flex-shrink-0">
-                      <span className="text-base sm:text-lg flex-shrink-0">{home.flag}</span>
+                      {(() => {
+                        const url = getFlagUrl(home.name);
+                        return url ? (
+                          <img src={url} alt={home.name} className="w-5 h-auto sm:w-6 flex-shrink-0 rounded-sm" loading="lazy" />
+                        ) : (
+                          <span className="text-base sm:text-lg flex-shrink-0">{home.flag}</span>
+                        );
+                      })()}
                       <Input
                         ref={(el) => {
                           inputRefs.current[`${match.id}:home`] = el;
@@ -271,7 +278,14 @@ export const WorldCupPredictionGrid = ({
                         disabled={isPostponed}
                         className="w-10 sm:w-12 h-9 text-center text-base font-semibold p-0 px-1"
                       />
-                      <span className="text-base sm:text-lg flex-shrink-0">{away.flag}</span>
+                      {(() => {
+                        const url = getFlagUrl(away.name);
+                        return url ? (
+                          <img src={url} alt={away.name} className="w-5 h-auto sm:w-6 flex-shrink-0 rounded-sm" loading="lazy" />
+                        ) : (
+                          <span className="text-base sm:text-lg flex-shrink-0">{away.flag}</span>
+                        );
+                      })()}
                     </div>
 
                     {/* Away name */}
