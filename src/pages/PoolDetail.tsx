@@ -634,9 +634,13 @@ const PoolDetail = () => {
     // Load ALL user entries (multiple independent participants)
     const myEntries = participantsData?.filter(p => p.user_id === user?.id) || [];
     
-    // For estabelecimento: check which entries have predictions
-    if (poolData.prize_type === 'estabelecimento' && myEntries.length > 0) {
+    // Compute _hasPredictions for all approved entries (needed for estabelecimento AND referral-reward flows)
+    if (myEntries.length > 0) {
       for (const entry of myEntries) {
+        if (entry.status !== 'approved') {
+          (entry as any)._hasPredictions = true; // not relevant for non-approved
+          continue;
+        }
         const { count } = await supabase
           .from("football_predictions")
           .select("id", { count: 'exact', head: true })
@@ -644,7 +648,7 @@ const PoolDetail = () => {
         (entry as any)._hasPredictions = (count || 0) > 0;
       }
     }
-    
+
     setUserEntries(myEntries);
     setHasJoined(myEntries.length > 0);
     
