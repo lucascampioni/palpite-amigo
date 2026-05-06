@@ -17,7 +17,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { WorldCupPredictionGrid, isWorldCupPool } from "@/components/WorldCupPredictionGrid";
-import { getReferral, clearReferral } from "@/lib/referral";
+
 
 interface FootballPredictionFormProps {
   poolId: string;
@@ -70,6 +70,9 @@ const FootballPredictionForm = ({ poolId, userId, onSuccess, entryFee, pool, pix
   const [showHighScoreWarning, setShowHighScoreWarning] = useState(false);
   const [highScoreMatches, setHighScoreMatches] = useState<{ match: Match; homeScore: string; awayScore: string; setIndex: number }[]>([]);
   const [appFee, setAppFee] = useState<{ type: 'percent' | 'fixed'; percent: number; fixed: number; percentMin: number } | null>(null);
+  const [referralEligible, setReferralEligible] = useState(false);
+  const [canEnterReferral, setCanEnterReferral] = useState(false);
+  const [referralCodeInput, setReferralCodeInput] = useState("");
 
   const isEstabelecimento = pool?.prize_type === 'estabelecimento';
   const hasEntryFee = !isEstabelecimento && pool?.entry_fee && parseFloat(pool.entry_fee) > 0;
@@ -108,6 +111,29 @@ const FootballPredictionForm = ({ poolId, userId, onSuccess, entryFee, pool, pix
       });
     })();
   }, [isInAppPayment]);
+
+  // Verifica se o bolão é elegível para indicações e se o usuário ainda pode usar um código
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const { data: eligData } = await supabase.rpc("is_pool_referral_eligible", { p_pool_id: poolId });
+      if (cancelled) return;
+      const isElig = !!eligData;
+      setReferralEligible(isElig);
+      if (!isElig) return;
+
+      // Pode usar código apenas se ainda não há registro de referral para este usuário neste bolão
+      const { data: existing } = await supabase
+        .from("pool_referrals")
+        .select("id")
+        .eq("pool_id", poolId)
+        .eq("referred_user_id", userId)
+        .limit(1);
+      if (cancelled) return;
+      setCanEnterReferral(!existing || existing.length === 0);
+    })();
+    return () => { cancelled = true; };
+  }, [poolId, userId]);
 
   const loadMatches = async () => {
     const { data, error } = await supabase
@@ -463,22 +489,21 @@ const FootballPredictionForm = ({ poolId, userId, onSuccess, entryFee, pool, pix
     } else {
       // No need to update voucher for estabelecimento - already linked by owner
 
-      // Registra indicação se o usuário entrou via link de referência
-      const refUserId = getReferral(poolId);
-      if (refUserId && refUserId !== userId) {
-        const { error: refErr } = await supabase
-          .from("pool_referrals")
-          .insert({
-            pool_id: poolId,
-            referrer_user_id: refUserId,
-            referred_user_id: userId,
-            referred_participant_id: participant.id,
-            status: "pending",
-          });
-        if (!refErr) {
-          clearReferral(poolId);
-          // Se já entrou aprovado (sem taxa), tenta processar recompensa imediatamente
-          if (initialStatus === "approved") {
+      // Registra indicação se o usuário digitou um código válido e o bolão é elegível
+      const codeTrimmed = referralCodeInput.trim().toUpperCase();
+      if (referralEligible && canEnterReferral && codeTrimmed.length > 0) {
+        const { data: refUserId } = await supabase.rpc("get_user_id_by_referral_code", { _code: codeTrimmed });
+        if (refUserId && refUserId !== userId) {
+          const { error: refErr } = await supabase
+            .from("pool_referrals")
+            .insert({
+              pool_id: poolId,
+              referrer_user_id: refUserId,
+              referred_user_id: userId,
+              referred_participant_id: participant.id,
+              status: "pending",
+            });
+          if (!refErr && initialStatus === "approved") {
             supabase.functions
               .invoke("process-referral-rewards", {
                 body: { pool_id: poolId, referred_user_id: userId },
@@ -833,6 +858,26 @@ const FootballPredictionForm = ({ poolId, userId, onSuccess, entryFee, pool, pix
 
 
       </>
+      )}
+
+      {/* Código de indicação (apenas em bolões elegíveis) */}
+      {referralEligible && canEnterReferral && (!isEstabelecimento || estabelecimentoReady) && (
+        <div className="p-3 rounded-lg border-2 border-dashed border-primary/40 bg-primary/5 space-y-2">
+          <Label htmlFor="referral-code" className="text-sm font-semibold flex items-center gap-2">
+            🎁 Tem um código de indicação?
+          </Label>
+          <p className="text-xs text-muted-foreground">
+            Se um amigo te indicou, digite o código dele abaixo. Quando sua inscrição for aprovada, ele ganha 1 palpite grátis.
+          </p>
+          <Input
+            id="referral-code"
+            placeholder="Ex.: ABC123"
+            value={referralCodeInput}
+            onChange={(e) => setReferralCodeInput(e.target.value.toUpperCase().slice(0, 12))}
+            className="uppercase tracking-widest font-mono"
+            maxLength={12}
+          />
+        </div>
       )}
 
       {/* Submit area with summary */}

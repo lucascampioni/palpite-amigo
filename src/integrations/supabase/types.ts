@@ -842,6 +842,7 @@ export type Database = {
           phone_verified: boolean
           pix_key: string | null
           pix_key_type: string | null
+          referral_code: string | null
           updated_at: string
           vip_group_accepted: boolean | null
           vip_group_invited_at: string | null
@@ -860,6 +861,7 @@ export type Database = {
           phone_verified?: boolean
           pix_key?: string | null
           pix_key_type?: string | null
+          referral_code?: string | null
           updated_at?: string
           vip_group_accepted?: boolean | null
           vip_group_invited_at?: string | null
@@ -878,6 +880,7 @@ export type Database = {
           phone_verified?: boolean
           pix_key?: string | null
           pix_key_type?: string | null
+          referral_code?: string | null
           updated_at?: string
           vip_group_accepted?: boolean | null
           vip_group_invited_at?: string | null
@@ -1033,6 +1036,7 @@ export type Database = {
       check_email_exists: { Args: { _email: string }; Returns: boolean }
       check_email_status: { Args: { _email: string }; Returns: Json }
       cleanup_expired_otp: { Args: never; Returns: undefined }
+      generate_referral_code: { Args: never; Returns: string }
       generate_slug: { Args: { title: string }; Returns: string }
       get_football_pool_ranking: {
         Args: { p_pool_id: string }
@@ -1053,6 +1057,7 @@ export type Database = {
           user_id: string
         }[]
       }
+      get_user_id_by_referral_code: { Args: { _code: string }; Returns: string }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
