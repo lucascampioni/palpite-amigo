@@ -192,7 +192,6 @@ serve(async (req) => {
         }
       }
     }
-    }
 
     // === ESTABELECIMENTO POOLS: reject approved participants without predictions after deadline ===
     const { data: estabPools, error: estabError } = await supabase
