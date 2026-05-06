@@ -860,6 +860,26 @@ const FootballPredictionForm = ({ poolId, userId, onSuccess, entryFee, pool, pix
       </>
       )}
 
+      {/* Código de indicação (apenas em bolões elegíveis) */}
+      {referralEligible && canEnterReferral && (!isEstabelecimento || estabelecimentoReady) && (
+        <div className="p-3 rounded-lg border-2 border-dashed border-primary/40 bg-primary/5 space-y-2">
+          <Label htmlFor="referral-code" className="text-sm font-semibold flex items-center gap-2">
+            🎁 Tem um código de indicação?
+          </Label>
+          <p className="text-xs text-muted-foreground">
+            Se um amigo te indicou, digite o código dele abaixo. Quando sua inscrição for aprovada, ele ganha 1 palpite grátis.
+          </p>
+          <Input
+            id="referral-code"
+            placeholder="Ex.: ABC123"
+            value={referralCodeInput}
+            onChange={(e) => setReferralCodeInput(e.target.value.toUpperCase().slice(0, 12))}
+            className="uppercase tracking-widest font-mono"
+            maxLength={12}
+          />
+        </div>
+      )}
+
       {/* Submit area with summary */}
       <div className="space-y-2">
         {(predictionSets.length > 1 || hasEntryFee) && (
