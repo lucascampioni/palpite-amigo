@@ -75,6 +75,7 @@ serve(async (req) => {
         notes: (payout.notes || "") + " [Marcado como pago manualmente]",
       }).eq("id", payout_id);
       if (error) throw error;
+      await markWinnerPrizeAsSent(adminClient, payout);
       return jsonResp({ success: true, marked_only: true }, 200);
     }
 
@@ -169,6 +170,10 @@ serve(async (req) => {
       .from("pool_payouts").update(update).eq("id", payout_id);
     if (updateError) throw updateError;
 
+    if (isDone) {
+      await markWinnerPrizeAsSent(adminClient, payout);
+    }
+
     return jsonResp({
       success: true,
       asaas_transfer_id: data?.id,
@@ -194,6 +199,19 @@ async function getUserId(req: Request, url: string, anonKey: string): Promise<st
     const { data: { user } } = await userClient.auth.getUser();
     return user?.id || null;
   } catch { return null; }
+}
+
+async function markWinnerPrizeAsSent(adminClient: any, payout: any) {
+  if (payout.recipient_type !== "winner" || !payout.pool_id || !payout.recipient_user_id) return;
+
+  const { error } = await adminClient
+    .from("participants")
+    .update({ prize_status: "prize_sent" })
+    .eq("pool_id", payout.pool_id)
+    .eq("user_id", payout.recipient_user_id)
+    .in("prize_status", ["awaiting_pix", "pix_submitted"]);
+
+  if (error) console.error("Error marking winner prize as sent:", error);
 }
 
 function jsonResp(body: any, status: number) {
