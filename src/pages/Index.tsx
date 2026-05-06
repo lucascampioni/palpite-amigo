@@ -488,6 +488,8 @@ const Index = () => {
   const myPoolsFinishedCount = myCreatedPools.filter(p => p.status === "finished").length;
   const participatingActiveCount = myParticipatingPools.filter(p => p.status === "active").length;
   const participatingFinishedCount = myParticipatingPools.filter(p => p.status === "finished").length;
+  const unseenFinishedCount = myParticipatingPools.filter(p => p.status === "finished" && !seenFinishedPools.has(p.id)).length;
+  const meusBoloesBadgeCount = participatingActiveCount + unseenFinishedCount;
   const exploreCount = officialPools.length + availablePools.length;
 
   const filterPools = (pools: any[]) => {
@@ -599,9 +601,9 @@ const Index = () => {
             <TabsTrigger value="concorrendo" className="rounded-lg text-[10px] sm:text-xs font-medium data-[state=active]:bg-card data-[state=active]:shadow-sm relative flex flex-col items-center gap-0.5 py-1.5 px-0.5">
               <Users className="w-4 h-4" />
               <span className="leading-tight text-[9px] sm:text-xs">Meus Bolões</span>
-              {participatingActiveCount > 0 && (
-                <Badge className="absolute -top-1 -right-0.5 h-4 min-w-4 px-1 text-[10px] bg-primary text-primary-foreground border-0">
-                  {participatingActiveCount}
+              {meusBoloesBadgeCount > 0 && (
+                <Badge className={`absolute -top-1 -right-0.5 h-4 min-w-4 px-1 text-[10px] border-0 ${unseenFinishedCount > 0 ? 'bg-secondary text-secondary-foreground' : 'bg-primary text-primary-foreground'}`}>
+                  {meusBoloesBadgeCount}
                 </Badge>
               )}
             </TabsTrigger>
