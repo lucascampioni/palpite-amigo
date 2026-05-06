@@ -40,6 +40,28 @@ const Index = () => {
   const [showFinishedCreated, setShowFinishedCreated] = useState(false);
   const [showFinishedParticipating, setShowFinishedParticipating] = useState(false);
   const [showFailedPools, setShowFailedPools] = useState(false);
+  const [seenFinishedPools, setSeenFinishedPools] = useState<Set<string>>(new Set());
+
+  const seenStorageKey = session?.user?.id ? `seen_finished_pools_${session.user.id}` : null;
+
+  useEffect(() => {
+    if (!seenStorageKey) return;
+    try {
+      const raw = localStorage.getItem(seenStorageKey);
+      if (raw) setSeenFinishedPools(new Set(JSON.parse(raw)));
+    } catch {}
+  }, [seenStorageKey]);
+
+  const markPoolAsSeen = (poolId: string) => {
+    if (!seenStorageKey) return;
+    setSeenFinishedPools(prev => {
+      if (prev.has(poolId)) return prev;
+      const next = new Set(prev);
+      next.add(poolId);
+      try { localStorage.setItem(seenStorageKey, JSON.stringify([...next])); } catch {}
+      return next;
+    });
+  };
   const [searchParams] = useSearchParams();
   const [activeTab, setActiveTab] = useState(searchParams.get("tab") || "explorar");
   const [searchQuery, setSearchQuery] = useState("");
