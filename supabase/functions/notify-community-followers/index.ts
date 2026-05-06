@@ -142,6 +142,7 @@ serve(async (req) => {
         await new Promise(resolve => setTimeout(resolve, 500));
       }
     }
+    } // end if eligibleProfiles.length > 0
 
     // Send web push to ALL community members with notify_new_pools enabled (regardless of phone)
     let pushSent = 0;
