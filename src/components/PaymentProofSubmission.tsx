@@ -104,13 +104,15 @@ export const PaymentProofSubmission = ({
 
       if (uploadError) throw uploadError;
 
-      // Update participant with proof URL
-      const { error: updateError } = await supabase
-        .from('participants')
-        .update({
-          payment_proof: filePath,
-        })
-        .eq('id', participantId);
+      // Update participant financials with proof URL (separate sensitive table)
+      const { data: { user } } = await supabase.auth.getUser();
+      const { upsertParticipantFinancials } = await import("@/lib/participant-financials");
+      const { error: updateError } = await upsertParticipantFinancials({
+        participant_id: participantId,
+        pool_id: poolId,
+        user_id: user?.id || "",
+        data: { payment_proof: filePath },
+      });
 
       if (updateError) throw updateError;
 
