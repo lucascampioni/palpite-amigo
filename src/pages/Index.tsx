@@ -89,11 +89,15 @@ const Index = () => {
       .eq("owner_id", session.user.id)
       .order("created_at", { ascending: false });
 
-    const { data: participantRecords } = await supabase
+    const { data: participantRecordsRaw } = await supabase
       .from("participants")
-      .select("pool_id, status, prize_status, payment_proof, rejection_reason, rejection_details")
+      .select("pool_id, status, prize_status, rejection_reason, rejection_details, participant_financials(payment_proof)")
       .eq("user_id", session.user.id)
       .in("status", ["approved", "pending", "rejected"]);
+    const participantRecords = (participantRecordsRaw || []).map((p: any) => {
+      const f = Array.isArray(p.participant_financials) ? p.participant_financials[0] : p.participant_financials;
+      return { ...p, payment_proof: f?.payment_proof ?? null };
+    });
     
     const approvedRecords = participantRecords?.filter(p => p.status === 'approved') || [];
     const pendingRecords = participantRecords?.filter(p => p.status === 'pending' && !p.payment_proof) || [];

@@ -91,15 +91,16 @@ const CommunityDetail = () => {
     // Fetch user's participation status for these pools
     if (poolsData && poolsData.length > 0 && session) {
       const poolIds = poolsData.map((p: any) => p.id);
-      const { data: myParticipants } = await supabase
+      const { data: myParticipantsRaw } = await supabase
         .from("participants")
-        .select("pool_id, status, payment_proof, prize_status")
+        .select("pool_id, status, prize_status, participant_financials(payment_proof)")
         .eq("user_id", session.user.id)
         .in("pool_id", poolIds);
 
       const pMap: Record<string, any> = {};
-      (myParticipants || []).forEach((p: any) => {
-        pMap[p.pool_id] = p;
+      (myParticipantsRaw || []).forEach((p: any) => {
+        const f = Array.isArray(p.participant_financials) ? p.participant_financials[0] : p.participant_financials;
+        pMap[p.pool_id] = { ...p, payment_proof: f?.payment_proof ?? null };
       });
       setParticipantMap(pMap);
     } else {

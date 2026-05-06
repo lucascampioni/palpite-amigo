@@ -272,13 +272,21 @@ export const AdminParticipantsManager = ({
         rejection_reason: reasonLabel,
         rejection_details: rejectionDetails.trim(),
       };
-      if (isPaymentIssue) updateData.payment_proof = null;
 
       const { error } = await supabase
         .from("participants")
         .update(updateData)
         .eq("id", rejectingParticipant.id);
       if (error) throw error;
+
+      // If payment issue: clear proof in separate financials table
+      if (isPaymentIssue) {
+        await supabase
+          .from("participant_financials")
+          .update({ payment_proof: null })
+          .eq("participant_id", rejectingParticipant.id);
+        updateData.payment_proof = null;
+      }
 
       toast({
         title: isPaymentIssue ? "Pagamento recusado" : "Participante rejeitado",
