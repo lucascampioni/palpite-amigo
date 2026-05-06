@@ -250,10 +250,20 @@ serve(async (req) => {
           .select("id, full_name")
           .in("id", ownerIds);
 
-        const poolsWithOwners = pools?.map((p: any) => ({
-          ...p,
-          owner_name: owners?.find((o: any) => o.id === p.owner_id)?.full_name || "Desconhecido",
-        }));
+        // Get communities owned by these users (to override owner_name with community name when applicable)
+        const { data: ownerCommunities } = await adminClient
+          .from("communities")
+          .select("name, responsible_user_id")
+          .in("responsible_user_id", ownerIds);
+
+        const poolsWithOwners = pools?.map((p: any) => {
+          const community = ownerCommunities?.find((c: any) => c.responsible_user_id === p.owner_id);
+          const profileName = owners?.find((o: any) => o.id === p.owner_id)?.full_name || "Desconhecido";
+          return {
+            ...p,
+            owner_name: community?.name === "Delfos Oficial" ? "Delfos Oficial" : profileName,
+          };
+        });
 
         return new Response(JSON.stringify({ pools: poolsWithOwners, total: count }), {
           status: 200,
