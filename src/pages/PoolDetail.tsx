@@ -581,10 +581,25 @@ const PoolDetail = () => {
       setUserHasPhone(!!profileData?.phone);
     }
 
-    const { data: participantsData } = await supabase
+    const { data: participantsDataRaw } = await supabase
       .from("participants")
-      .select("*")
+      .select("*, participant_financials(payment_proof, participant_pix_key, pix_key_type, pix_consent, prize_pix_key, prize_pix_key_type, prize_proof_url)")
       .eq("pool_id", poolId);
+
+    const participantsData = (participantsDataRaw || []).map((p: any) => {
+      const f = Array.isArray(p.participant_financials) ? p.participant_financials[0] : p.participant_financials;
+      const { participant_financials, ...rest } = p;
+      return {
+        ...rest,
+        payment_proof: f?.payment_proof ?? null,
+        participant_pix_key: f?.participant_pix_key ?? null,
+        pix_key_type: f?.pix_key_type ?? null,
+        pix_consent: f?.pix_consent ?? false,
+        prize_pix_key: f?.prize_pix_key ?? null,
+        prize_pix_key_type: f?.prize_pix_key_type ?? null,
+        prize_proof_url: f?.prize_proof_url ?? null,
+      };
+    });
 
     setParticipants(participantsData || []);
 
