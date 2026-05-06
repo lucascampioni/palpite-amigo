@@ -295,7 +295,6 @@ export const WorldCupPredictionGrid = ({
 
 export const isWorldCupPool = (matches: { championship: string }[]): boolean => {
   if (matches.length === 0) return false;
-  // Pool é "Copa" se a maioria dos jogos é de Copa do Mundo 2026
-  const wcCount = matches.filter((m) => isWorldCupMatch(m.championship)).length;
-  return wcCount >= matches.length / 2;
+  // Só usar visual especial de grupos quando TODOS os 72 jogos da fase de grupos estão presentes
+  return hasAllWorldCupGroupMatches(matches);
 };
