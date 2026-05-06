@@ -294,30 +294,37 @@ const Index = () => {
         });
         Object.entries(countByPool).forEach(([poolId, count]) => {
           const pool = ownedPools.find(p => p.id === poolId);
-          if (pool) poolsPendingApprovals.push({ pool, pendingCount: count });
+          // Em bolões com pagamento automático, aprovação é feita pelo gateway, não pelo criador
+          if (pool && pool.payment_method !== 'in_app') poolsPendingApprovals.push({ pool, pendingCount: count });
         });
       }
 
       // Fetch winners with unpaid prizes in pools the user created
-      // Include both awaiting_pix (winner hasn't sent key yet) and pix_submitted (waiting for organizer to pay)
-      const { data: prizePendingParticipants } = await supabase
-        .from("participants")
-        .select("pool_id, prize_status")
-        .in("pool_id", ownedPoolIds)
-        .in("prize_status", ["pix_submitted", "awaiting_pix"]);
-      
-      if (prizePendingParticipants && prizePendingParticipants.length > 0) {
-        const infoByPool: Record<string, { total: number; awaitingPix: number; readyToPay: number }> = {};
-        prizePendingParticipants.forEach(p => {
-          if (!infoByPool[p.pool_id]) infoByPool[p.pool_id] = { total: 0, awaitingPix: 0, readyToPay: 0 };
-          infoByPool[p.pool_id].total++;
-          if (p.prize_status === 'awaiting_pix') infoByPool[p.pool_id].awaitingPix++;
-          if (p.prize_status === 'pix_submitted') infoByPool[p.pool_id].readyToPay++;
-        });
-        Object.entries(infoByPool).forEach(([poolId, info]) => {
-          const pool = ownedPools.find(p => p.id === poolId);
-          if (pool) poolsPendingPrizeSend.push({ pool, winnersCount: info.total, awaitingPixCount: info.awaitingPix, readyToPayCount: info.readyToPay } as any);
-        });
+      // Skip pools with in_app payment — Delfos handles payouts automatically.
+      const ownedNonInAppPoolIds = ownedPools
+        .filter(p => p.payment_method !== 'in_app')
+        .map(p => p.id);
+
+      if (ownedNonInAppPoolIds.length > 0) {
+        const { data: prizePendingParticipants } = await supabase
+          .from("participants")
+          .select("pool_id, prize_status")
+          .in("pool_id", ownedNonInAppPoolIds)
+          .in("prize_status", ["pix_submitted", "awaiting_pix"]);
+
+        if (prizePendingParticipants && prizePendingParticipants.length > 0) {
+          const infoByPool: Record<string, { total: number; awaitingPix: number; readyToPay: number }> = {};
+          prizePendingParticipants.forEach(p => {
+            if (!infoByPool[p.pool_id]) infoByPool[p.pool_id] = { total: 0, awaitingPix: 0, readyToPay: 0 };
+            infoByPool[p.pool_id].total++;
+            if (p.prize_status === 'awaiting_pix') infoByPool[p.pool_id].awaitingPix++;
+            if (p.prize_status === 'pix_submitted') infoByPool[p.pool_id].readyToPay++;
+          });
+          Object.entries(infoByPool).forEach(([poolId, info]) => {
+            const pool = ownedPools.find(p => p.id === poolId);
+            if (pool) poolsPendingPrizeSend.push({ pool, winnersCount: info.total, awaitingPixCount: info.awaitingPix, readyToPayCount: info.readyToPay } as any);
+          });
+        }
       }
     }
 
@@ -667,14 +674,14 @@ const Index = () => {
                 )}
 
 
-                {myAwaitingPixPools.filter(p => p.prize_type !== 'estabelecimento').length > 0 && (
+                {myAwaitingPixPools.filter(p => p.prize_type !== 'estabelecimento' && p.payment_method !== 'in_app').length > 0 && (
                   <AlertSection
                     icon="🏆"
                     title="Você Ganhou! Envie sua Chave PIX"
                     subtitle="Informe sua chave PIX para receber o prêmio"
                     bgClass="bg-yellow-50 dark:bg-yellow-950/50 border-yellow-200 dark:border-yellow-800"
                   >
-                    {filterPools(myAwaitingPixPools.filter(p => p.prize_type !== 'estabelecimento')).map((pool) => (
+                    {filterPools(myAwaitingPixPools.filter(p => p.prize_type !== 'estabelecimento' && p.payment_method !== 'in_app')).map((pool) => (
                       <PoolCard key={pool.id} pool={pool} isUserParticipating hasWonPrize onClick={() => navigate(`/bolao/${pool.slug}`)} {...getCommunityProps(pool)} />
                     ))}
                   </AlertSection>

@@ -377,7 +377,7 @@ export const AdminParticipantsManager = ({
                           )}
                         </div>
                         <div className="flex items-center gap-1 shrink-0">
-                          {p.user_id && participantPhones[p.user_id] && (
+                          {!isAutoPayment && p.user_id && participantPhones[p.user_id] && (
                             <Button
                               variant="ghost"
                               size="icon"
