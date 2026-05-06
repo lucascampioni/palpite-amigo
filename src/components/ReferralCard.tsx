@@ -11,21 +11,24 @@ interface ReferralCardProps {
   userId: string;
 }
 
-const ReferralCard = ({ poolId, poolSlug, poolTitle, userId }: ReferralCardProps) => {
+const ReferralCard = ({ poolId, poolTitle, userId }: ReferralCardProps) => {
   const { toast } = useToast();
   const [eligible, setEligible] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [code, setCode] = useState<string | null>(null);
   const [stats, setStats] = useState({ total: 0, rewarded: 0, used: 0 });
-
-  const link = `https://delfos.app.br/bolao/${poolSlug}?ref=${userId}`;
 
   useEffect(() => {
     let cancelled = false;
     (async () => {
-      const { data } = await supabase.rpc("is_pool_referral_eligible", { p_pool_id: poolId });
+      const [{ data: eligData }, { data: profile }] = await Promise.all([
+        supabase.rpc("is_pool_referral_eligible", { p_pool_id: poolId }),
+        supabase.from("profiles").select("referral_code").eq("id", userId).maybeSingle(),
+      ]);
       if (cancelled) return;
-      setEligible(!!data);
-      if (data) {
+      setEligible(!!eligData);
+      setCode((profile as any)?.referral_code || null);
+      if (eligData) {
         const { data: refs } = await supabase
           .from("pool_referrals")
           .select("status, reward_participant_id")
@@ -61,22 +64,22 @@ const ReferralCard = ({ poolId, poolSlug, poolTitle, userId }: ReferralCardProps
     };
   }, [poolId, userId]);
 
-  if (loading || !eligible) return null;
+  if (loading || !eligible || !code) return null;
 
   const handleCopy = async () => {
     try {
-      await navigator.clipboard.writeText(link);
-      toast({ title: "Link copiado!", description: "Compartilhe com seus amigos." });
+      await navigator.clipboard.writeText(code);
+      toast({ title: "Código copiado!", description: "Compartilhe com seus amigos." });
     } catch {
       toast({ variant: "destructive", title: "Erro ao copiar" });
     }
   };
 
   const handleShare = async () => {
-    const text = `🎯 Vem participar do bolão "${poolTitle}" comigo na Delfos!\n\nUse meu link de indicação:\n${link}`;
+    const text = `🎯 Vem participar do bolão "${poolTitle}" comigo na Delfos!\n\nUse meu código de indicação ao fazer o palpite: *${code}*\n\nhttps://delfos.app.br`;
     if (navigator.share) {
       try {
-        await navigator.share({ title: poolTitle, text, url: link });
+        await navigator.share({ title: poolTitle, text });
         return;
       } catch {}
     }
@@ -94,19 +97,19 @@ const ReferralCard = ({ poolId, poolSlug, poolTitle, userId }: ReferralCardProps
           <h3 className="text-lg font-bold">Indique e ganhe um palpite grátis!</h3>
         </div>
         <p className="text-sm text-muted-foreground leading-relaxed">
-          Para <strong>cada amigo</strong> que entrar no bolão pelo seu link e pagar a inscrição,
-          você ganha <strong className="text-primary">+1 palpite grátis</strong> automaticamente.
-          Sem limite!
+          Compartilhe seu <strong>código de indicação</strong>. Quando um amigo digitar
+          ele ao fazer o palpite e a inscrição for aprovada,
+          você ganha <strong className="text-primary">+1 palpite grátis</strong> automaticamente. Sem limite!
         </p>
 
-        <div className="flex items-center gap-2 p-2 rounded-lg bg-background/60 border border-primary/20">
-          <code className="flex-1 text-xs truncate font-mono">{link}</code>
+        <div className="flex items-center justify-center gap-2 p-3 rounded-lg bg-background/80 border-2 border-dashed border-primary/40">
+          <code className="text-2xl font-bold tracking-[0.3em] font-mono text-primary">{code}</code>
         </div>
 
         <div className="flex gap-2">
           <Button onClick={handleCopy} variant="outline" size="sm" className="flex-1">
             <Copy className="w-4 h-4" />
-            Copiar link
+            Copiar código
           </Button>
           <Button onClick={handleShare} size="sm" className="flex-1">
             <Share2 className="w-4 h-4" />
