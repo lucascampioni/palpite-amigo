@@ -65,6 +65,64 @@ export const TEAM_FLAGS: Record<string, string> = {
   'Panamá': '🇵🇦',
 };
 
+// Códigos ISO 3166-1 alpha-2 (ou subdivisão) usados pra renderizar bandeiras como imagem (flagcdn).
+// Necessário porque emojis de bandeira não renderizam no Windows (Chrome/Edge).
+export const TEAM_FLAG_CODES: Record<string, string> = {
+  'México': 'mx',
+  'África do Sul': 'za',
+  'Coreia do Sul': 'kr',
+  'Tchéquia': 'cz',
+  'Canadá': 'ca',
+  'Bósnia': 'ba',
+  'Catar': 'qa',
+  'Suíça': 'ch',
+  'Brasil': 'br',
+  'Escócia': 'gb-sct',
+  'Haiti': 'ht',
+  'Marrocos': 'ma',
+  'Austrália': 'au',
+  'Estados Unidos': 'us',
+  'Paraguai': 'py',
+  'Turquia': 'tr',
+  'Alemanha': 'de',
+  'Costa do Marfim': 'ci',
+  'Curaçao': 'cw',
+  'Equador': 'ec',
+  'Holanda': 'nl',
+  'Japão': 'jp',
+  'Suécia': 'se',
+  'Tunísia': 'tn',
+  'Bélgica': 'be',
+  'Egito': 'eg',
+  'Irã': 'ir',
+  'Nova Zelândia': 'nz',
+  'Arábia Saudita': 'sa',
+  'Cabo Verde': 'cv',
+  'Espanha': 'es',
+  'Uruguai': 'uy',
+  'França': 'fr',
+  'Iraque': 'iq',
+  'Noruega': 'no',
+  'Senegal': 'sn',
+  'Argentina': 'ar',
+  'Argélia': 'dz',
+  'Jordânia': 'jo',
+  'Áustria': 'at',
+  'Colômbia': 'co',
+  'RD Congo': 'cd',
+  'Portugal': 'pt',
+  'Uzbequistão': 'uz',
+  'Croácia': 'hr',
+  'Gana': 'gh',
+  'Inglaterra': 'gb-eng',
+  'Panamá': 'pa',
+};
+
+export const getFlagUrl = (team: string): string | null => {
+  const code = TEAM_FLAG_CODES[team.trim()];
+  return code ? `https://flagcdn.com/w40/${code}.png` : null;
+};
+
 // Helper: cria ISO UTC a partir de horário de Brasília (BRT = UTC-3)
 const brt = (yyyy: number, mm: number, dd: number, hh: number, min = 0): string => {
   // Adiciona 3h pra converter BRT->UTC
