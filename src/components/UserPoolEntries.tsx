@@ -130,14 +130,18 @@ const UserPoolEntries = ({
     });
   };
 
-  // For estabelecimento pools OR referral reward entries: if approved but no predictions, show form
-  const needsPredictionsEntry = entries.find(
-    (e) =>
-      e.status === "approved" &&
-      !e._hasPredictions &&
-      (isEstabelecimento || (typeof e.payment_proof === "string" && e.payment_proof.startsWith("referral_reward")))
+  // Detect referral-reward entry awaiting predictions
+  const isReferralReward = (e: any) =>
+    typeof e.payment_proof === "string" && e.payment_proof.startsWith("referral_reward");
+  const pendingReferralEntry = entries.find(
+    (e) => e.status === "approved" && !e._hasPredictions && isReferralReward(e)
   );
-  if (needsPredictionsEntry) {
+
+  // For estabelecimento pools: if approved but no predictions, show form (replaces entire view)
+  const needsEstabPredictionsEntry = entries.find(
+    (e) => e.status === "approved" && !e._hasPredictions && isEstabelecimento && !isReferralReward(e)
+  );
+  if (needsEstabPredictionsEntry) {
     return (
       <>
         <Separator />
@@ -181,7 +185,36 @@ const UserPoolEntries = ({
         </div>
       )}
 
-      {/* Referral program — bem em destaque após primeiro palpite aprovado */}
+      {/* Voucher gratuito (recompensa de indicação) — destaque com instruções */}
+      {pendingReferralEntry && (
+        <div className="p-4 rounded-lg bg-gradient-to-br from-primary/10 to-accent/10 border-2 border-primary/40 space-y-3">
+          <div className="flex items-start gap-2">
+            <span className="text-2xl">🎁</span>
+            <div className="flex-1 space-y-1">
+              <p className="text-base font-bold text-primary">
+                Você ganhou 1 palpite grátis!
+              </p>
+              <p className="text-sm text-muted-foreground">
+                Como recompensa por uma indicação confirmada, você tem direito a um <strong>palpite extra sem custo</strong> neste bolão.
+              </p>
+              <p className="text-xs text-muted-foreground">
+                👉 Preencha seus palpites no formulário abaixo e clique em <strong>"Enviar palpites"</strong>. Não é necessário pagar nem enviar comprovante — sua entrada será registrada automaticamente.
+              </p>
+            </div>
+          </div>
+          <Separator />
+          <FootballPredictionForm
+            poolId={poolId}
+            userId={userId}
+            onSuccess={onReload}
+            pool={pool}
+            pixKey={pixKey}
+            firstMatchDate={firstMatchDate}
+            ownerName={ownerName || undefined}
+          />
+        </div>
+      )}
+
       {approved.length > 0 && pool?.slug && (
         <ReferralCard
           poolId={poolId}
