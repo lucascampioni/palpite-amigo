@@ -194,6 +194,17 @@ export const isWorldCupMatch = (championship?: string | null): boolean => {
   return !!championship && championship.startsWith(WORLD_CUP_2026_CHAMPIONSHIP_PREFIX);
 };
 
+// Total de jogos da fase de grupos da Copa do Mundo 2026
+export const WORLD_CUP_2026_GROUP_STAGE_COUNT = WORLD_CUP_2026_MATCHES.length;
+
+// Retorna true só se TODOS os jogos da fase de grupos da Copa estão presentes na lista
+export const hasAllWorldCupGroupMatches = (
+  items: { championship?: string | null }[],
+): boolean => {
+  const wcCount = items.filter((i) => isWorldCupMatch(i.championship)).length;
+  return wcCount >= WORLD_CUP_2026_GROUP_STAGE_COUNT;
+};
+
 export const extractGroup = (championship?: string | null): string | null => {
   if (!championship) return null;
   const match = championship.match(/Grupo ([A-L])/);
