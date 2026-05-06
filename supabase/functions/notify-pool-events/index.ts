@@ -225,8 +225,17 @@ serve(async (req) => {
         await new Promise(resolve => setTimeout(resolve, 1000));
       }
 
+      const cancelledPushUserIds = recipients.map(r => r.user_id);
+      const cancelledPushRes = await sendWebPushToUsers(
+        cancelledPushUserIds,
+        '🚫 Bolão cancelado',
+        `O bolão "${pool.title}" foi cancelado.`,
+        `/bolao/${pool.slug || pool.id}`,
+      );
+      pushResults.push({ type: 'pool_cancelled', pool: pool.title, ...cancelledPushRes });
+
       await supabase.from('pools').update({ cancelled_notified: true }).eq('id', pool.id);
-      console.log(`✅ Cancellation notifications sent for pool "${pool.title}"`);
+      console.log(`✅ Cancellation notifications sent for pool "${pool.title}" (push: ${cancelledPushRes.sent}/${cancelledPushRes.total})`);
     }
 
     // ═══════════════════════════════════════════════════════════════
