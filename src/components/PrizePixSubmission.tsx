@@ -78,11 +78,32 @@ export const PrizePixSubmission = ({
     setIsSubmitting(true);
 
     try {
+      // Fetch participant context (pool_id + user_id) to upsert financials
+      const { data: partRowArr } = await supabase
+        .from("participants")
+        .select("pool_id, user_id")
+        .eq("id", participantId)
+        .limit(1);
+      const partRow = partRowArr?.[0];
+      if (!partRow) throw new Error("Participação não encontrada");
+
+      const pixType = pixSource === 'profile' ? profilePixKeyType : (customPixType || null);
+
+      const { upsertParticipantFinancials } = await import("@/lib/participant-financials");
+      const { error: finErr } = await upsertParticipantFinancials({
+        participant_id: participantId,
+        pool_id: partRow.pool_id,
+        user_id: partRow.user_id,
+        data: {
+          prize_pix_key: sanitizedPixKey,
+          prize_pix_key_type: pixType,
+        },
+      });
+      if (finErr) throw finErr;
+
       const { error } = await supabase
         .from("participants")
         .update({
-          prize_pix_key: sanitizedPixKey,
-          prize_pix_key_type: pixSource === 'profile' ? profilePixKeyType : (customPixType || null),
           prize_status: "pix_submitted",
           prize_submitted_at: new Date().toISOString(),
         })
