@@ -263,20 +263,69 @@ export type Database = {
           },
         ]
       }
+      participant_financials: {
+        Row: {
+          created_at: string
+          id: string
+          participant_id: string
+          participant_pix_key: string | null
+          payment_proof: string | null
+          pix_consent: boolean
+          pix_key_type: string | null
+          pool_id: string
+          prize_pix_key: string | null
+          prize_pix_key_type: string | null
+          prize_proof_url: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          participant_id: string
+          participant_pix_key?: string | null
+          payment_proof?: string | null
+          pix_consent?: boolean
+          pix_key_type?: string | null
+          pool_id: string
+          prize_pix_key?: string | null
+          prize_pix_key_type?: string | null
+          prize_proof_url?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          participant_id?: string
+          participant_pix_key?: string | null
+          payment_proof?: string | null
+          pix_consent?: boolean
+          pix_key_type?: string | null
+          pool_id?: string
+          prize_pix_key?: string | null
+          prize_pix_key_type?: string | null
+          prize_proof_url?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "participant_financials_participant_id_fkey"
+            columns: ["participant_id"]
+            isOneToOne: true
+            referencedRelation: "participants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       participants: {
         Row: {
           created_at: string
           guess_value: string
           id: string
           participant_name: string
-          participant_pix_key: string | null
-          payment_proof: string | null
-          pix_consent: boolean | null
-          pix_key_type: string | null
           pool_id: string
-          prize_pix_key: string | null
-          prize_pix_key_type: string | null
-          prize_proof_url: string | null
           prize_sent_at: string | null
           prize_status: string | null
           prize_submitted_at: string | null
@@ -291,14 +340,7 @@ export type Database = {
           guess_value: string
           id?: string
           participant_name: string
-          participant_pix_key?: string | null
-          payment_proof?: string | null
-          pix_consent?: boolean | null
-          pix_key_type?: string | null
           pool_id: string
-          prize_pix_key?: string | null
-          prize_pix_key_type?: string | null
-          prize_proof_url?: string | null
           prize_sent_at?: string | null
           prize_status?: string | null
           prize_submitted_at?: string | null
@@ -313,14 +355,7 @@ export type Database = {
           guess_value?: string
           id?: string
           participant_name?: string
-          participant_pix_key?: string | null
-          payment_proof?: string | null
-          pix_consent?: boolean | null
-          pix_key_type?: string | null
           pool_id?: string
-          prize_pix_key?: string | null
-          prize_pix_key_type?: string | null
-          prize_proof_url?: string | null
           prize_sent_at?: string | null
           prize_status?: string | null
           prize_submitted_at?: string | null
