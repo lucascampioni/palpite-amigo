@@ -489,22 +489,21 @@ const FootballPredictionForm = ({ poolId, userId, onSuccess, entryFee, pool, pix
     } else {
       // No need to update voucher for estabelecimento - already linked by owner
 
-      // Registra indicação se o usuário entrou via link de referência
-      const refUserId = getReferral(poolId);
-      if (refUserId && refUserId !== userId) {
-        const { error: refErr } = await supabase
-          .from("pool_referrals")
-          .insert({
-            pool_id: poolId,
-            referrer_user_id: refUserId,
-            referred_user_id: userId,
-            referred_participant_id: participant.id,
-            status: "pending",
-          });
-        if (!refErr) {
-          clearReferral(poolId);
-          // Se já entrou aprovado (sem taxa), tenta processar recompensa imediatamente
-          if (initialStatus === "approved") {
+      // Registra indicação se o usuário digitou um código válido e o bolão é elegível
+      const codeTrimmed = referralCodeInput.trim().toUpperCase();
+      if (referralEligible && canEnterReferral && codeTrimmed.length > 0) {
+        const { data: refUserId } = await supabase.rpc("get_user_id_by_referral_code", { _code: codeTrimmed });
+        if (refUserId && refUserId !== userId) {
+          const { error: refErr } = await supabase
+            .from("pool_referrals")
+            .insert({
+              pool_id: poolId,
+              referrer_user_id: refUserId,
+              referred_user_id: userId,
+              referred_participant_id: participant.id,
+              status: "pending",
+            });
+          if (!refErr && initialStatus === "approved") {
             supabase.functions
               .invoke("process-referral-rewards", {
                 body: { pool_id: poolId, referred_user_id: userId },
