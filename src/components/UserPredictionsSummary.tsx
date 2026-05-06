@@ -98,7 +98,7 @@ const UserPredictionsSummary = ({ poolId, participantId }: UserPredictionsSummar
   const isWC = useMemo(() => {
     const all = Object.values(sets).flat();
     if (all.length === 0) return false;
-    return all.filter(p => isWorldCupMatch(p.championship)).length >= all.length / 2;
+    return hasAllWorldCupGroupMatches(all.map(p => ({ championship: p.championship })));
   }, [sets]);
 
   // Default to "group" view if it's a World Cup pool
