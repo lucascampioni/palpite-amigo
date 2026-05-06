@@ -500,7 +500,9 @@ const FootballRanking = ({ poolId, pool, approvedParticipantsCount, isOwner }: F
   const getPrizeStatusBadge = (status: string | null | undefined, prizeAmount?: number, isCurrentUser?: boolean, participantId?: string) => {
     if (!prizeAmount || prizeAmount === 0) return null;
 
-    const ownerManageLink = isOwner && participantId ? (
+    const isAutoPayment = pool?.payment_method === 'in_app';
+
+    const ownerManageLink = isOwner && participantId && !isAutoPayment ? (
       <a
         href={`#premio-${participantId}`}
         onClick={(e) => {
@@ -514,7 +516,19 @@ const FootballRanking = ({ poolId, pool, approvedParticipantsCount, isOwner }: F
         <span>Gerenciar prêmio</span>
       </a>
     ) : null;
-    
+
+    // Em bolões com pagamento automático, a Delfos paga direto.
+    // O criador não envia prêmio, e o ganhador não precisa enviar chave PIX.
+    if (isAutoPayment && status !== 'prize_sent') {
+      return (
+        <div className="flex flex-col items-start gap-1">
+          <Badge variant="outline" className="text-[0.625rem] sm:text-xs bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 border-blue-300 dark:border-blue-700 px-1.5 sm:px-2 py-0 sm:py-0.5 whitespace-nowrap">
+            Pagamento automático Delfos
+          </Badge>
+        </div>
+      );
+    }
+
     if (!status || status === 'awaiting_pix') {
       return (
         <div className="flex flex-col items-start gap-1">
