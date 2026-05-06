@@ -17,7 +17,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { WorldCupPredictionGrid, isWorldCupPool } from "@/components/WorldCupPredictionGrid";
-import { getReferral, clearReferral } from "@/lib/referral";
+
 
 interface FootballPredictionFormProps {
   poolId: string;
@@ -70,6 +70,9 @@ const FootballPredictionForm = ({ poolId, userId, onSuccess, entryFee, pool, pix
   const [showHighScoreWarning, setShowHighScoreWarning] = useState(false);
   const [highScoreMatches, setHighScoreMatches] = useState<{ match: Match; homeScore: string; awayScore: string; setIndex: number }[]>([]);
   const [appFee, setAppFee] = useState<{ type: 'percent' | 'fixed'; percent: number; fixed: number; percentMin: number } | null>(null);
+  const [referralEligible, setReferralEligible] = useState(false);
+  const [canEnterReferral, setCanEnterReferral] = useState(false);
+  const [referralCodeInput, setReferralCodeInput] = useState("");
 
   const isEstabelecimento = pool?.prize_type === 'estabelecimento';
   const hasEntryFee = !isEstabelecimento && pool?.entry_fee && parseFloat(pool.entry_fee) > 0;
