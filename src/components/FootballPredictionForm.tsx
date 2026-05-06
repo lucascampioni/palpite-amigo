@@ -112,6 +112,29 @@ const FootballPredictionForm = ({ poolId, userId, onSuccess, entryFee, pool, pix
     })();
   }, [isInAppPayment]);
 
+  // Verifica se o bolão é elegível para indicações e se o usuário ainda pode usar um código
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const { data: eligData } = await supabase.rpc("is_pool_referral_eligible", { p_pool_id: poolId });
+      if (cancelled) return;
+      const isElig = !!eligData;
+      setReferralEligible(isElig);
+      if (!isElig) return;
+
+      // Pode usar código apenas se ainda não há registro de referral para este usuário neste bolão
+      const { data: existing } = await supabase
+        .from("pool_referrals")
+        .select("id")
+        .eq("pool_id", poolId)
+        .eq("referred_user_id", userId)
+        .limit(1);
+      if (cancelled) return;
+      setCanEnterReferral(!existing || existing.length === 0);
+    })();
+    return () => { cancelled = true; };
+  }, [poolId, userId]);
+
   const loadMatches = async () => {
     const { data, error } = await supabase
       .from("football_matches")
