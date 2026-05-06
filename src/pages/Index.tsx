@@ -667,14 +667,14 @@ const Index = () => {
                 )}
 
 
-                {myAwaitingPixPools.filter(p => p.prize_type !== 'estabelecimento').length > 0 && (
+                {myAwaitingPixPools.filter(p => p.prize_type !== 'estabelecimento' && p.payment_method !== 'in_app').length > 0 && (
                   <AlertSection
                     icon="🏆"
                     title="Você Ganhou! Envie sua Chave PIX"
                     subtitle="Informe sua chave PIX para receber o prêmio"
                     bgClass="bg-yellow-50 dark:bg-yellow-950/50 border-yellow-200 dark:border-yellow-800"
                   >
-                    {filterPools(myAwaitingPixPools.filter(p => p.prize_type !== 'estabelecimento')).map((pool) => (
+                    {filterPools(myAwaitingPixPools.filter(p => p.prize_type !== 'estabelecimento' && p.payment_method !== 'in_app')).map((pool) => (
                       <PoolCard key={pool.id} pool={pool} isUserParticipating hasWonPrize onClick={() => navigate(`/bolao/${pool.slug}`)} {...getCommunityProps(pool)} />
                     ))}
                   </AlertSection>
