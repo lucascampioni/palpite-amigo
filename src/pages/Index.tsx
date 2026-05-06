@@ -40,6 +40,28 @@ const Index = () => {
   const [showFinishedCreated, setShowFinishedCreated] = useState(false);
   const [showFinishedParticipating, setShowFinishedParticipating] = useState(false);
   const [showFailedPools, setShowFailedPools] = useState(false);
+  const [seenFinishedPools, setSeenFinishedPools] = useState<Set<string>>(new Set());
+
+  const seenStorageKey = session?.user?.id ? `seen_finished_pools_${session.user.id}` : null;
+
+  useEffect(() => {
+    if (!seenStorageKey) return;
+    try {
+      const raw = localStorage.getItem(seenStorageKey);
+      if (raw) setSeenFinishedPools(new Set(JSON.parse(raw)));
+    } catch {}
+  }, [seenStorageKey]);
+
+  const markPoolAsSeen = (poolId: string) => {
+    if (!seenStorageKey) return;
+    setSeenFinishedPools(prev => {
+      if (prev.has(poolId)) return prev;
+      const next = new Set(prev);
+      next.add(poolId);
+      try { localStorage.setItem(seenStorageKey, JSON.stringify([...next])); } catch {}
+      return next;
+    });
+  };
   const [searchParams] = useSearchParams();
   const [activeTab, setActiveTab] = useState(searchParams.get("tab") || "explorar");
   const [searchQuery, setSearchQuery] = useState("");
@@ -834,6 +856,33 @@ const Index = () => {
                   </div>
                 )}
 
+                {/* Recently finished - highlighted (first visit only) */}
+                {(() => {
+                  const newlyFinished = filterPools(myParticipatingPools.filter(p => p.status === "finished" && !seenFinishedPools.has(p.id)));
+                  if (newlyFinished.length === 0) return null;
+                  return (
+                    <div className="space-y-3 p-3 rounded-xl border-2 border-secondary/40 bg-gradient-to-br from-secondary/10 to-accent/5 shadow-md">
+                      <div className="flex items-center gap-2 mb-1">
+                        <span className="text-2xl">🏁</span>
+                        <div>
+                          <h4 className="text-sm font-bold">Bolão finalizado!</h4>
+                          <p className="text-xs text-muted-foreground">Venha ver sua colocação 🏆</p>
+                        </div>
+                      </div>
+                      {newlyFinished.map((pool) => (
+                        <PoolCard
+                          key={pool.id}
+                          pool={pool}
+                          isUserParticipating
+                          prizeReceived={participantPrizeStatus[pool.id] === 'prize_sent'}
+                          onClick={() => { markPoolAsSeen(pool.id); navigate(`/bolao/${pool.slug}`); }}
+                          {...getCommunityProps(pool)}
+                        />
+                      ))}
+                    </div>
+                  );
+                })()}
+
                 {/* Awaiting approval */}
                 {myAwaitingApprovalPools.length > 0 && (
                   <div className="space-y-3">
@@ -849,31 +898,33 @@ const Index = () => {
                   ))}
                 </div>
 
-                {/* Finished - collapsible */}
-                {participatingFinishedCount > 0 && (
-                  <div className="space-y-2">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="w-full justify-between h-9 text-muted-foreground hover:text-foreground"
-                      onClick={() => setShowFinishedParticipating(!showFinishedParticipating)}
-                    >
-                      <span className="text-xs font-medium">
-                        ✅ Finalizados ({participatingFinishedCount})
-                      </span>
-                      {showFinishedParticipating ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
-                    </Button>
-                    {showFinishedParticipating && (
-                      <div className="space-y-3">
-                        {filterPools(myParticipatingPools.filter(p => p.status === "finished")).map((pool) => (
-                          <PoolCard key={pool.id} pool={pool} isUserParticipating prizeReceived={participantPrizeStatus[pool.id] === 'prize_sent'} onClick={() => navigate(`/bolao/${pool.slug}`)} {...getCommunityProps(pool)} />
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                )}
-
-                {/* Failed to participate - collapsible */}
+                {/* Finished - collapsible (already seen) */}
+                {(() => {
+                  const seenFinished = filterPools(myParticipatingPools.filter(p => p.status === "finished" && seenFinishedPools.has(p.id)));
+                  if (seenFinished.length === 0) return null;
+                  return (
+                    <div className="space-y-2">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="w-full justify-between h-9 text-muted-foreground hover:text-foreground"
+                        onClick={() => setShowFinishedParticipating(!showFinishedParticipating)}
+                      >
+                        <span className="text-xs font-medium">
+                          ✅ Finalizados ({seenFinished.length})
+                        </span>
+                        {showFinishedParticipating ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+                      </Button>
+                      {showFinishedParticipating && (
+                        <div className="space-y-3">
+                          {seenFinished.map((pool) => (
+                            <PoolCard key={pool.id} pool={pool} isUserParticipating prizeReceived={participantPrizeStatus[pool.id] === 'prize_sent'} onClick={() => navigate(`/bolao/${pool.slug}`)} {...getCommunityProps(pool)} />
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })()}
                 {myFailedPools.length > 0 && (
                   <div className="space-y-2">
                     <Button
