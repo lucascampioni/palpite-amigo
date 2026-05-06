@@ -185,7 +185,36 @@ const UserPoolEntries = ({
         </div>
       )}
 
-      {/* Referral program — bem em destaque após primeiro palpite aprovado */}
+      {/* Voucher gratuito (recompensa de indicação) — destaque com instruções */}
+      {pendingReferralEntry && (
+        <div className="p-4 rounded-lg bg-gradient-to-br from-primary/10 to-accent/10 border-2 border-primary/40 space-y-3">
+          <div className="flex items-start gap-2">
+            <span className="text-2xl">🎁</span>
+            <div className="flex-1 space-y-1">
+              <p className="text-base font-bold text-primary">
+                Você ganhou 1 palpite grátis!
+              </p>
+              <p className="text-sm text-muted-foreground">
+                Como recompensa por uma indicação confirmada, você tem direito a um <strong>palpite extra sem custo</strong> neste bolão.
+              </p>
+              <p className="text-xs text-muted-foreground">
+                👉 Preencha seus palpites no formulário abaixo e clique em <strong>"Enviar palpites"</strong>. Não é necessário pagar nem enviar comprovante — sua entrada será registrada automaticamente.
+              </p>
+            </div>
+          </div>
+          <Separator />
+          <FootballPredictionForm
+            poolId={poolId}
+            userId={userId}
+            onSuccess={onReload}
+            pool={pool}
+            pixKey={pixKey}
+            firstMatchDate={firstMatchDate}
+            ownerName={ownerName || undefined}
+          />
+        </div>
+      )}
+
       {approved.length > 0 && pool?.slug && (
         <ReferralCard
           poolId={poolId}
