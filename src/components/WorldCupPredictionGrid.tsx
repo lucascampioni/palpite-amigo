@@ -88,33 +88,67 @@ export const WorldCupPredictionGrid = ({
   }, [grouped, didInitCollapse]);
 
   // Sequência ordenada de inputs (por grupo, por jogo, home depois away) só pra jogos válidos
-  const inputSequence = useMemo(() => {
+  // Mantém também a qual grupo cada key pertence, pra expandir automaticamente quando pular.
+  const { inputSequence, keyToGroup } = useMemo(() => {
     const seq: string[] = [];
-    grouped.forEach(([, gms]) => {
+    const map: Record<string, string> = {};
+    grouped.forEach(([g, gms]) => {
       gms.forEach((mm) => {
         const isPostponed =
           mm.status === 'postponed' ||
           mm.status === 'cancelled' ||
           mm.status === 'abandoned';
         if (isPostponed) return;
-        seq.push(`${mm.id}:home`);
-        seq.push(`${mm.id}:away`);
+        const hk = `${mm.id}:home`;
+        const ak = `${mm.id}:away`;
+        seq.push(hk);
+        seq.push(ak);
+        map[hk] = g;
+        map[ak] = g;
       });
     });
-    return seq;
+    return { inputSequence: seq, keyToGroup: map };
   }, [grouped]);
 
   const inputRefs = useRef<Record<string, HTMLInputElement | null>>({});
+  const pendingFocusRef = useRef<string | null>(null);
+
+  const focusKey = (key: string) => {
+    const el = inputRefs.current[key];
+    if (el) {
+      el.focus();
+      el.select?.();
+      return true;
+    }
+    return false;
+  };
+
+  // Quando expandimos um grupo programaticamente, o input só monta no próximo render.
+  useEffect(() => {
+    if (pendingFocusRef.current) {
+      const key = pendingFocusRef.current;
+      if (focusKey(key)) {
+        pendingFocusRef.current = null;
+      }
+    }
+  });
 
   const focusNext = (currentKey: string) => {
     const idx = inputSequence.indexOf(currentKey);
     if (idx < 0 || idx >= inputSequence.length - 1) return;
     const nextKey = inputSequence[idx + 1];
-    const el = inputRefs.current[nextKey];
-    if (el) {
-      el.focus();
-      el.select?.();
+    const nextGroup = keyToGroup[nextKey];
+    if (nextGroup && collapsed.has(nextGroup)) {
+      // Expande o próximo grupo e agenda o foco para depois do render
+      pendingFocusRef.current = nextKey;
+      setCollapsed((prev) => {
+        const next = new Set(prev);
+        next.delete(nextGroup);
+        return next;
+      });
+      return;
     }
+    focusKey(nextKey);
   };
 
   const handleScoreChange = (
