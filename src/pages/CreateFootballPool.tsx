@@ -272,6 +272,14 @@ const CreateFootballPool = () => {
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+
+    const privacyWarning = isPrivate
+      ? "🔒 Você escolheu criar um bolão PRIVADO.\n\nApenas pessoas com o link poderão acessar e participar.\n\nDeseja continuar?"
+      : "🌐 Você escolheu criar um bolão PÚBLICO.\n\nEle ficará disponível para toda a comunidade Delfos acessar e participar.\n\nDeseja continuar?";
+    if (!window.confirm(privacyWarning)) {
+      return;
+    }
+
     setLoading(true);
 
     const formData = new FormData(e.currentTarget);
