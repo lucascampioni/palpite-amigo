@@ -442,7 +442,11 @@ const Index = () => {
   };
 
   // Counts for badges
-  const pendenciasCount = myPendingPaymentPools.length + myAwaitingPixPools.length + myPoolsPendingApprovals.length + myPoolsPendingPrizeSend.length + myPendingPredictionPools.length;
+  // Pools de pagamento automático (in_app) com prêmio em awaiting_pix são pagos automaticamente pela Delfos —
+  // mostramos como informativo, não como pendência ativa do usuário.
+  const inAppAutoPayoutPools = myAwaitingPixPools.filter(p => p.payment_method === 'in_app');
+  const manualAwaitingPixPools = myAwaitingPixPools.filter(p => p.payment_method !== 'in_app');
+  const pendenciasCount = myPendingPaymentPools.length + manualAwaitingPixPools.length + myPoolsPendingApprovals.length + myPoolsPendingPrizeSend.length + myPendingPredictionPools.length + inAppAutoPayoutPools.length;
   const myPoolsActiveCount = myCreatedPools.filter(p => p.status === "active").length;
   const myPoolsFinishedCount = myCreatedPools.filter(p => p.status === "finished").length;
   const participatingActiveCount = myParticipatingPools.filter(p => p.status === "active").length;
@@ -695,6 +699,19 @@ const Index = () => {
                     bgClass="bg-amber-50 dark:bg-amber-950/50 border-amber-200 dark:border-amber-800"
                   >
                     {filterPools(myAwaitingPixPools.filter(p => p.prize_type === 'estabelecimento')).map((pool) => (
+                      <PoolCard key={pool.id} pool={pool} isUserParticipating hasWonPrize onClick={() => navigate(`/bolao/${pool.slug}`)} {...getCommunityProps(pool)} />
+                    ))}
+                  </AlertSection>
+                )}
+
+                {inAppAutoPayoutPools.length > 0 && (
+                  <AlertSection
+                    icon="🏆"
+                    title="Você Ganhou! Aguarde o Pagamento pela Delfos"
+                    subtitle="O prêmio será enviado automaticamente para a chave PIX do seu perfil"
+                    bgClass="bg-yellow-50 dark:bg-yellow-950/50 border-yellow-200 dark:border-yellow-800"
+                  >
+                    {filterPools(inAppAutoPayoutPools).map((pool) => (
                       <PoolCard key={pool.id} pool={pool} isUserParticipating hasWonPrize onClick={() => navigate(`/bolao/${pool.slug}`)} {...getCommunityProps(pool)} />
                     ))}
                   </AlertSection>
