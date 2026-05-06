@@ -41,6 +41,7 @@ const App = () => (
           <Route path="/privacidade" element={<Privacy />} />
           <Route path="/verificacao-sms" element={<SmsVerification />} />
           <Route path="/verificacao-whatsapp" element={<SmsVerification />} />
+          <Route path="/ajuda" element={<Support />} />
 
           {/* Protected routes */}
           <Route path="/app" element={<ProtectedRoute><Index /></ProtectedRoute>} />
