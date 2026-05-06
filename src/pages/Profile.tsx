@@ -71,20 +71,11 @@ const Profile = () => {
     setNotifyPoolUpdates(profileData?.notify_pool_updates ?? true);
     setNotifyNewPools(profileData?.notify_new_pools ?? true);
 
-    let { data: statsData } = await supabase
+    const { data: statsData } = await supabase
       .from('user_stats')
       .select('*')
       .eq('user_id', user.id)
-      .single();
-
-    if (!statsData) {
-      const { data: newStats } = await supabase
-        .from('user_stats')
-        .insert({ user_id: user.id })
-        .select()
-        .single();
-      statsData = newStats;
-    }
+      .maybeSingle();
 
     setStats(statsData);
     setLoading(false);
