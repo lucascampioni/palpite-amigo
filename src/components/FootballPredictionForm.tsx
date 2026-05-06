@@ -337,12 +337,16 @@ const FootballPredictionForm = ({ poolId, userId, onSuccess, entryFee, pool, pix
 
     // Reuse "approved without predictions" entry (estabelecimento OR referral reward)
     {
-      const { data: approvedRows } = await supabase
+      const { data: approvedRowsRaw } = await supabase
         .from("participants")
-        .select("id, payment_proof")
+        .select("id, participant_financials(payment_proof)")
         .eq("pool_id", poolId)
         .eq("user_id", userId)
         .eq("status", "approved");
+      const approvedRows = (approvedRowsRaw || []).map((r: any) => {
+        const f = Array.isArray(r.participant_financials) ? r.participant_financials[0] : r.participant_financials;
+        return { id: r.id, payment_proof: f?.payment_proof ?? null };
+      });
 
       if (approvedRows && approvedRows.length > 0) {
         let reusableId: string | null = null;
