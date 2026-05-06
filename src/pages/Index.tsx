@@ -856,29 +856,33 @@ const Index = () => {
                   </div>
                 )}
 
-                {/* Recently finished - highlighted (first visit only) */}
+                {/* Recently finished - compact highlight banner (first visit only) */}
                 {(() => {
                   const newlyFinished = filterPools(myParticipatingPools.filter(p => p.status === "finished" && !seenFinishedPools.has(p.id)));
                   if (newlyFinished.length === 0) return null;
                   return (
-                    <div className="space-y-3 p-3 rounded-xl border-2 border-secondary/40 bg-gradient-to-br from-secondary/10 to-accent/5 shadow-md">
-                      <div className="flex items-center gap-2 mb-1">
-                        <span className="text-2xl">🏁</span>
-                        <div>
-                          <h4 className="text-sm font-bold">Bolão finalizado!</h4>
-                          <p className="text-xs text-muted-foreground">Venha ver sua colocação 🏆</p>
+                    <div className="space-y-2 p-3 rounded-xl border-2 border-secondary/40 bg-gradient-to-br from-secondary/10 to-accent/5 shadow-md">
+                      <div className="flex items-center gap-2">
+                        <span className="text-xl shrink-0">🏁</span>
+                        <div className="flex-1 min-w-0">
+                          <h4 className="text-sm font-bold leading-tight">
+                            {newlyFinished.length === 1 ? "Bolão finalizado!" : `${newlyFinished.length} bolões finalizados!`}
+                          </h4>
+                          <p className="text-xs text-muted-foreground">Toque para ver sua colocação 🏆</p>
                         </div>
                       </div>
-                      {newlyFinished.map((pool) => (
-                        <PoolCard
-                          key={pool.id}
-                          pool={pool}
-                          isUserParticipating
-                          prizeReceived={participantPrizeStatus[pool.id] === 'prize_sent'}
-                          onClick={() => { markPoolAsSeen(pool.id); navigate(`/bolao/${pool.slug}`); }}
-                          {...getCommunityProps(pool)}
-                        />
-                      ))}
+                      <div className="flex flex-col gap-1.5">
+                        {newlyFinished.map((pool) => (
+                          <button
+                            key={pool.id}
+                            onClick={() => { markPoolAsSeen(pool.id); navigate(`/bolao/${pool.slug}`); }}
+                            className="w-full text-left px-3 py-2 rounded-lg bg-background/60 hover:bg-background/90 border border-border/50 transition-colors flex items-center justify-between gap-2"
+                          >
+                            <span className="text-sm font-medium truncate">{pool.title}</span>
+                            <span className="text-xs text-secondary font-semibold shrink-0">Ver →</span>
+                          </button>
+                        ))}
+                      </div>
                     </div>
                   );
                 })()}
