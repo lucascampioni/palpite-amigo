@@ -20,6 +20,7 @@ import SmsVerification from "./pages/SmsVerification";
 import NotFound from "./pages/NotFound";
 import Communities from "./pages/Communities";
 import CommunityDetail from "./pages/CommunityDetail";
+import Support from "./pages/Support";
 
 const queryClient = new QueryClient();
 
