@@ -514,6 +514,9 @@ const Index = () => {
             <Button variant="ghost" size="icon" className="h-9 w-9 rounded-full hover:bg-primary/10" onClick={() => navigate("/perfil")}>
               <User className="w-4 h-4" />
             </Button>
+            <Button variant="ghost" size="icon" className="h-9 w-9 rounded-full hover:bg-primary/10" onClick={() => navigate("/ajuda")} title="Ajuda">
+              <HelpCircle className="w-4 h-4" />
+            </Button>
             <Button variant="ghost" size="icon" className="h-9 w-9 rounded-full hover:bg-destructive/10 hover:text-destructive" onClick={handleSignOut}>
               <LogOut className="w-4 h-4" />
             </Button>
