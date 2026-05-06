@@ -1634,6 +1634,18 @@ const PoolDetail = () => {
                           </p>
                         )}
                       </div>
+                    ) : pool.payment_method === 'in_app' ? (
+                      <div className="p-4 rounded-lg bg-gradient-to-r from-emerald-50 to-teal-50 dark:from-emerald-950/30 dark:to-teal-950/30 border-2 border-emerald-300 dark:border-emerald-700 space-y-2">
+                        <div className="flex items-center gap-2">
+                          <Trophy className="w-5 h-5 text-emerald-600" />
+                          <p className="text-sm font-bold text-emerald-800 dark:text-emerald-200">
+                            🎉 Parabéns! Você ganhou R$ {Number(userPrizeInfo.amount || 0).toFixed(2).replace('.', ',')}!
+                          </p>
+                        </div>
+                        <p className="text-sm text-emerald-700 dark:text-emerald-300">
+                          O pagamento será feito automaticamente pela Delfos via PIX para a chave cadastrada no seu perfil. Não é necessário fazer nada.
+                        </p>
+                      </div>
                     ) : (
                       <PrizePixSubmission
                         participantId={currentUserParticipant.id}
