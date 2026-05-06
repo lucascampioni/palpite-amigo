@@ -1044,9 +1044,9 @@ const PoolDetail = () => {
             <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
               <div className="space-y-1.5 min-w-0">
                 <CardTitle className="text-xl sm:text-3xl leading-tight">{pool.title}</CardTitle>
-                {ownerName && (
+                {(ownerCommunityName === "Delfos Oficial" ? "Delfos Oficial" : ownerName) && (
                   <p className="text-xs sm:text-sm text-muted-foreground">
-                    Criado por <span className="font-medium">{ownerName}</span>
+                    Criado por <span className="font-medium">{ownerCommunityName === "Delfos Oficial" ? "Delfos Oficial" : ownerName}</span>
                   </p>
                 )}
                 <div className="flex gap-1.5 sm:gap-2 flex-wrap">
