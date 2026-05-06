@@ -147,9 +147,19 @@ serve(async (req) => {
         await new Promise(resolve => setTimeout(resolve, 1000));
       }
 
+      // Send web push to ALL recipients (works even when app is closed)
+      const pushUserIds = recipients.map(r => r.user_id);
+      const pushRes = await sendWebPushToUsers(
+        pushUserIds,
+        '⚽ Os jogos começaram!',
+        `O bolão "${pool.title}" começou. Acompanhe ao vivo!`,
+        `/bolao/${pool.slug || pool.id}`,
+      );
+      pushResults.push({ type: 'first_match_started', pool: pool.title, ...pushRes });
+
       // Mark pool as notified
       await supabase.from('pools').update({ first_match_notified: true }).eq('id', pool.id);
-      console.log(`✅ First match notifications sent for pool "${pool.title}"`);
+      console.log(`✅ First match notifications sent for pool "${pool.title}" (push: ${pushRes.sent}/${pushRes.total})`);
     }
 
     // ═══════════════════════════════════════════════════════════════
