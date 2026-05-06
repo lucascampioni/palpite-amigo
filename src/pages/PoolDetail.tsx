@@ -1,6 +1,6 @@
 import { useEffect, useState, useMemo } from "react";
 import { useParams, useNavigate, useSearchParams } from "react-router-dom";
-import { captureReferral, captureReferralBySlug, migrateReferralFromSlug } from "@/lib/referral";
+
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -413,18 +413,10 @@ const PoolDetail = () => {
 
   useEffect(() => {
     const checkAuthAndLoadData = async () => {
-      // Captura referral por slug ANTES de qualquer redirect (sobrevive ao login/cadastro)
-      const refParam = searchParams.get("ref");
-      if (refParam && slug) {
-        captureReferralBySlug(slug, refParam);
-      }
-
       const { data: { user } } = await supabase.auth.getUser();
-      
+
       if (!user) {
-        // Preserva ?ref no redirect para que após o login a URL volte completa
-        const refQuery = refParam ? `?ref=${encodeURIComponent(refParam)}` : "";
-        const redirectUrl = `/bolao/${slug}${refQuery}`;
+        const redirectUrl = `/bolao/${slug}`;
         navigate(`/entrar?redirect=${encodeURIComponent(redirectUrl)}`);
         return;
       }
