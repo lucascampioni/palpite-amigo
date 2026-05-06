@@ -278,7 +278,14 @@ export const WorldCupPredictionGrid = ({
                         disabled={isPostponed}
                         className="w-10 sm:w-12 h-9 text-center text-base font-semibold p-0 px-1"
                       />
-                      <span className="text-base sm:text-lg flex-shrink-0">{away.flag}</span>
+                      {(() => {
+                        const url = getFlagUrl(away.name);
+                        return url ? (
+                          <img src={url} alt={away.name} className="w-5 h-auto sm:w-6 flex-shrink-0 rounded-sm" loading="lazy" />
+                        ) : (
+                          <span className="text-base sm:text-lg flex-shrink-0">{away.flag}</span>
+                        );
+                      })()}
                     </div>
 
                     {/* Away name */}
