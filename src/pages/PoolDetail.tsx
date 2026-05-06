@@ -1044,11 +1044,16 @@ const PoolDetail = () => {
             <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
               <div className="space-y-1.5 min-w-0">
                 <CardTitle className="text-xl sm:text-3xl leading-tight">{pool.title}</CardTitle>
-                {(ownerCommunityName === "Delfos Oficial" ? "Delfos Oficial" : ownerName) && (
-                  <p className="text-xs sm:text-sm text-muted-foreground">
-                    Criado por <span className="font-medium">{ownerCommunityName === "Delfos Oficial" ? "Delfos Oficial" : ownerName}</span>
-                  </p>
-                )}
+                {(() => {
+                  const displayCreator = (pool.is_official || ownerCommunityName === "Delfos Oficial")
+                    ? "Delfos Oficial"
+                    : ownerName;
+                  return displayCreator ? (
+                    <p className="text-xs sm:text-sm text-muted-foreground">
+                      Criado por <span className="font-medium">{displayCreator}</span>
+                    </p>
+                  ) : null;
+                })()}
                 <div className="flex gap-1.5 sm:gap-2 flex-wrap">
                   <Badge className={`text-[10px] sm:text-xs px-2 py-0.5 ${getStatusColor(pool.status)}`}>
                     {getStatusText(pool.status)}
