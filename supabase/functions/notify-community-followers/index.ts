@@ -82,13 +82,9 @@ serve(async (req) => {
     // Exclude the pool owner from receiving the notification
     const eligibleProfiles = (profiles || []).filter(p => p.id !== user.id);
 
-    if (eligibleProfiles.length === 0) {
-      await supabase.from('pools').update({ community_notified: true }).eq('id', pool_id);
-      return new Response(
-        JSON.stringify({ success: true, sent: 0, message: 'No other eligible members to notify' }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
+    const results: { phone: string; success: boolean; error?: string }[] = [];
+
+    if (eligibleProfiles.length > 0) {
 
     // Send via Twilio WhatsApp (approved template — no variables)
     const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
