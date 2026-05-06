@@ -235,7 +235,14 @@ export const WorldCupPredictionGrid = ({
 
                     {/* Center: flag + input + x + input + flag */}
                     <div className="flex items-center gap-1 flex-shrink-0">
-                      <span className="text-base sm:text-lg flex-shrink-0">{home.flag}</span>
+                      {(() => {
+                        const url = getFlagUrl(home.name);
+                        return url ? (
+                          <img src={url} alt={home.name} className="w-5 h-auto sm:w-6 flex-shrink-0 rounded-sm" loading="lazy" />
+                        ) : (
+                          <span className="text-base sm:text-lg flex-shrink-0">{home.flag}</span>
+                        );
+                      })()}
                       <Input
                         ref={(el) => {
                           inputRefs.current[`${match.id}:home`] = el;
