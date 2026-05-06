@@ -15,7 +15,7 @@ const ReferralCard = ({ poolId, poolSlug, poolTitle, userId }: ReferralCardProps
   const { toast } = useToast();
   const [eligible, setEligible] = useState(false);
   const [loading, setLoading] = useState(true);
-  const [stats, setStats] = useState({ total: 0, rewarded: 0 });
+  const [stats, setStats] = useState({ total: 0, rewarded: 0, used: 0 });
 
   const link = `https://delfos.app.br/bolao/${poolSlug}?ref=${userId}`;
 
