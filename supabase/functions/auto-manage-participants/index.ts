@@ -65,15 +65,19 @@ serve(async (req) => {
       // AUTO-REJECT: 2h30 before match (150 min) - reject participants without proof
       // Window: 142-157 min (15-min cron window)
       if (diffMinutes >= 142 && diffMinutes <= 157) {
-        const { data: pendingNoProof, error: pErr } = await supabase
+        const { data: pendingAll } = await supabase
           .from('participants')
-          .select('id, participant_name')
+          .select('id, participant_name, participant_financials(payment_proof)')
           .eq('pool_id', pool.id)
-          .eq('status', 'pending')
-          .is('payment_proof', null);
+          .eq('status', 'pending');
 
-        if (!pErr && pendingNoProof && pendingNoProof.length > 0) {
-          const ids = pendingNoProof.map(p => p.id);
+        const pendingNoProof = (pendingAll || []).filter((p: any) => {
+          const f = Array.isArray(p.participant_financials) ? p.participant_financials[0] : p.participant_financials;
+          return !f?.payment_proof;
+        });
+
+        if (pendingNoProof.length > 0) {
+          const ids = pendingNoProof.map((p: any) => p.id);
           const { error: updateErr } = await supabase
             .from('participants')
             .update({
@@ -83,7 +87,7 @@ serve(async (req) => {
             })
             .in('id', ids);
 
-          pendingNoProof.forEach(p => {
+          pendingNoProof.forEach((p: any) => {
             results.push({
               action: 'auto_reject',
               pool: pool.title,
