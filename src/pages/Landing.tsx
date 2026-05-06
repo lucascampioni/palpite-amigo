@@ -239,6 +239,12 @@ const Landing = () => {
             >
               Política de Privacidade
             </Link>
+            <Link
+              to="/ajuda"
+              className="text-muted-foreground hover:text-foreground"
+            >
+              Precisa de ajuda?
+            </Link>
           </div>
         </div>
       </footer>

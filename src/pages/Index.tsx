@@ -920,6 +920,16 @@ const Index = () => {
         </Tabs>
       </main>
 
+      <footer className="border-t border-border/40 py-6 mt-4">
+        <div className="max-w-6xl mx-auto px-4 text-center">
+          <a
+            href="/ajuda"
+            className="text-sm text-muted-foreground hover:text-primary underline"
+          >
+            Precisa de ajuda? Fale conosco
+          </a>
+        </div>
+      </footer>
     </div>
   );
 };
