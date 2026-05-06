@@ -173,14 +173,15 @@ serve(async (req) => {
       .filter((p) => p.recipient_type === "winner")
       .reduce((s, p) => s + Number(p.amount), 0);
 
-    if (organizerAmount > 0) {
+    const actualOrganizerAmount = +(totalCollected - actualTotalToWinners).toFixed(2);
+    if (actualOrganizerAmount > 0) {
       const { data: ownerProfile } = await adminClient
         .from("profiles").select("pix_key, pix_key_type, full_name").eq("id", pool.owner_id).maybeSingle();
       payouts.push({
         pool_id, recipient_user_id: pool.owner_id, recipient_type: "organizer",
         pix_key: ownerProfile?.pix_key || null,
         pix_key_type: ownerProfile?.pix_key_type || null,
-        amount: organizerAmount, status: initialStatus,
+        amount: actualOrganizerAmount, status: initialStatus,
         notes: `Comissão organizador (${ownerProfile?.full_name || ""})`,
       });
     }
