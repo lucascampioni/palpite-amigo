@@ -63,7 +63,7 @@ serve(async (req) => {
 
     let seedQuery = adminClient
       .from("pool_transactions")
-      .select("id, asaas_payment_id, mp_payment_id")
+      .select("id, asaas_payment_id")
       .eq("user_id", user.id)
       .eq("status", "pending");
 
