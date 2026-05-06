@@ -130,14 +130,18 @@ const UserPoolEntries = ({
     });
   };
 
-  // For estabelecimento pools OR referral reward entries: if approved but no predictions, show form
-  const needsPredictionsEntry = entries.find(
-    (e) =>
-      e.status === "approved" &&
-      !e._hasPredictions &&
-      (isEstabelecimento || (typeof e.payment_proof === "string" && e.payment_proof.startsWith("referral_reward")))
+  // Detect referral-reward entry awaiting predictions
+  const isReferralReward = (e: any) =>
+    typeof e.payment_proof === "string" && e.payment_proof.startsWith("referral_reward");
+  const pendingReferralEntry = entries.find(
+    (e) => e.status === "approved" && !e._hasPredictions && isReferralReward(e)
   );
-  if (needsPredictionsEntry) {
+
+  // For estabelecimento pools: if approved but no predictions, show form (replaces entire view)
+  const needsEstabPredictionsEntry = entries.find(
+    (e) => e.status === "approved" && !e._hasPredictions && isEstabelecimento && !isReferralReward(e)
+  );
+  if (needsEstabPredictionsEntry) {
     return (
       <>
         <Separator />
