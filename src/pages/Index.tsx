@@ -3,7 +3,7 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Trophy, LogOut, User, ChevronDown, ChevronUp, Users, Home, Search, Settings, X, AlertTriangle, Users2 } from "lucide-react";
+import { Plus, Trophy, LogOut, User, ChevronDown, ChevronUp, Users, Home, Search, Settings, X, AlertTriangle, Users2, HelpCircle } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import PoolCard from "@/components/PoolCard";
 import { Session } from "@supabase/supabase-js";
@@ -513,6 +513,9 @@ const Index = () => {
             )}
             <Button variant="ghost" size="icon" className="h-9 w-9 rounded-full hover:bg-primary/10" onClick={() => navigate("/perfil")}>
               <User className="w-4 h-4" />
+            </Button>
+            <Button variant="ghost" size="icon" className="h-9 w-9 rounded-full hover:bg-primary/10" onClick={() => navigate("/ajuda")} title="Ajuda">
+              <HelpCircle className="w-4 h-4" />
             </Button>
             <Button variant="ghost" size="icon" className="h-9 w-9 rounded-full hover:bg-destructive/10 hover:text-destructive" onClick={handleSignOut}>
               <LogOut className="w-4 h-4" />
