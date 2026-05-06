@@ -238,7 +238,7 @@ export const WorldCupPredictionGrid = ({
                   <div className="flex items-center gap-1 sm:gap-2">
                     {/* Home name */}
                     <div className="flex-1 min-w-0 text-right">
-                      <span className="text-xs sm:text-sm font-medium break-words leading-tight block">
+                      <span className="text-xs sm:text-sm font-medium leading-tight block break-keep hyphens-none">
                         {home.name}
                       </span>
                     </div>
@@ -300,7 +300,7 @@ export const WorldCupPredictionGrid = ({
 
                     {/* Away name */}
                     <div className="flex-1 min-w-0 text-left">
-                      <span className="text-xs sm:text-sm font-medium break-words leading-tight block">
+                      <span className="text-xs sm:text-sm font-medium leading-tight block break-keep hyphens-none">
                         {away.name}
                       </span>
                     </div>
