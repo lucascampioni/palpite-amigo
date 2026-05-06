@@ -156,6 +156,55 @@ serve(async (req) => {
       }
     }
 
+    // Send web push to ALL community members with notify_new_pools enabled (regardless of phone)
+    let pushSent = 0;
+    let pushTotal = 0;
+    const VAPID_PUBLIC_KEY = Deno.env.get('VAPID_PUBLIC_KEY');
+    const VAPID_PRIVATE_KEY = Deno.env.get('VAPID_PRIVATE_KEY');
+    const rawSubject = Deno.env.get('VAPID_SUBJECT') || 'contato@delfos.app.br';
+    const vapidSubject = rawSubject.startsWith('mailto:') || rawSubject.startsWith('http') ? rawSubject : `mailto:${rawSubject}`;
+    if (VAPID_PUBLIC_KEY && VAPID_PRIVATE_KEY) {
+      try {
+        webpush.setVapidDetails(vapidSubject, VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY);
+        const { data: pushProfiles } = await supabase
+          .from('profiles')
+          .select('id')
+          .in('id', uniqueUserIds)
+          .eq('notify_new_pools', true);
+        const pushUserIds = (pushProfiles || []).map(p => p.id).filter(id => id !== user.id);
+        if (pushUserIds.length > 0) {
+          const { data: subs } = await supabase
+            .from('push_subscriptions')
+            .select('id, endpoint, p256dh, auth')
+            .in('user_id', pushUserIds);
+          if (subs && subs.length > 0) {
+            pushTotal = subs.length;
+            const payload = JSON.stringify({
+              title: '🎯 Novo bolão disponível!',
+              body: `"${pool.title}" acaba de ser publicado. Participe!`,
+              url: `/bolao/${pool.slug || pool.id}`,
+            });
+            await Promise.all(subs.map(async (s: any) => {
+              try {
+                await webpush.sendNotification(
+                  { endpoint: s.endpoint, keys: { p256dh: s.p256dh, auth: s.auth } },
+                  payload,
+                );
+                pushSent++;
+              } catch (err: any) {
+                const status = err?.statusCode;
+                if (status === 404 || status === 410) {
+                  await supabase.from('push_subscriptions').delete().eq('id', s.id);
+                }
+              }
+            }));
+          }
+        }
+      } catch (err) {
+        console.error('webpush dispatch error:', err);
+      }
+    }
+
     // Mark pool as community_notified
     await supabase.from('pools').update({ community_notified: true }).eq('id', pool_id);
 
@@ -163,7 +212,7 @@ serve(async (req) => {
     const failCount = results.filter(r => !r.success).length;
 
     return new Response(
-      JSON.stringify({ success: true, sent: successCount, failed: failCount, total: eligibleProfiles.length }),
+      JSON.stringify({ success: true, sent: successCount, failed: failCount, total: eligibleProfiles.length, push: { sent: pushSent, total: pushTotal } }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   } catch (error) {
