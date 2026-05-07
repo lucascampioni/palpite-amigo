@@ -871,13 +871,38 @@ const PoolDetail = () => {
     setSubmitting(false);
   };
 
-  const handleShare = () => {
+  const handleShare = async () => {
     const url = `https://delfos.app.br/bolao/${pool?.slug || poolId}`;
-    navigator.clipboard.writeText(url);
-    toast({
-      title: "Link copiado!",
-      description: "Compartilhe com seus amigos.",
-    });
+    let text = `🎯 Vem participar do bolão "${pool?.title}" comigo na Delfos!\n\n${url}`;
+
+    if (userId && poolId) {
+      try {
+        const [{ data: eligData }, { data: profile }] = await Promise.all([
+          supabase.rpc("is_pool_referral_eligible", { p_pool_id: poolId }),
+          supabase.from("profiles").select("referral_code").eq("id", userId).maybeSingle(),
+        ]);
+        const code = (profile as any)?.referral_code;
+        if (eligData && code) {
+          text = `🎯 Vem participar do bolão "${pool?.title}" comigo na Delfos!\n\nUse meu código de indicação ao fazer o palpite: *${code}*\n\n${url}`;
+        }
+      } catch {}
+    }
+
+    if (navigator.share) {
+      try {
+        await navigator.share({ title: pool?.title, text });
+        return;
+      } catch {}
+    }
+    try {
+      await navigator.clipboard.writeText(text);
+      toast({
+        title: "Link copiado!",
+        description: "Cole onde quiser para convidar seus amigos.",
+      });
+    } catch {
+      window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, "_blank");
+    }
   };
 
   const handleMarkWinner = async (participantUserId: string) => {
