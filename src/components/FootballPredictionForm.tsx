@@ -73,11 +73,15 @@ const FootballPredictionForm = ({ poolId, userId, onSuccess, entryFee, pool, pix
   const [referralEligible, setReferralEligible] = useState(false);
   const [canEnterReferral, setCanEnterReferral] = useState(false);
   const [referralCodeInput, setReferralCodeInput] = useState("");
+  const [availableCredits, setAvailableCredits] = useState(0);
 
   const isEstabelecimento = pool?.prize_type === 'estabelecimento';
   const hasEntryFee = !isEstabelecimento && pool?.entry_fee && parseFloat(pool.entry_fee) > 0;
   const feePerSet = hasEntryFee ? parseFloat(pool.entry_fee) : 0;
-  const totalFee = feePerSet * predictionSets.length;
+  // Quantos palpites são cobertos pelos créditos vs pagos
+  const freeSetsApplied = hasEntryFee ? Math.min(predictionSets.length, availableCredits) : 0;
+  const paidSets = hasEntryFee ? Math.max(0, predictionSets.length - availableCredits) : predictionSets.length;
+  const totalFee = feePerSet * paidSets;
   const isInAppPayment = hasEntryFee && pool?.payment_method === 'in_app';
 
   // Calcula taxa do app por palpite (para exibição)
