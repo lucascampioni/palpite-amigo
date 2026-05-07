@@ -480,6 +480,7 @@ const Index = () => {
     setMyPoolsPendingApprovals(poolsPendingApprovals);
     setMyPoolsPendingPrizeSend(poolsPendingPrizeSend);
     setMyFailedPools(failedPools);
+    setMyReferralCreditPools(referralCreditPools);
     setOfficialPools(officialPoolsData || []);
     setAvailablePools(activePools);
     
