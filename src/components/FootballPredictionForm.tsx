@@ -91,7 +91,7 @@ const FootballPredictionForm = ({ poolId, userId, onSuccess, entryFee, pool, pix
     const percentValue = +(feePerSet * appFee.percent / 100).toFixed(2);
     return Math.max(percentValue, appFee.percentMin || 0);
   })();
-  const appFeeTotal = +(appFeePerSet * predictionSets.length).toFixed(2);
+  const appFeeTotal = +(appFeePerSet * paidSets).toFixed(2);
 
   useEffect(() => {
     loadMatches();
