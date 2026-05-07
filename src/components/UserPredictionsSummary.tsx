@@ -58,13 +58,16 @@ const UserPredictionsSummary = ({ poolId, participantId }: UserPredictionsSummar
           away_score_prediction,
           prediction_set,
           football_matches (
+            id,
             home_team,
             away_team,
             match_date,
             home_team_crest,
             away_team_crest,
             status,
-            championship
+            championship,
+            external_source,
+            external_id
           )
         `)
         .eq("participant_id", participantId)
@@ -89,6 +92,51 @@ const UserPredictionsSummary = ({ poolId, participantId }: UserPredictionsSummar
           });
         }
         setSets(grouped);
+
+        // Backfill missing crests via Football-Data API
+        const needsCrests = (predictions as any[])
+          .map(p => p.football_matches)
+          .filter((m: any) => m && (!m.home_team_crest || !m.away_team_crest) && m.external_source === 'apifb' && (m.external_id || '').startsWith('fd_'));
+        const seen = new Set<string>();
+        const uniqueNeeds = needsCrests.filter((m: any) => {
+          if (seen.has(m.id)) return false;
+          seen.add(m.id);
+          return true;
+        });
+        if (uniqueNeeds.length > 0) {
+          try {
+            const results = await Promise.all(uniqueNeeds.map(async (m: any) => {
+              const apiMatchId = String((m.external_id || '').replace(/^fd_/, ''));
+              const { data: crestData, error } = await supabase.functions.invoke('get-match-crests', {
+                body: { matchId: apiMatchId }
+              });
+              if (error || !crestData) return null;
+              await supabase
+                .from('football_matches')
+                .update({
+                  home_team_crest: crestData.homeTeamCrest || null,
+                  away_team_crest: crestData.awayTeamCrest || null,
+                })
+                .eq('id', m.id);
+              return { id: m.id, ...crestData } as any;
+            }));
+            const crestMap = new Map(results.filter(Boolean).map((r: any) => [r.id, r]));
+            if (crestMap.size > 0) {
+              setSets(prev => {
+                const next: Record<number, PredictionItem[]> = {};
+                for (const [k, list] of Object.entries(prev)) {
+                  next[Number(k)] = list.map(item => crestMap.has(item.matchId)
+                    ? { ...item, homeTeamCrest: crestMap.get(item.matchId).homeTeamCrest, awayTeamCrest: crestMap.get(item.matchId).awayTeamCrest }
+                    : item
+                  );
+                }
+                return next;
+              });
+            }
+          } catch (e) {
+            console.warn('Falha ao enriquecer escudos:', e);
+          }
+        }
       }
       setLoading(false);
     };
