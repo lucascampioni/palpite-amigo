@@ -116,7 +116,7 @@ const FootballPredictionForm = ({ poolId, userId, onSuccess, entryFee, pool, pix
     })();
   }, [isInAppPayment]);
 
-  // Verifica se o bolão é elegível para indicações e se o usuário ainda pode usar um código
+  // Verifica elegibilidade de indicação e carrega créditos disponíveis
   useEffect(() => {
     let cancelled = false;
     (async () => {
@@ -124,17 +124,27 @@ const FootballPredictionForm = ({ poolId, userId, onSuccess, entryFee, pool, pix
       if (cancelled) return;
       const isElig = !!eligData;
       setReferralEligible(isElig);
-      if (!isElig) return;
 
-      // Pode usar código apenas se ainda não há registro de referral para este usuário neste bolão
-      const { data: existing } = await supabase
-        .from("pool_referrals")
-        .select("id")
+      if (isElig) {
+        const { data: existing } = await supabase
+          .from("pool_referrals")
+          .select("id")
+          .eq("pool_id", poolId)
+          .eq("referred_user_id", userId)
+          .limit(1);
+        if (cancelled) return;
+        setCanEnterReferral(!existing || existing.length === 0);
+      }
+
+      // Carrega créditos disponíveis (palpites grátis ganhos por indicações)
+      const { count } = await supabase
+        .from("referral_credits")
+        .select("id", { count: "exact", head: true })
+        .eq("user_id", userId)
         .eq("pool_id", poolId)
-        .eq("referred_user_id", userId)
-        .limit(1);
+        .is("consumed_at", null);
       if (cancelled) return;
-      setCanEnterReferral(!existing || existing.length === 0);
+      setAvailableCredits(count || 0);
     })();
     return () => { cancelled = true; };
   }, [poolId, userId]);
