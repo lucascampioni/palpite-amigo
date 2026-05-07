@@ -29,33 +29,25 @@ const ReferralCard = ({ poolId, poolSlug, poolTitle, userId }: ReferralCardProps
       setEligible(!!eligData);
       setCode((profile as any)?.referral_code || null);
       if (eligData) {
-        const { data: refs } = await supabase
-          .from("pool_referrals")
-          .select("status, reward_participant_id")
-          .eq("pool_id", poolId)
-          .eq("referrer_user_id", userId);
-        if (refs) {
-          const rewardedRefs = refs.filter((r: any) => r.status === "rewarded");
-          const rewardParticipantIds = rewardedRefs
-            .map((r: any) => r.reward_participant_id)
-            .filter(Boolean);
-          let usedCount = 0;
-          if (rewardParticipantIds.length > 0) {
-            const { data: preds } = await supabase
-              .from("football_predictions")
-              .select("participant_id")
-              .in("participant_id", rewardParticipantIds);
-            if (preds) {
-              const usedSet = new Set(preds.map((p: any) => p.participant_id));
-              usedCount = usedSet.size;
-            }
-          }
-          setStats({
-            total: refs.length,
-            rewarded: rewardedRefs.length,
-            used: usedCount,
-          });
-        }
+        const [{ data: refs }, { data: credits }] = await Promise.all([
+          supabase
+            .from("pool_referrals")
+            .select("id, status")
+            .eq("pool_id", poolId)
+            .eq("referrer_user_id", userId),
+          supabase
+            .from("referral_credits")
+            .select("id, consumed_at")
+            .eq("pool_id", poolId)
+            .eq("user_id", userId),
+        ]);
+        const totalCredits = (credits || []).length;
+        const usedCredits = (credits || []).filter((c: any) => c.consumed_at).length;
+        setStats({
+          total: (refs || []).length,
+          rewarded: totalCredits,
+          used: usedCredits,
+        });
       }
       setLoading(false);
     })();
