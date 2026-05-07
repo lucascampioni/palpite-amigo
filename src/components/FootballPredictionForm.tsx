@@ -904,7 +904,7 @@ const FootballPredictionForm = ({ poolId, userId, onSuccess, entryFee, pool, pix
             🎁 Tem um código de indicação?
           </Label>
           <p className="text-xs text-muted-foreground">
-            Se um amigo te indicou, digite o código dele abaixo. Quando sua inscrição for aprovada, ele ganha <strong>1 palpite grátis para cada palpite</strong> que você fizer aqui.
+            Se um amigo te indicou, digite o código dele abaixo. Quando sua inscrição for aprovada, ele vai ganhar a <strong>mesma quantidade de palpites grátis</strong> que você enviar aqui (enviou 3 palpites, ele ganha 3 palpites grátis).
           </p>
           <Input
             id="referral-code"
