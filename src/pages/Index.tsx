@@ -843,8 +843,28 @@ const Index = () => {
                     ))}
                   </AlertSection>
                 )}
-              </div>
-            ) : (
+
+                {myReferralCreditPools.length > 0 && (
+                  <AlertSection
+                    icon="🎁"
+                    title="Palpites Grátis Disponíveis"
+                    subtitle="Alguém usou seu código de indicação. Use seus palpites grátis!"
+                    bgClass="bg-green-50 dark:bg-green-950/50 border-green-200 dark:border-green-800"
+                  >
+                    {myReferralCreditPools.map(({ pool, credits }) => (
+                      <button
+                        key={pool.id}
+                        onClick={() => navigate(`/bolao/${pool.slug}`)}
+                        className="w-full text-left p-3 rounded-lg bg-card border hover:border-primary/50 hover:shadow-sm transition-all"
+                      >
+                        <p className="font-medium text-sm">{pool.title}</p>
+                        <p className="text-xs text-muted-foreground mt-0.5">
+                          Você tem <span className="font-bold text-foreground">{credits}</span> palpite(s) grátis disponível(is)
+                        </p>
+                      </button>
+                    ))}
+                  </AlertSection>
+                )}
               <div className="text-center py-12 space-y-3">
                 <div className="w-20 h-20 mx-auto rounded-full bg-muted flex items-center justify-center">
                   <AlertTriangle className="w-8 h-8 text-muted-foreground" />
