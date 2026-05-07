@@ -72,6 +72,7 @@ const FootballPredictionForm = ({ poolId, userId, onSuccess, entryFee, pool, pix
   const [appFee, setAppFee] = useState<{ type: 'percent' | 'fixed'; percent: number; fixed: number; percentMin: number } | null>(null);
   const [referralEligible, setReferralEligible] = useState(false);
   const [canEnterReferral, setCanEnterReferral] = useState(false);
+  const [hasApprovedEntry, setHasApprovedEntry] = useState(false);
   const [referralCodeInput, setReferralCodeInput] = useState("");
   const [availableCredits, setAvailableCredits] = useState(0);
 
