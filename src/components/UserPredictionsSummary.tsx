@@ -4,7 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { ChevronDown } from "lucide-react";
-import { isWorldCupMatch, extractGroup, hasAllWorldCupGroupMatches } from "@/lib/world-cup-2026";
+import { TEAM_FLAG_CODES, extractGroup, getFlagUrl, hasAllWorldCupGroupMatches } from "@/lib/world-cup-2026";
 
 interface PredictionItem {
   matchId: string;
@@ -23,25 +23,76 @@ interface UserPredictionsSummaryProps {
   participantId: string;
 }
 
-const PredictionRow = ({ pred }: { pred: PredictionItem }) => (
-  <div className="flex items-center gap-2 text-xs p-2 rounded bg-background border">
-    <div className="flex items-center gap-1.5 flex-1 min-w-0">
-      {pred.homeTeamCrest && (
-        <img src={pred.homeTeamCrest} alt="" className="w-4 h-4 object-contain shrink-0" onError={(e) => { e.currentTarget.style.display = 'none'; }} />
-      )}
-      <span className="truncate">{pred.homeTeam}</span>
+interface FootballMatchRecord {
+  id: string;
+  home_team: string;
+  away_team: string;
+  match_date: string;
+  home_team_crest: string | null;
+  away_team_crest: string | null;
+  status: string | null;
+  championship: string | null;
+  external_source: string | null;
+  external_id: string | null;
+}
+
+interface FootballPredictionRecord {
+  match_id: string;
+  home_score_prediction: number;
+  away_score_prediction: number;
+  prediction_set: number | null;
+  football_matches: FootballMatchRecord | null;
+}
+
+interface CrestResult {
+  id: string;
+  homeTeamCrest?: string | null;
+  awayTeamCrest?: string | null;
+}
+
+const teamCodeSet = new Set(Object.values(TEAM_FLAG_CODES));
+
+const cleanTeamName = (team: string) => {
+  const parts = team
+    .replace(/[\u{1F1E6}-\u{1F1FF}\u{1F3F4}\u{E0061}-\u{E007A}\u{E007F}]/gu, "")
+    .trim()
+    .split(/\s+/)
+    .filter(Boolean);
+
+  while (parts.length && teamCodeSet.has(parts[0].toLowerCase())) parts.shift();
+  while (parts.length && teamCodeSet.has(parts[parts.length - 1].toLowerCase())) parts.pop();
+
+  return parts.join(" ").trim() || team.trim();
+};
+
+const getTeamImage = (team: string, crest?: string | null) => crest || getFlagUrl(cleanTeamName(team));
+
+const PredictionRow = ({ pred }: { pred: PredictionItem }) => {
+  const homeName = cleanTeamName(pred.homeTeam);
+  const awayName = cleanTeamName(pred.awayTeam);
+  const homeImage = getTeamImage(pred.homeTeam, pred.homeTeamCrest);
+  const awayImage = getTeamImage(pred.awayTeam, pred.awayTeamCrest);
+
+  return (
+    <div className="flex items-center gap-2 text-xs p-2 rounded bg-background border">
+      <div className="flex items-center gap-1.5 flex-1 min-w-0">
+        {homeImage && (
+          <img src={homeImage} alt="" className="w-4 h-4 object-contain shrink-0" onError={(e) => { e.currentTarget.style.display = 'none'; }} />
+        )}
+        <span className="truncate">{homeName}</span>
+      </div>
+      <Badge variant="secondary" className="font-mono text-xs px-2 shrink-0">
+        {pred.homePred} x {pred.awayPred}
+      </Badge>
+      <div className="flex items-center gap-1.5 flex-1 min-w-0 justify-end">
+        <span className="truncate text-right">{awayName}</span>
+        {awayImage && (
+          <img src={awayImage} alt="" className="w-4 h-4 object-contain shrink-0" onError={(e) => { e.currentTarget.style.display = 'none'; }} />
+        )}
+      </div>
     </div>
-    <Badge variant="secondary" className="font-mono text-xs px-2 shrink-0">
-      {pred.homePred} x {pred.awayPred}
-    </Badge>
-    <div className="flex items-center gap-1.5 flex-1 min-w-0 justify-end">
-      <span className="truncate text-right">{pred.awayTeam}</span>
-      {pred.awayTeamCrest && (
-        <img src={pred.awayTeamCrest} alt="" className="w-4 h-4 object-contain shrink-0" onError={(e) => { e.currentTarget.style.display = 'none'; }} />
-      )}
-    </div>
-  </div>
-);
+  );
+};
 
 const UserPredictionsSummary = ({ poolId, participantId }: UserPredictionsSummaryProps) => {
   const [sets, setSets] = useState<Record<number, PredictionItem[]>>({});
@@ -74,8 +125,10 @@ const UserPredictionsSummary = ({ poolId, participantId }: UserPredictionsSummar
         .order("football_matches(match_date)", { ascending: true });
 
       if (predictions) {
+        const predictionRows = predictions as unknown as FootballPredictionRecord[];
         const grouped: Record<number, PredictionItem[]> = {};
-        for (const p of predictions as any[]) {
+        for (const p of predictionRows) {
+          if (!p.football_matches) continue;
           const setNum = p.prediction_set || 1;
           if (!grouped[setNum]) grouped[setNum] = [];
           if (['postponed', 'cancelled', 'abandoned'].includes(p.football_matches.status)) continue;
@@ -94,18 +147,18 @@ const UserPredictionsSummary = ({ poolId, participantId }: UserPredictionsSummar
         setSets(grouped);
 
         // Backfill missing crests via Football-Data API
-        const needsCrests = (predictions as any[])
+        const needsCrests = predictionRows
           .map(p => p.football_matches)
-          .filter((m: any) => m && (!m.home_team_crest || !m.away_team_crest) && m.external_source === 'apifb' && (m.external_id || '').startsWith('fd_'));
+          .filter((m): m is FootballMatchRecord => Boolean(m && (!m.home_team_crest || !m.away_team_crest) && m.external_source === 'apifb' && (m.external_id || '').startsWith('fd_')));
         const seen = new Set<string>();
-        const uniqueNeeds = needsCrests.filter((m: any) => {
+        const uniqueNeeds = needsCrests.filter((m) => {
           if (seen.has(m.id)) return false;
           seen.add(m.id);
           return true;
         });
         if (uniqueNeeds.length > 0) {
           try {
-            const results = await Promise.all(uniqueNeeds.map(async (m: any) => {
+            const results = await Promise.all(uniqueNeeds.map(async (m): Promise<CrestResult | null> => {
               const apiMatchId = String((m.external_id || '').replace(/^fd_/, ''));
               const { data: crestData, error } = await supabase.functions.invoke('get-match-crests', {
                 body: { matchId: apiMatchId }
@@ -118,9 +171,9 @@ const UserPredictionsSummary = ({ poolId, participantId }: UserPredictionsSummar
                   away_team_crest: crestData.awayTeamCrest || null,
                 })
                 .eq('id', m.id);
-              return { id: m.id, ...crestData } as any;
+              return { id: m.id, ...crestData };
             }));
-            const crestMap = new Map(results.filter(Boolean).map((r: any) => [r.id, r]));
+            const crestMap = new Map(results.filter((r): r is CrestResult => Boolean(r)).map((r) => [r.id, r]));
             if (crestMap.size > 0) {
               setSets(prev => {
                 const next: Record<number, PredictionItem[]> = {};
