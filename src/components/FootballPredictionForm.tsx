@@ -291,8 +291,9 @@ const FootballPredictionForm = ({ poolId, userId, onSuccess, entryFee, pool, pix
   }, [isEstabelecimento, matches, poolId, userId]);
 
   const proceedToDisclaimer = () => {
-    // When payment is handled in-app, no disclaimer is needed
-    if (isInAppPayment || !hasEntryFee) {
+    // When payment is handled in-app, no disclaimer is needed.
+    // Also skip if no actual fee is owed (e.g. all sets covered by referral credits).
+    if (isInAppPayment || !hasEntryFee || paidSets === 0) {
       handleConfirmSubmit();
       return;
     }
