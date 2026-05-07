@@ -1245,18 +1245,21 @@ const PoolDetail = () => {
                   </strong>
                 </span>
                 <span className="text-muted-foreground/30">·</span>
-                {!isOwner && (
-                  <>
-                    <span className="flex items-center gap-1 whitespace-nowrap">
-                      <Users className="w-3.5 h-3.5" />
-                      {approvedParticipants.length} participante{approvedParticipants.length !== 1 ? 's' : ''}
-                      {pool.max_participants && approvedParticipants.length >= pool.max_participants && (
-                        <span className="text-destructive text-xs">(Cheio)</span>
-                      )}
-                    </span>
-                    <span className="text-muted-foreground/30">·</span>
-                  </>
-                )}
+                {!isOwner && (() => {
+                  const displayCount = rankingData.length > 0 ? rankingData.length : approvedParticipants.length;
+                  return (
+                    <>
+                      <span className="flex items-center gap-1 whitespace-nowrap">
+                        <Users className="w-3.5 h-3.5" />
+                        {displayCount} palpite{displayCount !== 1 ? 's' : ''}
+                        {pool.max_participants && displayCount >= pool.max_participants && (
+                          <span className="text-destructive text-xs">(Cheio)</span>
+                        )}
+                      </span>
+                      <span className="text-muted-foreground/30">·</span>
+                    </>
+                  );
+                })()}
                 {pool.entry_fee && parseFloat(pool.entry_fee) > 0 && (
                   <span className="whitespace-nowrap">
                     Entrada: <strong className="text-foreground">R$ {parseFloat(pool.entry_fee).toFixed(2).replace('.', ',')}</strong>
