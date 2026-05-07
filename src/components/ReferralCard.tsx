@@ -11,7 +11,7 @@ interface ReferralCardProps {
   userId: string;
 }
 
-const ReferralCard = ({ poolId, poolTitle, userId }: ReferralCardProps) => {
+const ReferralCard = ({ poolId, poolSlug, poolTitle, userId }: ReferralCardProps) => {
   const { toast } = useToast();
   const [eligible, setEligible] = useState(false);
   const [loading, setLoading] = useState(true);
