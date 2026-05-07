@@ -29,6 +29,7 @@ const Index = () => {
   const [myAwaitingApprovalPools, setMyAwaitingApprovalPools] = useState<any[]>([]);
   const [myPendingPredictionPools, setMyPendingPredictionPools] = useState<any[]>([]);
   const [myFailedPools, setMyFailedPools] = useState<{pool: any, reason: string}[]>([]);
+  const [myReferralCreditPools, setMyReferralCreditPools] = useState<{pool: any, credits: number}[]>([]);
   const [myPoolsPendingApprovals, setMyPoolsPendingApprovals] = useState<{pool: any, pendingCount: number}[]>([]);
   const [myPoolsPendingPrizeSend, setMyPoolsPendingPrizeSend] = useState<{pool: any, winnersCount: number}[]>([]);
   const [participantPrizeStatus, setParticipantPrizeStatus] = useState<Record<string, string>>({});
@@ -404,7 +405,27 @@ const Index = () => {
       }
     }
 
-    // Fetch community info for all pools
+    // Fetch unconsumed referral credits grouped by pool
+    const referralCreditPools: {pool: any, credits: number}[] = [];
+    const { data: creditsRows } = await supabase
+      .from("referral_credits")
+      .select("pool_id")
+      .eq("user_id", session.user.id)
+      .is("consumed_at", null);
+    if (creditsRows && creditsRows.length > 0) {
+      const countByPool: Record<string, number> = {};
+      creditsRows.forEach((c: any) => { countByPool[c.pool_id] = (countByPool[c.pool_id] || 0) + 1; });
+      const creditPoolIds = Object.keys(countByPool);
+      const { data: creditPoolsData } = await supabase
+        .from("pools")
+        .select("*, participants(count)")
+        .in("id", creditPoolIds)
+        .eq("status", "active");
+      (creditPoolsData || []).forEach(pool => {
+        referralCreditPools.push({ pool, credits: countByPool[pool.id] });
+      });
+    }
+
     const allPoolOwnerIds = [...new Set([
       ...(ownedPools || []).map(p => p.owner_id),
       ...participatingPoolsData.map(p => p.owner_id),
@@ -459,6 +480,7 @@ const Index = () => {
     setMyPoolsPendingApprovals(poolsPendingApprovals);
     setMyPoolsPendingPrizeSend(poolsPendingPrizeSend);
     setMyFailedPools(failedPools);
+    setMyReferralCreditPools(referralCreditPools);
     setOfficialPools(officialPoolsData || []);
     setAvailablePools(activePools);
     
@@ -483,7 +505,7 @@ const Index = () => {
   // mostramos como informativo, não como pendência ativa do usuário.
   const inAppAutoPayoutPools = myAwaitingPixPools.filter(p => p.payment_method === 'in_app');
   const manualAwaitingPixPools = myAwaitingPixPools.filter(p => p.payment_method !== 'in_app');
-  const pendenciasCount = myPendingPaymentPools.length + manualAwaitingPixPools.length + myPoolsPendingApprovals.length + myPoolsPendingPrizeSend.length + myPendingPredictionPools.length + inAppAutoPayoutPools.length;
+  const pendenciasCount = myPendingPaymentPools.length + manualAwaitingPixPools.length + myPoolsPendingApprovals.length + myPoolsPendingPrizeSend.length + myPendingPredictionPools.length + inAppAutoPayoutPools.length + myReferralCreditPools.length;
   const myPoolsActiveCount = myCreatedPools.filter(p => p.status === "active").length;
   const myPoolsFinishedCount = myCreatedPools.filter(p => p.status === "finished").length;
   const participatingActiveCount = myParticipatingPools.filter(p => p.status === "active").length;
@@ -818,6 +840,28 @@ const Index = () => {
                   >
                     {filterPools(myPendingPredictionPools).map((pool) => (
                       <PoolCard key={pool.id} pool={pool} isUserParticipating onClick={() => navigate(`/bolao/${pool.slug}`)} {...getCommunityProps(pool)} />
+                    ))}
+                  </AlertSection>
+                )}
+
+                {myReferralCreditPools.length > 0 && (
+                  <AlertSection
+                    icon="🎁"
+                    title="Palpites Grátis Disponíveis"
+                    subtitle="Alguém usou seu código de indicação. Use seus palpites grátis!"
+                    bgClass="bg-green-50 dark:bg-green-950/50 border-green-200 dark:border-green-800"
+                  >
+                    {myReferralCreditPools.map(({ pool, credits }) => (
+                      <button
+                        key={pool.id}
+                        onClick={() => navigate(`/bolao/${pool.slug}`)}
+                        className="w-full text-left p-3 rounded-lg bg-card border hover:border-primary/50 hover:shadow-sm transition-all"
+                      >
+                        <p className="font-medium text-sm">{pool.title}</p>
+                        <p className="text-xs text-muted-foreground mt-0.5">
+                          Você tem <span className="font-bold text-foreground">{credits}</span> palpite(s) grátis disponível(is)
+                        </p>
+                      </button>
                     ))}
                   </AlertSection>
                 )}
