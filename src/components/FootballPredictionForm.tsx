@@ -137,6 +137,16 @@ const FootballPredictionForm = ({ poolId, userId, onSuccess, entryFee, pool, pix
         setCanEnterReferral(!existing || existing.length === 0);
       }
 
+      const { data: approvedRows } = await supabase
+        .from("participants")
+        .select("id")
+        .eq("pool_id", poolId)
+        .eq("user_id", userId)
+        .eq("status", "approved")
+        .limit(1);
+      if (cancelled) return;
+      setHasApprovedEntry(!!approvedRows && approvedRows.length > 0);
+
       // Carrega créditos disponíveis (palpites grátis ganhos por indicações)
       const { count } = await supabase
         .from("referral_credits")
