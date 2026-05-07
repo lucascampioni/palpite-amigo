@@ -865,6 +865,8 @@ const Index = () => {
                     ))}
                   </AlertSection>
                 )}
+              </div>
+            ) : (
               <div className="text-center py-12 space-y-3">
                 <div className="w-20 h-20 mx-auto rounded-full bg-muted flex items-center justify-center">
                   <AlertTriangle className="w-8 h-8 text-muted-foreground" />
