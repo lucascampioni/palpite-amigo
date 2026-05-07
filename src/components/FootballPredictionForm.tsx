@@ -880,7 +880,12 @@ const FootballPredictionForm = ({ poolId, userId, onSuccess, entryFee, pool, pix
             <Plus className="w-4 h-4 mr-2" />
             Adicionar mais um palpite
           </Button>
-          {hasEntryFee && (
+          {hasEntryFee && predictionSets.length < availableCredits && (
+            <p className="text-xs text-center text-emerald-600 dark:text-emerald-400 font-medium">
+              🎁 Próximo palpite ainda é grátis (você tem {availableCredits - predictionSets.length} crédito{availableCredits - predictionSets.length > 1 ? 's' : ''} restante{availableCredits - predictionSets.length > 1 ? 's' : ''})
+            </p>
+          )}
+          {hasEntryFee && predictionSets.length >= availableCredits && (
             <p className="text-xs text-center text-orange-600 dark:text-orange-400 font-medium">
               ⚠️ Cada palpite adicional acrescenta <strong>R$ {feePerSet.toFixed(2).replace('.', ',')}</strong> ao valor da inscrição
             </p>
