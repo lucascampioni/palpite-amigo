@@ -72,6 +72,7 @@ const FootballPredictionForm = ({ poolId, userId, onSuccess, entryFee, pool, pix
   const [appFee, setAppFee] = useState<{ type: 'percent' | 'fixed'; percent: number; fixed: number; percentMin: number } | null>(null);
   const [referralEligible, setReferralEligible] = useState(false);
   const [canEnterReferral, setCanEnterReferral] = useState(false);
+  const [hasApprovedEntry, setHasApprovedEntry] = useState(false);
   const [referralCodeInput, setReferralCodeInput] = useState("");
   const [availableCredits, setAvailableCredits] = useState(0);
 
@@ -135,6 +136,16 @@ const FootballPredictionForm = ({ poolId, userId, onSuccess, entryFee, pool, pix
         if (cancelled) return;
         setCanEnterReferral(!existing || existing.length === 0);
       }
+
+      const { data: approvedRows } = await supabase
+        .from("participants")
+        .select("id")
+        .eq("pool_id", poolId)
+        .eq("user_id", userId)
+        .eq("status", "approved")
+        .limit(1);
+      if (cancelled) return;
+      setHasApprovedEntry(!!approvedRows && approvedRows.length > 0);
 
       // Carrega créditos disponíveis (palpites grátis ganhos por indicações)
       const { count } = await supabase
@@ -905,6 +916,9 @@ const FootballPredictionForm = ({ poolId, userId, onSuccess, entryFee, pool, pix
           </Label>
           <p className="text-xs text-muted-foreground">
             Se um amigo te indicou, digite o código dele abaixo. Quando sua inscrição for aprovada, ele vai ganhar a <strong>mesma quantidade de palpites grátis</strong> que você enviar aqui (enviou 3 palpites, ele ganha 3 palpites grátis).
+            {!hasApprovedEntry && (
+              <> <br /><span className="block mt-2">💡 Seu próprio código de indicação ficará disponível depois do seu primeiro palpite aprovado.</span></>
+            )}
           </p>
           <Input
             id="referral-code"
