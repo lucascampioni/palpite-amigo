@@ -358,8 +358,9 @@ const FootballPredictionForm = ({ poolId, userId, onSuccess, entryFee, pool, pix
     setShowDisclaimerDialog(false);
     setSubmitting(true);
 
-    // For estabelecimento pools with voucher, always approve
-    const initialStatus = isEstabelecimento ? "approved" : (hasEntryFee ? "pending" : "approved");
+    // Determina status inicial: estabelecimento sempre aprovado; com taxa, aprovado se todos os palpites forem cobertos por créditos
+    const allCoveredByCredits = hasEntryFee && paidSets === 0;
+    const initialStatus = isEstabelecimento || !hasEntryFee || allCoveredByCredits ? "approved" : "pending";
 
     // Find the max prediction_set already used by this user in this pool
     let maxExistingSet = 0;
