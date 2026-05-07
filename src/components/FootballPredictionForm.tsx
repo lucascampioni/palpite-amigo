@@ -914,6 +914,22 @@ const FootballPredictionForm = ({ poolId, userId, onSuccess, entryFee, pool, pix
 
       {/* Submit area with summary */}
       <div className="space-y-2">
+        {hasEntryFee && availableCredits > 0 && (
+          <div className="p-3 rounded-lg bg-emerald-500/10 border border-emerald-500/30 text-sm space-y-1">
+            <p className="font-semibold text-emerald-700 dark:text-emerald-400 flex items-center gap-2">
+              🎁 Você tem {availableCredits} palpite{availableCredits > 1 ? 's' : ''} grátis por indicação
+            </p>
+            {predictionSets.length <= availableCredits ? (
+              <p className="text-xs text-muted-foreground">
+                Todos os seus {predictionSets.length} palpite{predictionSets.length > 1 ? 's' : ''} serão cobertos pelos créditos. <strong>Nada a pagar!</strong>
+              </p>
+            ) : (
+              <p className="text-xs text-muted-foreground">
+                {freeSetsApplied} palpite{freeSetsApplied > 1 ? 's' : ''} grátis aplicado{freeSetsApplied > 1 ? 's' : ''} · {paidSets} palpite{paidSets > 1 ? 's' : ''} a pagar (R$ {totalFee.toFixed(2).replace('.', ',')})
+              </p>
+            )}
+          </div>
+        )}
         {(predictionSets.length > 1 || hasEntryFee) && (
           <div className="p-3 rounded-lg bg-primary/10 border border-primary/20 text-sm text-center space-y-1">
             <p className="font-semibold">
@@ -922,9 +938,15 @@ const FootballPredictionForm = ({ poolId, userId, onSuccess, entryFee, pool, pix
                 <> · 💰 R$ {totalFee.toFixed(2).replace('.', ',')}</>
               )}
             </p>
-            {hasEntryFee && predictionSets.length > 1 && (
+            {hasEntryFee && paidSets > 1 && (
               <p className="text-xs text-muted-foreground">
-                {predictionSets.length} × R$ {feePerSet.toFixed(2).replace('.', ',')} cada
+                {paidSets} × R$ {feePerSet.toFixed(2).replace('.', ',')} cada
+                {freeSetsApplied > 0 && <> · {freeSetsApplied} grátis</>}
+              </p>
+            )}
+            {hasEntryFee && paidSets === 0 && availableCredits > 0 && (
+              <p className="text-xs text-emerald-600 dark:text-emerald-400 font-medium">
+                ✨ Tudo coberto pelos seus créditos de indicação
               </p>
             )}
           </div>
