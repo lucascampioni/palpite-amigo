@@ -502,7 +502,23 @@ const FootballPredictionForm = ({ poolId, userId, onSuccess, entryFee, pool, pix
       });
       await supabase.from("participants").delete().eq("id", participant.id);
     } else {
-      // No need to update voucher for estabelecimento - already linked by owner
+      // Consumir créditos de indicação aplicáveis
+      if (freeSetsApplied > 0) {
+        const { data: creditsToConsume } = await supabase
+          .from("referral_credits")
+          .select("id")
+          .eq("user_id", userId)
+          .eq("pool_id", poolId)
+          .is("consumed_at", null)
+          .limit(freeSetsApplied);
+        const ids = (creditsToConsume || []).map((c: any) => c.id);
+        if (ids.length > 0) {
+          await supabase
+            .from("referral_credits")
+            .update({ consumed_at: new Date().toISOString(), consumed_participant_id: participant.id })
+            .in("id", ids);
+        }
+      }
 
       // Registra indicação se o usuário digitou um código válido e o bolão é elegível
       const codeTrimmed = referralCodeInput.trim().toUpperCase();
@@ -528,13 +544,13 @@ const FootballPredictionForm = ({ poolId, userId, onSuccess, entryFee, pool, pix
         }
       }
 
-      if (hasEntryFee) {
+      if (hasEntryFee && paidSets > 0) {
         setCreatedParticipantId(participant.id);
         setShowPaymentDialog(true);
       } else {
         toast({
           title: "🎉 Você está inscrito no bolão!",
-          description: `${predictionSets.length} palpite${predictionSets.length > 1 ? 's' : ''} salvo${predictionSets.length > 1 ? 's' : ''}. Boa sorte! 🍀`,
+          description: `${predictionSets.length} palpite${predictionSets.length > 1 ? 's' : ''} salvo${predictionSets.length > 1 ? 's' : ''}${freeSetsApplied > 0 ? ` (${freeSetsApplied} grátis por indicação)` : ''}. Boa sorte! 🍀`,
           duration: 5000,
         });
       }
