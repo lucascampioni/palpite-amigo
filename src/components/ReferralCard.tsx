@@ -90,8 +90,8 @@ const ReferralCard = ({ poolId, poolSlug, poolTitle, userId }: ReferralCardProps
         </div>
         <p className="text-sm text-muted-foreground leading-relaxed">
           Compartilhe seu <strong>código de indicação</strong>. Quando um amigo digitar
-          ele ao fazer o palpite e a inscrição for aprovada,
-          você ganha <strong className="text-primary">+1 palpite grátis</strong> automaticamente. Sem limite!
+          ele ao fazer os palpites e a inscrição for aprovada,
+          você ganha <strong className="text-primary">1 palpite grátis para cada palpite</strong> que ele fizer. Sem limite!
         </p>
 
         <div className="flex items-center justify-center gap-2 p-3 rounded-lg bg-background/80 border-2 border-dashed border-primary/40">
