@@ -130,7 +130,7 @@ const UserPoolEntries = ({
     });
   };
 
-  // Detect referral-reward entry awaiting predictions
+  // Detect referral-reward entry awaiting predictions (legado — não criado mais; migrado para referral_credits)
   const isReferralReward = (e: any) =>
     typeof e.payment_proof === "string" && e.payment_proof.startsWith("referral_reward");
   const pendingReferralEntry = entries.find(

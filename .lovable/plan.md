@@ -1,57 +1,59 @@
-## Sistema de Indicação para Bolões Oficiais
 
-### Objetivo
-Permitir que participantes de bolões com **premiação fixa** da comunidade **Delfos Oficial** indiquem outras pessoas. Quando o indicado entrar e pagar, o indicador ganha **1 palpite extra grátis** no mesmo bolão.
+## Objetivo
 
-### Critérios de elegibilidade do bolão
-- `prize_type = 'fixed'`
-- Pool pertence à comunidade Delfos Oficial (owner_id = responsible_user_id da `communities.is_official=true`)
-- Status = `active`
+1. Garantir que o campo "código de indicação" apareça também ao usar **"Fazer mais palpites"**, e não só na primeira inscrição.
+2. Recompensa proporcional: quando alguém usa o código do Lucas e envia **N palpites**, Lucas ganha **N créditos** de palpite grátis (e não apenas 1).
+3. No formulário de envio do Lucas, mostrar quantos créditos ele tem disponíveis, quantos palpites do envio atual serão cobertos pelos créditos e quanto ele ainda terá que pagar.
 
-### Fluxo
-1. **Após o usuário ter pelo menos 1 palpite aprovado** no bolão elegível, exibir um **card grande em destaque** dentro do `UserPoolEntries`:
-   - Texto: "🎁 Indique e ganhe 1 palpite grátis! Para cada amigo que entrar pelo seu link e pagar, você ganha um palpite extra automaticamente."
-   - Link copiável: `https://delfos.app.br/bolao/<slug>?ref=<user_id>`
-   - Botões: Copiar link, Compartilhar (WhatsApp).
-   - Mostrar contador: "X amigos indicados • Y palpites grátis ganhos".
+## Mudanças no banco
 
-2. **Captura do referral**: ao abrir `/bolao/<slug>?ref=<id>`, salvar em `localStorage` (`referral_<poolId>=<id>`) e `sessionStorage`. Persiste mesmo se fizer login/cadastro depois.
+Nova tabela `referral_credits` (1 linha = 1 crédito de palpite grátis):
+- `id`, `user_id` (dono do crédito), `pool_id` (bolão onde pode ser usado), `source_referral_id` (FK para `pool_referrals`), `consumed_at`, `consumed_participant_id`, `created_at`.
+- RLS: usuário lê seus próprios créditos; admins gerenciam.
 
-3. **Registro do referral**: ao criar um participante (`FootballPredictionForm.handleConfirmSubmit`), se houver `referral_<poolId>` no storage e o referrer ≠ self e o pool for elegível, inserir registro em `pool_referrals` com `status='pending'` e `referred_participant_id`.
+Função SQL `count_available_referral_credits(p_user_id, p_pool_id)` retornando quantidade não consumida.
 
-4. **Conversão**: edge function `process-referral-rewards` (chamada após webhook Asaas aprovar OU após approve manual) verifica:
-   - Indicado tem participante `approved` no pool
-   - Pool elegível
-   - Indicador também está `approved` no pool
-   Se sim:
-   - Cria novo participante para o referrer: `status='approved'`, `guess_value='Indicação grátis'`, `payment_proof='referral_reward:<referred_user_id>'`
-   - Atualiza `pool_referrals.status='rewarded'`, `rewarded_participant_id`
-   - Envia notificação push/WhatsApp ao referrer
+Atualização da `pool_referrals.status` para suportar `partial` (caso só parte dos créditos foram consumidos) — opcional; pode-se manter `pending`/`rewarded` controlando pelos créditos.
 
-5. **Preenchimento do palpite ganho**: O participante "approved sem predictions" (criado pela recompensa) aparecerá como uma entrada que precisa preencher palpites. Estender lógica do `UserPoolEntries`/`FootballPredictionForm` (hoje só trata `estabelecimento`) para também tratar `payment_proof LIKE 'referral_reward%'` da mesma forma — mostrar formulário de palpite, sem cobrança.
+## Mudanças no edge function `process-referral-rewards`
 
-### Mudanças técnicas
+- Em vez de criar 1 participante de recompensa, **inserir N linhas em `referral_credits`** onde N = nº de prediction_sets do indicado.
+- Marcar referral como `rewarded` (e gravar `referred_participant_id` + `rewarded_at`).
+- Remover lógica de criar participante "gratuito" antecipado (não mais necessário; créditos são consumidos no momento do envio).
 
-**Banco** (migration):
-- Tabela `pool_referrals`: `id, pool_id, referrer_user_id, referred_user_id, referred_participant_id, reward_participant_id, status (pending|rewarded|cancelled), created_at, rewarded_at`. Unique `(pool_id, referred_user_id)`. RLS: usuário lê os próprios (como referrer ou referred); pool owner lê do seu pool; admins.
-- Função `is_pool_referral_eligible(pool_id)` SECURITY DEFINER que valida prize_type=fixed + owner pertence a community oficial.
+## Mudanças no `FootballPredictionForm.tsx`
 
-**Edge function** `process-referral-rewards/index.ts`:
-- Input: `{ pool_id, referred_user_id }`
-- Lógica acima usando service role.
-- Disparada por:
-  - `asaas-webhook` após aprovar participantes (loop sobre participantIds)
-  - `admin-actions` / approval manual (encontrar onde aprovação manual ocorre — provavelmente em `AdminPendingParticipants` ou owner approval)
+- Carregar `availableCredits` via consulta a `referral_credits` (não consumidos) no mount.
+- Exibir o card de "código de indicação" **sempre que `canEnterReferral` for true**, inclusive em "Fazer mais palpites" (já é, mas vamos garantir que o useEffect roda novamente — `userId` está nas dependências).
+- Calcular:
+  - `paidSets = max(0, predictionSets.length - availableCredits)`
+  - `freeSets = min(predictionSets.length, availableCredits)`
+  - `totalFee = paidSets * feePerSet`
+- Mostrar no resumo: `🎁 X palpite(s) grátis usado(s) · 💰 Y a pagar`.
+- No `handleConfirmSubmit`:
+  - Após criar `participant` e `predictions`, consumir `freeSets` créditos (UPDATE em `referral_credits` setando `consumed_at` e `consumed_participant_id`).
+  - Se `paidSets === 0`, criar o participant já como `approved` e pular fluxo de pagamento.
+  - Se `paidSets > 0`, manter fluxo de pagamento mas com `entryFee = paidSets * feePerSet`.
 
-**Frontend**:
-- `src/lib/referral.ts`: helpers `captureReferral(poolId)`, `getReferral(poolId)`, `clearReferral(poolId)`.
-- `PoolDetail.tsx`: chamar `captureReferral` no mount usando `searchParams.ref`.
-- `FootballPredictionForm.tsx`: após criar participant, inserir em `pool_referrals` se aplicável.
-- `UserPoolEntries.tsx`: adicionar `<ReferralCard />` em destaque quando `approved.length > 0` e pool elegível.
-- Novo componente `ReferralCard.tsx`: link, copiar, share, contador (consulta `pool_referrals`).
-- Estender lógica de "approved sem predictions" para tratar `payment_proof LIKE 'referral_reward%'` (usar form sem cobrança).
+## Mudanças no `ReferralCard.tsx`
 
-### Observações
-- Recompensa é dada **uma vez por indicado** (não por cada palpite que o indicado fizer).
-- Se o referido cancelar/for refundado, opcionalmente cancelar a recompensa (out of scope inicial — manter simples).
-- Pools sem entry_fee: não há "pagar", então qualquer aprovação conta como conversão.
+Atualizar contagem para mostrar créditos disponíveis baseados em `referral_credits` em vez do antigo `participants` "referral_reward".
+
+## Mudanças no `UserPoolEntries.tsx`
+
+Remover bloco do "voucher gratuito" (recompensa de indicação) — não existe mais participante de recompensa. Se o usuário tem créditos, eles aparecem no formulário normal.
+
+## Migração de dados existentes
+
+Para os atuais participantes "referral_reward" sem palpites, converter em linhas equivalentes em `referral_credits` (1 crédito por participante) e excluir o participante.
+
+## Arquivos afetados
+
+- `supabase/migrations/...sql` (nova tabela, função, migração de dados)
+- `supabase/functions/process-referral-rewards/index.ts`
+- `src/components/FootballPredictionForm.tsx`
+- `src/components/ReferralCard.tsx`
+- `src/components/UserPoolEntries.tsx`
+- `src/integrations/supabase/types.ts` (auto)
+
+Confirma para eu seguir?

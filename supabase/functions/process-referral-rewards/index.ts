@@ -1,6 +1,7 @@
 // Edge function: process-referral-rewards
-// Verifica se um indicado aprovado dispara recompensa de palpite grátis para o indicador
-// num bolão elegível (premiação fixa + comunidade Delfos Oficial).
+// Quando um indicado é aprovado num bolão elegível, gera N créditos
+// (palpites grátis) para o indicador, onde N = número de prediction_sets
+// enviados pelo indicado.
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.44.4";
 
@@ -23,7 +24,6 @@ serve(async (req) => {
       return json({ error: "missing pool_id or referred_user_id" }, 400);
     }
 
-    // Buscar referral pendente
     const { data: ref } = await supabase
       .from("pool_referrals")
       .select("*")
@@ -34,14 +34,13 @@ serve(async (req) => {
 
     if (!ref) return json({ skipped: "no_pending_referral" }, 200);
 
-    // Confirmar elegibilidade do bolão
     const { data: eligible } = await supabase.rpc("is_pool_referral_eligible", { p_pool_id: pool_id });
     if (!eligible) return json({ skipped: "pool_not_eligible" }, 200);
 
-    // Confirmar que indicado tem participante aprovado
+    // Indicado deve ter participante aprovado
     const { data: referredParts } = await supabase
       .from("participants")
-      .select("id, status")
+      .select("id")
       .eq("pool_id", pool_id)
       .eq("user_id", referred_user_id)
       .eq("status", "approved")
@@ -50,62 +49,42 @@ serve(async (req) => {
       return json({ skipped: "referred_not_approved" }, 200);
     }
 
-    // Confirmar que o indicador também é participante aprovado
-    const { data: referrerParts } = await supabase
-      .from("participants")
-      .select("id, status")
-      .eq("pool_id", pool_id)
-      .eq("user_id", ref.referrer_user_id)
-      .eq("status", "approved")
-      .limit(1);
-    if (!referrerParts || referrerParts.length === 0) {
-      return json({ skipped: "referrer_not_approved" }, 200);
+    // Conta nº de prediction_sets distintos enviados pelo indicado neste bolão
+    const { data: predRows } = await supabase
+      .from("football_predictions")
+      .select("prediction_set, participants!inner(pool_id, user_id)")
+      .eq("participants.pool_id", pool_id)
+      .eq("participants.user_id", referred_user_id);
+
+    const distinctSets = new Set<number>();
+    for (const r of (predRows || []) as any[]) {
+      if (typeof r.prediction_set === "number") distinctSets.add(r.prediction_set);
     }
+    const creditCount = Math.max(1, distinctSets.size);
 
-    // Buscar nome do indicador
-    const { data: profile } = await supabase
-      .from("profiles")
-      .select("full_name")
-      .eq("id", ref.referrer_user_id)
-      .single();
-
-    // Criar nova entrada gratuita aprovada para o indicador
-    const { data: newPart, error: insErr } = await supabase
-      .from("participants")
-      .insert({
-        pool_id,
-        user_id: ref.referrer_user_id,
-        participant_name: profile?.full_name || "Participante",
-        guess_value: "Indicação grátis",
-        status: "approved",
-      })
-      .select()
-      .single();
-
-    if (insErr || !newPart) {
-      console.error("Erro criando recompensa:", insErr);
-      return json({ error: insErr?.message || "insert_failed" }, 500);
-    }
-
-    // Marcar via tabela financials que esta entrada é uma recompensa de indicação
-    await supabase.from("participant_financials").insert({
-      participant_id: newPart.id,
-      pool_id,
+    // Cria N créditos para o indicador
+    const credits = Array.from({ length: creditCount }).map(() => ({
       user_id: ref.referrer_user_id,
-      payment_proof: `referral_reward:${referred_user_id}`,
-    });
+      pool_id,
+      source_referral_id: ref.id,
+    }));
+
+    const { error: credErr } = await supabase.from("referral_credits").insert(credits);
+    if (credErr) {
+      console.error("Erro criando créditos:", credErr);
+      return json({ error: credErr.message }, 500);
+    }
 
     await supabase
       .from("pool_referrals")
       .update({
         status: "rewarded",
-        reward_participant_id: newPart.id,
         referred_participant_id: referredParts[0].id,
         rewarded_at: new Date().toISOString(),
       })
       .eq("id", ref.id);
 
-    return json({ success: true, reward_participant_id: newPart.id }, 200);
+    return json({ success: true, credits_created: creditCount }, 200);
   } catch (e: any) {
     console.error("process-referral-rewards error:", e);
     return json({ error: e.message }, 500);

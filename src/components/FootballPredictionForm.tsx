@@ -73,11 +73,15 @@ const FootballPredictionForm = ({ poolId, userId, onSuccess, entryFee, pool, pix
   const [referralEligible, setReferralEligible] = useState(false);
   const [canEnterReferral, setCanEnterReferral] = useState(false);
   const [referralCodeInput, setReferralCodeInput] = useState("");
+  const [availableCredits, setAvailableCredits] = useState(0);
 
   const isEstabelecimento = pool?.prize_type === 'estabelecimento';
   const hasEntryFee = !isEstabelecimento && pool?.entry_fee && parseFloat(pool.entry_fee) > 0;
   const feePerSet = hasEntryFee ? parseFloat(pool.entry_fee) : 0;
-  const totalFee = feePerSet * predictionSets.length;
+  // Quantos palpites são cobertos pelos créditos vs pagos
+  const freeSetsApplied = hasEntryFee ? Math.min(predictionSets.length, availableCredits) : 0;
+  const paidSets = hasEntryFee ? Math.max(0, predictionSets.length - availableCredits) : predictionSets.length;
+  const totalFee = feePerSet * paidSets;
   const isInAppPayment = hasEntryFee && pool?.payment_method === 'in_app';
 
   // Calcula taxa do app por palpite (para exibição)
@@ -87,7 +91,7 @@ const FootballPredictionForm = ({ poolId, userId, onSuccess, entryFee, pool, pix
     const percentValue = +(feePerSet * appFee.percent / 100).toFixed(2);
     return Math.max(percentValue, appFee.percentMin || 0);
   })();
-  const appFeeTotal = +(appFeePerSet * predictionSets.length).toFixed(2);
+  const appFeeTotal = +(appFeePerSet * paidSets).toFixed(2);
 
   useEffect(() => {
     loadMatches();
@@ -112,7 +116,7 @@ const FootballPredictionForm = ({ poolId, userId, onSuccess, entryFee, pool, pix
     })();
   }, [isInAppPayment]);
 
-  // Verifica se o bolão é elegível para indicações e se o usuário ainda pode usar um código
+  // Verifica elegibilidade de indicação e carrega créditos disponíveis
   useEffect(() => {
     let cancelled = false;
     (async () => {
@@ -120,17 +124,27 @@ const FootballPredictionForm = ({ poolId, userId, onSuccess, entryFee, pool, pix
       if (cancelled) return;
       const isElig = !!eligData;
       setReferralEligible(isElig);
-      if (!isElig) return;
 
-      // Pode usar código apenas se ainda não há registro de referral para este usuário neste bolão
-      const { data: existing } = await supabase
-        .from("pool_referrals")
-        .select("id")
+      if (isElig) {
+        const { data: existing } = await supabase
+          .from("pool_referrals")
+          .select("id")
+          .eq("pool_id", poolId)
+          .eq("referred_user_id", userId)
+          .limit(1);
+        if (cancelled) return;
+        setCanEnterReferral(!existing || existing.length === 0);
+      }
+
+      // Carrega créditos disponíveis (palpites grátis ganhos por indicações)
+      const { count } = await supabase
+        .from("referral_credits")
+        .select("id", { count: "exact", head: true })
+        .eq("user_id", userId)
         .eq("pool_id", poolId)
-        .eq("referred_user_id", userId)
-        .limit(1);
+        .is("consumed_at", null);
       if (cancelled) return;
-      setCanEnterReferral(!existing || existing.length === 0);
+      setAvailableCredits(count || 0);
     })();
     return () => { cancelled = true; };
   }, [poolId, userId]);
@@ -277,8 +291,9 @@ const FootballPredictionForm = ({ poolId, userId, onSuccess, entryFee, pool, pix
   }, [isEstabelecimento, matches, poolId, userId]);
 
   const proceedToDisclaimer = () => {
-    // When payment is handled in-app, no disclaimer is needed
-    if (isInAppPayment || !hasEntryFee) {
+    // When payment is handled in-app, no disclaimer is needed.
+    // Also skip if no actual fee is owed (e.g. all sets covered by referral credits).
+    if (isInAppPayment || !hasEntryFee || paidSets === 0) {
       handleConfirmSubmit();
       return;
     }
@@ -344,8 +359,9 @@ const FootballPredictionForm = ({ poolId, userId, onSuccess, entryFee, pool, pix
     setShowDisclaimerDialog(false);
     setSubmitting(true);
 
-    // For estabelecimento pools with voucher, always approve
-    const initialStatus = isEstabelecimento ? "approved" : (hasEntryFee ? "pending" : "approved");
+    // Determina status inicial: estabelecimento sempre aprovado; com taxa, aprovado se todos os palpites forem cobertos por créditos
+    const allCoveredByCredits = hasEntryFee && paidSets === 0;
+    const initialStatus = isEstabelecimento || !hasEntryFee || allCoveredByCredits ? "approved" : "pending";
 
     // Find the max prediction_set already used by this user in this pool
     let maxExistingSet = 0;
@@ -487,7 +503,23 @@ const FootballPredictionForm = ({ poolId, userId, onSuccess, entryFee, pool, pix
       });
       await supabase.from("participants").delete().eq("id", participant.id);
     } else {
-      // No need to update voucher for estabelecimento - already linked by owner
+      // Consumir créditos de indicação aplicáveis
+      if (freeSetsApplied > 0) {
+        const { data: creditsToConsume } = await supabase
+          .from("referral_credits")
+          .select("id")
+          .eq("user_id", userId)
+          .eq("pool_id", poolId)
+          .is("consumed_at", null)
+          .limit(freeSetsApplied);
+        const ids = (creditsToConsume || []).map((c: any) => c.id);
+        if (ids.length > 0) {
+          await supabase
+            .from("referral_credits")
+            .update({ consumed_at: new Date().toISOString(), consumed_participant_id: participant.id })
+            .in("id", ids);
+        }
+      }
 
       // Registra indicação se o usuário digitou um código válido e o bolão é elegível
       const codeTrimmed = referralCodeInput.trim().toUpperCase();
@@ -513,13 +545,13 @@ const FootballPredictionForm = ({ poolId, userId, onSuccess, entryFee, pool, pix
         }
       }
 
-      if (hasEntryFee) {
+      if (hasEntryFee && paidSets > 0) {
         setCreatedParticipantId(participant.id);
         setShowPaymentDialog(true);
       } else {
         toast({
           title: "🎉 Você está inscrito no bolão!",
-          description: `${predictionSets.length} palpite${predictionSets.length > 1 ? 's' : ''} salvo${predictionSets.length > 1 ? 's' : ''}. Boa sorte! 🍀`,
+          description: `${predictionSets.length} palpite${predictionSets.length > 1 ? 's' : ''} salvo${predictionSets.length > 1 ? 's' : ''}${freeSetsApplied > 0 ? ` (${freeSetsApplied} grátis por indicação)` : ''}. Boa sorte! 🍀`,
           duration: 5000,
         });
       }
@@ -848,7 +880,12 @@ const FootballPredictionForm = ({ poolId, userId, onSuccess, entryFee, pool, pix
             <Plus className="w-4 h-4 mr-2" />
             Adicionar mais um palpite
           </Button>
-          {hasEntryFee && (
+          {hasEntryFee && predictionSets.length < availableCredits && (
+            <p className="text-xs text-center text-emerald-600 dark:text-emerald-400 font-medium">
+              🎁 Próximo palpite ainda é grátis (você tem {availableCredits - predictionSets.length} crédito{availableCredits - predictionSets.length > 1 ? 's' : ''} restante{availableCredits - predictionSets.length > 1 ? 's' : ''})
+            </p>
+          )}
+          {hasEntryFee && predictionSets.length >= availableCredits && (
             <p className="text-xs text-center text-orange-600 dark:text-orange-400 font-medium">
               ⚠️ Cada palpite adicional acrescenta <strong>R$ {feePerSet.toFixed(2).replace('.', ',')}</strong> ao valor da inscrição
             </p>
@@ -867,7 +904,7 @@ const FootballPredictionForm = ({ poolId, userId, onSuccess, entryFee, pool, pix
             🎁 Tem um código de indicação?
           </Label>
           <p className="text-xs text-muted-foreground">
-            Se um amigo te indicou, digite o código dele abaixo. Quando sua inscrição for aprovada, ele ganha 1 palpite grátis.
+            Se um amigo te indicou, digite o código dele abaixo. Quando sua inscrição for aprovada, ele ganha <strong>1 palpite grátis para cada palpite</strong> que você fizer aqui.
           </p>
           <Input
             id="referral-code"
@@ -882,6 +919,22 @@ const FootballPredictionForm = ({ poolId, userId, onSuccess, entryFee, pool, pix
 
       {/* Submit area with summary */}
       <div className="space-y-2">
+        {hasEntryFee && availableCredits > 0 && (
+          <div className="p-3 rounded-lg bg-emerald-500/10 border border-emerald-500/30 text-sm space-y-1">
+            <p className="font-semibold text-emerald-700 dark:text-emerald-400 flex items-center gap-2">
+              🎁 Você tem {availableCredits} palpite{availableCredits > 1 ? 's' : ''} grátis por indicação
+            </p>
+            {predictionSets.length <= availableCredits ? (
+              <p className="text-xs text-muted-foreground">
+                Todos os seus {predictionSets.length} palpite{predictionSets.length > 1 ? 's' : ''} serão cobertos pelos créditos. <strong>Nada a pagar!</strong>
+              </p>
+            ) : (
+              <p className="text-xs text-muted-foreground">
+                {freeSetsApplied} palpite{freeSetsApplied > 1 ? 's' : ''} grátis aplicado{freeSetsApplied > 1 ? 's' : ''} · {paidSets} palpite{paidSets > 1 ? 's' : ''} a pagar (R$ {totalFee.toFixed(2).replace('.', ',')})
+              </p>
+            )}
+          </div>
+        )}
         {(predictionSets.length > 1 || hasEntryFee) && (
           <div className="p-3 rounded-lg bg-primary/10 border border-primary/20 text-sm text-center space-y-1">
             <p className="font-semibold">
@@ -890,9 +943,15 @@ const FootballPredictionForm = ({ poolId, userId, onSuccess, entryFee, pool, pix
                 <> · 💰 R$ {totalFee.toFixed(2).replace('.', ',')}</>
               )}
             </p>
-            {hasEntryFee && predictionSets.length > 1 && (
+            {hasEntryFee && paidSets > 1 && (
               <p className="text-xs text-muted-foreground">
-                {predictionSets.length} × R$ {feePerSet.toFixed(2).replace('.', ',')} cada
+                {paidSets} × R$ {feePerSet.toFixed(2).replace('.', ',')} cada
+                {freeSetsApplied > 0 && <> · {freeSetsApplied} grátis</>}
+              </p>
+            )}
+            {hasEntryFee && paidSets === 0 && availableCredits > 0 && (
+              <p className="text-xs text-emerald-600 dark:text-emerald-400 font-medium">
+                ✨ Tudo coberto pelos seus créditos de indicação
               </p>
             )}
           </div>
@@ -921,9 +980,9 @@ const FootballPredictionForm = ({ poolId, userId, onSuccess, entryFee, pool, pix
           className="w-full"
           size="lg"
         >
-        {submitting ? "Enviando..." : (hasEntryFee
-              ? (predictionSets.length > 1
-                  ? `Continuar para o pagamento (${predictionSets.length} palpites)`
+        {submitting ? "Enviando..." : (hasEntryFee && paidSets > 0
+              ? (paidSets > 1
+                  ? `Continuar para o pagamento (R$ ${totalFee.toFixed(2).replace('.', ',')})`
                   : "Continuar para o pagamento")
               : (predictionSets.length > 1
                   ? `Enviar ${predictionSets.length} Palpites e Participar`
