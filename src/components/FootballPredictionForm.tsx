@@ -975,9 +975,9 @@ const FootballPredictionForm = ({ poolId, userId, onSuccess, entryFee, pool, pix
           className="w-full"
           size="lg"
         >
-        {submitting ? "Enviando..." : (hasEntryFee
-              ? (predictionSets.length > 1
-                  ? `Continuar para o pagamento (${predictionSets.length} palpites)`
+        {submitting ? "Enviando..." : (hasEntryFee && paidSets > 0
+              ? (paidSets > 1
+                  ? `Continuar para o pagamento (R$ ${totalFee.toFixed(2).replace('.', ',')})`
                   : "Continuar para o pagamento")
               : (predictionSets.length > 1
                   ? `Enviar ${predictionSets.length} Palpites e Participar`
