@@ -23,6 +23,33 @@ interface UserPredictionsSummaryProps {
   participantId: string;
 }
 
+interface FootballMatchRecord {
+  id: string;
+  home_team: string;
+  away_team: string;
+  match_date: string;
+  home_team_crest: string | null;
+  away_team_crest: string | null;
+  status: string | null;
+  championship: string | null;
+  external_source: string | null;
+  external_id: string | null;
+}
+
+interface FootballPredictionRecord {
+  match_id: string;
+  home_score_prediction: number;
+  away_score_prediction: number;
+  prediction_set: number | null;
+  football_matches: FootballMatchRecord | null;
+}
+
+interface CrestResult {
+  id: string;
+  homeTeamCrest?: string | null;
+  awayTeamCrest?: string | null;
+}
+
 const teamCodeSet = new Set(Object.values(TEAM_FLAG_CODES));
 
 const cleanTeamName = (team: string) => {
