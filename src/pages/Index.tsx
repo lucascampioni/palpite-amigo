@@ -405,7 +405,27 @@ const Index = () => {
       }
     }
 
-    // Fetch community info for all pools
+    // Fetch unconsumed referral credits grouped by pool
+    const referralCreditPools: {pool: any, credits: number}[] = [];
+    const { data: creditsRows } = await supabase
+      .from("referral_credits")
+      .select("pool_id")
+      .eq("user_id", session.user.id)
+      .is("consumed_at", null);
+    if (creditsRows && creditsRows.length > 0) {
+      const countByPool: Record<string, number> = {};
+      creditsRows.forEach((c: any) => { countByPool[c.pool_id] = (countByPool[c.pool_id] || 0) + 1; });
+      const creditPoolIds = Object.keys(countByPool);
+      const { data: creditPoolsData } = await supabase
+        .from("pools")
+        .select("*, participants(count)")
+        .in("id", creditPoolIds)
+        .eq("status", "active");
+      (creditPoolsData || []).forEach(pool => {
+        referralCreditPools.push({ pool, credits: countByPool[pool.id] });
+      });
+    }
+
     const allPoolOwnerIds = [...new Set([
       ...(ownedPools || []).map(p => p.owner_id),
       ...participatingPoolsData.map(p => p.owner_id),
