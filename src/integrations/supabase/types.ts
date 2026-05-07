@@ -921,6 +921,36 @@ export type Database = {
         }
         Relationships: []
       }
+      referral_credits: {
+        Row: {
+          consumed_at: string | null
+          consumed_participant_id: string | null
+          created_at: string
+          id: string
+          pool_id: string
+          source_referral_id: string | null
+          user_id: string
+        }
+        Insert: {
+          consumed_at?: string | null
+          consumed_participant_id?: string | null
+          created_at?: string
+          id?: string
+          pool_id: string
+          source_referral_id?: string | null
+          user_id: string
+        }
+        Update: {
+          consumed_at?: string | null
+          consumed_participant_id?: string | null
+          created_at?: string
+          id?: string
+          pool_id?: string
+          source_referral_id?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           created_at: string
@@ -1036,6 +1066,10 @@ export type Database = {
       check_email_exists: { Args: { _email: string }; Returns: boolean }
       check_email_status: { Args: { _email: string }; Returns: Json }
       cleanup_expired_otp: { Args: never; Returns: undefined }
+      count_available_referral_credits: {
+        Args: { p_pool_id: string; p_user_id: string }
+        Returns: number
+      }
       generate_referral_code: { Args: never; Returns: string }
       generate_slug: { Args: { title: string }; Returns: string }
       get_football_pool_ranking: {
