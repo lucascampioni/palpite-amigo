@@ -125,8 +125,10 @@ const UserPredictionsSummary = ({ poolId, participantId }: UserPredictionsSummar
         .order("football_matches(match_date)", { ascending: true });
 
       if (predictions) {
+        const predictionRows = predictions as unknown as FootballPredictionRecord[];
         const grouped: Record<number, PredictionItem[]> = {};
-        for (const p of predictions as any[]) {
+        for (const p of predictionRows) {
+          if (!p.football_matches) continue;
           const setNum = p.prediction_set || 1;
           if (!grouped[setNum]) grouped[setNum] = [];
           if (['postponed', 'cancelled', 'abandoned'].includes(p.football_matches.status)) continue;
@@ -145,18 +147,18 @@ const UserPredictionsSummary = ({ poolId, participantId }: UserPredictionsSummar
         setSets(grouped);
 
         // Backfill missing crests via Football-Data API
-        const needsCrests = (predictions as any[])
+        const needsCrests = predictionRows
           .map(p => p.football_matches)
-          .filter((m: any) => m && (!m.home_team_crest || !m.away_team_crest) && m.external_source === 'apifb' && (m.external_id || '').startsWith('fd_'));
+          .filter((m): m is FootballMatchRecord => Boolean(m && (!m.home_team_crest || !m.away_team_crest) && m.external_source === 'apifb' && (m.external_id || '').startsWith('fd_')));
         const seen = new Set<string>();
-        const uniqueNeeds = needsCrests.filter((m: any) => {
+        const uniqueNeeds = needsCrests.filter((m) => {
           if (seen.has(m.id)) return false;
           seen.add(m.id);
           return true;
         });
         if (uniqueNeeds.length > 0) {
           try {
-            const results = await Promise.all(uniqueNeeds.map(async (m: any) => {
+            const results = await Promise.all(uniqueNeeds.map(async (m): Promise<CrestResult | null> => {
               const apiMatchId = String((m.external_id || '').replace(/^fd_/, ''));
               const { data: crestData, error } = await supabase.functions.invoke('get-match-crests', {
                 body: { matchId: apiMatchId }
@@ -169,9 +171,9 @@ const UserPredictionsSummary = ({ poolId, participantId }: UserPredictionsSummar
                   away_team_crest: crestData.awayTeamCrest || null,
                 })
                 .eq('id', m.id);
-              return { id: m.id, ...crestData } as any;
+              return { id: m.id, ...crestData };
             }));
-            const crestMap = new Map(results.filter(Boolean).map((r: any) => [r.id, r]));
+            const crestMap = new Map(results.filter((r): r is CrestResult => Boolean(r)).map((r) => [r.id, r]));
             if (crestMap.size > 0) {
               setSets(prev => {
                 const next: Record<number, PredictionItem[]> = {};
