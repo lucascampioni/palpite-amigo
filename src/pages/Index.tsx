@@ -505,7 +505,7 @@ const Index = () => {
   // mostramos como informativo, não como pendência ativa do usuário.
   const inAppAutoPayoutPools = myAwaitingPixPools.filter(p => p.payment_method === 'in_app');
   const manualAwaitingPixPools = myAwaitingPixPools.filter(p => p.payment_method !== 'in_app');
-  const pendenciasCount = myPendingPaymentPools.length + manualAwaitingPixPools.length + myPoolsPendingApprovals.length + myPoolsPendingPrizeSend.length + myPendingPredictionPools.length + inAppAutoPayoutPools.length;
+  const pendenciasCount = myPendingPaymentPools.length + manualAwaitingPixPools.length + myPoolsPendingApprovals.length + myPoolsPendingPrizeSend.length + myPendingPredictionPools.length + inAppAutoPayoutPools.length + myReferralCreditPools.length;
   const myPoolsActiveCount = myCreatedPools.filter(p => p.status === "active").length;
   const myPoolsFinishedCount = myCreatedPools.filter(p => p.status === "finished").length;
   const participatingActiveCount = myParticipatingPools.filter(p => p.status === "active").length;
