@@ -11,7 +11,7 @@ interface ReferralCardProps {
   userId: string;
 }
 
-const ReferralCard = ({ poolId, poolTitle, userId }: ReferralCardProps) => {
+const ReferralCard = ({ poolId, poolSlug, poolTitle, userId }: ReferralCardProps) => {
   const { toast } = useToast();
   const [eligible, setEligible] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -76,7 +76,7 @@ const ReferralCard = ({ poolId, poolTitle, userId }: ReferralCardProps) => {
   };
 
   const handleShare = async () => {
-    const text = `🎯 Vem participar do bolão "${poolTitle}" comigo na Delfos!\n\nUse meu código de indicação ao fazer o palpite: *${code}*\n\nhttps://delfos.app.br`;
+    const text = `🎯 Vem participar do bolão "${poolTitle}" comigo na Delfos!\n\nUse meu código de indicação ao fazer o palpite: *${code}*\n\nhttps://delfos.app.br/bolao/${poolSlug}`;
     if (navigator.share) {
       try {
         await navigator.share({ title: poolTitle, text });
