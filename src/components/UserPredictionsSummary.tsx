@@ -4,7 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { ChevronDown } from "lucide-react";
-import { isWorldCupMatch, extractGroup, hasAllWorldCupGroupMatches } from "@/lib/world-cup-2026";
+import { TEAM_FLAG_CODES, extractGroup, getFlagUrl, hasAllWorldCupGroupMatches } from "@/lib/world-cup-2026";
 
 interface PredictionItem {
   matchId: string;
@@ -23,25 +23,49 @@ interface UserPredictionsSummaryProps {
   participantId: string;
 }
 
-const PredictionRow = ({ pred }: { pred: PredictionItem }) => (
-  <div className="flex items-center gap-2 text-xs p-2 rounded bg-background border">
-    <div className="flex items-center gap-1.5 flex-1 min-w-0">
-      {pred.homeTeamCrest && (
-        <img src={pred.homeTeamCrest} alt="" className="w-4 h-4 object-contain shrink-0" onError={(e) => { e.currentTarget.style.display = 'none'; }} />
-      )}
-      <span className="truncate">{pred.homeTeam}</span>
+const teamCodeSet = new Set(Object.values(TEAM_FLAG_CODES));
+
+const cleanTeamName = (team: string) => {
+  const parts = team
+    .replace(/[\u{1F1E6}-\u{1F1FF}\u{1F3F4}\u{E0061}-\u{E007A}\u{E007F}]/gu, "")
+    .trim()
+    .split(/\s+/)
+    .filter(Boolean);
+
+  while (parts.length && teamCodeSet.has(parts[0].toLowerCase())) parts.shift();
+  while (parts.length && teamCodeSet.has(parts[parts.length - 1].toLowerCase())) parts.pop();
+
+  return parts.join(" ").trim() || team.trim();
+};
+
+const getTeamImage = (team: string, crest?: string | null) => crest || getFlagUrl(cleanTeamName(team));
+
+const PredictionRow = ({ pred }: { pred: PredictionItem }) => {
+  const homeName = cleanTeamName(pred.homeTeam);
+  const awayName = cleanTeamName(pred.awayTeam);
+  const homeImage = getTeamImage(pred.homeTeam, pred.homeTeamCrest);
+  const awayImage = getTeamImage(pred.awayTeam, pred.awayTeamCrest);
+
+  return (
+    <div className="flex items-center gap-2 text-xs p-2 rounded bg-background border">
+      <div className="flex items-center gap-1.5 flex-1 min-w-0">
+        {homeImage && (
+          <img src={homeImage} alt="" className="w-4 h-4 object-contain shrink-0" onError={(e) => { e.currentTarget.style.display = 'none'; }} />
+        )}
+        <span className="truncate">{homeName}</span>
+      </div>
+      <Badge variant="secondary" className="font-mono text-xs px-2 shrink-0">
+        {pred.homePred} x {pred.awayPred}
+      </Badge>
+      <div className="flex items-center gap-1.5 flex-1 min-w-0 justify-end">
+        <span className="truncate text-right">{awayName}</span>
+        {awayImage && (
+          <img src={awayImage} alt="" className="w-4 h-4 object-contain shrink-0" onError={(e) => { e.currentTarget.style.display = 'none'; }} />
+        )}
+      </div>
     </div>
-    <Badge variant="secondary" className="font-mono text-xs px-2 shrink-0">
-      {pred.homePred} x {pred.awayPred}
-    </Badge>
-    <div className="flex items-center gap-1.5 flex-1 min-w-0 justify-end">
-      <span className="truncate text-right">{pred.awayTeam}</span>
-      {pred.awayTeamCrest && (
-        <img src={pred.awayTeamCrest} alt="" className="w-4 h-4 object-contain shrink-0" onError={(e) => { e.currentTarget.style.display = 'none'; }} />
-      )}
-    </div>
-  </div>
-);
+  );
+};
 
 const UserPredictionsSummary = ({ poolId, participantId }: UserPredictionsSummaryProps) => {
   const [sets, setSets] = useState<Record<number, PredictionItem[]>>({});
