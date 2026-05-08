@@ -176,7 +176,7 @@ const PoolCard = ({ pool, onClick, isUserParticipating = false, hasWonPrize = fa
             <span>Prazo: {format(new Date(pool.deadline), "dd 'de' MMMM, HH:mm", { locale: ptBR })}</span>
           </div>
         )}
-        {pool.participant_count !== undefined && (
+        {pool.participant_count !== undefined && pool.id !== 'de4355aa-8308-4558-b060-355d2c854a80' && (
           <div className="flex items-center gap-2 text-sm font-medium text-foreground/80 bg-accent/5 p-3 rounded-xl border border-accent/15">
             <Users className="w-5 h-5 text-accent" />
             <span>{pool.participant_count} participante(s)</span>
