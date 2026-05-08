@@ -1245,7 +1245,7 @@ const PoolDetail = () => {
                   </strong>
                 </span>
                 <span className="text-muted-foreground/30">·</span>
-                {!isOwner && (() => {
+                {!isOwner && pool.id !== 'de4355aa-8308-4558-b060-355d2c854a80' && (() => {
                   const displayCount = rankingData.length > 0 ? rankingData.length : approvedParticipants.length;
                   return (
                     <>
