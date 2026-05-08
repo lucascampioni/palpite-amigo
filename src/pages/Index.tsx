@@ -584,7 +584,7 @@ const Index = () => {
               >
                 <Plus className="w-4 h-4 mr-1" />
                 <span className="hidden sm:inline">Criar Bolão</span>
-                <span className="sm:hidden">Novo</span>
+                <span className="sm:hidden">Criar bolão</span>
               </Button>
             )}
             <Button variant="ghost" size="icon" className="h-9 w-9 rounded-full hover:bg-primary/10" onClick={() => navigate("/perfil")}>
