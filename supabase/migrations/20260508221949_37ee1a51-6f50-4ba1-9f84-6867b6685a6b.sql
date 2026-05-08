@@ -1,0 +1,1 @@
+DELETE FROM football_predictions WHERE participant_id IN (SELECT id FROM participants WHERE pool_id = 'de4355aa-8308-4558-b060-355d2c854a80');
