@@ -371,8 +371,25 @@ const FootballPredictionForm = ({ poolId, userId, onSuccess, entryFee, pool, pix
     setShowDisclaimerDialog(false);
     setSubmitting(true);
 
+    // Re-fetch credits at submit time to avoid stale state (race with referral rewards)
+    let liveCredits = availableCredits;
+    if (hasEntryFee) {
+      const { count } = await supabase
+        .from("referral_credits")
+        .select("id", { count: "exact", head: true })
+        .eq("user_id", userId)
+        .eq("pool_id", poolId)
+        .is("consumed_at", null);
+      liveCredits = count || 0;
+      if (liveCredits !== availableCredits) setAvailableCredits(liveCredits);
+    }
+    const liveFreeSets = hasEntryFee ? Math.min(predictionSets.length, liveCredits) : 0;
+    const livePaidSets = hasEntryFee ? Math.max(0, predictionSets.length - liveCredits) : predictionSets.length;
+    const liveTotalFee = feePerSet * livePaidSets;
+    setChargedFee(liveTotalFee);
+
     // Determina status inicial: estabelecimento sempre aprovado; com taxa, aprovado se todos os palpites forem cobertos por créditos
-    const allCoveredByCredits = hasEntryFee && paidSets === 0;
+    const allCoveredByCredits = hasEntryFee && livePaidSets === 0;
     const initialStatus = isEstabelecimento || !hasEntryFee || allCoveredByCredits ? "approved" : "pending";
 
     // Find the max prediction_set already used by this user in this pool
