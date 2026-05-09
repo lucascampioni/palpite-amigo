@@ -452,12 +452,23 @@ const UserPoolEntries = ({
         <>
           {!showAddMoreForm ? (
             <Button
-              variant="outline"
               onClick={() => setShowAddMoreForm(true)}
-              className="w-full"
+              className={
+                availableCredits > 0
+                  ? "w-full h-auto py-3 bg-gradient-to-r from-primary via-accent to-secondary text-primary-foreground font-bold shadow-lg hover:opacity-90 flex-col gap-1"
+                  : "w-full"
+              }
+              variant={availableCredits > 0 ? "default" : "outline"}
             >
-              <Plus className="w-4 h-4 mr-2" />
-              Fazer mais palpites
+              <span className="flex items-center gap-2">
+                <Plus className="w-4 h-4" />
+                Fazer mais palpites
+              </span>
+              {availableCredits > 0 && (
+                <span className="text-xs font-semibold bg-background/20 px-2 py-0.5 rounded-full">
+                  🎁 Você tem {availableCredits} palpite{availableCredits > 1 ? "s" : ""} grátis disponíve{availableCredits > 1 ? "is" : "l"}!
+                </span>
+              )}
             </Button>
           ) : (
             <FootballPredictionForm
