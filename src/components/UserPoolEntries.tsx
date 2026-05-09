@@ -451,25 +451,36 @@ const UserPoolEntries = ({
       {!isPastDeadline && pool.status === "active" && (
         <>
           {!showAddMoreForm ? (
-            <Button
-              onClick={() => setShowAddMoreForm(true)}
-              className={
-                availableCredits > 0
-                  ? "w-full h-auto py-3 bg-gradient-to-r from-primary via-accent to-secondary text-primary-foreground font-bold shadow-lg hover:opacity-90 flex-col gap-1"
-                  : "w-full"
-              }
-              variant={availableCredits > 0 ? "default" : "outline"}
-            >
-              <span className="flex items-center gap-2">
-                <Plus className="w-4 h-4" />
+            availableCredits > 0 ? (
+              <button
+                onClick={() => setShowAddMoreForm(true)}
+                className="w-full rounded-xl border-2 border-primary/40 bg-primary/5 hover:bg-primary/10 transition-colors p-4 flex items-center justify-between gap-3 text-left"
+              >
+                <div className="flex items-center gap-3 min-w-0">
+                  <div className="w-10 h-10 rounded-full bg-primary/15 flex items-center justify-center shrink-0">
+                    <Plus className="w-5 h-5 text-primary" />
+                  </div>
+                  <div className="min-w-0">
+                    <div className="font-semibold text-foreground">Fazer mais palpites</div>
+                    <div className="text-xs text-primary font-medium mt-0.5">
+                      🎁 {availableCredits} palpite{availableCredits > 1 ? "s" : ""} grátis disponíve{availableCredits > 1 ? "is" : "l"}
+                    </div>
+                  </div>
+                </div>
+                <Badge className="bg-primary text-primary-foreground shrink-0">
+                  {availableCredits}
+                </Badge>
+              </button>
+            ) : (
+              <Button
+                variant="outline"
+                onClick={() => setShowAddMoreForm(true)}
+                className="w-full"
+              >
+                <Plus className="w-4 h-4 mr-2" />
                 Fazer mais palpites
-              </span>
-              {availableCredits > 0 && (
-                <span className="text-xs font-semibold bg-background/20 px-2 py-0.5 rounded-full">
-                  🎁 Você tem {availableCredits} palpite{availableCredits > 1 ? "s" : ""} grátis disponíve{availableCredits > 1 ? "is" : "l"}!
-                </span>
-              )}
-            </Button>
+              </Button>
+            )
           ) : (
             <FootballPredictionForm
               poolId={poolId}
