@@ -882,7 +882,12 @@ const PoolDetail = () => {
           supabase.from("profiles").select("referral_code").eq("id", userId).maybeSingle(),
         ]);
         const code = (profile as any)?.referral_code;
-        if (eligData && code) {
+        const hasPredictionInPool = userEntries.some((entry) =>
+          (hasFootballMatches || pool?.pool_type === "football")
+            ? entry.status === "approved" && entry._hasPredictions === true
+            : true
+        );
+        if (eligData && code && hasPredictionInPool) {
           text = `🎯 Vem participar do bolão "${pool?.title}" comigo na Delfos!\n\nUse meu código de indicação ao fazer o palpite: *${code}*\n\n${url}`;
         }
       } catch {}
