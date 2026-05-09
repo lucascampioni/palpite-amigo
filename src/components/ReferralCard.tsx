@@ -21,12 +21,19 @@ const ReferralCard = ({ poolId, poolSlug, poolTitle, userId }: ReferralCardProps
   useEffect(() => {
     let cancelled = false;
     (async () => {
-      const [{ data: eligData }, { data: profile }] = await Promise.all([
+      const [{ data: eligData }, { data: profile }, { data: ownParticipant }] = await Promise.all([
         supabase.rpc("is_pool_referral_eligible", { p_pool_id: poolId }),
         supabase.from("profiles").select("referral_code").eq("id", userId).maybeSingle(),
+        supabase
+          .from("participants")
+          .select("id")
+          .eq("pool_id", poolId)
+          .eq("user_id", userId)
+          .limit(1),
       ]);
       if (cancelled) return;
-      setEligible(!!eligData);
+      const hasParticipation = (ownParticipant || []).length > 0;
+      setEligible(!!eligData && hasParticipation);
       setCode((profile as any)?.referral_code || null);
       if (eligData) {
         const [{ data: refs }, { data: credits }] = await Promise.all([
