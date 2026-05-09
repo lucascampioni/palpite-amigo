@@ -43,6 +43,23 @@ const UserPoolEntries = ({
   const { toast } = useToast();
   const [showAddMoreForm, setShowAddMoreForm] = useState(false);
   const [processingEntryId, setProcessingEntryId] = useState<string | null>(null);
+  const [availableCredits, setAvailableCredits] = useState(0);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const { data } = await supabase
+        .from("referral_credits")
+        .select("id")
+        .eq("pool_id", poolId)
+        .eq("user_id", userId)
+        .is("consumed_at", null);
+      if (!cancelled) setAvailableCredits((data || []).length);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [poolId, userId, entries.length]);
 
   const approved = entries.filter((e) => e.status === "approved");
   const isEstabelecimento = pool?.prize_type === "estabelecimento";
