@@ -552,7 +552,7 @@ const FootballPredictionForm = ({ poolId, userId, onSuccess, entryFee, pool, pix
 
       // Registra indicação se o usuário digitou um código válido e o bolão é elegível
       const codeTrimmed = referralCodeInput.trim().toUpperCase();
-      if (referralEligible && canEnterReferral && codeTrimmed.length > 0) {
+      if (referralEligible && canEnterReferral && codeTrimmed.length > 0 && livePaidSets > 0) {
         const { data: refUserId } = await supabase.rpc("get_user_id_by_referral_code", { _code: codeTrimmed });
         if (refUserId && refUserId !== userId) {
           const { error: refErr } = await supabase
