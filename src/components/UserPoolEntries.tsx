@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -43,6 +43,23 @@ const UserPoolEntries = ({
   const { toast } = useToast();
   const [showAddMoreForm, setShowAddMoreForm] = useState(false);
   const [processingEntryId, setProcessingEntryId] = useState<string | null>(null);
+  const [availableCredits, setAvailableCredits] = useState(0);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const { data } = await supabase
+        .from("referral_credits")
+        .select("id")
+        .eq("pool_id", poolId)
+        .eq("user_id", userId)
+        .is("consumed_at", null);
+      if (!cancelled) setAvailableCredits((data || []).length);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [poolId, userId, entries.length]);
 
   const approved = entries.filter((e) => e.status === "approved");
   const isEstabelecimento = pool?.prize_type === "estabelecimento";
@@ -435,12 +452,23 @@ const UserPoolEntries = ({
         <>
           {!showAddMoreForm ? (
             <Button
-              variant="outline"
               onClick={() => setShowAddMoreForm(true)}
-              className="w-full"
+              className={
+                availableCredits > 0
+                  ? "w-full h-auto py-3 bg-gradient-to-r from-primary via-accent to-secondary text-primary-foreground font-bold shadow-lg hover:opacity-90 flex-col gap-1"
+                  : "w-full"
+              }
+              variant={availableCredits > 0 ? "default" : "outline"}
             >
-              <Plus className="w-4 h-4 mr-2" />
-              Fazer mais palpites
+              <span className="flex items-center gap-2">
+                <Plus className="w-4 h-4" />
+                Fazer mais palpites
+              </span>
+              {availableCredits > 0 && (
+                <span className="text-xs font-semibold bg-background/20 px-2 py-0.5 rounded-full">
+                  🎁 Você tem {availableCredits} palpite{availableCredits > 1 ? "s" : ""} grátis disponíve{availableCredits > 1 ? "is" : "l"}!
+                </span>
+              )}
             </Button>
           ) : (
             <FootballPredictionForm
