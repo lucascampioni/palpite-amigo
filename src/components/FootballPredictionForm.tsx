@@ -75,6 +75,7 @@ const FootballPredictionForm = ({ poolId, userId, onSuccess, entryFee, pool, pix
   const [hasApprovedEntry, setHasApprovedEntry] = useState(false);
   const [referralCodeInput, setReferralCodeInput] = useState("");
   const [availableCredits, setAvailableCredits] = useState(0);
+  const [chargedFee, setChargedFee] = useState<number | null>(null);
 
   const isEstabelecimento = pool?.prize_type === 'estabelecimento';
   const hasEntryFee = !isEstabelecimento && pool?.entry_fee && parseFloat(pool.entry_fee) > 0;
