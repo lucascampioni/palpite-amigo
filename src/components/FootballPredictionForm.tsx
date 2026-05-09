@@ -75,6 +75,7 @@ const FootballPredictionForm = ({ poolId, userId, onSuccess, entryFee, pool, pix
   const [hasApprovedEntry, setHasApprovedEntry] = useState(false);
   const [referralCodeInput, setReferralCodeInput] = useState("");
   const [availableCredits, setAvailableCredits] = useState(0);
+  const [chargedFee, setChargedFee] = useState<number | null>(null);
 
   const isEstabelecimento = pool?.prize_type === 'estabelecimento';
   const hasEntryFee = !isEstabelecimento && pool?.entry_fee && parseFloat(pool.entry_fee) > 0;
@@ -370,8 +371,25 @@ const FootballPredictionForm = ({ poolId, userId, onSuccess, entryFee, pool, pix
     setShowDisclaimerDialog(false);
     setSubmitting(true);
 
+    // Re-fetch credits at submit time to avoid stale state (race with referral rewards)
+    let liveCredits = availableCredits;
+    if (hasEntryFee) {
+      const { count } = await supabase
+        .from("referral_credits")
+        .select("id", { count: "exact", head: true })
+        .eq("user_id", userId)
+        .eq("pool_id", poolId)
+        .is("consumed_at", null);
+      liveCredits = count || 0;
+      if (liveCredits !== availableCredits) setAvailableCredits(liveCredits);
+    }
+    const liveFreeSets = hasEntryFee ? Math.min(predictionSets.length, liveCredits) : 0;
+    const livePaidSets = hasEntryFee ? Math.max(0, predictionSets.length - liveCredits) : predictionSets.length;
+    const liveTotalFee = feePerSet * livePaidSets;
+    setChargedFee(liveTotalFee);
+
     // Determina status inicial: estabelecimento sempre aprovado; com taxa, aprovado se todos os palpites forem cobertos por créditos
-    const allCoveredByCredits = hasEntryFee && paidSets === 0;
+    const allCoveredByCredits = hasEntryFee && livePaidSets === 0;
     const initialStatus = isEstabelecimento || !hasEntryFee || allCoveredByCredits ? "approved" : "pending";
 
     // Find the max prediction_set already used by this user in this pool
@@ -515,14 +533,14 @@ const FootballPredictionForm = ({ poolId, userId, onSuccess, entryFee, pool, pix
       await supabase.from("participants").delete().eq("id", participant.id);
     } else {
       // Consumir créditos de indicação aplicáveis
-      if (freeSetsApplied > 0) {
+      if (liveFreeSets > 0) {
         const { data: creditsToConsume } = await supabase
           .from("referral_credits")
           .select("id")
           .eq("user_id", userId)
           .eq("pool_id", poolId)
           .is("consumed_at", null)
-          .limit(freeSetsApplied);
+          .limit(liveFreeSets);
         const ids = (creditsToConsume || []).map((c: any) => c.id);
         if (ids.length > 0) {
           await supabase
@@ -556,13 +574,13 @@ const FootballPredictionForm = ({ poolId, userId, onSuccess, entryFee, pool, pix
         }
       }
 
-      if (hasEntryFee && paidSets > 0) {
+      if (hasEntryFee && livePaidSets > 0) {
         setCreatedParticipantId(participant.id);
         setShowPaymentDialog(true);
       } else {
         toast({
           title: "🎉 Você está inscrito no bolão!",
-          description: `${predictionSets.length} palpite${predictionSets.length > 1 ? 's' : ''} salvo${predictionSets.length > 1 ? 's' : ''}${freeSetsApplied > 0 ? ` (${freeSetsApplied} grátis por indicação)` : ''}. Boa sorte! 🍀`,
+          description: `${predictionSets.length} palpite${predictionSets.length > 1 ? 's' : ''} salvo${predictionSets.length > 1 ? 's' : ''}${liveFreeSets > 0 ? ` (${liveFreeSets} grátis por indicação)` : ''}. Boa sorte! 🍀`,
           duration: 5000,
         });
       }
@@ -588,7 +606,7 @@ const FootballPredictionForm = ({ poolId, userId, onSuccess, entryFee, pool, pix
               </p>
               <p className="text-sm text-muted-foreground">
                 {predictionSets.length > 1
-                  ? `Você fez ${predictionSets.length} palpites. Valor total: R$ ${totalFee.toFixed(2).replace('.', ',')}. Envie o comprovante abaixo.`
+                  ? `Você fez ${predictionSets.length} palpites. Valor total: R$ ${(chargedFee ?? totalFee).toFixed(2).replace('.', ',')}. Envie o comprovante abaixo.`
                   : 'Para confirmar sua participação, envie o comprovante de pagamento abaixo.'}
               </p>
             </div>
@@ -601,7 +619,7 @@ const FootballPredictionForm = ({ poolId, userId, onSuccess, entryFee, pool, pix
                   </DialogTitle>
                   <DialogDescription>
                     {predictionSets.length > 1
-                      ? `Seus ${predictionSets.length} palpites foram salvos! Valor total: R$ ${totalFee.toFixed(2).replace('.', ',')}. Envie o comprovante.`
+                      ? `Seus ${predictionSets.length} palpites foram salvos! Valor total: R$ ${(chargedFee ?? totalFee).toFixed(2).replace('.', ',')}. Envie o comprovante.`
                       : 'Seus palpites foram salvos! Agora envie o comprovante para ser aprovado no bolão.'}
                   </DialogDescription>
                 </DialogHeader>
@@ -610,7 +628,7 @@ const FootballPredictionForm = ({ poolId, userId, onSuccess, entryFee, pool, pix
                     participantId={createdParticipantId}
                     poolId={poolId}
                     poolTitle={pool?.title || ''}
-                    entryFee={totalFee}
+                    entryFee={chargedFee ?? totalFee}
                     onSuccess={() => {
                       setShowPaymentDialog(false);
                       onSuccess();
@@ -621,7 +639,7 @@ const FootballPredictionForm = ({ poolId, userId, onSuccess, entryFee, pool, pix
                     participantId={createdParticipantId}
                     poolId={poolId}
                     poolTitle={pool?.title || ''}
-                    entryFee={totalFee}
+                    entryFee={chargedFee ?? totalFee}
                     pixKey={pixKey}
                     onSuccess={() => {
                       setShowPaymentDialog(false);
