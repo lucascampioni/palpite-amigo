@@ -606,7 +606,7 @@ const FootballPredictionForm = ({ poolId, userId, onSuccess, entryFee, pool, pix
               </p>
               <p className="text-sm text-muted-foreground">
                 {predictionSets.length > 1
-                  ? `Você fez ${predictionSets.length} palpites. Valor total: R$ ${totalFee.toFixed(2).replace('.', ',')}. Envie o comprovante abaixo.`
+                  ? `Você fez ${predictionSets.length} palpites. Valor total: R$ ${(chargedFee ?? totalFee).toFixed(2).replace('.', ',')}. Envie o comprovante abaixo.`
                   : 'Para confirmar sua participação, envie o comprovante de pagamento abaixo.'}
               </p>
             </div>
@@ -619,7 +619,7 @@ const FootballPredictionForm = ({ poolId, userId, onSuccess, entryFee, pool, pix
                   </DialogTitle>
                   <DialogDescription>
                     {predictionSets.length > 1
-                      ? `Seus ${predictionSets.length} palpites foram salvos! Valor total: R$ ${totalFee.toFixed(2).replace('.', ',')}. Envie o comprovante.`
+                      ? `Seus ${predictionSets.length} palpites foram salvos! Valor total: R$ ${(chargedFee ?? totalFee).toFixed(2).replace('.', ',')}. Envie o comprovante.`
                       : 'Seus palpites foram salvos! Agora envie o comprovante para ser aprovado no bolão.'}
                   </DialogDescription>
                 </DialogHeader>
@@ -628,7 +628,7 @@ const FootballPredictionForm = ({ poolId, userId, onSuccess, entryFee, pool, pix
                     participantId={createdParticipantId}
                     poolId={poolId}
                     poolTitle={pool?.title || ''}
-                    entryFee={totalFee}
+                    entryFee={chargedFee ?? totalFee}
                     onSuccess={() => {
                       setShowPaymentDialog(false);
                       onSuccess();
@@ -639,7 +639,7 @@ const FootballPredictionForm = ({ poolId, userId, onSuccess, entryFee, pool, pix
                     participantId={createdParticipantId}
                     poolId={poolId}
                     poolTitle={pool?.title || ''}
-                    entryFee={totalFee}
+                    entryFee={chargedFee ?? totalFee}
                     pixKey={pixKey}
                     onSuccess={() => {
                       setShowPaymentDialog(false);
