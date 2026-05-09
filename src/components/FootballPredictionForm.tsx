@@ -927,7 +927,7 @@ const FootballPredictionForm = ({ poolId, userId, onSuccess, entryFee, pool, pix
       )}
 
       {/* Código de indicação (apenas em bolões elegíveis) */}
-      {referralEligible && canEnterReferral && (!isEstabelecimento || estabelecimentoReady) && (
+      {referralEligible && canEnterReferral && (!isEstabelecimento || estabelecimentoReady) && predictionSets.length > availableCredits && (
         <div className="p-3 rounded-lg border-2 border-dashed border-primary/40 bg-primary/5 space-y-2">
           <Label htmlFor="referral-code" className="text-sm font-semibold flex items-center gap-2">
             🎁 Tem um código de indicação?
