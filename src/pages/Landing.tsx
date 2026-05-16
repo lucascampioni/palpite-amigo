@@ -204,10 +204,10 @@ const Landing = () => {
             <CardContent className="p-6 flex items-center gap-3">
               <Mail className="w-5 h-5 text-primary" />
               <a
-                href="mailto:admin@delfos.app.br"
+                href="mailto:comercial@delfos.app.br"
                 className="font-medium hover:underline"
               >
-                admin@delfos.app.br
+                comercial@delfos.app.br
               </a>
             </CardContent>
           </Card>
