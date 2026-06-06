@@ -1013,6 +1013,27 @@ export type Database = {
           },
         ]
       }
+      whatsapp_circuit_state: {
+        Row: {
+          consecutive_failures: number
+          id: number
+          paused_until: string | null
+          updated_at: string
+        }
+        Insert: {
+          consecutive_failures?: number
+          id?: number
+          paused_until?: string | null
+          updated_at?: string
+        }
+        Update: {
+          consecutive_failures?: number
+          id?: number
+          paused_until?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       whatsapp_otp: {
         Row: {
           code: string
@@ -1040,6 +1061,33 @@ export type Database = {
           phone?: string
           user_id?: string | null
           verified?: boolean
+        }
+        Relationships: []
+      }
+      whatsapp_send_log: {
+        Row: {
+          error: string | null
+          id: string
+          message_type: string
+          phone: string
+          sent_at: string
+          success: boolean
+        }
+        Insert: {
+          error?: string | null
+          id?: string
+          message_type: string
+          phone: string
+          sent_at?: string
+          success: boolean
+        }
+        Update: {
+          error?: string | null
+          id?: string
+          message_type?: string
+          phone?: string
+          sent_at?: string
+          success?: boolean
         }
         Relationships: []
       }
