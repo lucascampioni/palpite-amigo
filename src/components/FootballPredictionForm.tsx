@@ -404,7 +404,7 @@ const FootballPredictionForm = ({ poolId, userId, onSuccess, entryFee, pool, pix
 
     // Re-fetch credits at submit time to avoid stale state (race with referral rewards)
     let liveCredits = availableCredits;
-    if (hasEntryFee) {
+    if (hasEntryFee || isFreePool) {
       const { count } = await supabase
         .from("referral_credits")
         .select("id", { count: "exact", head: true })
@@ -414,7 +414,11 @@ const FootballPredictionForm = ({ poolId, userId, onSuccess, entryFee, pool, pix
       liveCredits = count || 0;
       if (liveCredits !== availableCredits) setAvailableCredits(liveCredits);
     }
-    const liveFreeSets = hasEntryFee ? Math.min(predictionSets.length, liveCredits) : 0;
+    const liveFreeSets = hasEntryFee
+      ? Math.min(predictionSets.length, liveCredits)
+      : isFreePool && hasApprovedEntry
+        ? Math.min(predictionSets.length, liveCredits)
+        : 0;
     const livePaidSets = hasEntryFee ? Math.max(0, predictionSets.length - liveCredits) : predictionSets.length;
     const liveTotalFee = feePerSet * livePaidSets;
     setChargedFee(liveTotalFee);
