@@ -1353,7 +1353,7 @@ const CreateFootballPool = () => {
                           )}
                           <div className="flex items-center gap-1.5 flex-wrap">
                             {match.homeTeamCrest && (
-                              <img src={match.homeTeamCrest} alt={match.homeTeam} className="w-5 h-5 object-contain" onError={(e) => { e.currentTarget.style.display = 'none'; }} />
+                              <img src={proxyCrest(match.homeTeamCrest)} alt={match.homeTeam} className="w-5 h-5 object-contain" onError={(e) => { e.currentTarget.style.display = 'none'; }} />
                             )}
                             <span className="font-semibold text-sm sm:text-base">{match.homeTeam}</span>
                             <span className="text-muted-foreground text-xs">x</span>
