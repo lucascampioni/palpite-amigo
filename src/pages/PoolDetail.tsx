@@ -1221,7 +1221,7 @@ const PoolDetail = () => {
                             <div className="flex-1 min-w-0">
                               <div className="flex items-center gap-2 flex-wrap">
                                 {match.home_team_crest && (
-                                  <img src={match.home_team_crest} alt="" className="w-5 h-5 object-contain" onError={(e) => { e.currentTarget.style.display = 'none'; }} />
+                                  <img src={proxyCrest(match.home_team_crest)} alt="" className="w-5 h-5 object-contain" onError={(e) => { e.currentTarget.style.display = 'none'; }} />
                                 )}
                                 <span className="font-medium text-sm">{match.home_team}</span>
                                 <span className="text-muted-foreground text-xs">x</span>
