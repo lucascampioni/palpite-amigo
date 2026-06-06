@@ -54,12 +54,24 @@ const UserPoolEntries = ({
         .eq("pool_id", poolId)
         .eq("user_id", userId)
         .is("consumed_at", null);
-      if (!cancelled) setAvailableCredits((data || []).length);
+      if (cancelled) return;
+      const unconsumed = (data || []).length;
+      // For free pools, discount credits already implicitly used by extra approved entries
+      // (baseline allowance = 1; each approved entry beyond the first consumes a credit)
+      const isFreePool = !pool?.prize_type || pool?.prize_type !== "estabelecimento";
+      const hasFee = pool?.entry_fee && parseFloat(pool.entry_fee) > 0;
+      if (isFreePool && !hasFee) {
+        const approvedCount = entries.filter((e) => e.status === "approved").length;
+        const extraEntries = Math.max(0, approvedCount - 1);
+        setAvailableCredits(Math.max(0, unconsumed - extraEntries));
+      } else {
+        setAvailableCredits(unconsumed);
+      }
     })();
     return () => {
       cancelled = true;
     };
-  }, [poolId, userId, entries.length]);
+  }, [poolId, userId, entries.length, pool?.prize_type, pool?.entry_fee]);
 
   const approved = entries.filter((e) => e.status === "approved");
   const isEstabelecimento = pool?.prize_type === "estabelecimento";
