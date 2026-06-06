@@ -10,6 +10,7 @@ import { abbreviateTeamName } from "@/lib/team-utils";
 import { ptBR } from "date-fns/locale";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { WORLD_CUP_2026_MATCHES, WORLD_CUP_2026_CHAMPIONSHIP_PREFIX } from "@/lib/world-cup-2026";
+import { proxyCrest } from "@/lib/team-crest";
 
 interface GEMatch {
   homeTeam: string;
