@@ -76,15 +76,20 @@ const FootballPredictionForm = ({ poolId, userId, onSuccess, entryFee, pool, pix
   const [referralCodeInput, setReferralCodeInput] = useState("");
   const [availableCredits, setAvailableCredits] = useState(0);
   const [chargedFee, setChargedFee] = useState<number | null>(null);
+  const [freeAllowance, setFreeAllowance] = useState<number>(1);
+  const [freeUsed, setFreeUsed] = useState<number>(0);
+  const [freeHasUsedCode, setFreeHasUsedCode] = useState<boolean>(false);
 
-  const isEstabelecimento = pool?.prize_type === 'estabelecimento';
-  const hasEntryFee = !isEstabelecimento && pool?.entry_fee && parseFloat(pool.entry_fee) > 0;
+  const isFreePool = !!pool?.is_free_pool;
+  const isEstabelecimento = !isFreePool && pool?.prize_type === 'estabelecimento';
+  const hasEntryFee = !isFreePool && !isEstabelecimento && pool?.entry_fee && parseFloat(pool.entry_fee) > 0;
   const feePerSet = hasEntryFee ? parseFloat(pool.entry_fee) : 0;
   // Quantos palpites são cobertos pelos créditos vs pagos
   const freeSetsApplied = hasEntryFee ? Math.min(predictionSets.length, availableCredits) : 0;
   const paidSets = hasEntryFee ? Math.max(0, predictionSets.length - availableCredits) : predictionSets.length;
   const totalFee = feePerSet * paidSets;
   const isInAppPayment = hasEntryFee && pool?.payment_method === 'in_app';
+  const freeRemaining = Math.max(0, freeAllowance - freeUsed);
 
   // Calcula taxa do app por palpite (para exibição)
   const appFeePerSet = (() => {
