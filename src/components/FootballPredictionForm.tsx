@@ -1245,7 +1245,7 @@ const FootballPredictionForm = ({ poolId, userId, onSuccess, entryFee, pool, pix
               onClick={() => {
                 setShowFreePoolConfirmDialog(false);
                 setFreePoolConfirmed(true);
-                setTimeout(() => proceedToDisclaimer(), 0);
+                handleConfirmSubmit();
               }}
             >
               Sim, enviar palpite
