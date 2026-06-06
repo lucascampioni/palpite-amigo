@@ -334,6 +334,16 @@ const FootballPredictionForm = ({ poolId, userId, onSuccess, entryFee, pool, pix
   };
 
   const handleSubmitClick = () => {
+    // Free pool: bloquear se acabaram as entradas
+    if (isFreePool && freeRemaining <= 0) {
+      toast({
+        variant: "destructive",
+        title: "Sem entradas disponíveis",
+        description: "Você já usou todas as suas entradas. Compartilhe seu código de indicação para ganhar mais.",
+      });
+      return;
+    }
+
     // For estabelecimento pools, check that user was registered
     if (isEstabelecimento && !estabelecimentoReady) {
       toast({
