@@ -85,6 +85,7 @@ const CreateFootballPool = () => {
   const [savingInlinePix, setSavingInlinePix] = useState(false);
   const [guaranteedPrize, setGuaranteedPrize] = useState(false);
   const [waivePlatformFee, setWaivePlatformFee] = useState(false);
+  const [isFreePool, setIsFreePool] = useState(false);
 
   const buildFullAddress = () => {
     const addressParts = [
@@ -286,7 +287,7 @@ const CreateFootballPool = () => {
     const title = (formData.get("title") as string) || "";
     const description = (formData.get("description") as string) || "";
     const pixKeyValue = pixKey;
-    const entryFee = (formData.get("entry_fee") as string) || "";
+    const entryFee = isFreePool ? "0" : ((formData.get("entry_fee") as string) || "");
     const maxParticipants = (formData.get("max_participants") as string) || "";
 
     // Validate input
@@ -447,6 +448,7 @@ const CreateFootballPool = () => {
         payment_method: (userRole?.canReceiveInApp && entryFee && parseFloat(entryFee) > 0) ? paymentMethod : 'pix_manual',
         guaranteed_prize: userRole?.isAdmin && prizeType === 'fixed' ? guaranteedPrize : false,
         waive_platform_fee: userRole?.isAdmin ? waivePlatformFee : false,
+        is_free_pool: userRole?.isAdmin ? isFreePool : false,
       } as any])
       .select()
       .single();
@@ -615,7 +617,27 @@ const CreateFootballPool = () => {
                 />
               </div>
 
-              {userRole?.isEstabelecimento ? (
+              {userRole?.isAdmin && (
+                <div className="p-4 rounded-lg border-2 border-dashed border-primary/40 bg-primary/5 space-y-2">
+                  <div className="flex items-center justify-between gap-3">
+                    <div>
+                      <Label htmlFor="free-pool" className="text-base font-semibold flex items-center gap-2">
+                        🎁 Bolão gratuito
+                      </Label>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Cada usuário começa com 1 entrada grátis. Para ganhar entradas extras, precisa indicar
+                        outras pessoas — cada amigo que usar o código dele ao entrar dá +1 entrada.
+                        Sem taxa, sem PIX.
+                      </p>
+                    </div>
+                    <Switch id="free-pool" checked={isFreePool} onCheckedChange={setIsFreePool} />
+                  </div>
+                </div>
+              )}
+
+              {isFreePool ? (
+                <input type="hidden" name="entry_fee" value="0" />
+              ) : userRole?.isEstabelecimento ? (
                 <div className="space-y-2">
                   <Label htmlFor="entry_fee">Valor de Entrada *</Label>
                   <Input

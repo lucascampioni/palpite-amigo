@@ -76,15 +76,20 @@ const FootballPredictionForm = ({ poolId, userId, onSuccess, entryFee, pool, pix
   const [referralCodeInput, setReferralCodeInput] = useState("");
   const [availableCredits, setAvailableCredits] = useState(0);
   const [chargedFee, setChargedFee] = useState<number | null>(null);
+  const [freeAllowance, setFreeAllowance] = useState<number>(1);
+  const [freeUsed, setFreeUsed] = useState<number>(0);
+  const [freeHasUsedCode, setFreeHasUsedCode] = useState<boolean>(false);
 
-  const isEstabelecimento = pool?.prize_type === 'estabelecimento';
-  const hasEntryFee = !isEstabelecimento && pool?.entry_fee && parseFloat(pool.entry_fee) > 0;
+  const isFreePool = !!pool?.is_free_pool;
+  const isEstabelecimento = !isFreePool && pool?.prize_type === 'estabelecimento';
+  const hasEntryFee = !isFreePool && !isEstabelecimento && pool?.entry_fee && parseFloat(pool.entry_fee) > 0;
   const feePerSet = hasEntryFee ? parseFloat(pool.entry_fee) : 0;
   // Quantos palpites são cobertos pelos créditos vs pagos
   const freeSetsApplied = hasEntryFee ? Math.min(predictionSets.length, availableCredits) : 0;
   const paidSets = hasEntryFee ? Math.max(0, predictionSets.length - availableCredits) : predictionSets.length;
   const totalFee = feePerSet * paidSets;
   const isInAppPayment = hasEntryFee && pool?.payment_method === 'in_app';
+  const freeRemaining = Math.max(0, freeAllowance - freeUsed);
 
   // Calcula taxa do app por palpite (para exibição)
   const appFeePerSet = (() => {
@@ -98,6 +103,20 @@ const FootballPredictionForm = ({ poolId, userId, onSuccess, entryFee, pool, pix
   useEffect(() => {
     loadMatches();
   }, [poolId]);
+
+  useEffect(() => {
+    if (!isFreePool) return;
+    let cancelled = false;
+    (async () => {
+      const { data } = await supabase.rpc("free_pool_allowance", { p_pool_id: poolId, p_user_id: userId });
+      if (cancelled || !data) return;
+      const d = data as { allowance: number; used: number; has_used_code: boolean };
+      setFreeAllowance(d.allowance ?? 1);
+      setFreeUsed(d.used ?? 0);
+      setFreeHasUsedCode(!!d.has_used_code);
+    })();
+    return () => { cancelled = true; };
+  }, [isFreePool, poolId, userId]);
 
   useEffect(() => {
     if (!isInAppPayment) return;
@@ -255,6 +274,7 @@ const FootballPredictionForm = ({ poolId, userId, onSuccess, entryFee, pool, pix
 
 
   const addPredictionSet = () => {
+    if (isFreePool) return; // bolão grátis: 1 palpite por entrada
     setPredictionSets(prev => [
       ...prev,
       matches.map(m => ({ matchId: m.id, homeScore: '', awayScore: '' }))
@@ -314,6 +334,16 @@ const FootballPredictionForm = ({ poolId, userId, onSuccess, entryFee, pool, pix
   };
 
   const handleSubmitClick = () => {
+    // Free pool: bloquear se acabaram as entradas
+    if (isFreePool && freeRemaining <= 0) {
+      toast({
+        variant: "destructive",
+        title: "Sem entradas disponíveis",
+        description: "Você já usou todas as suas entradas. Compartilhe seu código de indicação para ganhar mais.",
+      });
+      return;
+    }
+
     // For estabelecimento pools, check that user was registered
     if (isEstabelecimento && !estabelecimentoReady) {
       toast({
@@ -570,6 +600,26 @@ const FootballPredictionForm = ({ poolId, userId, onSuccess, entryFee, pool, pix
                 body: { pool_id: poolId, referred_user_id: userId },
               })
               .catch(() => {});
+          }
+        }
+      }
+
+      // Free pool: registra indicação na primeira entrada do usuário
+      if (isFreePool && !freeHasUsedCode) {
+        const codeTrimmedFree = referralCodeInput.trim().toUpperCase();
+        if (codeTrimmedFree.length > 0) {
+          const { data: refUserId } = await supabase.rpc("get_user_id_by_referral_code", { _code: codeTrimmedFree });
+          if (refUserId && refUserId !== userId) {
+            await supabase
+              .from("pool_referrals")
+              .insert({
+                pool_id: poolId,
+                referrer_user_id: refUserId,
+                referred_user_id: userId,
+                referred_participant_id: participant.id,
+                status: "approved",
+              });
+            setFreeHasUsedCode(true);
           }
         }
       }
@@ -898,8 +948,8 @@ const FootballPredictionForm = ({ poolId, userId, onSuccess, entryFee, pool, pix
       })
       )}
 
-      {/* Add prediction set button + fee warning (hide for estabelecimento) */}
-      {!isEstabelecimento && (
+      {/* Add prediction set button + fee warning (hide for estabelecimento e bolão grátis) */}
+      {!isEstabelecimento && !isFreePool && (
         <div className="space-y-2">
           <Button
             variant="outline"
@@ -918,6 +968,40 @@ const FootballPredictionForm = ({ poolId, userId, onSuccess, entryFee, pool, pix
             <p className="text-xs text-center text-orange-600 dark:text-orange-400 font-medium">
               ⚠️ Cada palpite adicional acrescenta <strong>R$ {feePerSet.toFixed(2).replace('.', ',')}</strong> ao valor da inscrição
             </p>
+          )}
+        </div>
+      )}
+
+      {/* Bolão grátis: status de entradas + código de indicação na 1ª entrada */}
+      {isFreePool && (
+        <div className="space-y-2">
+          <div className="p-3 rounded-lg border-2 border-emerald-500/30 bg-emerald-500/10 text-sm">
+            <p className="font-semibold text-emerald-700 dark:text-emerald-400">
+              🎁 Bolão gratuito — {freeRemaining} de {freeAllowance} entrada{freeAllowance > 1 ? 's' : ''} disponível{freeRemaining !== 1 ? 'is' : ''}
+            </p>
+            <p className="text-xs text-muted-foreground mt-1">
+              Cada amigo que usar o seu código de indicação ao entrar te dá <strong>+1 entrada</strong> neste bolão.
+              {freeUsed > 0 && <> Você já enviou {freeUsed} palpite{freeUsed > 1 ? 's' : ''}.</>}
+            </p>
+          </div>
+
+          {!freeHasUsedCode && freeUsed === 0 && (
+            <div className="p-3 rounded-lg border-2 border-dashed border-primary/40 bg-primary/5 space-y-2">
+              <Label htmlFor="free-referral-code" className="text-sm font-semibold flex items-center gap-2">
+                🤝 Foi indicado por alguém? (opcional)
+              </Label>
+              <p className="text-xs text-muted-foreground">
+                Digite o código de indicação de quem te chamou para o bolão. Essa pessoa ganha <strong>+1 entrada</strong> automaticamente.
+              </p>
+              <Input
+                id="free-referral-code"
+                placeholder="Ex.: ABC123"
+                value={referralCodeInput}
+                onChange={(e) => setReferralCodeInput(e.target.value.toUpperCase().slice(0, 12))}
+                className="uppercase tracking-widest font-mono"
+                maxLength={12}
+              />
+            </div>
           )}
         </div>
       )}
