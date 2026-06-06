@@ -209,6 +209,7 @@ serve(async (req) => {
 
     if (!estabError && estabPools && estabPools.length > 0) {
       for (const pool of estabPools) {
+        if (actionsLeft() <= 0) break;
         const deadlineTime = new Date(pool.deadline);
         if (now <= deadlineTime) continue; // deadline not passed yet
 
@@ -231,7 +232,8 @@ serve(async (req) => {
         const noPredictions = approvedParticipants.filter(p => !withPredictions.has(p.id));
 
         if (noPredictions.length > 0) {
-          const ids = noPredictions.map(p => p.id);
+          const capped = noPredictions.slice(0, actionsLeft());
+          const ids = capped.map(p => p.id);
           const { error: updateErr } = await supabase
             .from('participants')
             .update({
@@ -241,7 +243,7 @@ serve(async (req) => {
             })
             .in('id', ids);
 
-          noPredictions.forEach(p => {
+          capped.forEach(p => {
             results.push({
               action: 'estab_reject_no_predictions',
               pool: pool.title,
