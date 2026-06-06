@@ -105,6 +105,20 @@ const FootballPredictionForm = ({ poolId, userId, onSuccess, entryFee, pool, pix
   }, [poolId]);
 
   useEffect(() => {
+    if (!isFreePool) return;
+    let cancelled = false;
+    (async () => {
+      const { data } = await supabase.rpc("free_pool_allowance", { p_pool_id: poolId, p_user_id: userId });
+      if (cancelled || !data) return;
+      const d = data as { allowance: number; used: number; has_used_code: boolean };
+      setFreeAllowance(d.allowance ?? 1);
+      setFreeUsed(d.used ?? 0);
+      setFreeHasUsedCode(!!d.has_used_code);
+    })();
+    return () => { cancelled = true; };
+  }, [isFreePool, poolId, userId]);
+
+  useEffect(() => {
     if (!isInAppPayment) return;
     (async () => {
       const { data } = await supabase
