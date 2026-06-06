@@ -19,6 +19,9 @@ serve(async (req) => {
 
     const now = new Date();
     const results: { action: string; pool: string; participant: string; success: boolean; error?: string }[] = [];
+    const MAX_ACTIONS_PER_RUN = 5;
+    const actionsLeft = () => MAX_ACTIONS_PER_RUN - results.length;
+    const capIds = (ids: string[]) => ids.slice(0, Math.max(0, actionsLeft()));
 
     // Get all active paid pools
     const { data: pools, error: poolsError } = await supabase
