@@ -13,6 +13,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { proxyCrest } from "@/lib/team-crest";
 import { Switch } from "@/components/ui/switch";
 import DeclareResultDialog from "@/components/DeclareResultDialog";
 import WinnerDisplay from "@/components/WinnerDisplay";
