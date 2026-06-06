@@ -398,7 +398,7 @@ export const GEMatchSelector = ({ open, onOpenChange, onMatchesSelected, minMinu
                                       <span className="text-muted-foreground text-xs">x</span>
                                       <span className="font-medium text-xs sm:text-sm truncate">{abbreviateTeamName(match.awayTeam)}</span>
                                       {match.awayTeamCrest && (
-                                        <img src={match.awayTeamCrest} alt="" className="w-5 h-5 object-contain flex-shrink-0" onError={e => { e.currentTarget.style.display = 'none'; }} />
+                                        <img src={proxyCrest(match.awayTeamCrest)} alt="" className="w-5 h-5 object-contain flex-shrink-0" onError={e => { e.currentTarget.style.display = 'none'; }} />
                                       )}
                                     </div>
                                     <span className="text-xs text-muted-foreground ml-1 flex-shrink-0">
