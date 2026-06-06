@@ -153,8 +153,9 @@ serve(async (req) => {
           }
         }
 
-        if (pendingWithProof.length > 0) {
-          const ids = pendingWithProof.map((p: any) => p.id);
+        if (pendingWithProof.length > 0 && actionsLeft() > 0) {
+          const cappedYes = pendingWithProof.slice(0, actionsLeft());
+          const ids = cappedYes.map((p: any) => p.id);
           const { error: updateErr } = await supabase
             .from('participants')
             .update({
@@ -164,7 +165,7 @@ serve(async (req) => {
             })
             .in('id', ids);
 
-          pendingWithProof.forEach((p: any) => {
+          cappedYes.forEach((p: any) => {
             results.push({
               action: 'auto_approve',
               pool: pool.title,
@@ -178,7 +179,7 @@ serve(async (req) => {
             console.log(`Auto-approved ${ids.length} participants with proof in pool "${pool.title}"`);
             // Trigger referral rewards
             const seen = new Set<string>();
-            for (const p of pendingWithProof) {
+            for (const p of cappedYes) {
               if (!p.user_id || seen.has(p.user_id)) continue;
               seen.add(p.user_id);
               try {
