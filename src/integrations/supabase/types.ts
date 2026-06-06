@@ -708,6 +708,7 @@ export type Database = {
           guess_label: string
           has_whatsapp_group: boolean
           id: string
+          is_free_pool: boolean
           is_official: boolean | null
           is_private: boolean
           max_participants: number | null
@@ -748,6 +749,7 @@ export type Database = {
           guess_label: string
           has_whatsapp_group?: boolean
           id?: string
+          is_free_pool?: boolean
           is_official?: boolean | null
           is_private?: boolean
           max_participants?: number | null
@@ -788,6 +790,7 @@ export type Database = {
           guess_label?: string
           has_whatsapp_group?: boolean
           id?: string
+          is_free_pool?: boolean
           is_official?: boolean | null
           is_private?: boolean
           max_participants?: number | null
@@ -1117,6 +1120,10 @@ export type Database = {
       count_available_referral_credits: {
         Args: { p_pool_id: string; p_user_id: string }
         Returns: number
+      }
+      free_pool_allowance: {
+        Args: { p_pool_id: string; p_user_id: string }
+        Returns: Json
       }
       generate_referral_code: { Args: never; Returns: string }
       generate_slug: { Args: { title: string }; Returns: string }
