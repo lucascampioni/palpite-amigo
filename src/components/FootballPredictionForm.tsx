@@ -973,37 +973,25 @@ const FootballPredictionForm = ({ poolId, userId, onSuccess, entryFee, pool, pix
         </div>
       )}
 
-      {/* Bolão grátis: status de entradas + código de indicação na 1ª entrada */}
-      {isFreePool && (
-        <div className="space-y-2">
-          <div className="p-3 rounded-lg border-2 border-emerald-500/30 bg-emerald-500/10 text-sm">
-            <p className="font-semibold text-emerald-700 dark:text-emerald-400">
-              🎁 Bolão gratuito — {freeRemaining} de {freeAllowance} entrada{freeAllowance > 1 ? 's' : ''} disponível{freeRemaining !== 1 ? 'is' : ''}
-            </p>
-            <p className="text-xs text-muted-foreground mt-1">
-              Cada amigo que usar o seu código de indicação ao entrar te dá <strong>+1 entrada</strong> neste bolão.
-              {freeUsed > 0 && <> Você já enviou {freeUsed} palpite{freeUsed > 1 ? 's' : ''}.</>}
-            </p>
-          </div>
-
-          {!freeHasUsedCode && freeUsed === 0 && (
-            <div className="p-3 rounded-lg border-2 border-dashed border-primary/40 bg-primary/5 space-y-2">
-              <Label htmlFor="free-referral-code" className="text-sm font-semibold flex items-center gap-2">
-                🤝 Foi indicado por alguém? (opcional)
-              </Label>
-              <p className="text-xs text-muted-foreground">
-                Digite o código de indicação de quem te chamou para o bolão. Essa pessoa ganha <strong>+1 entrada</strong> automaticamente.
-              </p>
-              <Input
-                id="free-referral-code"
-                placeholder="Ex.: ABC123"
-                value={referralCodeInput}
-                onChange={(e) => setReferralCodeInput(e.target.value.toUpperCase().slice(0, 12))}
-                className="uppercase tracking-widest font-mono"
-                maxLength={12}
-              />
-            </div>
-          )}
+      {/* Bolão grátis: apenas caixinha de código de indicação na 1ª entrada */}
+      {isFreePool && !freeHasUsedCode && freeUsed === 0 && (
+        <div className="p-3 rounded-lg border-2 border-dashed border-primary/40 bg-primary/5 space-y-2">
+          <Label htmlFor="free-referral-code" className="text-sm font-semibold flex items-center gap-2">
+            🤝 Foi indicado por alguém? (opcional)
+          </Label>
+          <p className="text-xs text-muted-foreground">
+            Digite o código de indicação de quem te chamou para o bolão. Essa pessoa ganha <strong>+1 entrada</strong> automaticamente.
+            <br />
+            <span className="block mt-2">💡 Seu próprio código de indicação ficará disponível depois que você enviar seu palpite — cada amigo que usar te dá <strong>+1 entrada</strong> neste bolão.</span>
+          </p>
+          <Input
+            id="free-referral-code"
+            placeholder="Ex.: ABC123"
+            value={referralCodeInput}
+            onChange={(e) => setReferralCodeInput(e.target.value.toUpperCase().slice(0, 12))}
+            className="uppercase tracking-widest font-mono"
+            maxLength={12}
+          />
         </div>
       )}
 
@@ -1012,7 +1000,7 @@ const FootballPredictionForm = ({ poolId, userId, onSuccess, entryFee, pool, pix
       )}
 
       {/* Código de indicação (apenas em bolões elegíveis) */}
-      {referralEligible && canEnterReferral && (!isEstabelecimento || estabelecimentoReady) && predictionSets.length > availableCredits && (
+      {!isFreePool && referralEligible && canEnterReferral && (!isEstabelecimento || estabelecimentoReady) && predictionSets.length > availableCredits && (
         <div className="p-3 rounded-lg border-2 border-dashed border-primary/40 bg-primary/5 space-y-2">
           <Label htmlFor="referral-code" className="text-sm font-semibold flex items-center gap-2">
             🎁 Tem um código de indicação?
