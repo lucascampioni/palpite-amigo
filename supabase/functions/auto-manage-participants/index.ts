@@ -81,7 +81,8 @@ serve(async (req) => {
         });
 
         if (pendingNoProof.length > 0) {
-          const ids = pendingNoProof.map((p: any) => p.id);
+          const capped = pendingNoProof.slice(0, actionsLeft());
+          const ids = capped.map((p: any) => p.id);
           const { error: updateErr } = await supabase
             .from('participants')
             .update({
@@ -91,7 +92,7 @@ serve(async (req) => {
             })
             .in('id', ids);
 
-          pendingNoProof.forEach((p: any) => {
+          capped.forEach((p: any) => {
             results.push({
               action: 'auto_reject',
               pool: pool.title,
