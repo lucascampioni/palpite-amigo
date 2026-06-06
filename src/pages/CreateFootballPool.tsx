@@ -19,6 +19,7 @@ import { PixKeyInput } from "@/components/PixKeyInput";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { z } from "zod";
+import { proxyCrest } from "@/lib/team-crest";
 
 const footballPoolSchema = z.object({
   title: z.string().trim().min(1, "Título é obrigatório").max(200, "Título muito longo"),
