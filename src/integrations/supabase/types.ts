@@ -47,6 +47,42 @@ export type Database = {
         }
         Relationships: []
       }
+      broadcast_queue: {
+        Row: {
+          attempted_at: string | null
+          campaign: string
+          created_at: string
+          error: string | null
+          id: string
+          phone: string
+          sent_at: string | null
+          status: string
+          user_id: string | null
+        }
+        Insert: {
+          attempted_at?: string | null
+          campaign: string
+          created_at?: string
+          error?: string | null
+          id?: string
+          phone: string
+          sent_at?: string | null
+          status?: string
+          user_id?: string | null
+        }
+        Update: {
+          attempted_at?: string | null
+          campaign?: string
+          created_at?: string
+          error?: string | null
+          id?: string
+          phone?: string
+          sent_at?: string | null
+          status?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       communities: {
         Row: {
           created_at: string
