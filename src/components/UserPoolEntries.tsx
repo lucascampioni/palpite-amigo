@@ -448,7 +448,10 @@ const UserPoolEntries = ({
       )}
 
       {/* Add more predictions */}
-      {!isPastDeadline && pool.status === "active" && (
+      {!isPastDeadline && pool.status === "active" && (() => {
+        const isFreePool = !isEstabelecimento && !hasEntryFee;
+        if (isFreePool && availableCredits <= 0) return null;
+        return (
         <>
           {!showAddMoreForm ? (
             availableCredits > 0 ? (
@@ -496,7 +499,9 @@ const UserPoolEntries = ({
             />
           )}
         </>
-      )}
+        );
+      })()}
+
     </div>
   );
 };
