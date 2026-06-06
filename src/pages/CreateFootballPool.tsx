@@ -448,6 +448,7 @@ const CreateFootballPool = () => {
         payment_method: (userRole?.canReceiveInApp && entryFee && parseFloat(entryFee) > 0) ? paymentMethod : 'pix_manual',
         guaranteed_prize: userRole?.isAdmin && prizeType === 'fixed' ? guaranteedPrize : false,
         waive_platform_fee: userRole?.isAdmin ? waivePlatformFee : false,
+        is_free_pool: userRole?.isAdmin ? isFreePool : false,
       } as any])
       .select()
       .single();
