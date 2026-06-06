@@ -1260,7 +1260,7 @@ const PoolDetail = () => {
                       <span className="flex items-center gap-1 whitespace-nowrap">
                         <Users className="w-3.5 h-3.5" />
                         {displayCount} palpite{displayCount !== 1 ? 's' : ''}
-                        {pool.max_participants && displayCount >= pool.max_participants && (
+                        {!!pool.max_participants && displayCount >= pool.max_participants && (
                           <span className="text-destructive text-xs">(Cheio)</span>
                         )}
                       </span>
