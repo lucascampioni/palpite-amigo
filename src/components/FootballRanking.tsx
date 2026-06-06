@@ -9,6 +9,7 @@ import { ptBR } from "date-fns/locale";
 import { abbreviateTeamName } from "@/lib/team-utils";
 import { Button } from "@/components/ui/button";
 import { isWorldCupMatch, extractGroup, hasAllWorldCupGroupMatches } from "@/lib/world-cup-2026";
+import { proxyCrest } from "@/lib/team-crest";
 
 interface FootballRankingProps {
   poolId: string;
@@ -809,9 +810,9 @@ const FootballRanking = ({ poolId, pool, approvedParticipantsCount, isOwner }: F
       <div className="mt-1.5 flex flex-wrap gap-1 pl-10 sm:pl-12">
         {validPreds.map(pred => (
           <span key={pred.match_id} className="inline-flex items-center gap-0.5 text-[0.6rem] bg-background/80 border border-border/50 rounded px-1 py-0.5">
-            {pred.home_team_crest && <img src={pred.home_team_crest} alt="" className="w-3 h-3 object-contain" />}
+            {pred.home_team_crest && <img src={proxyCrest(pred.home_team_crest)} alt="" className="w-3 h-3 object-contain" />}
             <span className="font-mono font-semibold">{pred.home_score_prediction}-{pred.away_score_prediction}</span>
-            {pred.away_team_crest && <img src={pred.away_team_crest} alt="" className="w-3 h-3 object-contain" />}
+            {pred.away_team_crest && <img src={proxyCrest(pred.away_team_crest)} alt="" className="w-3 h-3 object-contain" />}
           </span>
         ))}
       </div>
@@ -1569,11 +1570,11 @@ const FootballRanking = ({ poolId, pool, approvedParticipantsCount, isOwner }: F
                                               <div className="flex items-center gap-1.5 min-w-0 flex-1">
                                                 <div className="flex items-center gap-0.5 flex-shrink-0">
                                                   {pred.home_team_crest && (
-                                                    <img src={pred.home_team_crest} alt={pred.home_team} className="w-4 h-4 object-contain" />
+                                                    <img src={proxyCrest(pred.home_team_crest)} alt={pred.home_team} className="w-4 h-4 object-contain" />
                                                   )}
                                                   <span className="text-[0.6rem] font-mono font-bold text-foreground">{pred.home_score_prediction}-{pred.away_score_prediction}</span>
                                                   {pred.away_team_crest && (
-                                                    <img src={pred.away_team_crest} alt={pred.away_team} className="w-4 h-4 object-contain" />
+                                                    <img src={proxyCrest(pred.away_team_crest)} alt={pred.away_team} className="w-4 h-4 object-contain" />
                                                   )}
                                                 </div>
                                                 <Badge className={`text-[0.55rem] px-1 py-0 flex-shrink-0 ${getMatchStatusLabel(pred.status)?.className || ''}`}>
@@ -1631,11 +1632,11 @@ const FootballRanking = ({ poolId, pool, approvedParticipantsCount, isOwner }: F
                                             <div className="flex items-center gap-1.5 min-w-0 flex-1">
                                               <div className="flex items-center gap-0.5 flex-shrink-0">
                                                 {pred.home_team_crest && (
-                                                  <img src={pred.home_team_crest} alt={pred.home_team} className="w-4 h-4 object-contain" />
+                                                  <img src={proxyCrest(pred.home_team_crest)} alt={pred.home_team} className="w-4 h-4 object-contain" />
                                                 )}
                                                 <span className="text-[0.6rem] font-mono font-bold text-foreground">{pred.home_score_prediction}-{pred.away_score_prediction}</span>
                                                 {pred.away_team_crest && (
-                                                  <img src={pred.away_team_crest} alt={pred.away_team} className="w-4 h-4 object-contain" />
+                                                  <img src={proxyCrest(pred.away_team_crest)} alt={pred.away_team} className="w-4 h-4 object-contain" />
                                                 )}
                                               </div>
                                               {(() => {
@@ -1860,11 +1861,11 @@ const FootballRanking = ({ poolId, pool, approvedParticipantsCount, isOwner }: F
                                              <div className="flex items-center gap-1.5 min-w-0 flex-1">
                                                <div className="flex items-center gap-0.5 flex-shrink-0">
                                                  {pred.home_team_crest && (
-                                                   <img src={pred.home_team_crest} alt={pred.home_team} className="w-4 h-4 object-contain" />
+                                                   <img src={proxyCrest(pred.home_team_crest)} alt={pred.home_team} className="w-4 h-4 object-contain" />
                                                  )}
                                                   <span className="text-[0.6rem] font-mono font-bold text-foreground">{pred.home_score_prediction}-{pred.away_score_prediction}</span>
                                                  {pred.away_team_crest && (
-                                                   <img src={pred.away_team_crest} alt={pred.away_team} className="w-4 h-4 object-contain" />
+                                                   <img src={proxyCrest(pred.away_team_crest)} alt={pred.away_team} className="w-4 h-4 object-contain" />
                                                  )}
                                                </div>
                                                <Badge className={`text-[0.55rem] px-1 py-0 flex-shrink-0 ${getMatchStatusLabel(pred.status)?.className || ''}`}>
@@ -1922,11 +1923,11 @@ const FootballRanking = ({ poolId, pool, approvedParticipantsCount, isOwner }: F
                                            <div className="flex items-center gap-1.5 min-w-0 flex-1">
                                              <div className="flex items-center gap-0.5 flex-shrink-0">
                                                {pred.home_team_crest && (
-                                                 <img src={pred.home_team_crest} alt={pred.home_team} className="w-4 h-4 object-contain" />
+                                                 <img src={proxyCrest(pred.home_team_crest)} alt={pred.home_team} className="w-4 h-4 object-contain" />
                                                )}
                                                <span className="text-[0.6rem] font-mono font-bold text-foreground">{pred.home_score_prediction}-{pred.away_score_prediction}</span>
                                                {pred.away_team_crest && (
-                                                 <img src={pred.away_team_crest} alt={pred.away_team} className="w-4 h-4 object-contain" />
+                                                 <img src={proxyCrest(pred.away_team_crest)} alt={pred.away_team} className="w-4 h-4 object-contain" />
                                                )}
                                              </div>
                                              {(() => {

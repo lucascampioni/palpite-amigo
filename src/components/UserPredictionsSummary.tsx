@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { ChevronDown } from "lucide-react";
 import { TEAM_FLAG_CODES, extractGroup, getFlagUrl, hasAllWorldCupGroupMatches } from "@/lib/world-cup-2026";
+import { proxyCrest } from "@/lib/team-crest";
 
 interface PredictionItem {
   matchId: string;
@@ -65,7 +66,7 @@ const cleanTeamName = (team: string) => {
   return parts.join(" ").trim() || team.trim();
 };
 
-const getTeamImage = (team: string, crest?: string | null) => crest || getFlagUrl(cleanTeamName(team));
+const getTeamImage = (team: string, crest?: string | null) => proxyCrest(crest) || getFlagUrl(cleanTeamName(team));
 
 const PredictionRow = ({ pred }: { pred: PredictionItem }) => {
   const homeName = cleanTeamName(pred.homeTeam);

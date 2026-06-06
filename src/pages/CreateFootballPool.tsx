@@ -19,6 +19,7 @@ import { PixKeyInput } from "@/components/PixKeyInput";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { z } from "zod";
+import { proxyCrest } from "@/lib/team-crest";
 
 const footballPoolSchema = z.object({
   title: z.string().trim().min(1, "Título é obrigatório").max(200, "Título muito longo"),
@@ -1353,13 +1354,13 @@ const CreateFootballPool = () => {
                           )}
                           <div className="flex items-center gap-1.5 flex-wrap">
                             {match.homeTeamCrest && (
-                              <img src={match.homeTeamCrest} alt={match.homeTeam} className="w-5 h-5 object-contain" onError={(e) => { e.currentTarget.style.display = 'none'; }} />
+                              <img src={proxyCrest(match.homeTeamCrest)} alt={match.homeTeam} className="w-5 h-5 object-contain" onError={(e) => { e.currentTarget.style.display = 'none'; }} />
                             )}
                             <span className="font-semibold text-sm sm:text-base">{match.homeTeam}</span>
                             <span className="text-muted-foreground text-xs">x</span>
                             <span className="font-semibold text-sm sm:text-base">{match.awayTeam}</span>
                             {match.awayTeamCrest && (
-                              <img src={match.awayTeamCrest} alt={match.awayTeam} className="w-5 h-5 object-contain" onError={(e) => { e.currentTarget.style.display = 'none'; }} />
+                              <img src={proxyCrest(match.awayTeamCrest)} alt={match.awayTeam} className="w-5 h-5 object-contain" onError={(e) => { e.currentTarget.style.display = 'none'; }} />
                             )}
                           </div>
                           <div className="flex items-center gap-2 text-[11px] text-muted-foreground">
