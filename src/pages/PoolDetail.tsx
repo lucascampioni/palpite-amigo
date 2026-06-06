@@ -1260,7 +1260,7 @@ const PoolDetail = () => {
                       <span className="flex items-center gap-1 whitespace-nowrap">
                         <Users className="w-3.5 h-3.5" />
                         {displayCount} palpite{displayCount !== 1 ? 's' : ''}
-                        {pool.max_participants && displayCount >= pool.max_participants && (
+                        {!!pool.max_participants && displayCount >= pool.max_participants && (
                           <span className="text-destructive text-xs">(Cheio)</span>
                         )}
                       </span>
@@ -1268,7 +1268,7 @@ const PoolDetail = () => {
                     </>
                   );
                 })()}
-                {pool.entry_fee && parseFloat(pool.entry_fee) > 0 && (
+                {Number(pool.entry_fee) > 0 && (
                   <span className="whitespace-nowrap">
                     Entrada: <strong className="text-foreground">R$ {parseFloat(pool.entry_fee).toFixed(2).replace('.', ',')}</strong>
                   </span>
@@ -1447,7 +1447,7 @@ const PoolDetail = () => {
             </div>
 
             {/* Auto-approve warning for creators (only manual payment flow) */}
-            {isOwner && pool.entry_fee && parseFloat(pool.entry_fee) > 0 && pool.prize_type !== 'estabelecimento' && pool.payment_method !== 'in_app' && firstMatchDate && pool.status === 'active' && (
+            {isOwner && Number(pool.entry_fee) > 0 && pool.prize_type !== 'estabelecimento' && pool.payment_method !== 'in_app' && firstMatchDate && pool.status === 'active' && (
               <Collapsible>
                 <CollapsibleTrigger className="w-full p-3 rounded-xl bg-yellow-50 dark:bg-yellow-950/30 border-2 border-yellow-300 dark:border-yellow-700 flex items-center justify-between">
                   <span className="font-bold text-xs sm:text-sm text-yellow-700 dark:text-yellow-400 flex items-center gap-1.5">
