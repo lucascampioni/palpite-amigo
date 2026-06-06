@@ -19,6 +19,9 @@ serve(async (req) => {
 
     const now = new Date();
     const results: { action: string; pool: string; participant: string; success: boolean; error?: string }[] = [];
+    const MAX_ACTIONS_PER_RUN = 5;
+    const actionsLeft = () => MAX_ACTIONS_PER_RUN - results.length;
+    const capIds = (ids: string[]) => ids.slice(0, Math.max(0, actionsLeft()));
 
     // Get all active paid pools
     const { data: pools, error: poolsError } = await supabase
@@ -55,6 +58,7 @@ serve(async (req) => {
     });
 
     for (const pool of pools) {
+      if (actionsLeft() <= 0) break;
       const matchDate = earliestMatchByPool[pool.id];
       if (!matchDate) continue;
 
@@ -77,7 +81,8 @@ serve(async (req) => {
         });
 
         if (pendingNoProof.length > 0) {
-          const ids = pendingNoProof.map((p: any) => p.id);
+          const capped = pendingNoProof.slice(0, actionsLeft());
+          const ids = capped.map((p: any) => p.id);
           const { error: updateErr } = await supabase
             .from('participants')
             .update({
@@ -87,7 +92,7 @@ serve(async (req) => {
             })
             .in('id', ids);
 
-          pendingNoProof.forEach((p: any) => {
+          capped.forEach((p: any) => {
             results.push({
               action: 'auto_reject',
               pool: pool.title,
@@ -121,8 +126,9 @@ serve(async (req) => {
         const pendingNoProofFinal = (pendingAll2 || []).filter((p: any) => !hasProof(p));
         const pendingWithProof = (pendingAll2 || []).filter((p: any) => hasProof(p));
 
-        if (pendingNoProofFinal.length > 0) {
-          const ids = pendingNoProofFinal.map((p: any) => p.id);
+        if (pendingNoProofFinal.length > 0 && actionsLeft() > 0) {
+          const cappedNo = pendingNoProofFinal.slice(0, actionsLeft());
+          const ids = cappedNo.map((p: any) => p.id);
           const { error: updateErr } = await supabase
             .from('participants')
             .update({
@@ -132,7 +138,7 @@ serve(async (req) => {
             })
             .in('id', ids);
 
-          pendingNoProofFinal.forEach((p: any) => {
+          cappedNo.forEach((p: any) => {
             results.push({
               action: 'auto_reject_final',
               pool: pool.title,
@@ -147,8 +153,9 @@ serve(async (req) => {
           }
         }
 
-        if (pendingWithProof.length > 0) {
-          const ids = pendingWithProof.map((p: any) => p.id);
+        if (pendingWithProof.length > 0 && actionsLeft() > 0) {
+          const cappedYes = pendingWithProof.slice(0, actionsLeft());
+          const ids = cappedYes.map((p: any) => p.id);
           const { error: updateErr } = await supabase
             .from('participants')
             .update({
@@ -158,7 +165,7 @@ serve(async (req) => {
             })
             .in('id', ids);
 
-          pendingWithProof.forEach((p: any) => {
+          cappedYes.forEach((p: any) => {
             results.push({
               action: 'auto_approve',
               pool: pool.title,
@@ -172,7 +179,7 @@ serve(async (req) => {
             console.log(`Auto-approved ${ids.length} participants with proof in pool "${pool.title}"`);
             // Trigger referral rewards
             const seen = new Set<string>();
-            for (const p of pendingWithProof) {
+            for (const p of cappedYes) {
               if (!p.user_id || seen.has(p.user_id)) continue;
               seen.add(p.user_id);
               try {
@@ -202,6 +209,7 @@ serve(async (req) => {
 
     if (!estabError && estabPools && estabPools.length > 0) {
       for (const pool of estabPools) {
+        if (actionsLeft() <= 0) break;
         const deadlineTime = new Date(pool.deadline);
         if (now <= deadlineTime) continue; // deadline not passed yet
 
@@ -224,7 +232,8 @@ serve(async (req) => {
         const noPredictions = approvedParticipants.filter(p => !withPredictions.has(p.id));
 
         if (noPredictions.length > 0) {
-          const ids = noPredictions.map(p => p.id);
+          const capped = noPredictions.slice(0, actionsLeft());
+          const ids = capped.map(p => p.id);
           const { error: updateErr } = await supabase
             .from('participants')
             .update({
@@ -234,7 +243,7 @@ serve(async (req) => {
             })
             .in('id', ids);
 
-          noPredictions.forEach(p => {
+          capped.forEach(p => {
             results.push({
               action: 'estab_reject_no_predictions',
               pool: pool.title,

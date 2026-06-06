@@ -1,5 +1,9 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import {
+  sendWhatsAppThrottled,
+  pickRandom,
+} from "../_shared/whatsapp-throttle.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -41,17 +45,12 @@ serve(async (req) => {
     const digits = phone.replace(/\D/g, '');
     const phoneWithCountry = digits.startsWith('55') ? digits : `55${digits}`;
 
-    // Generate 6-digit OTP
     const code = Math.floor(100000 + Math.random() * 900000).toString();
-    const expiresAt = new Date(Date.now() + 10 * 60 * 1000).toISOString(); // 10 minutes
+    const expiresAt = new Date(Date.now() + 10 * 60 * 1000).toISOString();
 
-    // Store OTP using service role to bypass RLS issues with new users
     const supabaseAdmin = createClient(supabaseUrl, serviceRoleKey);
-
-    // Delete previous OTPs for this user
     await supabaseAdmin.from('whatsapp_otp').delete().eq('user_id', userId);
 
-    // Insert new OTP
     const { error: insertError } = await supabaseAdmin.from('whatsapp_otp').insert({
       phone: phoneWithCountry,
       code,
@@ -64,34 +63,29 @@ serve(async (req) => {
       throw new Error('Erro ao gerar código de verificação');
     }
 
-    // Send via Z-API
     const ZAPI_INSTANCE_ID = Deno.env.get('ZAPI_INSTANCE_ID');
     const ZAPI_TOKEN = Deno.env.get('ZAPI_TOKEN');
     const ZAPI_CLIENT_TOKEN = Deno.env.get('ZAPI_CLIENT_TOKEN');
+    if (!ZAPI_INSTANCE_ID || !ZAPI_TOKEN) throw new Error('Z-API credentials not configured');
 
-    if (!ZAPI_INSTANCE_ID || !ZAPI_TOKEN) {
-      throw new Error('Z-API credentials not configured');
-    }
+    // OTP message variations (user is actively waiting — bypass throttle)
+    const variants = [
+      `🔐 Código Delfos: *${code}*\n\nUse este código para verificar seu WhatsApp. Expira em 10 min.\n\n⚠️ Não compartilhe com ninguém.`,
+      `🔐 Seu código de verificação Delfos é *${code}*.\n\nVálido por 10 minutos. Não repasse para ninguém.`,
+      `Delfos 🔐\n\nCódigo: *${code}*\nExpira em 10 minutos.\n\nUso pessoal — não compartilhe.`,
+      `🔐 *${code}* é o seu código de acesso Delfos.\n\nUse nos próximos 10 minutos. Mantenha em sigilo.`,
+    ];
+    const message = pickRandom(variants);
 
-    const zapiUrl = `https://api.z-api.io/instances/${ZAPI_INSTANCE_ID}/token/${ZAPI_TOKEN}/send-text`;
-    const headers: Record<string, string> = { 'Content-Type': 'application/json' };
-    if (ZAPI_CLIENT_TOKEN) headers['Client-Token'] = ZAPI_CLIENT_TOKEN;
+    const outcome = await sendWhatsAppThrottled(
+      supabaseAdmin,
+      { instanceId: ZAPI_INSTANCE_ID, token: ZAPI_TOKEN, clientToken: ZAPI_CLIENT_TOKEN },
+      phoneWithCountry,
+      message,
+      { messageType: 'otp', bypassThrottle: true },
+    );
 
-    const message = `🔐 Código Delfos: *${code}*\n\nUse este código para verificar seu WhatsApp. Expira em 10 min.\n\n⚠️ Não compartilhe com ninguém.`;
-
-    const zapiResponse = await fetch(zapiUrl, {
-      method: 'POST',
-      headers,
-      body: JSON.stringify({ phone: phoneWithCountry, message }),
-    });
-
-    if (!zapiResponse.ok) {
-      const errorData = await zapiResponse.json();
-      console.error('Z-API error:', errorData);
-      throw new Error('Erro ao enviar código via WhatsApp');
-    }
-
-    await zapiResponse.json();
+    if (!outcome.sent) throw new Error('Erro ao enviar código via WhatsApp');
 
     return new Response(
       JSON.stringify({ success: true, message: 'Código enviado via WhatsApp' }),
