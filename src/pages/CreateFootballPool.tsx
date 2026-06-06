@@ -287,7 +287,7 @@ const CreateFootballPool = () => {
     const title = (formData.get("title") as string) || "";
     const description = (formData.get("description") as string) || "";
     const pixKeyValue = pixKey;
-    const entryFee = (formData.get("entry_fee") as string) || "";
+    const entryFee = isFreePool ? "0" : ((formData.get("entry_fee") as string) || "");
     const maxParticipants = (formData.get("max_participants") as string) || "";
 
     // Validate input
