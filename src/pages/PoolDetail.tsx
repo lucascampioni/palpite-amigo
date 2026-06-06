@@ -963,7 +963,7 @@ const PoolDetail = () => {
       return;
     }
 
-    if (!confirm("Enviar notificação via WhatsApp para todos os seguidores da comunidade que ativaram notificações? Esta ação só pode ser feita uma vez.")) return;
+    if (!confirm("Enviar notificação push para todos os seguidores da comunidade que ativaram notificações? Esta ação só pode ser feita uma vez.")) return;
 
     setSendingCommunityNotification(true);
     try {
