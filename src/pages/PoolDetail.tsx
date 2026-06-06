@@ -1268,7 +1268,7 @@ const PoolDetail = () => {
                     </>
                   );
                 })()}
-                {pool.entry_fee && parseFloat(pool.entry_fee) > 0 && (
+                {Number(pool.entry_fee) > 0 && (
                   <span className="whitespace-nowrap">
                     Entrada: <strong className="text-foreground">R$ {parseFloat(pool.entry_fee).toFixed(2).replace('.', ',')}</strong>
                   </span>
