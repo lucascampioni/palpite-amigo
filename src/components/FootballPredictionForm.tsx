@@ -898,7 +898,7 @@ const FootballPredictionForm = ({ poolId, userId, onSuccess, entryFee, pool, pix
                   <div className="flex items-center gap-2">
                     {match.home_team_crest && (
                       <img 
-                        src={match.home_team_crest} 
+                        src={proxyCrest(match.home_team_crest)} 
                         alt={match.home_team}
                         className="w-6 h-6 object-contain"
                         onError={(e) => { e.currentTarget.style.display = 'none'; }}
