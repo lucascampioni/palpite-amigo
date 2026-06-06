@@ -604,6 +604,26 @@ const FootballPredictionForm = ({ poolId, userId, onSuccess, entryFee, pool, pix
         }
       }
 
+      // Free pool: registra indicação na primeira entrada do usuário
+      if (isFreePool && !freeHasUsedCode) {
+        const codeTrimmedFree = referralCodeInput.trim().toUpperCase();
+        if (codeTrimmedFree.length > 0) {
+          const { data: refUserId } = await supabase.rpc("get_user_id_by_referral_code", { _code: codeTrimmedFree });
+          if (refUserId && refUserId !== userId) {
+            await supabase
+              .from("pool_referrals")
+              .insert({
+                pool_id: poolId,
+                referrer_user_id: refUserId,
+                referred_user_id: userId,
+                referred_participant_id: participant.id,
+                status: "approved",
+              });
+            setFreeHasUsedCode(true);
+          }
+        }
+      }
+
       if (hasEntryFee && livePaidSets > 0) {
         setCreatedParticipantId(participant.id);
         setShowPaymentDialog(true);
