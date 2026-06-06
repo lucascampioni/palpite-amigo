@@ -5,25 +5,14 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-const MESSAGE = `⚽🏆 BOLÃO DA COPA — 100% GRÁTIS!
+const MESSAGE = `⚽ Bora ganhar R$ 500 de graça?
 
-Tá chegando a Copa do Mundo e a gente vai torcer JUNTO! 🇧🇷
+Tem um bolão da Copa 100% grátis, sem pegadinha! E o truque pra ganhar é simples: cada amigo que entrar pelo seu link te dá mais uma inscrição extra!
 
-🎯 Faça seus palpites nos 10 maiores jogos da fase de grupos, incluindo TODOS os jogos do Brasil!
+Quanto mais você indicar, mais chances de levar o prêmio. 🏆
 
-💰 Prêmio: R$ 500 para o campeão!
-🆓 Entrada: 100% grátis, sem pegadinha!
-
-E o melhor: quanto mais amigos você chamar, mais chances você tem de ganhar!
-👉 A cada amigo que entrar usando o SEU código de indicação, você ganha mais uma inscrição no bolão — de graça!
-
-⏰ Prazo final para palpitar: 13/06 às 18h50 (horário de Brasília)
-
-Bora garantir sua vaga? 👇
-https://delfos.app.br/bolao/bolao-da-copa-100-gratuito
-
-Qualquer dúvida é só responder esta mensagem.
-Boa sorte e que vença o melhor palpiteiro! 🍀⚽`;
+👇 Entra e já pega seu link de indicação:
+https://delfos.app.br/bolao/bolao-da-copa-100-gratuito`;
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
