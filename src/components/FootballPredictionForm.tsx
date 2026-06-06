@@ -81,9 +81,10 @@ const FootballPredictionForm = ({ poolId, userId, onSuccess, entryFee, pool, pix
   const [freeUsed, setFreeUsed] = useState<number>(0);
   const [freeHasUsedCode, setFreeHasUsedCode] = useState<boolean>(false);
 
-  const isFreePool = !!pool?.is_free_pool;
+  const hasPositiveEntryFee = pool?.entry_fee && parseFloat(pool.entry_fee) > 0;
+  const isFreePool = !!pool?.is_free_pool || (pool?.prize_type !== 'estabelecimento' && !hasPositiveEntryFee);
   const isEstabelecimento = !isFreePool && pool?.prize_type === 'estabelecimento';
-  const hasEntryFee = !isFreePool && !isEstabelecimento && pool?.entry_fee && parseFloat(pool.entry_fee) > 0;
+  const hasEntryFee = !isFreePool && !isEstabelecimento && hasPositiveEntryFee;
   const feePerSet = hasEntryFee ? parseFloat(pool.entry_fee) : 0;
   // Quantos palpites são cobertos pelos créditos vs pagos
   const freeSetsApplied = hasEntryFee ? Math.min(predictionSets.length, availableCredits) : 0;
