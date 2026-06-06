@@ -976,7 +976,9 @@ const PoolDetail = () => {
       if (data?.success) {
         toast({
           title: "Notificação enviada! 🎉",
-          description: `${data.sent} mensagem(ns) enviada(s) com sucesso.`,
+          description: data.push?.sent
+            ? `${data.push.sent} notificação(ões) push enviada(s) com sucesso.`
+            : "Notificações enviadas com sucesso.",
         });
         setPool((prev: any) => ({ ...prev, community_notified: true }));
       } else {
