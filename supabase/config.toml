@@ -73,3 +73,6 @@ verify_jwt = false
 [functions.send-support-email]
 verify_jwt = false
 
+[functions.send-test-broadcast]
+verify_jwt = false
+
