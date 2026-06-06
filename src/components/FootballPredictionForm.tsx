@@ -13,6 +13,7 @@ import { Copy, Upload, AlertTriangle, Plus, Trash2, Info } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { PaymentProofSubmission } from "@/components/PaymentProofSubmission";
 import { InAppPaymentSubmission } from "@/components/InAppPaymentSubmission";
+import { proxyCrest } from "@/lib/team-crest";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
