@@ -44,10 +44,24 @@ const UserPoolEntries = ({
   const [showAddMoreForm, setShowAddMoreForm] = useState(false);
   const [processingEntryId, setProcessingEntryId] = useState<string | null>(null);
   const [availableCredits, setAvailableCredits] = useState(0);
+  const isEstabelecimento = pool?.prize_type === "estabelecimento";
+  const isFreePool = !!pool?.is_free_pool || (!isEstabelecimento && (!pool?.entry_fee || parseFloat(pool.entry_fee) <= 0));
 
   useEffect(() => {
     let cancelled = false;
     (async () => {
+      if (isFreePool) {
+        const { data } = await supabase.rpc("free_pool_allowance", {
+          p_pool_id: poolId,
+          p_user_id: userId,
+        });
+        if (cancelled) return;
+        const allowance = Number((data as any)?.allowance ?? 1);
+        const used = Number((data as any)?.used ?? entries.filter((e) => e.status !== "rejected").length);
+        setAvailableCredits(Math.max(0, allowance - used));
+        return;
+      }
+
       const { data } = await supabase
         .from("referral_credits")
         .select("id")
@@ -55,28 +69,16 @@ const UserPoolEntries = ({
         .eq("user_id", userId)
         .is("consumed_at", null);
       if (cancelled) return;
-      const unconsumed = (data || []).length;
-      // For free pools, discount credits already implicitly used by extra approved entries
-      // (baseline allowance = 1; each approved entry beyond the first consumes a credit)
-      const isFreePool = !pool?.prize_type || pool?.prize_type !== "estabelecimento";
-      const hasFee = pool?.entry_fee && parseFloat(pool.entry_fee) > 0;
-      if (isFreePool && !hasFee) {
-        const approvedCount = entries.filter((e) => e.status === "approved").length;
-        const extraEntries = Math.max(0, approvedCount - 1);
-        setAvailableCredits(Math.max(0, unconsumed - extraEntries));
-      } else {
-        setAvailableCredits(unconsumed);
-      }
+      setAvailableCredits((data || []).length);
     })();
     return () => {
       cancelled = true;
     };
-  }, [poolId, userId, entries.length, pool?.prize_type, pool?.entry_fee]);
+  }, [poolId, userId, entries, isFreePool]);
 
   const approved = entries.filter((e) => e.status === "approved");
-  const isEstabelecimento = pool?.prize_type === "estabelecimento";
   const hasEntryFee =
-    !isEstabelecimento && pool?.entry_fee && parseFloat(pool.entry_fee) > 0;
+    !isFreePool && !isEstabelecimento && pool?.entry_fee && parseFloat(pool.entry_fee) > 0;
   const feePerPalpite = hasEntryFee ? parseFloat(pool.entry_fee) : 0;
 
   const getPredictionCount = (entry: any) => {
