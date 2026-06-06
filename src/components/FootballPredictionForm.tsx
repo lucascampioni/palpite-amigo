@@ -1197,6 +1197,62 @@ const FootballPredictionForm = ({ poolId, userId, onSuccess, entryFee, pool, pix
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Free Pool First-Time Confirmation */}
+      <Dialog open={showFreePoolConfirmDialog} onOpenChange={setShowFreePoolConfirmDialog}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Info className="w-5 h-5 text-primary" />
+              Confirme seu palpite
+            </DialogTitle>
+            <DialogDescription>
+              Revise as informações antes de enviar seu palpite neste bolão gratuito.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3">
+            {referralCodeInput.trim() ? (
+              <div className="p-4 rounded-lg bg-primary/10 border-2 border-primary/30">
+                <p className="text-sm font-medium text-foreground">
+                  Você está usando o código de indicação:
+                </p>
+                <p className="mt-2 text-2xl font-bold tracking-[0.3em] font-mono text-primary text-center">
+                  {referralCodeInput.trim().toUpperCase()}
+                </p>
+                <p className="text-xs text-muted-foreground mt-2">
+                  Quem indicou você ganhará 1 palpite grátis quando sua inscrição for confirmada.
+                </p>
+              </div>
+            ) : (
+              <div className="p-4 rounded-lg bg-muted/60 border border-border">
+                <p className="text-sm font-medium text-foreground">
+                  Você <strong>não está usando</strong> nenhum código de indicação.
+                </p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Se algum amigo te convidou, peça o código dele e digite no campo antes de enviar — assim ele ganha um palpite grátis.
+                </p>
+              </div>
+            )}
+            <p className="text-sm text-muted-foreground">
+              Tem certeza que deseja enviar seu palpite agora?
+            </p>
+          </div>
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button variant="outline" onClick={() => setShowFreePoolConfirmDialog(false)}>
+              Voltar
+            </Button>
+            <Button
+              onClick={() => {
+                setShowFreePoolConfirmDialog(false);
+                setFreePoolConfirmed(true);
+                setTimeout(() => proceedToDisclaimer(), 0);
+              }}
+            >
+              Sim, enviar palpite
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
