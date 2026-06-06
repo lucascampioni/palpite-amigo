@@ -126,8 +126,9 @@ serve(async (req) => {
         const pendingNoProofFinal = (pendingAll2 || []).filter((p: any) => !hasProof(p));
         const pendingWithProof = (pendingAll2 || []).filter((p: any) => hasProof(p));
 
-        if (pendingNoProofFinal.length > 0) {
-          const ids = pendingNoProofFinal.map((p: any) => p.id);
+        if (pendingNoProofFinal.length > 0 && actionsLeft() > 0) {
+          const cappedNo = pendingNoProofFinal.slice(0, actionsLeft());
+          const ids = cappedNo.map((p: any) => p.id);
           const { error: updateErr } = await supabase
             .from('participants')
             .update({
@@ -137,7 +138,7 @@ serve(async (req) => {
             })
             .in('id', ids);
 
-          pendingNoProofFinal.forEach((p: any) => {
+          cappedNo.forEach((p: any) => {
             results.push({
               action: 'auto_reject_final',
               pool: pool.title,
