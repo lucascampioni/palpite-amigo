@@ -58,6 +58,7 @@ serve(async (req) => {
     });
 
     for (const pool of pools) {
+      if (actionsLeft() <= 0) break;
       const matchDate = earliestMatchByPool[pool.id];
       if (!matchDate) continue;
 
