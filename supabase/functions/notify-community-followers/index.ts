@@ -71,78 +71,9 @@ serve(async (req) => {
     // Get unique user IDs
     const uniqueUserIds = [...new Set(members.map(m => m.user_id))];
 
-    // For WhatsApp: filter only users who also have notify_new_pools = true in their profile AND have a phone
-    const { data: profiles } = await supabase
-      .from('profiles')
-      .select('id, phone, notify_new_pools')
-      .in('id', uniqueUserIds)
-      .eq('notify_new_pools', true)
-      .not('phone', 'is', null);
-
-    // Exclude the pool owner from receiving the notification
-    const eligibleProfiles = (profiles || []).filter(p => p.id !== user.id);
-
+    // WhatsApp notifications for new pools are currently disabled
     const results: { phone: string; success: boolean; error?: string }[] = [];
-
-    if (eligibleProfiles.length > 0) {
-
-    // Send via Twilio WhatsApp (approved template — no variables)
-    const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
-    const TWILIO_API_KEY = Deno.env.get('TWILIO_API_KEY');
-    const TWILIO_PHONE_NUMBER = Deno.env.get('TWILIO_PHONE_NUMBER');
-
-    if (!LOVABLE_API_KEY) throw new Error('LOVABLE_API_KEY is not configured');
-    if (!TWILIO_API_KEY) throw new Error('TWILIO_API_KEY is not configured');
-    if (!TWILIO_PHONE_NUMBER) throw new Error('TWILIO_PHONE_NUMBER is not configured');
-
-    const fromDigits = TWILIO_PHONE_NUMBER.replace(/\D/g, '');
-    const fromWhatsapp = TWILIO_PHONE_NUMBER.startsWith('whatsapp:')
-      ? TWILIO_PHONE_NUMBER
-      : `whatsapp:+${fromDigits}`;
-
-    // Approved template content SID — "Venha participar dos bolões da Delfos."
-    const CONTENT_SID = 'HXff844077144fa7023eb2c0f54d8f2982';
-    const GATEWAY_URL = 'https://connector-gateway.lovable.dev/twilio';
-
-
-    for (const profile of eligibleProfiles) {
-      const digits = profile.phone!.replace(/\D/g, '');
-      const phoneWithCountry = digits.startsWith('55') ? digits : `55${digits}`;
-      const to = `whatsapp:+${phoneWithCountry}`;
-
-      const params = new URLSearchParams();
-      params.append('To', to);
-      params.append('From', fromWhatsapp);
-      params.append('ContentSid', CONTENT_SID);
-
-      try {
-        const response = await fetch(`${GATEWAY_URL}/Messages.json`, {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${LOVABLE_API_KEY}`,
-            'X-Connection-Api-Key': TWILIO_API_KEY,
-            'Content-Type': 'application/x-www-form-urlencoded',
-          },
-          body: params.toString(),
-        });
-
-        const data = await response.json();
-        if (!response.ok) {
-          console.error(`Twilio error for ${to}:`, data);
-          results.push({ phone: phoneWithCountry, success: false, error: data?.message || `HTTP ${response.status}` });
-        } else {
-          results.push({ phone: phoneWithCountry, success: true });
-        }
-      } catch (err) {
-        const errorMsg = err instanceof Error ? err.message : 'Unknown error';
-        results.push({ phone: phoneWithCountry, success: false, error: errorMsg });
-      }
-
-      if (eligibleProfiles.length > 1) {
-        await new Promise(resolve => setTimeout(resolve, 500));
-      }
-    }
-    } // end if eligibleProfiles.length > 0
+    const eligibleProfiles: any[] = [];
 
     // Send web push to ALL community members with notify_new_pools enabled (regardless of phone)
     let pushSent = 0;

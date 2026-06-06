@@ -963,7 +963,7 @@ const PoolDetail = () => {
       return;
     }
 
-    if (!confirm("Enviar notificação via WhatsApp para todos os seguidores da comunidade que ativaram notificações? Esta ação só pode ser feita uma vez.")) return;
+    if (!confirm("Enviar notificação push para todos os seguidores da comunidade que ativaram notificações? Esta ação só pode ser feita uma vez.")) return;
 
     setSendingCommunityNotification(true);
     try {
@@ -976,7 +976,9 @@ const PoolDetail = () => {
       if (data?.success) {
         toast({
           title: "Notificação enviada! 🎉",
-          description: `${data.sent} mensagem(ns) enviada(s) com sucesso.`,
+          description: data.push?.sent
+            ? `${data.push.sent} notificação(ões) push enviada(s) com sucesso.`
+            : "Notificações enviadas com sucesso.",
         });
         setPool((prev: any) => ({ ...prev, community_notified: true }));
       } else {
