@@ -9,6 +9,7 @@ import { ptBR } from "date-fns/locale";
 import { abbreviateTeamName } from "@/lib/team-utils";
 import { Button } from "@/components/ui/button";
 import { isWorldCupMatch, extractGroup, hasAllWorldCupGroupMatches } from "@/lib/world-cup-2026";
+import { proxyCrest } from "@/lib/team-crest";
 
 interface FootballRankingProps {
   poolId: string;
