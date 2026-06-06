@@ -76,3 +76,7 @@ verify_jwt = false
 [functions.send-test-broadcast]
 verify_jwt = false
 
+[functions.broadcast-copa-gratuita]
+verify_jwt = false
+
+
