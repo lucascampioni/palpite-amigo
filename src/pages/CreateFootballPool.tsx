@@ -617,7 +617,27 @@ const CreateFootballPool = () => {
                 />
               </div>
 
-              {userRole?.isEstabelecimento ? (
+              {userRole?.isAdmin && (
+                <div className="p-4 rounded-lg border-2 border-dashed border-primary/40 bg-primary/5 space-y-2">
+                  <div className="flex items-center justify-between gap-3">
+                    <div>
+                      <Label htmlFor="free-pool" className="text-base font-semibold flex items-center gap-2">
+                        🎁 Bolão gratuito
+                      </Label>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Cada usuário começa com 1 entrada grátis. Para ganhar entradas extras, precisa indicar
+                        outras pessoas — cada amigo que usar o código dele ao entrar dá +1 entrada.
+                        Sem taxa, sem PIX.
+                      </p>
+                    </div>
+                    <Switch id="free-pool" checked={isFreePool} onCheckedChange={setIsFreePool} />
+                  </div>
+                </div>
+              )}
+
+              {isFreePool ? (
+                <input type="hidden" name="entry_fee" value="0" />
+              ) : userRole?.isEstabelecimento ? (
                 <div className="space-y-2">
                   <Label htmlFor="entry_fee">Valor de Entrada *</Label>
                   <Input
