@@ -1227,7 +1227,7 @@ const PoolDetail = () => {
                                 <span className="text-muted-foreground text-xs">x</span>
                                 <span className="font-medium text-sm">{match.away_team}</span>
                                 {match.away_team_crest && (
-                                  <img src={match.away_team_crest} alt="" className="w-5 h-5 object-contain" onError={(e) => { e.currentTarget.style.display = 'none'; }} />
+                                  <img src={proxyCrest(match.away_team_crest)} alt="" className="w-5 h-5 object-contain" onError={(e) => { e.currentTarget.style.display = 'none'; }} />
                                 )}
                               </div>
                               <p className="text-xs text-muted-foreground mt-1">
