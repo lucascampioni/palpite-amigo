@@ -274,6 +274,7 @@ const FootballPredictionForm = ({ poolId, userId, onSuccess, entryFee, pool, pix
 
 
   const addPredictionSet = () => {
+    if (isFreePool) return; // bolão grátis: 1 palpite por entrada
     setPredictionSets(prev => [
       ...prev,
       matches.map(m => ({ matchId: m.id, homeScore: '', awayScore: '' }))
