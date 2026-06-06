@@ -327,6 +327,11 @@ const FootballPredictionForm = ({ poolId, userId, onSuccess, entryFee, pool, pix
   }, [isEstabelecimento, matches, poolId, userId]);
 
   const proceedToDisclaimer = () => {
+    // Free pool first-time confirmation (shows whether a referral code was entered)
+    if (isFreePool && !hasApprovedEntry && !freePoolConfirmed) {
+      setShowFreePoolConfirmDialog(true);
+      return;
+    }
     // When payment is handled in-app, no disclaimer is needed.
     // Also skip if no actual fee is owed (e.g. all sets covered by referral credits).
     if (isInAppPayment || !hasEntryFee || paidSets === 0) {
