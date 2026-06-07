@@ -113,7 +113,7 @@ export type SendOptions = {
   messageType: string;
   /** Restrict to 8-21h BRT — queue (skip) if outside window. OTP and time-sensitive should be false. */
   respectBusinessHours?: boolean;
-  /** Skip rate-limit + circuit-breaker enforcement (use for OTP). */
+  /** Skip rate-limit enforcement (use for OTP). Circuit breaker is always respected. */
   bypassThrottle?: boolean;
 };
 
@@ -177,12 +177,13 @@ export async function sendWhatsAppThrottled(
   message: string,
   opts: SendOptions,
 ): Promise<SendOutcome> {
+  const cb = await checkCircuitBreaker(supabase);
+  if (cb.open) {
+    console.warn(`[anti-ban] circuit open until ${cb.until}; skipping ${opts.messageType} to ${phone}`);
+    return { sent: false, reason: 'circuit_open' };
+  }
+
   if (!opts.bypassThrottle) {
-    const cb = await checkCircuitBreaker(supabase);
-    if (cb.open) {
-      console.warn(`[anti-ban] circuit open until ${cb.until}; skipping ${opts.messageType} to ${phone}`);
-      return { sent: false, reason: 'circuit_open' };
-    }
     if (opts.messageType.startsWith('broadcast_')) {
       const digits = phone.replace(/\D/g, '');
       const phoneWithCountry = digits.startsWith('55') ? digits : `55${digits}`;
