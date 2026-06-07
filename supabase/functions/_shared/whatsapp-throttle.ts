@@ -190,7 +190,7 @@ export async function sendWhatsAppThrottled(
       const { count } = await supabase
         .from('whatsapp_send_log')
         .select('id', { count: 'exact', head: true })
-        .eq('phone', phoneWithCountry)
+        .in('phone', [digits, phoneWithCountry])
         .eq('message_type', opts.messageType)
         .eq('success', true)
         .gte('sent_at', recentCutoff);
