@@ -6,17 +6,17 @@ export type ThrottleClient = {
 };
 
 export const RATE_LIMITS = {
-  perMinute: 3,
-  perHour: 30,
-  perDay: 150,
+  perMinute: 1,
+  perHour: 6,
+  perDay: 35,
 };
 
 export const CIRCUIT_BREAKER = {
-  threshold: 3,
-  pauseMinutes: 30,
+  threshold: 1,
+  pauseMinutes: 12 * 60,
 };
 
-export const DELAY_MS = { min: 45_000, max: 120_000 };
+export const DELAY_MS = { min: 8 * 60_000, max: 18 * 60_000 };
 
 // Business-hours window in America/Sao_Paulo (UTC-3, no DST currently).
 const BIZ_START_HOUR = 8;
@@ -119,18 +119,47 @@ export type SendOptions = {
 
 export type SendOutcome =
   | { sent: true }
-  | { sent: false; reason: 'circuit_open' | 'rate_limited' | 'outside_hours' | 'error'; error?: string };
+  | { sent: false; reason: 'circuit_open' | 'rate_limited' | 'outside_hours' | 'zapi_disconnected' | 'duplicate_recent' | 'error'; error?: string };
+
+async function pauseCircuit(supabase: ThrottleClient, minutes: number, reason: string) {
+  const pausedUntil = new Date(Date.now() + minutes * 60_000).toISOString();
+  await supabase
+    .from('whatsapp_circuit_state')
+    .update({ consecutive_failures: 0, paused_until: pausedUntil, updated_at: new Date().toISOString() })
+    .eq('id', 1);
+  console.error(`[anti-ban] Circuit breaker OPEN: ${reason}; pausing all sends until ${pausedUntil}`);
+}
+
+async function checkZapiConnection(creds: ZapiCreds): Promise<{ ok: boolean; error?: string }> {
+  const url = `https://api.z-api.io/instances/${creds.instanceId}/token/${creds.token}/status`;
+  const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+  if (creds.clientToken) headers['Client-Token'] = creds.clientToken;
+  const res = await fetch(url, { method: 'GET', headers });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) return { ok: false, error: data?.message || data?.error || `status_http_${res.status}` };
+  if (data?.connected === false || data?.smartphoneConnected === false) {
+    return { ok: false, error: data?.error || 'zapi_not_connected' };
+  }
+  return { ok: true };
+}
 
 async function doSend(creds: ZapiCreds, phone: string, message: string): Promise<{ success: boolean; error?: string }> {
   const digits = phone.replace(/\D/g, '');
   const phoneWithCountry = digits.startsWith('55') ? digits : `55${digits}`;
   try {
+    const status = await checkZapiConnection(creds);
+    if (!status.ok) return { success: false, error: status.error || 'zapi_disconnected' };
+
     const url = `https://api.z-api.io/instances/${creds.instanceId}/token/${creds.token}/send-text`;
     const headers: Record<string, string> = { 'Content-Type': 'application/json' };
     if (creds.clientToken) headers['Client-Token'] = creds.clientToken;
     const res = await fetch(url, { method: 'POST', headers, body: JSON.stringify({ phone: phoneWithCountry, message }) });
     const data = await res.json().catch(() => ({}));
-    if (!res.ok) return { success: false, error: data?.message || `HTTP ${res.status}` };
+    const apiError = data?.error || data?.message || data?.errorMessage;
+    if (!res.ok || apiError) return { success: false, error: apiError || `HTTP ${res.status}` };
+    if (!data?.messageId && !data?.id && !data?.zaapId) {
+      return { success: false, error: `zapi_unconfirmed_response:${JSON.stringify(data).slice(0, 240)}` };
+    }
     return { success: true };
   } catch (err) {
     return { success: false, error: err instanceof Error ? err.message : 'unknown' };
