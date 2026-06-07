@@ -77,12 +77,17 @@ serve(async (req) => {
     }
 
     // Not sent: requeue unless permanent error from Z-API
-    const requeueReasons = ['circuit_open', 'rate_limited', 'outside_hours'];
+    const requeueReasons = ['circuit_open', 'rate_limited', 'outside_hours', 'zapi_disconnected'];
     const reason = outcome.reason;
     if (requeueReasons.includes(reason)) {
       await supabase
         .from('broadcast_queue')
         .update({ status: 'pending', error: reason })
+        .eq('id', row.id);
+    } else if (reason === 'duplicate_recent') {
+      await supabase
+        .from('broadcast_queue')
+        .update({ status: 'sent', sent_at: new Date().toISOString(), error: null })
         .eq('id', row.id);
     } else {
       await supabase

@@ -1,4 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { sendWhatsAppThrottled } from "../_shared/whatsapp-throttle.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -32,20 +34,22 @@ serve(async (req) => {
     const clientToken = Deno.env.get("ZAPI_CLIENT_TOKEN");
     if (!instanceId || !token) throw new Error("Z-API creds missing");
 
-    const digits = String(phone).replace(/\D/g, '');
-    const phoneE164 = digits.startsWith('55') ? digits : `55${digits}`;
+    const supabase = createClient(
+      Deno.env.get('SUPABASE_URL')!,
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
+    );
 
-    const headers: Record<string, string> = { 'Content-Type': 'application/json' };
-    if (clientToken) headers['Client-Token'] = clientToken;
-
-    const res = await fetch(`https://api.z-api.io/instances/${instanceId}/token/${token}/send-text`, {
-      method: "POST",
-      headers,
-      body: JSON.stringify({ phone: phoneE164, message: MESSAGE }),
+    const outcome = await sendWhatsAppThrottled(supabase, {
+      instanceId,
+      token,
+      clientToken: clientToken ?? undefined,
+    }, String(phone), MESSAGE, {
+      messageType: 'broadcast_copa_gratuita_2026_test',
+      respectBusinessHours: true,
     });
-    const data = await res.json().catch(() => ({}));
-    return new Response(JSON.stringify({ ok: res.ok, status: res.status, data }), {
-      status: res.ok ? 200 : 500,
+
+    return new Response(JSON.stringify({ ok: outcome.sent, outcome }), {
+      status: outcome.sent ? 200 : 409,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
   } catch (err) {
