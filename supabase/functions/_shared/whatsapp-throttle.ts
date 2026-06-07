@@ -183,6 +183,22 @@ export async function sendWhatsAppThrottled(
       console.warn(`[anti-ban] circuit open until ${cb.until}; skipping ${opts.messageType} to ${phone}`);
       return { sent: false, reason: 'circuit_open' };
     }
+    if (opts.messageType.startsWith('broadcast_')) {
+      const digits = phone.replace(/\D/g, '');
+      const phoneWithCountry = digits.startsWith('55') ? digits : `55${digits}`;
+      const recentCutoff = new Date(Date.now() - 90 * 24 * 60 * 60_000).toISOString();
+      const { count } = await supabase
+        .from('whatsapp_send_log')
+        .select('id', { count: 'exact', head: true })
+        .eq('phone', phoneWithCountry)
+        .eq('message_type', opts.messageType)
+        .eq('success', true)
+        .gte('sent_at', recentCutoff);
+      if ((count ?? 0) > 0) {
+        console.warn(`[anti-ban] duplicate recent broadcast skipped for ${phone}`);
+        return { sent: false, reason: 'duplicate_recent' };
+      }
+    }
     if (opts.respectBusinessHours && !isWithinBusinessHours()) {
       console.log(`[anti-ban] outside 8h-21h BRT; queuing ${opts.messageType} to ${phone}`);
       return { sent: false, reason: 'outside_hours' };
@@ -196,6 +212,14 @@ export async function sendWhatsAppThrottled(
 
   const result = await doSend(creds, phone, message);
   await recordResult(supabase, phone, opts.messageType, result.success, result.error);
-  if (!result.success) return { sent: false, reason: 'error', error: result.error };
+  if (!result.success) {
+    const normalized = (result.error || '').toLowerCase();
+    const disconnected = normalized.includes('not connected') || normalized.includes('not_connected') || normalized.includes('disconnected');
+    if (disconnected) {
+      await pauseCircuit(supabase, CIRCUIT_BREAKER.pauseMinutes, result.error || 'zapi_disconnected');
+      return { sent: false, reason: 'zapi_disconnected', error: result.error };
+    }
+    return { sent: false, reason: 'error', error: result.error };
+  }
   return { sent: true };
 }
