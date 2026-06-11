@@ -313,6 +313,25 @@ serve(async (req) => {
         });
       }
 
+      case "toggle_pool_referral": {
+        const { pool_id, enabled } = body;
+        if (!pool_id || typeof enabled !== "boolean") {
+          throw new Error("pool_id e enabled são obrigatórios");
+        }
+
+        const { error } = await adminClient
+          .from("pools")
+          .update({ referral_enabled: enabled })
+          .eq("id", pool_id);
+        if (error) throw error;
+
+        return new Response(JSON.stringify({ success: true }), {
+          status: 200,
+          headers: { "Content-Type": "application/json", ...corsHeaders },
+        });
+      }
+
+
       case "list_all_participants": {
         const { status: filterStatus, search, page = 1, limit = 50 } = body;
         const offset = (page - 1) * limit;
