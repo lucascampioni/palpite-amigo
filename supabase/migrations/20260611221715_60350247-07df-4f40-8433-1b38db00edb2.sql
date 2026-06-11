@@ -1,0 +1,1 @@
+UPDATE public.participants SET prize_status = NULL WHERE id = '3ccecc80-2f2f-4ad8-9221-bbab8450f9e4';
