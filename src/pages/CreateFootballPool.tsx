@@ -932,12 +932,12 @@ const CreateFootballPool = () => {
                 {prizeType === 'estabelecimento' && (
                   <div className="space-y-3">
                     <div className="space-y-2">
-                      <Label htmlFor="estabelecimento_prize">🏆 Descrição do Prêmio *</Label>
+                      <Label htmlFor="estabelecimento_prize">🎁 Descrição do Prêmio (não em dinheiro) *</Label>
                       <Textarea
                         id="estabelecimento_prize"
                         value={estabelecimentoPrizeDescription}
                         onChange={(e) => setEstabelecimentoPrizeDescription(e.target.value)}
-                        placeholder="Ex: 1 corte de cabelo grátis, 1 balde de cerveja, 1 pizza grande..."
+                        placeholder="Ex: Voucher de R$ 50 em compras, 1 pizza grande, 1 corte de cabelo, kit de produtos..."
                         rows={3}
                         required
                       />
