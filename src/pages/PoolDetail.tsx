@@ -62,7 +62,7 @@ const PoolDetail = () => {
   const [hasAnyMatchResult, setHasAnyMatchResult] = useState(false);
   const [anyMatchStarted, setAnyMatchStarted] = useState(false);
   const [participantPhones, setParticipantPhones] = useState<Record<string, string>>({});
-  const [rankingData, setRankingData] = useState<{ participant_id: string; participant_name: string; total_points: number }[]>([]);
+  const [rankingData, setRankingData] = useState<{ participant_id: string; participant_name: string; total_points: number; prediction_set?: number; user_id?: string; exact_scores?: number; correct_results?: number }[]>([]);
   const [allUsersWithPhone, setAllUsersWithPhone] = useState<{ id: string; full_name: string; phone: string; notify_pool_updates?: boolean; notify_new_pools?: boolean }[]>([]);
   const [userHasPhone, setUserHasPhone] = useState<boolean | null>(null);
   const [showVipModal, setShowVipModal] = useState(false);
@@ -212,9 +212,26 @@ const PoolDetail = () => {
       const winnersToUpdate: string[] = [];
 
       if (rankingData.length > 0) {
-        // Use prediction-set level ranking
-        const sorted = [...rankingData].sort((a: any, b: any) => b.total_points - a.total_points);
+        const isEstab = pool.prize_type === 'estabelecimento';
+        // Use prediction-set level ranking with tiebreaker (exact_scores, correct_results) for estabelecimento pools
+        const sorted = [...rankingData].sort((a: any, b: any) => {
+          if (b.total_points !== a.total_points) return b.total_points - a.total_points;
+          if (isEstab) {
+            if ((b.exact_scores || 0) !== (a.exact_scores || 0)) return (b.exact_scores || 0) - (a.exact_scores || 0);
+            if ((b.correct_results || 0) !== (a.correct_results || 0)) return (b.correct_results || 0) - (a.correct_results || 0);
+          }
+          return 0;
+        });
         const allZero = sorted.every((r: any) => r.total_points === 0);
+
+        const isFullyTied = (a: any, b: any) => {
+          if (a.total_points !== b.total_points) return false;
+          if (isEstab) {
+            if ((a.exact_scores || 0) !== (b.exact_scores || 0)) return false;
+            if ((a.correct_results || 0) !== (b.correct_results || 0)) return false;
+          }
+          return true;
+        };
 
         if (allZero) {
           const topN = Math.min(maxWinners, sorted.length);
@@ -229,10 +246,9 @@ const PoolDetail = () => {
         } else {
           let pos = 0;
           while (pos < sorted.length) {
-            const score = (sorted[pos] as any).total_points;
-            if (score === 0) break;
+            if ((sorted[pos] as any).total_points === 0) break;
             let groupEnd = pos;
-            while (groupEnd < sorted.length - 1 && (sorted[groupEnd + 1] as any).total_points === score) {
+            while (groupEnd < sorted.length - 1 && isFullyTied(sorted[groupEnd + 1], sorted[pos])) {
               groupEnd++;
             }
             if (pos < maxWinners) {
@@ -331,26 +347,36 @@ const PoolDetail = () => {
 
     // Use rankingData (prediction-set level) if available, otherwise fall back to participant-level
     if (rankingData.length > 0) {
-      // rankingData has entries like { participant_id, participant_name, total_points, prediction_set, user_id }
-      // Sort by points desc, then by created_at of participant
+      const isEstab = pool.prize_type === 'estabelecimento';
       const participantCreatedAt: Record<string, string> = {};
       participants.forEach(p => { participantCreatedAt[p.id] = p.created_at; });
 
       const sorted = [...rankingData]
         .sort((a: any, b: any) => {
           if (b.total_points !== a.total_points) return b.total_points - a.total_points;
+          if (isEstab) {
+            if ((b.exact_scores || 0) !== (a.exact_scores || 0)) return (b.exact_scores || 0) - (a.exact_scores || 0);
+            if ((b.correct_results || 0) !== (a.correct_results || 0)) return (b.correct_results || 0) - (a.correct_results || 0);
+          }
           const aTime = participantCreatedAt[a.participant_id] || '';
           const bTime = participantCreatedAt[b.participant_id] || '';
           return new Date(aTime).getTime() - new Date(bTime).getTime();
         });
 
-      // Each prediction set entry competes independently
+      const isFullyTied = (a: any, b: any) => {
+        if (a.total_points !== b.total_points) return false;
+        if (isEstab) {
+          if ((a.exact_scores || 0) !== (b.exact_scores || 0)) return false;
+          if ((a.correct_results || 0) !== (b.correct_results || 0)) return false;
+        }
+        return true;
+      };
+
       const amounts: Record<string, number> = {};
       let pos = 0;
       while (pos < sorted.length) {
-        const score = (sorted[pos] as any).total_points;
         let groupEnd = pos;
-        while (groupEnd < sorted.length - 1 && (sorted[groupEnd + 1] as any).total_points === score) {
+        while (groupEnd < sorted.length - 1 && isFullyTied(sorted[groupEnd + 1], sorted[pos])) {
           groupEnd++;
         }
         const groupSize = groupEnd - pos + 1;
@@ -365,7 +391,6 @@ const PoolDetail = () => {
           if (perEntry > 0) {
             for (let i = pos; i <= groupEnd; i++) {
               const pid = (sorted[i] as any).participant_id;
-              // Accumulate prize per participant_id (a participant with multiple winning sets gets more)
               amounts[pid] = (amounts[pid] || 0) + perEntry;
             }
           }
@@ -698,7 +723,39 @@ const PoolDetail = () => {
     // Load ranking data for WhatsApp messages
     if ((matchesData?.length || 0) > 0) {
       const { data: rankData } = await supabase.rpc("get_football_pool_ranking", { p_pool_id: poolId });
-      setRankingData(rankData || []);
+
+      // Enrich with tiebreaker fields (exact_scores, correct_results) per (participant, prediction_set)
+      const finishedMatches = (matchesData || []).filter((m: any) => m.status === 'finished' && m.home_score !== null && m.away_score !== null);
+      const matchResultsMap: Record<string, { home_score: number; away_score: number }> = {};
+      finishedMatches.forEach((m: any) => { matchResultsMap[m.id] = { home_score: m.home_score, away_score: m.away_score }; });
+
+      const exactScoresMap: Record<string, number> = {};
+      const correctResultsMap: Record<string, number> = {};
+
+      if (finishedMatches.length > 0 && rankData && rankData.length > 0) {
+        const { data: allPredictions } = await supabase
+          .from('football_predictions')
+          .select('participant_id, prediction_set, match_id, home_score_prediction, away_score_prediction')
+          .in('match_id', finishedMatches.map((m: any) => m.id));
+
+        (allPredictions || []).forEach((p: any) => {
+          const key = `${p.participant_id}_${p.prediction_set || 1}`;
+          const result = matchResultsMap[p.match_id];
+          if (!result) return;
+          if (p.home_score_prediction === result.home_score && p.away_score_prediction === result.away_score) {
+            exactScoresMap[key] = (exactScoresMap[key] || 0) + 1;
+          }
+          const predR = p.home_score_prediction > p.away_score_prediction ? 'h' : p.home_score_prediction < p.away_score_prediction ? 'a' : 'd';
+          const actR = result.home_score > result.away_score ? 'h' : result.home_score < result.away_score ? 'a' : 'd';
+          if (predR === actR) correctResultsMap[key] = (correctResultsMap[key] || 0) + 1;
+        });
+      }
+
+      const enriched = (rankData || []).map((r: any) => {
+        const key = `${r.participant_id}_${r.prediction_set || 1}`;
+        return { ...r, exact_scores: exactScoresMap[key] || 0, correct_results: correctResultsMap[key] || 0 };
+      });
+      setRankingData(enriched);
     }
 
     // Load all registered users with phone for promotional WhatsApp messages
@@ -2009,15 +2066,28 @@ const PoolDetail = () => {
                     // Count winning prediction sets from rankingData for each participant
                     const winningSetCounts: Record<string, number> = {};
                     if (rankingData.length > 0) {
-                      // Find the top score threshold (entries that get prizes)
+                      const isEstab = pool.prize_type === 'estabelecimento';
                       const maxW = pool.max_winners || 3;
-                      const sortedRanking = [...rankingData].sort((a: any, b: any) => b.total_points - a.total_points);
-                      // Determine which entries are winners (same logic as prize calculation)
+                      const sortedRanking = [...rankingData].sort((a: any, b: any) => {
+                        if (b.total_points !== a.total_points) return b.total_points - a.total_points;
+                        if (isEstab) {
+                          if ((b.exact_scores || 0) !== (a.exact_scores || 0)) return (b.exact_scores || 0) - (a.exact_scores || 0);
+                          if ((b.correct_results || 0) !== (a.correct_results || 0)) return (b.correct_results || 0) - (a.correct_results || 0);
+                        }
+                        return 0;
+                      });
+                      const isFullyTied = (a: any, b: any) => {
+                        if (a.total_points !== b.total_points) return false;
+                        if (isEstab) {
+                          if ((a.exact_scores || 0) !== (b.exact_scores || 0)) return false;
+                          if ((a.correct_results || 0) !== (b.correct_results || 0)) return false;
+                        }
+                        return true;
+                      };
                       let pos = 0;
                       while (pos < sortedRanking.length) {
-                        const score = (sortedRanking[pos] as any).total_points;
                         let groupEnd = pos;
-                        while (groupEnd < sortedRanking.length - 1 && (sortedRanking[groupEnd + 1] as any).total_points === score) {
+                        while (groupEnd < sortedRanking.length - 1 && isFullyTied(sortedRanking[groupEnd + 1], sortedRanking[pos])) {
                           groupEnd++;
                         }
                         if (pos < maxW) {
@@ -2029,6 +2099,7 @@ const PoolDetail = () => {
                         pos = groupEnd + 1;
                       }
                     }
+
 
                     const grouped = new Map<string, { participant: typeof pendingWinners[0]; totalPrize: number; entriesCount: number; participantIds: string[] }>();
                     for (const p of pendingWinners) {
