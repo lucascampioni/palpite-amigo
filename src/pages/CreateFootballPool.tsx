@@ -453,7 +453,9 @@ const CreateFootballPool = () => {
         second_place_prize: prizeType !== 'estabelecimento' && maxWinners >= 2 && secondPlacePrize ? parseFloat(secondPlacePrize) : null,
         third_place_prize: prizeType !== 'estabelecimento' && maxWinners >= 3 && thirdPlacePrize ? parseFloat(thirdPlacePrize) : null,
         estabelecimento_prize_description: prizeType === 'estabelecimento' ? estabelecimentoPrizeDescription.trim() : null,
-        estabelecimento_prize_address: prizeType === 'estabelecimento' ? buildFullAddress() : null,
+        estabelecimento_prize_address: prizeType === 'estabelecimento'
+          ? (prizeDeliveryType === 'physical' ? buildFullAddress() : `📩 Entrega: ${digitalDeliveryInstructions.trim()}`)
+          : null,
         payment_method: (userRole?.canReceiveInApp && entryFee && parseFloat(entryFee) > 0) ? paymentMethod : 'pix_manual',
         guaranteed_prize: userRole?.isAdmin && prizeType === 'fixed' ? guaranteedPrize : false,
         waive_platform_fee: userRole?.isAdmin ? waivePlatformFee : false,
