@@ -211,27 +211,25 @@ const PoolDetail = () => {
       const maxWinners = pool.max_winners || 3;
       const winnersToUpdate: string[] = [];
 
-      if (rankingData.length > 0) {
-        const isEstab = pool.prize_type === 'estabelecimento';
-        // Use prediction-set level ranking with tiebreaker (exact_scores, correct_results) for estabelecimento pools
+      // For estabelecimento pools, the single winner is determined by pool.winner_id (set by edge function tiebreaker).
+      // Only that user's participant entries should be marked awaiting_pix — never mark losers of the tiebreaker.
+      if (pool.prize_type === 'estabelecimento') {
+        if (pool.winner_id) {
+          for (const p of participants) {
+            if (p.status === 'approved' && p.user_id === pool.winner_id) {
+              winnersToUpdate.push(p.id);
+            }
+          }
+        }
+      } else if (rankingData.length > 0) {
+        // Use prediction-set level ranking
         const sorted = [...rankingData].sort((a: any, b: any) => {
           if (b.total_points !== a.total_points) return b.total_points - a.total_points;
-          if (isEstab) {
-            if ((b.exact_scores || 0) !== (a.exact_scores || 0)) return (b.exact_scores || 0) - (a.exact_scores || 0);
-            if ((b.correct_results || 0) !== (a.correct_results || 0)) return (b.correct_results || 0) - (a.correct_results || 0);
-          }
           return 0;
         });
         const allZero = sorted.every((r: any) => r.total_points === 0);
 
-        const isFullyTied = (a: any, b: any) => {
-          if (a.total_points !== b.total_points) return false;
-          if (isEstab) {
-            if ((a.exact_scores || 0) !== (b.exact_scores || 0)) return false;
-            if ((a.correct_results || 0) !== (b.correct_results || 0)) return false;
-          }
-          return true;
-        };
+        const isFullyTied = (a: any, b: any) => a.total_points === b.total_points;
 
         if (allZero) {
           const topN = Math.min(maxWinners, sorted.length);
@@ -263,7 +261,7 @@ const PoolDetail = () => {
           }
         }
       } else {
-        // Fallback: participant-level
+        // Fallback: participant-level (non-estabelecimento only)
         const participantsWithPoints = participants
           .filter((p: any) => p.status === 'approved')
           .map((p: any) => ({ ...p, total_points: participantsPoints[p.id] || 0 }))
