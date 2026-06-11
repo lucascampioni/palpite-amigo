@@ -2066,15 +2066,28 @@ const PoolDetail = () => {
                     // Count winning prediction sets from rankingData for each participant
                     const winningSetCounts: Record<string, number> = {};
                     if (rankingData.length > 0) {
-                      // Find the top score threshold (entries that get prizes)
+                      const isEstab = pool.prize_type === 'estabelecimento';
                       const maxW = pool.max_winners || 3;
-                      const sortedRanking = [...rankingData].sort((a: any, b: any) => b.total_points - a.total_points);
-                      // Determine which entries are winners (same logic as prize calculation)
+                      const sortedRanking = [...rankingData].sort((a: any, b: any) => {
+                        if (b.total_points !== a.total_points) return b.total_points - a.total_points;
+                        if (isEstab) {
+                          if ((b.exact_scores || 0) !== (a.exact_scores || 0)) return (b.exact_scores || 0) - (a.exact_scores || 0);
+                          if ((b.correct_results || 0) !== (a.correct_results || 0)) return (b.correct_results || 0) - (a.correct_results || 0);
+                        }
+                        return 0;
+                      });
+                      const isFullyTied = (a: any, b: any) => {
+                        if (a.total_points !== b.total_points) return false;
+                        if (isEstab) {
+                          if ((a.exact_scores || 0) !== (b.exact_scores || 0)) return false;
+                          if ((a.correct_results || 0) !== (b.correct_results || 0)) return false;
+                        }
+                        return true;
+                      };
                       let pos = 0;
                       while (pos < sortedRanking.length) {
-                        const score = (sortedRanking[pos] as any).total_points;
                         let groupEnd = pos;
-                        while (groupEnd < sortedRanking.length - 1 && (sortedRanking[groupEnd + 1] as any).total_points === score) {
+                        while (groupEnd < sortedRanking.length - 1 && isFullyTied(sortedRanking[groupEnd + 1], sortedRanking[pos])) {
                           groupEnd++;
                         }
                         if (pos < maxW) {
@@ -2086,6 +2099,7 @@ const PoolDetail = () => {
                         pos = groupEnd + 1;
                       }
                     }
+
 
                     const grouped = new Map<string, { participant: typeof pendingWinners[0]; totalPrize: number; entriesCount: number; participantIds: string[] }>();
                     for (const p of pendingWinners) {
