@@ -212,9 +212,26 @@ const PoolDetail = () => {
       const winnersToUpdate: string[] = [];
 
       if (rankingData.length > 0) {
-        // Use prediction-set level ranking
-        const sorted = [...rankingData].sort((a: any, b: any) => b.total_points - a.total_points);
+        const isEstab = pool.prize_type === 'estabelecimento';
+        // Use prediction-set level ranking with tiebreaker (exact_scores, correct_results) for estabelecimento pools
+        const sorted = [...rankingData].sort((a: any, b: any) => {
+          if (b.total_points !== a.total_points) return b.total_points - a.total_points;
+          if (isEstab) {
+            if ((b.exact_scores || 0) !== (a.exact_scores || 0)) return (b.exact_scores || 0) - (a.exact_scores || 0);
+            if ((b.correct_results || 0) !== (a.correct_results || 0)) return (b.correct_results || 0) - (a.correct_results || 0);
+          }
+          return 0;
+        });
         const allZero = sorted.every((r: any) => r.total_points === 0);
+
+        const isFullyTied = (a: any, b: any) => {
+          if (a.total_points !== b.total_points) return false;
+          if (isEstab) {
+            if ((a.exact_scores || 0) !== (b.exact_scores || 0)) return false;
+            if ((a.correct_results || 0) !== (b.correct_results || 0)) return false;
+          }
+          return true;
+        };
 
         if (allZero) {
           const topN = Math.min(maxWinners, sorted.length);
@@ -229,10 +246,9 @@ const PoolDetail = () => {
         } else {
           let pos = 0;
           while (pos < sorted.length) {
-            const score = (sorted[pos] as any).total_points;
-            if (score === 0) break;
+            if ((sorted[pos] as any).total_points === 0) break;
             let groupEnd = pos;
-            while (groupEnd < sorted.length - 1 && (sorted[groupEnd + 1] as any).total_points === score) {
+            while (groupEnd < sorted.length - 1 && isFullyTied(sorted[groupEnd + 1], sorted[pos])) {
               groupEnd++;
             }
             if (pos < maxWinners) {
