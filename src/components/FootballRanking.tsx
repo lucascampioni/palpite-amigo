@@ -1138,7 +1138,7 @@ const FootballRanking = ({ poolId, pool, approvedParticipantsCount, isOwner }: F
             );
           }
 
-          const winners = ranking.filter(r => r.total_points === ranking[0].total_points);
+          const winners = ranking.filter(r => isFullyTied(r, ranking[0]));
           const isMultiple = winners.length > 1;
           const isManyWinners = winners.length > 3;
           
