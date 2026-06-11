@@ -81,6 +81,8 @@ const CreateFootballPool = () => {
   const [addressCity, setAddressCity] = useState("");
   const [addressState, setAddressState] = useState("");
   const [saveAddress, setSaveAddress] = useState(false);
+  const [prizeDeliveryType, setPrizeDeliveryType] = useState<'physical' | 'digital'>('physical');
+  const [digitalDeliveryInstructions, setDigitalDeliveryInstructions] = useState("");
   const [inlinePixKey, setInlinePixKey] = useState("");
   const [inlinePixKeyType, setInlinePixKeyType] = useState<string>("");
   const [savingInlinePix, setSavingInlinePix] = useState(false);
