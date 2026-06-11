@@ -318,13 +318,18 @@ const CreateFootballPool = () => {
           throw new Error("Descrição do prêmio é obrigatória");
         }
         if (prizeType === 'estabelecimento') {
-          if (!addressStreet.trim()) throw new Error("Rua é obrigatória");
-          if (!addressNumber.trim()) throw new Error("Número é obrigatório");
-          if (!addressNeighborhood.trim()) throw new Error("Bairro é obrigatório");
-          if (!addressCity.trim()) throw new Error("Cidade é obrigatória");
-          if (!addressState.trim()) throw new Error("Estado é obrigatório");
+          if (prizeDeliveryType === 'physical') {
+            if (!addressStreet.trim()) throw new Error("Rua é obrigatória");
+            if (!addressNumber.trim()) throw new Error("Número é obrigatório");
+            if (!addressNeighborhood.trim()) throw new Error("Bairro é obrigatório");
+            if (!addressCity.trim()) throw new Error("Cidade é obrigatória");
+            if (!addressState.trim()) throw new Error("Estado é obrigatório");
+          } else {
+            if (!digitalDeliveryInstructions.trim()) {
+              throw new Error("Informe como o prêmio será entregue (e-mail, WhatsApp, etc.)");
+            }
+          }
         }
-      } else {
         // Admin: PIX required only if entry fee is set and not using in-app
         const hasEntryFee = entryFee && parseFloat(entryFee) > 0;
         if (hasEntryFee && !usingInApp && !pixKeyValue.trim()) {
