@@ -1284,7 +1284,26 @@ const PoolDetail = () => {
                     <p className="text-xl sm:text-2xl font-extrabold text-foreground leading-tight">{pool.estabelecimento_prize_description}</p>
                   </div>
                   {pool.estabelecimento_prize_address && (() => {
-                    const addressParts = pool.estabelecimento_prize_address.split('\n');
+                    const raw = pool.estabelecimento_prize_address;
+                    const isDigital = raw.trim().startsWith('📩');
+                    if (isDigital) {
+                      const instructions = raw.replace(/^📩\s*Entrega:\s*/, '').trim();
+                      return (
+                        <div className="mt-2 p-2.5 rounded-lg bg-background/80 border border-amber-300/50 dark:border-amber-700/50">
+                          <p className="text-[0.65rem] font-medium text-center text-muted-foreground mb-0.5">📩 Como receber o prêmio</p>
+                          <p className="text-xs text-center text-foreground mt-0.5 whitespace-pre-wrap">{instructions}</p>
+                          <button
+                            type="button"
+                            onClick={() => navigator.clipboard.writeText(instructions)}
+                            className="mt-2 w-full flex items-center justify-center gap-1.5 text-xs text-primary font-medium py-1.5 rounded-md border border-primary/20 bg-primary/5 hover:bg-primary/10 transition-colors"
+                          >
+                            <Copy className="w-3 h-3" />
+                            Copiar informações
+                          </button>
+                        </div>
+                      );
+                    }
+                    const addressParts = raw.split('\n');
                     const hasName = addressParts.length > 1;
                     const placeName = hasName ? addressParts[0] : null;
                     const addressLine = hasName ? addressParts.slice(1).join(', ') : addressParts[0];
@@ -1309,6 +1328,7 @@ const PoolDetail = () => {
                       </div>
                     );
                   })()}
+
                   <p className="text-[0.65rem] text-muted-foreground text-center mt-2">
                     ⚠️ Em caso de empate, os critérios de desempate são: 1º Maior número de placares exatos · 2º Maior número total de acertos · 3º Horário do envio do palpite · 4º Sorteio automático
                   </p>
