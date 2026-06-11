@@ -203,7 +203,7 @@ serve(async (req) => {
       const pushRes = await sendWebPushToUsers(recipients.map(r => r.user_id), '⚽ Os jogos começaram!', `O bolão "${pool.title}" começou. Acompanhe ao vivo!`, `/bolao/${pool.slug || pool.id}`);
       pushResults.push({ type: 'first_match_started', pool: pool.title, ...pushRes });
 
-      if (!aborted) await supabase.from('pools').update({ first_match_notified: true }).eq('id', pool.id);
+      await supabase.from('pools').update({ first_match_notified: true }).eq('id', pool.id);
     }
 
     // ════════════════════════════════════════════════════════════════
