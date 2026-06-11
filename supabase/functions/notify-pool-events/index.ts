@@ -253,7 +253,7 @@ serve(async (req) => {
         const pushRes = await sendWebPushToUsers(recipients.map(r => r.user_id), '🚫 Bolão cancelado', `O bolão "${pool.title}" foi cancelado.`, `/bolao/${pool.slug || pool.id}`);
         pushResults.push({ type: 'pool_cancelled', pool: pool.title, ...pushRes });
 
-        if (!aborted) await supabase.from('pools').update({ cancelled_notified: true }).eq('id', pool.id);
+        await supabase.from('pools').update({ cancelled_notified: true }).eq('id', pool.id);
       }
     }
 
