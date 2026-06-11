@@ -232,7 +232,7 @@ serve(async (req) => {
 
         let query = adminClient
           .from("pools")
-          .select("id, title, status, pool_type, created_at, owner_id, entry_fee", { count: "exact" })
+          .select("id, title, status, pool_type, created_at, owner_id, entry_fee, is_official, is_free_pool, referral_enabled, slug", { count: "exact" })
           .order("created_at", { ascending: false })
           .range(offset, offset + limit - 1);
 
@@ -312,6 +312,25 @@ serve(async (req) => {
           headers: { "Content-Type": "application/json", ...corsHeaders },
         });
       }
+
+      case "toggle_pool_referral": {
+        const { pool_id, enabled } = body;
+        if (!pool_id || typeof enabled !== "boolean") {
+          throw new Error("pool_id e enabled são obrigatórios");
+        }
+
+        const { error } = await adminClient
+          .from("pools")
+          .update({ referral_enabled: enabled })
+          .eq("id", pool_id);
+        if (error) throw error;
+
+        return new Response(JSON.stringify({ success: true }), {
+          status: 200,
+          headers: { "Content-Type": "application/json", ...corsHeaders },
+        });
+      }
+
 
       case "list_all_participants": {
         const { status: filterStatus, search, page = 1, limit = 50 } = body;

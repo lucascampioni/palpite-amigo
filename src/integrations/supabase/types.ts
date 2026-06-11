@@ -754,6 +754,7 @@ export type Database = {
           payment_method: string
           pool_type: Database["public"]["Enums"]["pool_type"]
           prize_type: string
+          referral_enabled: boolean
           reminder_30min_sent: boolean
           reminder_3h_sent: boolean
           result_value: string | null
@@ -795,6 +796,7 @@ export type Database = {
           payment_method?: string
           pool_type?: Database["public"]["Enums"]["pool_type"]
           prize_type?: string
+          referral_enabled?: boolean
           reminder_30min_sent?: boolean
           reminder_3h_sent?: boolean
           result_value?: string | null
@@ -836,6 +838,7 @@ export type Database = {
           payment_method?: string
           pool_type?: Database["public"]["Enums"]["pool_type"]
           prize_type?: string
+          referral_enabled?: boolean
           reminder_30min_sent?: boolean
           reminder_3h_sent?: boolean
           result_value?: string | null

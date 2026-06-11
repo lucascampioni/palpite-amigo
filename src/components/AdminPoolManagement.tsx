@@ -6,10 +6,12 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { toast } from "@/hooks/use-toast";
-import { Search, Trash2, ExternalLink, Loader2, ChevronLeft, ChevronRight } from "lucide-react";
+import { Search, Trash2, ExternalLink, Loader2, ChevronLeft, ChevronRight, Gift } from "lucide-react";
 
 interface PoolItem {
   id: string;
@@ -20,6 +22,9 @@ interface PoolItem {
   entry_fee: number | null;
   created_at: string;
   owner_name: string;
+  is_official?: boolean;
+  is_free_pool?: boolean;
+  referral_enabled?: boolean;
 }
 
 const statusLabels: Record<string, string> = {
@@ -103,6 +108,31 @@ const AdminPoolManagement = () => {
     }
   };
 
+  const toggleReferral = async (poolId: string, enabled: boolean) => {
+    setActionLoading(`ref-${poolId}`);
+    // Optimistic update
+    setPools((prev) => prev.map((p) => (p.id === poolId ? { ...p, referral_enabled: enabled } : p)));
+    try {
+      const { error } = await supabase.functions.invoke("admin-actions", {
+        body: { action: "toggle_pool_referral", pool_id: poolId, enabled },
+      });
+      if (error) throw error;
+      toast({
+        title: enabled ? "Indicação ativada" : "Indicação desativada",
+        description: enabled
+          ? "Os participantes verão o painel de indicação."
+          : "O painel de indicação foi removido deste bolão.",
+      });
+    } catch (e: any) {
+      // Revert
+      setPools((prev) => prev.map((p) => (p.id === poolId ? { ...p, referral_enabled: !enabled } : p)));
+      toast({ title: "Erro", description: e.message, variant: "destructive" });
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
+
   const totalPages = Math.ceil(total / limit);
 
   return (
@@ -147,7 +177,30 @@ const AdminPoolManagement = () => {
                   </Badge>
                 </div>
 
+                {pool.is_official && (!pool.entry_fee || Number(pool.entry_fee) === 0 || pool.is_free_pool) && (
+                  <div className="flex items-center justify-between gap-3 p-2.5 rounded-md border border-primary/30 bg-primary/5">
+                    <div className="flex items-start gap-2 min-w-0">
+                      <Gift className="w-4 h-4 text-primary mt-0.5 shrink-0" />
+                      <div className="min-w-0">
+                        <Label htmlFor={`ref-${pool.id}`} className="text-xs font-medium cursor-pointer">
+                          Indicação ativa
+                        </Label>
+                        <p className="text-[11px] text-muted-foreground leading-snug">
+                          Mostra o painel "Indique e ganhe palpites grátis" só neste bolão.
+                        </p>
+                      </div>
+                    </div>
+                    <Switch
+                      id={`ref-${pool.id}`}
+                      checked={!!pool.referral_enabled}
+                      disabled={actionLoading === `ref-${pool.id}`}
+                      onCheckedChange={(v) => toggleReferral(pool.id, v)}
+                    />
+                  </div>
+                )}
+
                 <Separator />
+
 
                 <div className="flex flex-wrap items-center gap-2">
                   <Select
