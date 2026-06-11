@@ -922,6 +922,18 @@ const FootballRanking = ({ poolId, pool, approvedParticipantsCount, isOwner }: F
   const maxWinners = pool?.max_winners ?? 3;
   const isTop1Only = maxWinners === 1;
   const allZeroPoints = ranking.every(r => r.total_points === 0);
+  const isEstabelecimentoPool = pool?.prize_type === 'estabelecimento';
+
+  // For estabelecimento pools, tiebreaker criteria (exact scores, correct results)
+  // actually break ties — so two participants are only truly tied if ALL criteria match.
+  const isFullyTied = (a: ParticipantScore, b: ParticipantScore) => {
+    if (a.total_points !== b.total_points) return false;
+    if (isEstabelecimentoPool) {
+      if ((a.exact_scores || 0) !== (b.exact_scores || 0)) return false;
+      if ((a.correct_results || 0) !== (b.correct_results || 0)) return false;
+    }
+    return true;
+  };
 
   const getActualPosition = (index: number, participant: ParticipantScore) => {
     // If 0 points and no match has started yet, no position
@@ -936,7 +948,7 @@ const FootballRanking = ({ poolId, pool, approvedParticipantsCount, isOwner }: F
 
     // For TOP 1 pools: dense ranking (no skipping positions)
     if (isTop1Only) {
-      if (ranking[index - 1].total_points === participant.total_points) {
+      if (isFullyTied(ranking[index - 1], participant)) {
         return getActualPosition(index - 1, ranking[index - 1]);
       }
       // Dense rank: previous position + 1 (not index + 1)
@@ -945,13 +957,14 @@ const FootballRanking = ({ poolId, pool, approvedParticipantsCount, isOwner }: F
     }
 
     // For TOP 2/3: skip positions when there are ties (standard dense ranking)
-    if (ranking[index - 1].total_points === participant.total_points) {
+    if (isFullyTied(ranking[index - 1], participant)) {
       return getActualPosition(index - 1, ranking[index - 1]);
     }
 
     // Position = index + 1 (skips positions taken by the tied group)
     return index + 1;
   };
+
 
 
 
@@ -1125,7 +1138,7 @@ const FootballRanking = ({ poolId, pool, approvedParticipantsCount, isOwner }: F
             );
           }
 
-          const winners = ranking.filter(r => r.total_points === ranking[0].total_points);
+          const winners = ranking.filter(r => isFullyTied(r, ranking[0]));
           const isMultiple = winners.length > 1;
           const isManyWinners = winners.length > 3;
           
