@@ -203,7 +203,7 @@ serve(async (req) => {
       const pushRes = await sendWebPushToUsers(recipients.map(r => r.user_id), '⚽ Os jogos começaram!', `O bolão "${pool.title}" começou. Acompanhe ao vivo!`, `/bolao/${pool.slug || pool.id}`);
       pushResults.push({ type: 'first_match_started', pool: pool.title, ...pushRes });
 
-      if (!aborted) await supabase.from('pools').update({ first_match_notified: true }).eq('id', pool.id);
+      await supabase.from('pools').update({ first_match_notified: true }).eq('id', pool.id);
     }
 
     // ════════════════════════════════════════════════════════════════
@@ -253,7 +253,7 @@ serve(async (req) => {
         const pushRes = await sendWebPushToUsers(recipients.map(r => r.user_id), '🚫 Bolão cancelado', `O bolão "${pool.title}" foi cancelado.`, `/bolao/${pool.slug || pool.id}`);
         pushResults.push({ type: 'pool_cancelled', pool: pool.title, ...pushRes });
 
-        if (!aborted) await supabase.from('pools').update({ cancelled_notified: true }).eq('id', pool.id);
+        await supabase.from('pools').update({ cancelled_notified: true }).eq('id', pool.id);
       }
     }
 
@@ -306,7 +306,7 @@ serve(async (req) => {
         const pushRes = await sendWebPushToUsers(recipients.map(r => r.user_id), '🏆 Bolão finalizado!', `O ranking final do bolão "${pool.title}" está disponível.`, `/bolao/${pool.slug || pool.id}`);
         pushResults.push({ type: 'pool_finished', pool: pool.title, ...pushRes });
 
-        if (!aborted) await supabase.from('pools').update({ finished_notified: true }).eq('id', pool.id);
+        await supabase.from('pools').update({ finished_notified: true }).eq('id', pool.id);
       }
     } else if (!aborted) {
       console.log('[notify-pool-events] outside 8h-21h BRT — skipping pool_finished batch');
