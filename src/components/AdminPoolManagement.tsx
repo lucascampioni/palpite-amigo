@@ -177,7 +177,30 @@ const AdminPoolManagement = () => {
                   </Badge>
                 </div>
 
+                {pool.is_official && (!pool.entry_fee || Number(pool.entry_fee) === 0 || pool.is_free_pool) && (
+                  <div className="flex items-center justify-between gap-3 p-2.5 rounded-md border border-primary/30 bg-primary/5">
+                    <div className="flex items-start gap-2 min-w-0">
+                      <Gift className="w-4 h-4 text-primary mt-0.5 shrink-0" />
+                      <div className="min-w-0">
+                        <Label htmlFor={`ref-${pool.id}`} className="text-xs font-medium cursor-pointer">
+                          Indicação ativa
+                        </Label>
+                        <p className="text-[11px] text-muted-foreground leading-snug">
+                          Mostra o painel "Indique e ganhe palpites grátis" só neste bolão.
+                        </p>
+                      </div>
+                    </div>
+                    <Switch
+                      id={`ref-${pool.id}`}
+                      checked={!!pool.referral_enabled}
+                      disabled={actionLoading === `ref-${pool.id}`}
+                      onCheckedChange={(v) => toggleReferral(pool.id, v)}
+                    />
+                  </div>
+                )}
+
                 <Separator />
+
 
                 <div className="flex flex-wrap items-center gap-2">
                   <Select
