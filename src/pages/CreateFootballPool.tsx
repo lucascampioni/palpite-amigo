@@ -330,6 +330,7 @@ const CreateFootballPool = () => {
             }
           }
         }
+      } else {
         // Admin: PIX required only if entry fee is set and not using in-app
         const hasEntryFee = entryFee && parseFloat(entryFee) > 0;
         if (hasEntryFee && !usingInApp && !pixKeyValue.trim()) {
