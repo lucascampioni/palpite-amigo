@@ -62,7 +62,7 @@ const PoolDetail = () => {
   const [hasAnyMatchResult, setHasAnyMatchResult] = useState(false);
   const [anyMatchStarted, setAnyMatchStarted] = useState(false);
   const [participantPhones, setParticipantPhones] = useState<Record<string, string>>({});
-  const [rankingData, setRankingData] = useState<{ participant_id: string; participant_name: string; total_points: number }[]>([]);
+  const [rankingData, setRankingData] = useState<{ participant_id: string; participant_name: string; total_points: number; prediction_set?: number; user_id?: string; exact_scores?: number; correct_results?: number }[]>([]);
   const [allUsersWithPhone, setAllUsersWithPhone] = useState<{ id: string; full_name: string; phone: string; notify_pool_updates?: boolean; notify_new_pools?: boolean }[]>([]);
   const [userHasPhone, setUserHasPhone] = useState<boolean | null>(null);
   const [showVipModal, setShowVipModal] = useState(false);
