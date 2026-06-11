@@ -825,7 +825,7 @@ const CreateFootballPool = () => {
                   )}
                   {prizeType === 'estabelecimento' && (
                     <p className="text-xs text-muted-foreground">
-                      Descreva o prêmio que o estabelecimento oferecerá ao vencedor (ex: corte de cabelo, balde de cerveja, etc).
+                      Descreva o prêmio (não monetário) que o vencedor receberá — ex: voucher, corte de cabelo, balde de cerveja, brinde, etc.
                     </p>
                   )}
                 </div>
