@@ -232,7 +232,7 @@ serve(async (req) => {
 
         let query = adminClient
           .from("pools")
-          .select("id, title, status, pool_type, created_at, owner_id, entry_fee", { count: "exact" })
+          .select("id, title, status, pool_type, created_at, owner_id, entry_fee, is_official, is_free_pool, referral_enabled, slug", { count: "exact" })
           .order("created_at", { ascending: false })
           .range(offset, offset + limit - 1);
 
