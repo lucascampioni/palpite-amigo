@@ -347,26 +347,36 @@ const PoolDetail = () => {
 
     // Use rankingData (prediction-set level) if available, otherwise fall back to participant-level
     if (rankingData.length > 0) {
-      // rankingData has entries like { participant_id, participant_name, total_points, prediction_set, user_id }
-      // Sort by points desc, then by created_at of participant
+      const isEstab = pool.prize_type === 'estabelecimento';
       const participantCreatedAt: Record<string, string> = {};
       participants.forEach(p => { participantCreatedAt[p.id] = p.created_at; });
 
       const sorted = [...rankingData]
         .sort((a: any, b: any) => {
           if (b.total_points !== a.total_points) return b.total_points - a.total_points;
+          if (isEstab) {
+            if ((b.exact_scores || 0) !== (a.exact_scores || 0)) return (b.exact_scores || 0) - (a.exact_scores || 0);
+            if ((b.correct_results || 0) !== (a.correct_results || 0)) return (b.correct_results || 0) - (a.correct_results || 0);
+          }
           const aTime = participantCreatedAt[a.participant_id] || '';
           const bTime = participantCreatedAt[b.participant_id] || '';
           return new Date(aTime).getTime() - new Date(bTime).getTime();
         });
 
-      // Each prediction set entry competes independently
+      const isFullyTied = (a: any, b: any) => {
+        if (a.total_points !== b.total_points) return false;
+        if (isEstab) {
+          if ((a.exact_scores || 0) !== (b.exact_scores || 0)) return false;
+          if ((a.correct_results || 0) !== (b.correct_results || 0)) return false;
+        }
+        return true;
+      };
+
       const amounts: Record<string, number> = {};
       let pos = 0;
       while (pos < sorted.length) {
-        const score = (sorted[pos] as any).total_points;
         let groupEnd = pos;
-        while (groupEnd < sorted.length - 1 && (sorted[groupEnd + 1] as any).total_points === score) {
+        while (groupEnd < sorted.length - 1 && isFullyTied(sorted[groupEnd + 1], sorted[pos])) {
           groupEnd++;
         }
         const groupSize = groupEnd - pos + 1;
@@ -381,7 +391,6 @@ const PoolDetail = () => {
           if (perEntry > 0) {
             for (let i = pos; i <= groupEnd; i++) {
               const pid = (sorted[i] as any).participant_id;
-              // Accumulate prize per participant_id (a participant with multiple winning sets gets more)
               amounts[pid] = (amounts[pid] || 0) + perEntry;
             }
           }
