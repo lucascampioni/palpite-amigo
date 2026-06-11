@@ -698,7 +698,39 @@ const PoolDetail = () => {
     // Load ranking data for WhatsApp messages
     if ((matchesData?.length || 0) > 0) {
       const { data: rankData } = await supabase.rpc("get_football_pool_ranking", { p_pool_id: poolId });
-      setRankingData(rankData || []);
+
+      // Enrich with tiebreaker fields (exact_scores, correct_results) per (participant, prediction_set)
+      const finishedMatches = (matchesData || []).filter((m: any) => m.status === 'finished' && m.home_score !== null && m.away_score !== null);
+      const matchResultsMap: Record<string, { home_score: number; away_score: number }> = {};
+      finishedMatches.forEach((m: any) => { matchResultsMap[m.id] = { home_score: m.home_score, away_score: m.away_score }; });
+
+      const exactScoresMap: Record<string, number> = {};
+      const correctResultsMap: Record<string, number> = {};
+
+      if (finishedMatches.length > 0 && rankData && rankData.length > 0) {
+        const { data: allPredictions } = await supabase
+          .from('football_predictions')
+          .select('participant_id, prediction_set, match_id, home_score_prediction, away_score_prediction')
+          .in('match_id', finishedMatches.map((m: any) => m.id));
+
+        (allPredictions || []).forEach((p: any) => {
+          const key = `${p.participant_id}_${p.prediction_set || 1}`;
+          const result = matchResultsMap[p.match_id];
+          if (!result) return;
+          if (p.home_score_prediction === result.home_score && p.away_score_prediction === result.away_score) {
+            exactScoresMap[key] = (exactScoresMap[key] || 0) + 1;
+          }
+          const predR = p.home_score_prediction > p.away_score_prediction ? 'h' : p.home_score_prediction < p.away_score_prediction ? 'a' : 'd';
+          const actR = result.home_score > result.away_score ? 'h' : result.home_score < result.away_score ? 'a' : 'd';
+          if (predR === actR) correctResultsMap[key] = (correctResultsMap[key] || 0) + 1;
+        });
+      }
+
+      const enriched = (rankData || []).map((r: any) => {
+        const key = `${r.participant_id}_${r.prediction_set || 1}`;
+        return { ...r, exact_scores: exactScoresMap[key] || 0, correct_results: correctResultsMap[key] || 0 };
+      });
+      setRankingData(enriched);
     }
 
     // Load all registered users with phone for promotional WhatsApp messages
