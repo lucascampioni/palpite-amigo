@@ -640,17 +640,16 @@ const CreateFootballPool = () => {
                 <input type="hidden" name="entry_fee" value="0" />
               ) : userRole?.isEstabelecimento ? (
                 <div className="space-y-2">
-                  <Label htmlFor="entry_fee">Valor de Entrada *</Label>
+                  <Label htmlFor="entry_fee">Valor de Entrada (opcional)</Label>
                   <Input
                     id="entry_fee"
                     name="entry_fee"
                     type="number"
                     step="0.01"
-                    min="0.01"
-                    placeholder="Ex: 10.00"
+                    min="0"
+                    placeholder="Ex: 10.00 (deixe vazio para gratuito)"
                     value={entryFeeValue}
                     onChange={(e) => setEntryFeeValue(e.target.value)}
-                    required
                   />
                 </div>
               ) : (
