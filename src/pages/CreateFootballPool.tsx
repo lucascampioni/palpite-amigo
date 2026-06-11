@@ -572,7 +572,7 @@ const CreateFootballPool = () => {
                         <li>Resultados sincronizados direto da fonte oficial</li>
                         <li>Sistema de pontuação: <strong>Placar exato (10 pts)</strong>, Resultado + saldo de gols (7 pts), Resultado + um placar correto (5 pts), Resultado correto (3 pts)</li>
                         <li><strong>Desempate automático:</strong> 1º Placares exatos → 2º Acertos totais → 3º Horário de envio → 4º Sorteio</li>
-                        <li>Prêmio definido pelo estabelecimento (produto, serviço, etc.)</li>
+                        <li>Prêmio em produto, serviço ou voucher (não em dinheiro)</li>
                         <li>Apenas <strong>1 vencedor</strong> por bolão</li>
                       </>
                     ) : paymentMethod === 'in_app' ? (
