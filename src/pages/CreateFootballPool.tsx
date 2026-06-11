@@ -739,7 +739,7 @@ const CreateFootballPool = () => {
                             : 'border-muted hover:border-primary/50'
                         }`}
                       >
-                        🏪 Prêmios do Estabelecimento
+                        🎁 Prêmio em Produto/Serviço
                       </button>
                     )}
                   </div>
