@@ -1791,10 +1791,12 @@ const PoolDetail = () => {
                     <div className="p-4 rounded-lg bg-green-50 dark:bg-green-950 border border-green-200 dark:border-green-800 space-y-3">
                       <div>
                         <p className="text-sm font-medium text-green-700 dark:text-green-300">
-                          ✓ Prêmio Enviado!
+                          {pool.prize_type === 'estabelecimento' ? '✓ Prêmio Entregue!' : '✓ Prêmio Enviado!'}
                         </p>
                         <p className="text-xs text-muted-foreground mt-1">
-                          O prêmio foi enviado para sua chave PIX. Verifique sua conta.
+                          {pool.prize_type === 'estabelecimento'
+                            ? 'O organizador marcou seu prêmio como entregue.'
+                            : 'O prêmio foi enviado para sua chave PIX. Verifique sua conta.'}
                         </p>
                       </div>
                       {currentUserParticipant.prize_proof_url && (
