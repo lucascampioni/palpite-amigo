@@ -84,9 +84,11 @@ const FootballPredictionForm = ({ poolId, userId, onSuccess, entryFee, pool, pix
   const [freeHasUsedCode, setFreeHasUsedCode] = useState<boolean>(false);
 
   const hasPositiveEntryFee = pool?.entry_fee && parseFloat(pool.entry_fee) > 0;
-  const isFreePool = !!pool?.is_free_pool || (pool?.prize_type !== 'estabelecimento' && !hasPositiveEntryFee);
-  const isEstabelecimento = !isFreePool && pool?.prize_type === 'estabelecimento';
+  // Estabelecimento pools are always free-entry via link (no phone-registration gating)
+  const isFreePool = !!pool?.is_free_pool || pool?.prize_type === 'estabelecimento' || !hasPositiveEntryFee;
+  const isEstabelecimento = false; // legacy gating disabled — estab now behaves as free pool
   const hasEntryFee = !isFreePool && !isEstabelecimento && hasPositiveEntryFee;
+
   const feePerSet = hasEntryFee ? parseFloat(pool.entry_fee) : 0;
   // Quantos palpites são cobertos pelos créditos vs pagos
   const freeSetsApplied = hasEntryFee ? Math.min(predictionSets.length, availableCredits) : 0;
