@@ -22,6 +22,9 @@ interface PoolItem {
   entry_fee: number | null;
   created_at: string;
   owner_name: string;
+  is_official?: boolean;
+  is_free_pool?: boolean;
+  referral_enabled?: boolean;
 }
 
 const statusLabels: Record<string, string> = {
