@@ -81,6 +81,8 @@ const CreateFootballPool = () => {
   const [addressCity, setAddressCity] = useState("");
   const [addressState, setAddressState] = useState("");
   const [saveAddress, setSaveAddress] = useState(false);
+  const [prizeDeliveryType, setPrizeDeliveryType] = useState<'physical' | 'digital'>('physical');
+  const [digitalDeliveryInstructions, setDigitalDeliveryInstructions] = useState("");
   const [inlinePixKey, setInlinePixKey] = useState("");
   const [inlinePixKeyType, setInlinePixKeyType] = useState<string>("");
   const [savingInlinePix, setSavingInlinePix] = useState(false);
@@ -316,11 +318,17 @@ const CreateFootballPool = () => {
           throw new Error("Descrição do prêmio é obrigatória");
         }
         if (prizeType === 'estabelecimento') {
-          if (!addressStreet.trim()) throw new Error("Rua é obrigatória");
-          if (!addressNumber.trim()) throw new Error("Número é obrigatório");
-          if (!addressNeighborhood.trim()) throw new Error("Bairro é obrigatório");
-          if (!addressCity.trim()) throw new Error("Cidade é obrigatória");
-          if (!addressState.trim()) throw new Error("Estado é obrigatório");
+          if (prizeDeliveryType === 'physical') {
+            if (!addressStreet.trim()) throw new Error("Rua é obrigatória");
+            if (!addressNumber.trim()) throw new Error("Número é obrigatório");
+            if (!addressNeighborhood.trim()) throw new Error("Bairro é obrigatório");
+            if (!addressCity.trim()) throw new Error("Cidade é obrigatória");
+            if (!addressState.trim()) throw new Error("Estado é obrigatório");
+          } else {
+            if (!digitalDeliveryInstructions.trim()) {
+              throw new Error("Informe como o prêmio será entregue (e-mail, WhatsApp, etc.)");
+            }
+          }
         }
       } else {
         // Admin: PIX required only if entry fee is set and not using in-app
@@ -445,7 +453,9 @@ const CreateFootballPool = () => {
         second_place_prize: prizeType !== 'estabelecimento' && maxWinners >= 2 && secondPlacePrize ? parseFloat(secondPlacePrize) : null,
         third_place_prize: prizeType !== 'estabelecimento' && maxWinners >= 3 && thirdPlacePrize ? parseFloat(thirdPlacePrize) : null,
         estabelecimento_prize_description: prizeType === 'estabelecimento' ? estabelecimentoPrizeDescription.trim() : null,
-        estabelecimento_prize_address: prizeType === 'estabelecimento' ? buildFullAddress() : null,
+        estabelecimento_prize_address: prizeType === 'estabelecimento'
+          ? (prizeDeliveryType === 'physical' ? buildFullAddress() : `📩 Entrega: ${digitalDeliveryInstructions.trim()}`)
+          : null,
         payment_method: (userRole?.canReceiveInApp && entryFee && parseFloat(entryFee) > 0) ? paymentMethod : 'pix_manual',
         guaranteed_prize: userRole?.isAdmin && prizeType === 'fixed' ? guaranteedPrize : false,
         waive_platform_fee: userRole?.isAdmin ? waivePlatformFee : false,
@@ -562,7 +572,7 @@ const CreateFootballPool = () => {
                         <li>Resultados sincronizados direto da fonte oficial</li>
                         <li>Sistema de pontuação: <strong>Placar exato (10 pts)</strong>, Resultado + saldo de gols (7 pts), Resultado + um placar correto (5 pts), Resultado correto (3 pts)</li>
                         <li><strong>Desempate automático:</strong> 1º Placares exatos → 2º Acertos totais → 3º Horário de envio → 4º Sorteio</li>
-                        <li>Prêmio definido pelo estabelecimento (produto, serviço, etc.)</li>
+                        <li>Prêmio em produto, serviço ou voucher (não em dinheiro)</li>
                         <li>Apenas <strong>1 vencedor</strong> por bolão</li>
                       </>
                     ) : paymentMethod === 'in_app' ? (
@@ -729,7 +739,7 @@ const CreateFootballPool = () => {
                             : 'border-muted hover:border-primary/50'
                         }`}
                       >
-                        🏪 Prêmios do Estabelecimento
+                        🎁 Prêmio em Produto/Serviço
                       </button>
                     )}
                   </div>
@@ -815,7 +825,7 @@ const CreateFootballPool = () => {
                   )}
                   {prizeType === 'estabelecimento' && (
                     <p className="text-xs text-muted-foreground">
-                      Descreva o prêmio que o estabelecimento oferecerá ao vencedor (ex: corte de cabelo, balde de cerveja, etc).
+                      Descreva o prêmio (não monetário) que o vencedor receberá — ex: voucher, corte de cabelo, balde de cerveja, brinde, etc.
                     </p>
                   )}
                 </div>
@@ -922,81 +932,125 @@ const CreateFootballPool = () => {
                 {prizeType === 'estabelecimento' && (
                   <div className="space-y-3">
                     <div className="space-y-2">
-                      <Label htmlFor="estabelecimento_prize">🏆 Descrição do Prêmio *</Label>
+                      <Label htmlFor="estabelecimento_prize">🎁 Descrição do Prêmio (não em dinheiro) *</Label>
                       <Textarea
                         id="estabelecimento_prize"
                         value={estabelecimentoPrizeDescription}
                         onChange={(e) => setEstabelecimentoPrizeDescription(e.target.value)}
-                        placeholder="Ex: 1 corte de cabelo grátis, 1 balde de cerveja, 1 pizza grande..."
+                        placeholder="Ex: Voucher de R$ 50 em compras, 1 pizza grande, 1 corte de cabelo, kit de produtos..."
                         rows={3}
                         required
                       />
                     </div>
                     <div className="space-y-3">
-                      <Label className="text-sm font-medium">📍 Local para Resgate do Prêmio *</Label>
-                      <div className="space-y-1">
-                        <Label htmlFor="address_name" className="text-xs text-muted-foreground">Nome do Estabelecimento</Label>
-                        <Input id="address_name" value={addressName} onChange={(e) => setAddressName(e.target.value)} placeholder="Ex: Barbearia do João" required />
+                      <Label className="text-sm font-medium">📦 Como o prêmio será entregue? *</Label>
+                      <div className="flex gap-2">
+                        <button
+                          type="button"
+                          onClick={() => setPrizeDeliveryType('physical')}
+                          className={`flex-1 py-2 px-3 rounded-lg border-2 font-semibold transition-colors text-sm ${
+                            prizeDeliveryType === 'physical'
+                              ? 'border-primary bg-primary/10 text-primary'
+                              : 'border-muted hover:border-primary/50'
+                          }`}
+                        >
+                          📍 Retirada no local
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setPrizeDeliveryType('digital')}
+                          className={`flex-1 py-2 px-3 rounded-lg border-2 font-semibold transition-colors text-sm ${
+                            prizeDeliveryType === 'digital'
+                              ? 'border-primary bg-primary/10 text-primary'
+                              : 'border-muted hover:border-primary/50'
+                          }`}
+                        >
+                          📩 E-mail / WhatsApp / Outro
+                        </button>
                       </div>
-                      <div className="grid grid-cols-3 gap-3">
-                        <div className="col-span-2 space-y-1">
-                          <Label htmlFor="address_street" className="text-xs text-muted-foreground">Rua / Avenida</Label>
-                          <Input id="address_street" value={addressStreet} onChange={(e) => setAddressStreet(e.target.value)} placeholder="Ex: Rua das Flores" required />
-                        </div>
+
+                      {prizeDeliveryType === 'digital' ? (
                         <div className="space-y-1">
-                          <Label htmlFor="address_number" className="text-xs text-muted-foreground">Número</Label>
-                          <Input id="address_number" value={addressNumber} onChange={(e) => setAddressNumber(e.target.value)} placeholder="123" required />
-                        </div>
-                      </div>
-                      <div className="grid grid-cols-2 gap-3">
-                        <div className="space-y-1">
-                          <Label htmlFor="address_complement" className="text-xs text-muted-foreground">Complemento</Label>
-                          <Input id="address_complement" value={addressComplement} onChange={(e) => setAddressComplement(e.target.value)} placeholder="Sala 2, Bloco B..." />
-                        </div>
-                        <div className="space-y-1">
-                          <Label htmlFor="address_neighborhood" className="text-xs text-muted-foreground">Bairro</Label>
-                          <Input id="address_neighborhood" value={addressNeighborhood} onChange={(e) => setAddressNeighborhood(e.target.value)} placeholder="Centro" required />
-                        </div>
-                      </div>
-                      <div className="grid grid-cols-3 gap-3">
-                        <div className="col-span-2 space-y-1">
-                          <Label htmlFor="address_city" className="text-xs text-muted-foreground">Cidade</Label>
-                          <Input id="address_city" value={addressCity} onChange={(e) => setAddressCity(e.target.value)} placeholder="São Paulo" required />
-                        </div>
-                        <div className="space-y-1">
-                          <Label htmlFor="address_state" className="text-xs text-muted-foreground">Estado</Label>
-                          <select
-                            id="address_state"
-                            value={addressState}
-                            onChange={(e) => setAddressState(e.target.value)}
-                            className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                          <Label htmlFor="digital_delivery" className="text-xs text-muted-foreground">
+                            Como o vencedor receberá o prêmio?
+                          </Label>
+                          <Textarea
+                            id="digital_delivery"
+                            value={digitalDeliveryInstructions}
+                            onChange={(e) => setDigitalDeliveryInstructions(e.target.value)}
+                            placeholder="Ex: Voucher enviado por e-mail / Código pelo WhatsApp do organizador / Link de resgate, etc."
+                            rows={2}
                             required
-                          >
-                            <option value="">UF</option>
-                            {['AC','AL','AP','AM','BA','CE','DF','ES','GO','MA','MT','MS','MG','PA','PB','PR','PE','PI','RJ','RN','RS','RO','RR','SC','SP','SE','TO'].map(uf => (
-                              <option key={uf} value={uf}>{uf}</option>
-                            ))}
-                          </select>
+                          />
                         </div>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <Checkbox
-                          id="save_address"
-                          checked={saveAddress}
-                          onCheckedChange={(checked) => {
-                            setSaveAddress(!!checked);
-                            if (checked) {
-                              const addrData = JSON.stringify({ name: addressName, street: addressStreet, number: addressNumber, complement: addressComplement, neighborhood: addressNeighborhood, city: addressCity, state: addressState });
-                              localStorage.setItem('estabelecimento_saved_address', addrData);
-                            } else {
-                              localStorage.removeItem('estabelecimento_saved_address');
-                            }
-                          }}
-                        />
-                        <Label htmlFor="save_address" className="text-xs text-muted-foreground cursor-pointer">
-                          Salvar este endereço para próximos bolões
-                        </Label>
-                      </div>
+                      ) : (
+                        <>
+                          <Label className="text-sm font-medium">📍 Local para Retirada do Prêmio</Label>
+                          <div className="space-y-1">
+                            <Label htmlFor="address_name" className="text-xs text-muted-foreground">Nome do Estabelecimento</Label>
+                            <Input id="address_name" value={addressName} onChange={(e) => setAddressName(e.target.value)} placeholder="Ex: Barbearia do João" required />
+                          </div>
+                          <div className="grid grid-cols-3 gap-3">
+                            <div className="col-span-2 space-y-1">
+                              <Label htmlFor="address_street" className="text-xs text-muted-foreground">Rua / Avenida</Label>
+                              <Input id="address_street" value={addressStreet} onChange={(e) => setAddressStreet(e.target.value)} placeholder="Ex: Rua das Flores" required />
+                            </div>
+                            <div className="space-y-1">
+                              <Label htmlFor="address_number" className="text-xs text-muted-foreground">Número</Label>
+                              <Input id="address_number" value={addressNumber} onChange={(e) => setAddressNumber(e.target.value)} placeholder="123" required />
+                            </div>
+                          </div>
+                          <div className="grid grid-cols-2 gap-3">
+                            <div className="space-y-1">
+                              <Label htmlFor="address_complement" className="text-xs text-muted-foreground">Complemento</Label>
+                              <Input id="address_complement" value={addressComplement} onChange={(e) => setAddressComplement(e.target.value)} placeholder="Sala 2, Bloco B..." />
+                            </div>
+                            <div className="space-y-1">
+                              <Label htmlFor="address_neighborhood" className="text-xs text-muted-foreground">Bairro</Label>
+                              <Input id="address_neighborhood" value={addressNeighborhood} onChange={(e) => setAddressNeighborhood(e.target.value)} placeholder="Centro" required />
+                            </div>
+                          </div>
+                          <div className="grid grid-cols-3 gap-3">
+                            <div className="col-span-2 space-y-1">
+                              <Label htmlFor="address_city" className="text-xs text-muted-foreground">Cidade</Label>
+                              <Input id="address_city" value={addressCity} onChange={(e) => setAddressCity(e.target.value)} placeholder="São Paulo" required />
+                            </div>
+                            <div className="space-y-1">
+                              <Label htmlFor="address_state" className="text-xs text-muted-foreground">Estado</Label>
+                              <select
+                                id="address_state"
+                                value={addressState}
+                                onChange={(e) => setAddressState(e.target.value)}
+                                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                                required
+                              >
+                                <option value="">UF</option>
+                                {['AC','AL','AP','AM','BA','CE','DF','ES','GO','MA','MT','MS','MG','PA','PB','PR','PE','PI','RJ','RN','RS','RO','RR','SC','SP','SE','TO'].map(uf => (
+                                  <option key={uf} value={uf}>{uf}</option>
+                                ))}
+                              </select>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <Checkbox
+                              id="save_address"
+                              checked={saveAddress}
+                              onCheckedChange={(checked) => {
+                                setSaveAddress(!!checked);
+                                if (checked) {
+                                  const addrData = JSON.stringify({ name: addressName, street: addressStreet, number: addressNumber, complement: addressComplement, neighborhood: addressNeighborhood, city: addressCity, state: addressState });
+                                  localStorage.setItem('estabelecimento_saved_address', addrData);
+                                } else {
+                                  localStorage.removeItem('estabelecimento_saved_address');
+                                }
+                              }}
+                            />
+                            <Label htmlFor="save_address" className="text-xs text-muted-foreground cursor-pointer">
+                              Salvar este endereço para próximos bolões
+                            </Label>
+                          </div>
+                        </>
+                      )}
                     </div>
                   </div>
                 )}
