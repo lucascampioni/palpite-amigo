@@ -339,9 +339,8 @@ const Index = () => {
 
       // Fetch winners with unpaid prizes in pools the user created
       // Skip pools with in_app payment — Delfos handles payouts automatically.
-      // Skip estabelecimento pools — prize is delivered physically, no PIX flow.
       const ownedNonInAppPoolIds = ownedPools
-        .filter(p => p.payment_method !== 'in_app' && p.prize_type !== 'estabelecimento')
+        .filter(p => p.payment_method !== 'in_app')
         .map(p => p.id);
 
       if (ownedNonInAppPoolIds.length > 0) {
@@ -819,11 +818,19 @@ const Index = () => {
                           <p className="font-medium text-sm">{pool.title}</p>
                           <p className="text-xs text-muted-foreground mt-0.5">
                             <span className="font-bold text-foreground">{winnersCount}</span> prêmio(s) pendente(s)
-                            {info.readyToPayCount > 0 && (
-                              <span className="text-primary"> • {info.readyToPayCount} pronto(s) p/ pagar</span>
-                            )}
-                            {info.awaitingPixCount > 0 && (
-                              <span className="text-yellow-600 dark:text-yellow-400"> • {info.awaitingPixCount} aguardando chave PIX</span>
+                            {pool.prize_type === 'estabelecimento' ? (
+                              info.awaitingPixCount > 0 && (
+                                <span className="text-yellow-600 dark:text-yellow-400"> • {info.awaitingPixCount} aguardando entrega</span>
+                              )
+                            ) : (
+                              <>
+                                {info.readyToPayCount > 0 && (
+                                  <span className="text-primary"> • {info.readyToPayCount} pronto(s) p/ pagar</span>
+                                )}
+                                {info.awaitingPixCount > 0 && (
+                                  <span className="text-yellow-600 dark:text-yellow-400"> • {info.awaitingPixCount} aguardando chave PIX</span>
+                                )}
+                              </>
                             )}
                           </p>
                         </button>
