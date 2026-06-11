@@ -339,9 +339,8 @@ const Index = () => {
 
       // Fetch winners with unpaid prizes in pools the user created
       // Skip pools with in_app payment — Delfos handles payouts automatically.
-      // Skip estabelecimento pools — prize is delivered physically, no PIX flow.
       const ownedNonInAppPoolIds = ownedPools
-        .filter(p => p.payment_method !== 'in_app' && p.prize_type !== 'estabelecimento')
+        .filter(p => p.payment_method !== 'in_app')
         .map(p => p.id);
 
       if (ownedNonInAppPoolIds.length > 0) {
