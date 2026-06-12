@@ -154,15 +154,14 @@ const Profile = () => {
 
       const { error } = await supabase
         .from('profiles')
-        .update({ phone: cleanPhone, phone_verified: false })
+        .update({ phone: cleanPhone, phone_verified: true })
         .eq('id', user.id);
 
       if (error) throw error;
 
-      setProfile((prev: any) => ({ ...prev, phone: cleanPhone, phone_verified: false }));
+      setProfile((prev: any) => ({ ...prev, phone: cleanPhone, phone_verified: true }));
       setEditingPhone(false);
-      toast({ title: "Telefone atualizado", description: "Você precisa verificar o novo número via SMS." });
-      navigate("/verificacao-sms");
+      toast({ title: "Telefone atualizado", description: "Telefone salvo com sucesso." });
     } catch (error: any) {
       toast({ title: "Erro", description: error.message, variant: "destructive" });
     } finally {
