@@ -335,6 +335,9 @@ const Auth = () => {
       console.error("Falha ao verificar telefone duplicado");
     }
 
+    let partnerLinkSlug: string | null = null;
+    try { partnerLinkSlug = localStorage.getItem("partner_link_slug"); } catch {}
+
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
@@ -348,10 +351,15 @@ const Auth = () => {
           wants_whatsapp_group: false,
           notify_pool_updates: notifyPoolUpdates,
           notify_new_pools: notifyNewPools,
+          ...(partnerLinkSlug ? { partner_link_slug: partnerLinkSlug } : {}),
         },
         emailRedirectTo: `${window.location.origin}/`,
       },
     });
+
+    if (!error && partnerLinkSlug) {
+      try { localStorage.removeItem("partner_link_slug"); } catch {}
+    }
 
     // Evita falso positivo de "e-mail já cadastrado" em respostas obfuscadas do provedor de auth.
     if (!error && !data.user && !data.session) {
