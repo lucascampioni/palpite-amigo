@@ -18,6 +18,7 @@ import AdminPoolManagement from "@/components/AdminPoolManagement";
 import AdminAllParticipants from "@/components/AdminAllParticipants";
 import AdminPlatformSettings from "@/components/AdminPlatformSettings";
 import AdminPayoutsManagement from "@/components/AdminPayoutsManagement";
+import AdminPartnerLinks from "@/components/AdminPartnerLinks";
 
 const Profile = () => {
   const navigate = useNavigate();
@@ -553,11 +554,12 @@ const Profile = () => {
             </CardHeader>
             <CardContent>
               <Tabs defaultValue="users" className="w-full">
-                <TabsList className="grid w-full grid-cols-3 sm:grid-cols-6 h-auto gap-1 p-1">
+                <TabsList className="grid w-full grid-cols-4 sm:grid-cols-7 h-auto gap-1 p-1">
                   <TabsTrigger value="users" className="text-[10px] sm:text-xs px-1 py-1.5 whitespace-nowrap">Usuários</TabsTrigger>
                   <TabsTrigger value="pools" className="text-[10px] sm:text-xs px-1 py-1.5 whitespace-nowrap">Bolões</TabsTrigger>
                   <TabsTrigger value="participants" className="text-[10px] sm:text-xs px-1 py-1.5 whitespace-nowrap">Participantes</TabsTrigger>
                   <TabsTrigger value="payouts" className="text-[10px] sm:text-xs px-1 py-1.5 whitespace-nowrap">Repasses</TabsTrigger>
+                  <TabsTrigger value="partners" className="text-[10px] sm:text-xs px-1 py-1.5 whitespace-nowrap">Parceiros</TabsTrigger>
                   <TabsTrigger value="settings" className="text-[10px] sm:text-xs px-1 py-1.5 whitespace-nowrap">Config</TabsTrigger>
                   <TabsTrigger value="other" className="text-[10px] sm:text-xs px-1 py-1.5 whitespace-nowrap">Outros</TabsTrigger>
                 </TabsList>
@@ -572,6 +574,9 @@ const Profile = () => {
                 </TabsContent>
                 <TabsContent value="payouts" className="mt-4">
                   <AdminPayoutsManagement />
+                </TabsContent>
+                <TabsContent value="partners" className="mt-4">
+                  <AdminPartnerLinks />
                 </TabsContent>
                 <TabsContent value="settings" className="mt-4">
                   <AdminPlatformSettings />

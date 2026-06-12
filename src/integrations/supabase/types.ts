@@ -418,6 +418,50 @@ export type Database = {
           },
         ]
       }
+      partner_links: {
+        Row: {
+          active: boolean
+          click_count: number
+          created_at: string
+          created_by: string | null
+          id: string
+          label: string | null
+          partner_user_id: string
+          slug: string
+          updated_at: string
+        }
+        Insert: {
+          active?: boolean
+          click_count?: number
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          label?: string | null
+          partner_user_id: string
+          slug: string
+          updated_at?: string
+        }
+        Update: {
+          active?: boolean
+          click_count?: number
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          label?: string | null
+          partner_user_id?: string
+          slug?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "partner_links_partner_user_id_fkey"
+            columns: ["partner_user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       pix_key_access_logs: {
         Row: {
           accessed_at: string
@@ -880,6 +924,7 @@ export type Database = {
           id: string
           notify_new_pools: boolean
           notify_pool_updates: boolean
+          partner_link_slug: string | null
           phone: string | null
           phone_verified: boolean
           pix_key: string | null
@@ -899,6 +944,7 @@ export type Database = {
           id: string
           notify_new_pools?: boolean
           notify_pool_updates?: boolean
+          partner_link_slug?: string | null
           phone?: string | null
           phone_verified?: boolean
           pix_key?: string | null
@@ -918,6 +964,7 @@ export type Database = {
           id?: string
           notify_new_pools?: boolean
           notify_pool_updates?: boolean
+          partner_link_slug?: string | null
           phone?: string | null
           phone_verified?: boolean
           pix_key?: string | null
@@ -1176,6 +1223,30 @@ export type Database = {
           user_id: string
         }[]
       }
+      get_partner_link_signups: {
+        Args: { p_slug: string }
+        Returns: {
+          created_at: string
+          full_name: string
+          phone: string
+          user_id: string
+        }[]
+      }
+      get_partner_links_with_stats: {
+        Args: never
+        Returns: {
+          active: boolean
+          click_count: number
+          created_at: string
+          id: string
+          label: string
+          partner_name: string
+          partner_phone: string
+          partner_user_id: string
+          signup_count: number
+          slug: string
+        }[]
+      }
       get_pool_owner_name: { Args: { pool_uuid: string }; Returns: string }
       get_pool_owner_phone: { Args: { pool_uuid: string }; Returns: string }
       get_pool_participants_phone_suffix: {
@@ -1208,6 +1279,7 @@ export type Database = {
         Returns: boolean
       }
       is_user_admin: { Args: never; Returns: boolean }
+      track_partner_link_click: { Args: { p_slug: string }; Returns: undefined }
     }
     Enums: {
       app_role:

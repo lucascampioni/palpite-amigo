@@ -21,6 +21,7 @@ import NotFound from "./pages/NotFound";
 import Communities from "./pages/Communities";
 import CommunityDetail from "./pages/CommunityDetail";
 import Support from "./pages/Support";
+import PartnerRedirect from "./pages/PartnerRedirect";
 
 const queryClient = new QueryClient();
 
@@ -42,6 +43,7 @@ const App = () => (
           <Route path="/verificacao-sms" element={<SmsVerification />} />
           <Route path="/verificacao-whatsapp" element={<SmsVerification />} />
           <Route path="/ajuda" element={<Support />} />
+          <Route path="/p/:slug" element={<PartnerRedirect />} />
 
           {/* Protected routes */}
           <Route path="/app" element={<ProtectedRoute><Index /></ProtectedRoute>} />
