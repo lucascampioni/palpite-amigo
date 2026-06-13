@@ -79,4 +79,7 @@ verify_jwt = false
 [functions.broadcast-copa-gratuita]
 verify_jwt = false
 
+[functions.test-sms]
+verify_jwt = false
+
 
