@@ -82,4 +82,7 @@ verify_jwt = false
 [functions.test-sms]
 verify_jwt = false
 
+[functions.sms-broadcast-copa]
+verify_jwt = false
+
 
