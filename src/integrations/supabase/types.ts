@@ -1223,6 +1223,21 @@ export type Database = {
           user_id: string
         }[]
       }
+      get_football_pool_ranking_fast: {
+        Args: { p_pool_id: string }
+        Returns: {
+          correct_results: number
+          earliest_prediction_at: string
+          exact_scores: number
+          has_predictions: boolean
+          participant_id: string
+          participant_name: string
+          prediction_set: number
+          prize_status: string
+          total_points: number
+          user_id: string
+        }[]
+      }
       get_partner_link_signups: {
         Args: { p_slug: string }
         Returns: {

@@ -8,7 +8,6 @@ import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { abbreviateTeamName } from "@/lib/team-utils";
 import { Button } from "@/components/ui/button";
-import { isWorldCupMatch, extractGroup, hasAllWorldCupGroupMatches } from "@/lib/world-cup-2026";
 import { proxyCrest } from "@/lib/team-crest";
 
 interface FootballRankingProps {
@@ -82,8 +81,6 @@ const FootballRanking = ({ poolId, pool, approvedParticipantsCount, isOwner }: F
   const [currentPage, setCurrentPage] = useState(1);
   const [userPhoneSuffix, setUserPhoneSuffix] = useState<Record<string, string>>({});
   const ITEMS_PER_PAGE = 10;
-  const [predictionsViewMode, setPredictionsViewMode] = useState<'group' | 'chrono'>('chrono');
-  const [isWorldCupPool, setIsWorldCupPool] = useState(false);
 
   useEffect(() => {
     loadRanking();
@@ -156,13 +153,13 @@ const FootballRanking = ({ poolId, pool, approvedParticipantsCount, isOwner }: F
     setLastFrontendRefresh(new Date());
     setLoading(true);
 
-    // Parallelize: matches + ranking RPC
+    // Parallelize: matches + optimized ranking RPC
     const [matchesRes, rpcRes] = await Promise.all([
       supabase
         .from("football_matches")
         .select("id, home_score, away_score, status, last_sync_at")
         .eq("pool_id", poolId),
-      (supabase as any).rpc('get_football_pool_ranking', { p_pool_id: poolId }),
+      (supabase as any).rpc('get_football_pool_ranking_fast', { p_pool_id: poolId }),
     ]);
 
     const matches = matchesRes.data as any[] | null;
@@ -204,49 +201,6 @@ const FootballRanking = ({ poolId, pool, approvedParticipantsCount, isOwner }: F
     if (!rpcError && rpcData) {
       const participantIds = rpcData.map((r: any) => r.participant_id);
 
-      // Parallelize: prize_status fetch + paginated predictions fetch (first page)
-      const PAGE_SIZE = 2000;
-      const [statusRes, firstBatchRes] = participantIds.length > 0
-        ? await Promise.all([
-            supabase
-              .from("participants")
-              .select("id, prize_status")
-              .eq("pool_id", poolId)
-              .in("id", participantIds),
-            supabase
-              .from("football_predictions")
-              .select("participant_id, created_at, prediction_set, home_score_prediction, away_score_prediction, match_id")
-              .in("participant_id", participantIds)
-              .range(0, PAGE_SIZE - 1),
-          ])
-        : [{ data: [] as any[] }, { data: [] as any[] }];
-
-      let prizeStatusMap: Record<string, string | null> = {};
-      if (statusRes.data) {
-        statusRes.data.forEach((s: any) => { prizeStatusMap[s.id] = s.prize_status; });
-      }
-
-      // Continue pagination if needed
-      let allPredictions: any[] = firstBatchRes.data ? [...firstBatchRes.data] : [];
-      if (firstBatchRes.data && firstBatchRes.data.length === PAGE_SIZE) {
-        let from = PAGE_SIZE;
-        let hasMore = true;
-        while (hasMore) {
-          const { data: batch } = await supabase
-            .from("football_predictions")
-            .select("participant_id, created_at, prediction_set, home_score_prediction, away_score_prediction, match_id")
-            .in("participant_id", participantIds)
-            .range(from, from + PAGE_SIZE - 1);
-          if (!batch || batch.length === 0) {
-            hasMore = false;
-          } else {
-            allPredictions = allPredictions.concat(batch);
-            hasMore = batch.length === PAGE_SIZE;
-            from += PAGE_SIZE;
-          }
-        }
-      }
-
       // Track how many sets each participant has
       const setCounts: Record<string, number> = {};
       rpcData.forEach((r: any) => {
@@ -265,8 +219,10 @@ const FootballRanking = ({ poolId, pool, approvedParticipantsCount, isOwner }: F
       const userEntryIndex: Record<string, number> = {};
       const globalPalpiteNumber: Record<string, number> = {};
       const sortedRpc = [...rpcData].sort((a: any, b: any) => {
-        if (a.participant_id === b.participant_id) return (a.prediction_set || 1) - (b.prediction_set || 1);
-        return 0;
+        const aTime = a.earliest_prediction_at ? new Date(a.earliest_prediction_at).getTime() : Infinity;
+        const bTime = b.earliest_prediction_at ? new Date(b.earliest_prediction_at).getTime() : Infinity;
+        if (aTime !== bTime) return aTime - bTime;
+        return (a.prediction_set || 1) - (b.prediction_set || 1);
       });
       sortedRpc.forEach((r: any) => {
         if (r.user_id) {
@@ -280,57 +236,12 @@ const FootballRanking = ({ poolId, pool, approvedParticipantsCount, isOwner }: F
       setUserTotalEntries(userEntryCounts);
       setGlobalPalpiteNumbers(globalPalpiteNumber);
 
-
-      const earliestPredMap: Record<string, string> = {};
-      const exactScoresMap: Record<string, number> = {};
-      const correctResultsMap: Record<string, number> = {};
-      
-      // Build match results map for tiebreaker calculation
-      const matchResultsMap: Record<string, { home_score: number; away_score: number }> = {};
-      const finishedMatches = countableMatches.filter(m => m.status === 'finished' && m.home_score !== null && m.away_score !== null);
-      for (const m of finishedMatches) {
-        matchResultsMap[m.id] = { home_score: m.home_score!, away_score: m.away_score! };
-      }
-
-      allPredictions?.forEach((p: any) => {
-        const key = `${p.participant_id}_${p.prediction_set || 1}`;
-        if (!earliestPredMap[key] || new Date(p.created_at).getTime() < new Date(earliestPredMap[key]).getTime()) {
-          earliestPredMap[key] = p.created_at;
-        }
-        
-        // Calculate exact scores and correct results for tiebreaker
-        const matchResult = matchResultsMap[p.match_id];
-        if (matchResult) {
-          if (!exactScoresMap[key]) exactScoresMap[key] = 0;
-          if (!correctResultsMap[key]) correctResultsMap[key] = 0;
-          
-          if (p.home_score_prediction === matchResult.home_score && 
-              p.away_score_prediction === matchResult.away_score) {
-            exactScoresMap[key] = (exactScoresMap[key] || 0) + 1;
-          }
-          
-          const predResult = p.home_score_prediction > p.away_score_prediction ? 'home' : 
-                            p.home_score_prediction < p.away_score_prediction ? 'away' : 'draw';
-          const actualResult = matchResult.home_score > matchResult.away_score ? 'home' : 
-                              matchResult.home_score < matchResult.away_score ? 'away' : 'draw';
-          if (predResult === actualResult) {
-            correctResultsMap[key] = (correctResultsMap[key] || 0) + 1;
-          }
-        }
-      });
-
       const isEstabelecimento = pool?.prize_type === 'estabelecimento';
-
-      // Build set of participant IDs that actually have predictions
-      const participantsWithPredictions = new Set<string>();
-      allPredictions?.forEach((p: any) => {
-        participantsWithPredictions.add(p.participant_id);
-      });
 
       let baseRanking: ParticipantScore[] = rpcData
         .filter((r: any) => {
           // For estabelecimento pools, exclude participants without predictions
-          if (isEstabelecimento && !participantsWithPredictions.has(r.participant_id)) {
+          if (isEstabelecimento && !r.has_predictions) {
             return false;
           }
           return true;
@@ -343,11 +254,11 @@ const FootballRanking = ({ poolId, pool, approvedParticipantsCount, isOwner }: F
             ranking_key: rankingKey,
             participant_name: r.participant_name,
             total_points: r.total_points ?? 0,
-            prize_status: prizeStatusMap[r.participant_id] || null,
+            prize_status: r.prize_status || null,
             prediction_set: predSet,
-            earliest_prediction_at: earliestPredMap[rankingKey] || null,
-            exact_scores: exactScoresMap[rankingKey] || 0,
-            correct_results: correctResultsMap[rankingKey] || 0,
+            earliest_prediction_at: r.earliest_prediction_at || null,
+            exact_scores: r.exact_scores || 0,
+            correct_results: r.correct_results || 0,
             user_id: r.user_id || null,
           };
         });
@@ -716,100 +627,6 @@ const FootballRanking = ({ poolId, pool, approvedParticipantsCount, isOwner }: F
         ...prev,
         [rankingKey]: formattedPredictions
       }));
-    }
-  };
-
-  // Bulk-load all predictions when ranking is populated
-  useEffect(() => {
-    if (ranking.length > 0) {
-      loadAllPredictions();
-    }
-  }, [ranking.length]);
-
-  const loadAllPredictions = async () => {
-    const keysToLoad = ranking.map(r => r.ranking_key).filter(k => !participantPredictions[k]);
-    if (keysToLoad.length === 0) return;
-
-    const entries = keysToLoad.map(k => {
-      const [pid, ps] = k.split('_');
-      return { pid, ps: parseInt(ps) || 1, key: k };
-    });
-
-    const participantIds = [...new Set(entries.map(e => e.pid))];
-
-    // Fetch all predictions in paginated batches to avoid 1000-row limit
-    const PAGE_SIZE = 1000;
-    let allPredictions: any[] = [];
-    let from = 0;
-    let hasMore = true;
-
-    while (hasMore) {
-      const { data: batch } = await supabase
-        .from("football_predictions")
-        .select(`
-          match_id,
-          participant_id,
-          home_score_prediction,
-          away_score_prediction,
-          points_earned,
-          prediction_set,
-          football_matches (
-            home_team,
-            away_team,
-            home_score,
-            away_score,
-            match_date,
-            home_team_crest,
-            away_team_crest,
-            status,
-            championship
-          )
-        `)
-        .in("participant_id", participantIds)
-        .order("football_matches(match_date)", { ascending: true })
-        .range(from, from + PAGE_SIZE - 1);
-
-      if (!batch || batch.length === 0) {
-        hasMore = false;
-      } else {
-        allPredictions = allPredictions.concat(batch);
-        if (batch.length < PAGE_SIZE) {
-          hasMore = false;
-        } else {
-          from += PAGE_SIZE;
-        }
-      }
-    }
-
-    if (allPredictions.length === 0) return;
-
-    const grouped: Record<string, MatchPrediction[]> = {};
-    for (const p of allPredictions) {
-      const key = `${p.participant_id}_${p.prediction_set || 1}`;
-      if (!grouped[key]) grouped[key] = [];
-      grouped[key].push({
-        match_id: p.match_id,
-        home_team: p.football_matches.home_team,
-        away_team: p.football_matches.away_team,
-        home_score: p.football_matches.home_score,
-        away_score: p.football_matches.away_score,
-        home_score_prediction: p.home_score_prediction,
-        away_score_prediction: p.away_score_prediction,
-        points_earned: p.points_earned,
-        match_date: p.football_matches.match_date,
-        home_team_crest: p.football_matches.home_team_crest,
-        away_team_crest: p.football_matches.away_team_crest,
-        status: p.football_matches.status,
-        championship: p.football_matches.championship,
-      });
-    }
-
-    setParticipantPredictions(prev => ({ ...prev, ...grouped }));
-
-    // Detect World Cup pool only if ALL group-stage matches are present
-    if (allPredictions.length > 0 && hasAllWorldCupGroupMatches(allPredictions.map((p: any) => ({ championship: p.football_matches?.championship })))) {
-      setIsWorldCupPool(true);
-      setPredictionsViewMode(prev => prev === 'chrono' ? 'group' : prev);
     }
   };
 
