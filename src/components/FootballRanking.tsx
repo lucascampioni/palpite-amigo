@@ -1827,28 +1827,6 @@ const FootballRanking = ({ poolId, pool, approvedParticipantsCount, isOwner }: F
                           )}
                           <div className="flex items-center justify-between gap-2 mb-2">
                             <p className="text-sm font-semibold text-muted-foreground">Palpites:</p>
-                            {isWorldCupPool && (
-                              <div className="flex items-center gap-1 rounded-md border p-0.5">
-                                <Button
-                                  type="button"
-                                  size="sm"
-                                  variant={predictionsViewMode === 'group' ? 'default' : 'ghost'}
-                                  className="h-6 px-2 text-[10px]"
-                                  onClick={(e) => { e.stopPropagation(); setPredictionsViewMode('group'); }}
-                                >
-                                  Por grupo
-                                </Button>
-                                <Button
-                                  type="button"
-                                  size="sm"
-                                  variant={predictionsViewMode === 'chrono' ? 'default' : 'ghost'}
-                                  className="h-6 px-2 text-[10px]"
-                                  onClick={(e) => { e.stopPropagation(); setPredictionsViewMode('chrono'); }}
-                                >
-                                  Cronológico
-                                </Button>
-                              </div>
-                            )}
                           </div>
                           {predictions.length === 0 ? (
                             <p className="text-sm text-muted-foreground">Carregando palpites...</p>
