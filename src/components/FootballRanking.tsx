@@ -8,7 +8,6 @@ import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { abbreviateTeamName } from "@/lib/team-utils";
 import { Button } from "@/components/ui/button";
-import { isWorldCupMatch, extractGroup, hasAllWorldCupGroupMatches } from "@/lib/world-cup-2026";
 import { proxyCrest } from "@/lib/team-crest";
 
 interface FootballRankingProps {
@@ -82,8 +81,6 @@ const FootballRanking = ({ poolId, pool, approvedParticipantsCount, isOwner }: F
   const [currentPage, setCurrentPage] = useState(1);
   const [userPhoneSuffix, setUserPhoneSuffix] = useState<Record<string, string>>({});
   const ITEMS_PER_PAGE = 10;
-  const [predictionsViewMode, setPredictionsViewMode] = useState<'group' | 'chrono'>('chrono');
-  const [isWorldCupPool, setIsWorldCupPool] = useState(false);
 
   useEffect(() => {
     loadRanking();
