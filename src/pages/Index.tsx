@@ -140,10 +140,16 @@ const Index = () => {
     const pendingRecords = participantRecords.filter(p => p.status === 'pending' && !p.payment_proof);
     const awaitingApprovalRecords = participantRecords.filter(p => p.status === 'pending' && p.payment_proof);
     const rejectedRecords = participantRecords.filter(p => p.status === 'rejected');
-    const participantPoolIds = approvedRecords.map(p => p.pool_id);
-    const pendingPoolIds = pendingRecords.map(p => p.pool_id);
-    const awaitingApprovalPoolIds = awaitingApprovalRecords.map(p => p.pool_id);
-    const rejectedPoolIds = rejectedRecords.map(p => p.pool_id);
+    const participantPoolIds = [...new Set(approvedRecords.map(p => p.pool_id))];
+    const approvedPoolIdSet = new Set(participantPoolIds);
+    const awaitingApprovalPoolIds = [...new Set(awaitingApprovalRecords.map(p => p.pool_id))]
+      .filter(id => !approvedPoolIdSet.has(id));
+    const awaitingApprovalSet = new Set(awaitingApprovalPoolIds);
+    const pendingPoolIds = [...new Set(pendingRecords.map(p => p.pool_id))]
+      .filter(id => !approvedPoolIdSet.has(id) && !awaitingApprovalSet.has(id));
+    const pendingSet = new Set(pendingPoolIds);
+    const rejectedPoolIds = [...new Set(rejectedRecords.map(p => p.pool_id))]
+      .filter(id => !approvedPoolIdSet.has(id) && !awaitingApprovalSet.has(id) && !pendingSet.has(id));
 
     const prizeStatusMap: Record<string, string> = {};
     participantRecords.forEach(p => {
