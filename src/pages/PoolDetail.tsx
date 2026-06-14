@@ -476,6 +476,43 @@ const PoolDetail = () => {
     if (poolId) loadPoolData();
   }, [poolId]);
 
+  useEffect(() => {
+    const loadAdminMessagingData = async () => {
+      if (!pool || loading || !(userRole?.isAdmin || isOwner) || !(pool.pool_type === "football" || hasFootballMatches)) return;
+
+      const userIds = [...new Set((participants || []).map((p: any) => p.user_id).filter(Boolean))];
+      const [participantPhonesRes, allProfilesRes] = await Promise.all([
+        userIds.length > 0
+          ? supabase.from("profiles").select("id, phone").in("id", userIds)
+          : Promise.resolve({ data: [] as any[] }),
+        supabase
+          .from("profiles")
+          .select("id, full_name, phone, notify_pool_updates, notify_new_pools")
+          .not("phone", "is", null),
+      ]);
+
+      const phoneMap: Record<string, string> = {};
+      participantPhonesRes.data?.forEach((p: any) => {
+        if (p.phone) phoneMap[p.id] = p.phone;
+      });
+      setParticipantPhones(phoneMap);
+
+      if (allProfilesRes.data) {
+        setAllUsersWithPhone(allProfilesRes.data
+          .filter((p: any) => p.phone)
+          .map((p: any) => ({
+            id: p.id,
+            full_name: p.full_name,
+            phone: p.phone,
+            notify_pool_updates: p.notify_pool_updates ?? true,
+            notify_new_pools: p.notify_new_pools ?? true,
+          })));
+      }
+    };
+
+    loadAdminMessagingData();
+  }, [pool?.id, loading, userRole?.isAdmin, isOwner, hasFootballMatches, participants.length]);
+
   // Listen for scroll-to-prize events from FootballRanking
   useEffect(() => {
     const handler = (e: Event) => {
