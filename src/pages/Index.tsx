@@ -105,326 +105,284 @@ const Index = () => {
 
     if (!initialLoadDone) setLoading(true);
     const now = new Date();
+    const nowISO = now.toISOString();
+    const userId = session.user.id;
 
-    const { data: ownedPools } = await supabase
-      .from("pools")
-      .select("*, participants(count)")
-      .eq("owner_id", session.user.id)
-      .order("created_at", { ascending: false });
+    // PHASE 1: independent base queries in parallel
+    const [
+      { data: ownedPools },
+      { data: participantRecordsRaw },
+      { data: creditsRows },
+    ] = await Promise.all([
+      supabase
+        .from("pools")
+        .select("*, participants(count)")
+        .eq("owner_id", userId)
+        .order("created_at", { ascending: false }),
+      supabase
+        .from("participants")
+        .select("pool_id, status, prize_status, rejection_reason, rejection_details, participant_financials(payment_proof)")
+        .eq("user_id", userId)
+        .in("status", ["approved", "pending", "rejected"]),
+      supabase
+        .from("referral_credits")
+        .select("pool_id")
+        .eq("user_id", userId)
+        .is("consumed_at", null),
+    ]);
 
-    const { data: participantRecordsRaw } = await supabase
-      .from("participants")
-      .select("pool_id, status, prize_status, rejection_reason, rejection_details, participant_financials(payment_proof)")
-      .eq("user_id", session.user.id)
-      .in("status", ["approved", "pending", "rejected"]);
     const participantRecords = (participantRecordsRaw || []).map((p: any) => {
       const f = Array.isArray(p.participant_financials) ? p.participant_financials[0] : p.participant_financials;
       return { ...p, payment_proof: f?.payment_proof ?? null };
     });
-    
-    const approvedRecords = participantRecords?.filter(p => p.status === 'approved') || [];
-    const pendingRecords = participantRecords?.filter(p => p.status === 'pending' && !p.payment_proof) || [];
-    const awaitingApprovalRecords = participantRecords?.filter(p => p.status === 'pending' && p.payment_proof) || [];
-    const rejectedRecords = participantRecords?.filter(p => p.status === 'rejected') || [];
+
+    const approvedRecords = participantRecords.filter(p => p.status === 'approved');
+    const pendingRecords = participantRecords.filter(p => p.status === 'pending' && !p.payment_proof);
+    const awaitingApprovalRecords = participantRecords.filter(p => p.status === 'pending' && p.payment_proof);
+    const rejectedRecords = participantRecords.filter(p => p.status === 'rejected');
     const participantPoolIds = approvedRecords.map(p => p.pool_id);
     const pendingPoolIds = pendingRecords.map(p => p.pool_id);
     const awaitingApprovalPoolIds = awaitingApprovalRecords.map(p => p.pool_id);
+    const rejectedPoolIds = rejectedRecords.map(p => p.pool_id);
 
     const prizeStatusMap: Record<string, string> = {};
-    participantRecords?.forEach(p => {
-      if (p.prize_status) {
-        prizeStatusMap[p.pool_id] = p.prize_status;
-      }
+    participantRecords.forEach(p => {
+      if (p.prize_status) prizeStatusMap[p.pool_id] = p.prize_status;
     });
     setParticipantPrizeStatus(prizeStatusMap);
-    
-    const possiblePrizePendingParticipants = participantRecords?.filter(p => p.prize_status === 'awaiting_pix' || p.prize_status === 'pix_submitted') || [];
-    const possiblePrizePendingPoolIds = [...new Set(possiblePrizePendingParticipants.map(p => p.pool_id))];
-    let sentInAppPayoutKeys = new Set<string>();
-    if (possiblePrizePendingPoolIds.length > 0) {
-      const { data: sentPayouts } = await supabase
-        .from("pool_payouts")
-        .select("pool_id, recipient_user_id")
-        .in("pool_id", possiblePrizePendingPoolIds)
-        .eq("recipient_user_id", session.user.id)
-        .eq("recipient_type", "winner")
-        .eq("status", "sent");
-      sentInAppPayoutKeys = new Set((sentPayouts || []).map((p: any) => `${p.pool_id}:${p.recipient_user_id}`));
-    }
 
-    const isAlreadyPaidByDelfos = (p: any) => sentInAppPayoutKeys.has(`${p.pool_id}:${session.user.id}`);
-    const awaitingPixParticipants = participantRecords?.filter(p => p.prize_status === 'awaiting_pix' && !isAlreadyPaidByDelfos(p)) || [];
-    const pixSubmittedParticipants = participantRecords?.filter(p => p.prize_status === 'pix_submitted' && !isAlreadyPaidByDelfos(p)) || [];
-    
-    const awaitingPixPoolIds = awaitingPixParticipants.map(p => p.pool_id);
-    const pixSubmittedPoolIds = pixSubmittedParticipants.map(p => p.pool_id);
-    
-    let awaitingPixPoolsData: any[] = [];
-    if (awaitingPixPoolIds.length > 0) {
-      const { data } = await supabase
-        .from("pools")
-        .select("*, participants(count)")
-        .in("id", awaitingPixPoolIds)
-        .order("created_at", { ascending: false });
-      awaitingPixPoolsData = data || [];
-    }
+    const possiblePrizePendingPoolIds = [...new Set(
+      participantRecords.filter(p => p.prize_status === 'awaiting_pix' || p.prize_status === 'pix_submitted').map(p => p.pool_id)
+    )];
 
-    let awaitingPaymentPoolsData: any[] = [];
-    if (pixSubmittedPoolIds.length > 0) {
-      const { data } = await supabase
-        .from("pools")
-        .select("*, participants(count)")
-        .in("id", pixSubmittedPoolIds)
-        .order("created_at", { ascending: false });
-      awaitingPaymentPoolsData = data || [];
-    }
+    // Credit pool ids
+    const creditCountByPool: Record<string, number> = {};
+    (creditsRows || []).forEach((c: any) => { creditCountByPool[c.pool_id] = (creditCountByPool[c.pool_id] || 0) + 1; });
+    const creditPoolIds = Object.keys(creditCountByPool);
 
-    // Separate pending payment pools into still active vs expired
-    let pendingPaymentPoolsData: any[] = [];
+    // PHASE 2: payouts check + ONE unified pools fetch by ids + owned-pool follow-ups in parallel
+    const allNeededPoolIds = [...new Set([
+      ...participantPoolIds,
+      ...pendingPoolIds,
+      ...awaitingApprovalPoolIds,
+      ...rejectedPoolIds,
+      ...creditPoolIds,
+    ])];
+
+    const ownedPoolIds = (ownedPools || []).map(p => p.id);
+    const ownedNonInAppPoolIds = (ownedPools || []).filter(p => p.payment_method !== 'in_app').map(p => p.id);
+
+    const [
+      sentPayoutsRes,
+      poolsByIdRes,
+      pendingParticipantsRes,
+      prizePendingParticipantsRes,
+    ] = await Promise.all([
+      possiblePrizePendingPoolIds.length > 0
+        ? supabase
+            .from("pool_payouts")
+            .select("pool_id, recipient_user_id")
+            .in("pool_id", possiblePrizePendingPoolIds)
+            .eq("recipient_user_id", userId)
+            .eq("recipient_type", "winner")
+            .eq("status", "sent")
+        : Promise.resolve({ data: [] as any[] }),
+      allNeededPoolIds.length > 0
+        ? supabase
+            .from("pools")
+            .select("*, participants(count)")
+            .in("id", allNeededPoolIds)
+            .order("created_at", { ascending: false })
+        : Promise.resolve({ data: [] as any[] }),
+      ownedPoolIds.length > 0
+        ? supabase
+            .from("participants")
+            .select("pool_id")
+            .in("pool_id", ownedPoolIds)
+            .eq("status", "pending")
+        : Promise.resolve({ data: [] as any[] }),
+      ownedNonInAppPoolIds.length > 0
+        ? supabase
+            .from("participants")
+            .select("pool_id, prize_status")
+            .in("pool_id", ownedNonInAppPoolIds)
+            .in("prize_status", ["pix_submitted", "awaiting_pix"])
+        : Promise.resolve({ data: [] as any[] }),
+    ]);
+
+    const sentInAppPayoutKeys = new Set(((sentPayoutsRes.data) || []).map((p: any) => `${p.pool_id}:${p.recipient_user_id}`));
+    const isAlreadyPaidByDelfos = (p: any) => sentInAppPayoutKeys.has(`${p.pool_id}:${userId}`);
+
+    const awaitingPixPoolIds = participantRecords.filter(p => p.prize_status === 'awaiting_pix' && !isAlreadyPaidByDelfos(p)).map(p => p.pool_id);
+    const pixSubmittedPoolIds = participantRecords.filter(p => p.prize_status === 'pix_submitted' && !isAlreadyPaidByDelfos(p)).map(p => p.pool_id);
+
+    // Partition unified pool fetch
+    const poolsById: Record<string, any> = {};
+    ((poolsByIdRes.data) || []).forEach((p: any) => { poolsById[p.id] = p; });
+
+    const sortByCreatedDesc = (a: any, b: any) => (b.created_at || '').localeCompare(a.created_at || '');
+
+    const awaitingPixPoolsData = awaitingPixPoolIds.map(id => poolsById[id]).filter(Boolean).sort(sortByCreatedDesc);
+    const awaitingPaymentPoolsData = pixSubmittedPoolIds.map(id => poolsById[id]).filter(Boolean).sort(sortByCreatedDesc);
+
     const failedPools: {pool: any, reason: string}[] = [];
-    
-    if (pendingPoolIds.length > 0) {
-      const { data } = await supabase
-        .from("pools")
-        .select("*, participants(count)")
-        .in("id", pendingPoolIds)
-        .order("created_at", { ascending: false });
-      
-      (data || []).forEach(pool => {
-        if (new Date(pool.deadline) < now || pool.status === 'finished') {
-          failedPools.push({ pool, reason: "Pagamento não realizado dentro do prazo" });
-        } else {
-          pendingPaymentPoolsData.push(pool);
-        }
-      });
-    }
+    const pendingPaymentPoolsData: any[] = [];
+    pendingPoolIds.forEach(id => {
+      const pool = poolsById[id];
+      if (!pool) return;
+      if (new Date(pool.deadline) < now || pool.status === 'finished') {
+        failedPools.push({ pool, reason: "Pagamento não realizado dentro do prazo" });
+      } else {
+        pendingPaymentPoolsData.push(pool);
+      }
+    });
+    pendingPaymentPoolsData.sort(sortByCreatedDesc);
 
-    let awaitingApprovalPoolsData: any[] = [];
-    if (awaitingApprovalPoolIds.length > 0) {
-      const { data } = await supabase
-        .from("pools")
-        .select("*, participants(count)")
-        .in("id", awaitingApprovalPoolIds)
-        .order("created_at", { ascending: false });
-      
-      (data || []).forEach(pool => {
-        // Only mark as failed if pool is finished or cancelled — 
-        // deadline passing alone doesn't mean failure since auto-approve happens at match start
-        if (pool.status === 'finished' || pool.status === 'cancelled') {
-          failedPools.push({ pool, reason: "Aprovação não concluída dentro do prazo" });
-        } else {
-          awaitingApprovalPoolsData.push(pool);
-        }
-      });
-    }
+    const awaitingApprovalPoolsData: any[] = [];
+    awaitingApprovalPoolIds.forEach(id => {
+      const pool = poolsById[id];
+      if (!pool) return;
+      if (pool.status === 'finished' || pool.status === 'cancelled') {
+        failedPools.push({ pool, reason: "Aprovação não concluída dentro do prazo" });
+      } else {
+        awaitingApprovalPoolsData.push(pool);
+      }
+    });
+    awaitingApprovalPoolsData.sort(sortByCreatedDesc);
 
-    // Rejected pools
-    if (rejectedRecords.length > 0) {
-      const rejectedPoolIds = rejectedRecords.map(p => p.pool_id);
-      const { data } = await supabase
-        .from("pools")
-        .select("*, participants(count)")
-        .in("id", rejectedPoolIds)
-        .order("created_at", { ascending: false });
-      
-      (data || []).forEach(pool => {
-        const record = rejectedRecords.find(r => r.pool_id === pool.id);
-        const reason = record?.rejection_reason || record?.rejection_details || "Participação rejeitada pelo organizador";
-        failedPools.push({ pool, reason });
-      });
-    }
+    rejectedRecords.forEach(record => {
+      const pool = poolsById[record.pool_id];
+      if (!pool) return;
+      const reason = record.rejection_reason || record.rejection_details || "Participação rejeitada pelo organizador";
+      failedPools.push({ pool, reason });
+    });
 
-    const specialPoolIds = [...awaitingPixPoolIds, ...pixSubmittedPoolIds];
-    const regularParticipantPoolIds = participantPoolIds.filter(id => !specialPoolIds.includes(id));
-    
-    let participatingPoolsData: any[] = [];
-    if (regularParticipantPoolIds.length > 0) {
-      const { data } = await supabase
-        .from("pools")
-        .select("*, participants(count)")
-        .in("id", regularParticipantPoolIds)
-        .order("created_at", { ascending: false });
-      participatingPoolsData = data || [];
-    }
+    const specialPoolIds = new Set([...awaitingPixPoolIds, ...pixSubmittedPoolIds]);
+    const participatingPoolsData = participantPoolIds
+      .filter(id => !specialPoolIds.has(id))
+      .map(id => poolsById[id])
+      .filter(Boolean)
+      .sort(sortByCreatedDesc);
 
-    const rejectedPoolIds = rejectedRecords.map(p => p.pool_id);
-    const excludeFromOfficialIds = [
-      ...ownedPools?.map(p => p.id) || [],
-      ...participantPoolIds,
-      ...pendingPoolIds,
-      ...awaitingApprovalPoolIds,
-      ...rejectedPoolIds,
-    ];
-    
-    const nowISO = now.toISOString();
+    const referralCreditPools: {pool: any, credits: number}[] = [];
+    creditPoolIds.forEach(id => {
+      const pool = poolsById[id];
+      if (pool && pool.status === 'active') {
+        referralCreditPools.push({ pool, credits: creditCountByPool[id] });
+      }
+    });
 
-    let officialPoolsData: any[] = [];
-    if (excludeFromOfficialIds.length > 0) {
-      const { data } = await supabase
-        .from("pools")
-        .select("*, participants(count)")
-        .eq("is_official", true)
-        .eq("is_private", false)
-        .eq("status", "active")
-        .gt("deadline", nowISO)
-        .not("id", "in", `(${excludeFromOfficialIds.map((id) => `"${id}"`).join(',')})`)
-        .order("created_at", { ascending: false });
-      officialPoolsData = data || [];
-    } else {
-      const { data } = await supabase
-        .from("pools")
-        .select("*, participants(count)")
-        .eq("is_official", true)
-        .eq("is_private", false)
-        .eq("status", "active")
-        .gt("deadline", nowISO)
-        .order("created_at", { ascending: false });
-      officialPoolsData = data || [];
-    }
-
-    const excludeIds = [
-      ...ownedPools?.map(p => p.id) || [],
-      ...participantPoolIds,
-      ...pendingPoolIds,
-      ...awaitingApprovalPoolIds,
-      ...rejectedPoolIds,
-      ...officialPoolsData?.map(p => p.id) || [],
-    ];
-    
-    let activePools: any[] = [];
-    if (excludeIds.length > 0) {
-      const { data } = await supabase
-        .from("pools")
-        .select("*, participants(count)")
-        .eq("status", "active")
-        .eq("is_private", false)
-        .gt("deadline", nowISO)
-        .not("id", "in", `(${excludeIds.map((id) => `"${id}"`).join(',')})`)
-        .order("created_at", { ascending: false });
-      activePools = data || [];
-    } else {
-      const { data } = await supabase
-        .from("pools")
-        .select("*, participants(count)")
-        .eq("status", "active")
-        .eq("is_private", false)
-        .gt("deadline", nowISO)
-        .order("created_at", { ascending: false });
-      activePools = data || [];
-    }
-
-
-    // Fetch pending approvals for pools the user created
+    // Owned-pool pending approvals + prize sends
     const poolsPendingApprovals: {pool: any, pendingCount: number}[] = [];
     const poolsPendingPrizeSend: {pool: any, winnersCount: number}[] = [];
-    if (ownedPools && ownedPools.length > 0) {
-      const ownedPoolIds = ownedPools.map(p => p.id);
-      const { data: pendingParticipants } = await supabase
-        .from("participants")
-        .select("pool_id")
-        .in("pool_id", ownedPoolIds)
-        .eq("status", "pending");
-      
-      if (pendingParticipants && pendingParticipants.length > 0) {
-        const countByPool: Record<string, number> = {};
-        pendingParticipants.forEach(p => {
-          countByPool[p.pool_id] = (countByPool[p.pool_id] || 0) + 1;
-        });
-        Object.entries(countByPool).forEach(([poolId, count]) => {
-          const pool = ownedPools.find(p => p.id === poolId);
-          // Em bolões com pagamento automático, aprovação é feita pelo gateway, não pelo criador
-          if (pool && pool.payment_method !== 'in_app') poolsPendingApprovals.push({ pool, pendingCount: count });
-        });
-      }
 
-      // Fetch winners with unpaid prizes in pools the user created
-      // Skip pools with in_app payment — Delfos handles payouts automatically.
-      const ownedNonInAppPoolIds = ownedPools
-        .filter(p => p.payment_method !== 'in_app')
-        .map(p => p.id);
-
-      if (ownedNonInAppPoolIds.length > 0) {
-        const { data: prizePendingParticipants } = await supabase
-          .from("participants")
-          .select("pool_id, prize_status")
-          .in("pool_id", ownedNonInAppPoolIds)
-          .in("prize_status", ["pix_submitted", "awaiting_pix"]);
-
-        if (prizePendingParticipants && prizePendingParticipants.length > 0) {
-          const infoByPool: Record<string, { total: number; awaitingPix: number; readyToPay: number }> = {};
-          prizePendingParticipants.forEach(p => {
-            if (!infoByPool[p.pool_id]) infoByPool[p.pool_id] = { total: 0, awaitingPix: 0, readyToPay: 0 };
-            infoByPool[p.pool_id].total++;
-            if (p.prize_status === 'awaiting_pix') infoByPool[p.pool_id].awaitingPix++;
-            if (p.prize_status === 'pix_submitted') infoByPool[p.pool_id].readyToPay++;
-          });
-          Object.entries(infoByPool).forEach(([poolId, info]) => {
-            const pool = ownedPools.find(p => p.id === poolId);
-            if (pool) poolsPendingPrizeSend.push({ pool, winnersCount: info.total, awaitingPixCount: info.awaitingPix, readyToPayCount: info.readyToPay } as any);
-          });
-        }
-      }
+    const pendingParticipants = pendingParticipantsRes.data || [];
+    if (pendingParticipants.length > 0) {
+      const countByPool: Record<string, number> = {};
+      pendingParticipants.forEach((p: any) => { countByPool[p.pool_id] = (countByPool[p.pool_id] || 0) + 1; });
+      Object.entries(countByPool).forEach(([poolId, count]) => {
+        const pool = (ownedPools || []).find(p => p.id === poolId);
+        if (pool && pool.payment_method !== 'in_app') poolsPendingApprovals.push({ pool, pendingCount: count });
+      });
     }
 
-    // Check for estabelecimento pools where user is approved but hasn't made predictions
-    let pendingPredictionPoolsData: any[] = [];
-    const approvedEstabelecimentoPoolIds = approvedRecords.map(r => r.pool_id);
-    if (approvedEstabelecimentoPoolIds.length > 0) {
-      // Get pools that are estabelecimento type and still active
-      const { data: estPools } = await supabase
+    const prizePendingParticipants = prizePendingParticipantsRes.data || [];
+    if (prizePendingParticipants.length > 0) {
+      const infoByPool: Record<string, { total: number; awaitingPix: number; readyToPay: number }> = {};
+      prizePendingParticipants.forEach((p: any) => {
+        if (!infoByPool[p.pool_id]) infoByPool[p.pool_id] = { total: 0, awaitingPix: 0, readyToPay: 0 };
+        infoByPool[p.pool_id].total++;
+        if (p.prize_status === 'awaiting_pix') infoByPool[p.pool_id].awaitingPix++;
+        if (p.prize_status === 'pix_submitted') infoByPool[p.pool_id].readyToPay++;
+      });
+      Object.entries(infoByPool).forEach(([poolId, info]) => {
+        const pool = (ownedPools || []).find(p => p.id === poolId);
+        if (pool) poolsPendingPrizeSend.push({ pool, winnersCount: info.total, awaitingPixCount: info.awaitingPix, readyToPayCount: info.readyToPay } as any);
+      });
+    }
+
+    // PHASE 3: explore pools + pending predictions (parallel)
+    const excludeFromOfficialIds = [
+      ...ownedPoolIds,
+      ...participantPoolIds,
+      ...pendingPoolIds,
+      ...awaitingApprovalPoolIds,
+      ...rejectedPoolIds,
+    ];
+
+    const officialQuery = (() => {
+      let q = supabase
         .from("pools")
         .select("*, participants(count)")
-        .in("id", approvedEstabelecimentoPoolIds)
-        .eq("prize_type", "estabelecimento")
+        .eq("is_official", true)
+        .eq("is_private", false)
         .eq("status", "active")
-        .gt("deadline", now.toISOString());
+        .gt("deadline", nowISO)
+        .order("created_at", { ascending: false });
+      if (excludeFromOfficialIds.length > 0) {
+        q = q.not("id", "in", `(${excludeFromOfficialIds.map((id) => `"${id}"`).join(',')})`);
+      }
+      return q;
+    })();
 
-      if (estPools && estPools.length > 0) {
-        // For each, check if user has predictions
+    const approvedEstabelecimentoPoolIds = approvedRecords.map(r => r.pool_id);
+
+    const [officialRes, estPoolsRes] = await Promise.all([
+      officialQuery,
+      approvedEstabelecimentoPoolIds.length > 0
+        ? supabase
+            .from("pools")
+            .select("*, participants(count)")
+            .in("id", approvedEstabelecimentoPoolIds)
+            .eq("prize_type", "estabelecimento")
+            .eq("status", "active")
+            .gt("deadline", nowISO)
+        : Promise.resolve({ data: [] as any[] }),
+    ]);
+
+    const officialPoolsData = officialRes.data || [];
+
+    // Active public pools (depends on official ids to exclude)
+    const excludeIds = [...excludeFromOfficialIds, ...officialPoolsData.map(p => p.id)];
+    let activePoolsQuery = supabase
+      .from("pools")
+      .select("*, participants(count)")
+      .eq("status", "active")
+      .eq("is_private", false)
+      .gt("deadline", nowISO)
+      .order("created_at", { ascending: false });
+    if (excludeIds.length > 0) {
+      activePoolsQuery = activePoolsQuery.not("id", "in", `(${excludeIds.map((id) => `"${id}"`).join(',')})`);
+    }
+
+    // Pending predictions in estabelecimento pools
+    const estPools = estPoolsRes.data || [];
+    let pendingPredictionPoolsData: any[] = [];
+    const [activePoolsRes, pendingPredictionsResult] = await Promise.all([
+      activePoolsQuery,
+      (async () => {
+        if (estPools.length === 0) return [] as any[];
         const { data: userParticipants } = await supabase
           .from("participants")
           .select("id, pool_id")
-          .eq("user_id", session.user.id)
+          .eq("user_id", userId)
           .in("pool_id", estPools.map(p => p.id))
           .eq("status", "approved");
-
-        if (userParticipants && userParticipants.length > 0) {
-          const participantIds = userParticipants.map(p => p.id);
-          const { data: predictions } = await supabase
-            .from("football_predictions")
-            .select("participant_id")
-            .in("participant_id", participantIds);
-
-          const predParticipantIds = new Set(predictions?.map(p => p.participant_id) || []);
-          const noPredictionPoolIds = userParticipants
-            .filter(p => !predParticipantIds.has(p.id))
-            .map(p => p.pool_id);
-
-          pendingPredictionPoolsData = estPools.filter(p => noPredictionPoolIds.includes(p.id));
-        }
-      }
-    }
-
-    // Fetch unconsumed referral credits grouped by pool
-    const referralCreditPools: {pool: any, credits: number}[] = [];
-    const { data: creditsRows } = await supabase
-      .from("referral_credits")
-      .select("pool_id")
-      .eq("user_id", session.user.id)
-      .is("consumed_at", null);
-    if (creditsRows && creditsRows.length > 0) {
-      const countByPool: Record<string, number> = {};
-      creditsRows.forEach((c: any) => { countByPool[c.pool_id] = (countByPool[c.pool_id] || 0) + 1; });
-      const creditPoolIds = Object.keys(countByPool);
-      const { data: creditPoolsData } = await supabase
-        .from("pools")
-        .select("*, participants(count)")
-        .in("id", creditPoolIds)
-        .eq("status", "active");
-      (creditPoolsData || []).forEach(pool => {
-        referralCreditPools.push({ pool, credits: countByPool[pool.id] });
-      });
-    }
+        if (!userParticipants || userParticipants.length === 0) return [];
+        const participantIds = userParticipants.map(p => p.id);
+        const { data: predictions } = await supabase
+          .from("football_predictions")
+          .select("participant_id")
+          .in("participant_id", participantIds);
+        const predParticipantIds = new Set(predictions?.map(p => p.participant_id) || []);
+        const noPredictionPoolIds = userParticipants
+          .filter(p => !predParticipantIds.has(p.id))
+          .map(p => p.pool_id);
+        return estPools.filter(p => noPredictionPoolIds.includes(p.id));
+      })(),
+    ]);
+    const activePools = activePoolsRes.data || [];
+    pendingPredictionPoolsData = pendingPredictionsResult;
 
     const allPoolOwnerIds = [...new Set([
       ...(ownedPools || []).map(p => p.owner_id),
