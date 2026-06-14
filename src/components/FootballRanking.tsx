@@ -1986,45 +1986,6 @@ const FootballRanking = ({ poolId, pool, approvedParticipantsCount, isOwner }: F
                                );
                             };
 
-                            if (isWorldCupPool && predictionsViewMode === 'group') {
-                              const groupMap = new Map<string, MatchPrediction[]>();
-                              predictions.forEach(p => {
-                                const g = extractGroup(p.championship) || '?';
-                                if (!groupMap.has(g)) groupMap.set(g, []);
-                                groupMap.get(g)!.push(p);
-                              });
-                              const groups = Array.from(groupMap.entries()).sort(([a], [b]) => a.localeCompare(b));
-                              return (
-                                <div className="space-y-1.5">
-                                  {groups.map(([g, list]) => {
-                                    const groupPoints = list.reduce((acc, p) => {
-                                      const isLive = ['1H', '2H', 'HT', 'ET', 'P'].includes(p.status);
-                                      const pts = isLive && p.home_score !== null && p.away_score !== null
-                                        ? calculatePointsClientSide(p.home_score_prediction, p.away_score_prediction, p.home_score, p.away_score, scoringSystem)
-                                        : p.points_earned;
-                                      return acc + (pts || 0);
-                                    }, 0);
-                                    return (
-                                      <Collapsible key={g}>
-                                        <CollapsibleTrigger className="w-full flex items-center justify-between p-2 rounded bg-primary/10 border border-primary/20 text-xs hover:bg-primary/15 transition-colors group">
-                                          <span className="font-semibold">🏆 Grupo {g}</span>
-                                          <span className="flex items-center gap-1.5 text-muted-foreground">
-                                            <Badge variant="secondary" className="text-[10px] px-1.5 py-0">{groupPoints} pts</Badge>
-                                            <ChevronDown className="w-3.5 h-3.5 transition-transform group-data-[state=open]:rotate-180" />
-                                          </span>
-                                        </CollapsibleTrigger>
-                                        <CollapsibleContent>
-                                          <div className="space-y-1 pt-1.5">
-                                            {list.map(renderPred)}
-                                          </div>
-                                        </CollapsibleContent>
-                                      </Collapsible>
-                                    );
-                                  })}
-                                </div>
-                              );
-                            }
-
                             return <>{predictions.map(renderPred)}</>;
                           })()}
                         </div>
