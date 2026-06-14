@@ -156,11 +156,16 @@ const FootballRanking = ({ poolId, pool, approvedParticipantsCount, isOwner }: F
     setLastFrontendRefresh(new Date());
     setLoading(true);
 
-    // Check match statuses
-    const { data: matches } = await supabase
-      .from("football_matches")
-      .select("id, home_score, away_score, status, last_sync_at")
-      .eq("pool_id", poolId);
+    // Parallelize: matches + ranking RPC
+    const [matchesRes, rpcRes] = await Promise.all([
+      supabase
+        .from("football_matches")
+        .select("id, home_score, away_score, status, last_sync_at")
+        .eq("pool_id", poolId),
+      (supabase as any).rpc('get_football_pool_ranking', { p_pool_id: poolId }),
+    ]);
+
+    const matches = matchesRes.data as any[] | null;
 
     // Get the most recent sync timestamp
     if (matches && matches.length > 0) {
@@ -194,22 +199,51 @@ const FootballRanking = ({ poolId, pool, approvedParticipantsCount, isOwner }: F
     // Get the scoring system
     const currentScoringSystem = pool?.scoring_system || scoringSystem || 'standard';
 
-    // Prefer a secured RPC that exposes only public ranking fields (works for everyone)
-    const { data: rpcData, error: rpcError } = await (supabase as any)
-      .rpc('get_football_pool_ranking', { p_pool_id: poolId });
+    const { data: rpcData, error: rpcError } = rpcRes as any;
 
     if (!rpcError && rpcData) {
-      // Fetch prize_status for all participants in this pool
       const participantIds = rpcData.map((r: any) => r.participant_id);
+
+      // Parallelize: prize_status fetch + paginated predictions fetch (first page)
+      const PAGE_SIZE = 2000;
+      const [statusRes, firstBatchRes] = participantIds.length > 0
+        ? await Promise.all([
+            supabase
+              .from("participants")
+              .select("id, prize_status")
+              .eq("pool_id", poolId)
+              .in("id", participantIds),
+            supabase
+              .from("football_predictions")
+              .select("participant_id, created_at, prediction_set, home_score_prediction, away_score_prediction, match_id")
+              .in("participant_id", participantIds)
+              .range(0, PAGE_SIZE - 1),
+          ])
+        : [{ data: [] as any[] }, { data: [] as any[] }];
+
       let prizeStatusMap: Record<string, string | null> = {};
-      if (participantIds.length > 0) {
-        const { data: statusData } = await supabase
-          .from("participants")
-          .select("id, prize_status")
-          .eq("pool_id", poolId)
-          .in("id", participantIds);
-        if (statusData) {
-          statusData.forEach((s: any) => { prizeStatusMap[s.id] = s.prize_status; });
+      if (statusRes.data) {
+        statusRes.data.forEach((s: any) => { prizeStatusMap[s.id] = s.prize_status; });
+      }
+
+      // Continue pagination if needed
+      let allPredictions: any[] = firstBatchRes.data ? [...firstBatchRes.data] : [];
+      if (firstBatchRes.data && firstBatchRes.data.length === PAGE_SIZE) {
+        let from = PAGE_SIZE;
+        let hasMore = true;
+        while (hasMore) {
+          const { data: batch } = await supabase
+            .from("football_predictions")
+            .select("participant_id, created_at, prediction_set, home_score_prediction, away_score_prediction, match_id")
+            .in("participant_id", participantIds)
+            .range(from, from + PAGE_SIZE - 1);
+          if (!batch || batch.length === 0) {
+            hasMore = false;
+          } else {
+            allPredictions = allPredictions.concat(batch);
+            hasMore = batch.length === PAGE_SIZE;
+            from += PAGE_SIZE;
+          }
         }
       }
 
@@ -230,7 +264,6 @@ const FootballRanking = ({ poolId, pool, approvedParticipantsCount, isOwner }: F
       // Assign a global palpite number per user (across all participant rows)
       const userEntryIndex: Record<string, number> = {};
       const globalPalpiteNumber: Record<string, number> = {};
-      // Sort by prediction_set to keep consistent ordering
       const sortedRpc = [...rpcData].sort((a: any, b: any) => {
         if (a.participant_id === b.participant_id) return (a.prediction_set || 1) - (b.prediction_set || 1);
         return 0;
@@ -247,27 +280,6 @@ const FootballRanking = ({ poolId, pool, approvedParticipantsCount, isOwner }: F
       setUserTotalEntries(userEntryCounts);
       setGlobalPalpiteNumbers(globalPalpiteNumber);
 
-      // Fetch all predictions with details for tiebreaker stats (paginated to avoid 1000-row limit)
-      let allPredictions: any[] = [];
-      {
-        let from = 0;
-        const PAGE_SIZE = 1000;
-        let hasMore = true;
-        while (hasMore) {
-          const { data: batch } = await supabase
-            .from("football_predictions")
-            .select("participant_id, created_at, prediction_set, home_score_prediction, away_score_prediction, match_id")
-            .in("participant_id", participantIds)
-            .range(from, from + PAGE_SIZE - 1);
-          if (!batch || batch.length === 0) {
-            hasMore = false;
-          } else {
-            allPredictions = allPredictions.concat(batch);
-            hasMore = batch.length === PAGE_SIZE;
-            from += PAGE_SIZE;
-          }
-        }
-      }
 
       const earliestPredMap: Record<string, string> = {};
       const exactScoresMap: Record<string, number> = {};
@@ -1827,28 +1839,6 @@ const FootballRanking = ({ poolId, pool, approvedParticipantsCount, isOwner }: F
                           )}
                           <div className="flex items-center justify-between gap-2 mb-2">
                             <p className="text-sm font-semibold text-muted-foreground">Palpites:</p>
-                            {isWorldCupPool && (
-                              <div className="flex items-center gap-1 rounded-md border p-0.5">
-                                <Button
-                                  type="button"
-                                  size="sm"
-                                  variant={predictionsViewMode === 'group' ? 'default' : 'ghost'}
-                                  className="h-6 px-2 text-[10px]"
-                                  onClick={(e) => { e.stopPropagation(); setPredictionsViewMode('group'); }}
-                                >
-                                  Por grupo
-                                </Button>
-                                <Button
-                                  type="button"
-                                  size="sm"
-                                  variant={predictionsViewMode === 'chrono' ? 'default' : 'ghost'}
-                                  className="h-6 px-2 text-[10px]"
-                                  onClick={(e) => { e.stopPropagation(); setPredictionsViewMode('chrono'); }}
-                                >
-                                  Cronológico
-                                </Button>
-                              </div>
-                            )}
                           </div>
                           {predictions.length === 0 ? (
                             <p className="text-sm text-muted-foreground">Carregando palpites...</p>
