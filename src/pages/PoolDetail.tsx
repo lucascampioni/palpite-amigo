@@ -526,22 +526,61 @@ const PoolDetail = () => {
     const ownerCheck = user?.id === poolData.owner_id;
     setIsOwner(ownerCheck);
 
-    // Check if user is a participant
-    const { data: userParticipantCheckArr } = await supabase
-      .from("participants")
-      .select("id")
-      .eq("pool_id", poolData.id)
-      .eq("user_id", user?.id || '')
-      .limit(1);
-    const userParticipantCheck = userParticipantCheckArr && userParticipantCheckArr.length > 0 ? userParticipantCheckArr[0] : null;
+    const [
+      userParticipantCheckRes,
+      poolCommunityRes,
+      ownerNameRes,
+      ownerPhoneRes,
+      ownerCommunityRes,
+      profileRes,
+      participantsRes,
+      matchesRes,
+      paymentInfoRes,
+      rankingRes,
+    ] = await Promise.all([
+      supabase
+        .from("participants")
+        .select("id")
+        .eq("pool_id", poolData.id)
+        .eq("user_id", user?.id || '')
+        .limit(1),
+      supabase
+        .from('communities')
+        .select('id')
+        .eq('responsible_user_id', poolData.owner_id)
+        .limit(1)
+        .maybeSingle(),
+      supabase.rpc("get_pool_owner_name", { pool_uuid: poolData.id }),
+      supabase.rpc("get_pool_owner_phone", { pool_uuid: poolData.id }),
+      supabase
+        .from('communities')
+        .select('name')
+        .eq('responsible_user_id', poolData.owner_id)
+        .limit(1)
+        .maybeSingle(),
+      user
+        ? supabase.from("profiles").select("phone").eq("id", user.id).single()
+        : Promise.resolve({ data: null }),
+      supabase
+        .from("participants")
+        .select("*, participant_financials(payment_proof, participant_pix_key, pix_key_type, pix_consent, prize_pix_key, prize_pix_key_type, prize_proof_url)")
+        .eq("pool_id", poolId),
+      supabase
+        .from("football_matches")
+        .select("id, home_team, away_team, home_team_crest, away_team_crest, home_score, away_score, match_date, championship, status")
+        .eq("pool_id", poolId)
+        .order("match_date", { ascending: true }),
+      supabase
+        .from('pool_payment_info')
+        .select('pix_key')
+        .eq('pool_id', poolId)
+        .maybeSingle(),
+      (supabase as any).rpc("get_football_pool_ranking_fast", { p_pool_id: poolId }),
+    ]);
 
-    // Check if pool belongs to a community (allows public access for finished pools)
-    const { data: poolCommunity } = await supabase
-      .from('communities')
-      .select('id')
-      .eq('responsible_user_id', poolData.owner_id)
-      .limit(1)
-      .maybeSingle();
+    const userParticipantCheckArr = userParticipantCheckRes.data;
+    const userParticipantCheck = userParticipantCheckArr && userParticipantCheckArr.length > 0 ? userParticipantCheckArr[0] : null;
+    const poolCommunity = poolCommunityRes.data;
     const belongsToCommunity = !!poolCommunity;
 
     // If deadline passed (or pool cancelled/finished) and user is NOT participant and NOT owner, redirect
@@ -559,38 +598,12 @@ const PoolDetail = () => {
       return;
     }
 
-    // Load owner name using security definer function
-    const { data: ownerNameData } = await supabase
-      .rpc("get_pool_owner_name", { pool_uuid: poolData.id });
-    setOwnerName(ownerNameData || null);
+    setOwnerName(ownerNameRes.data || null);
+    setOwnerPhone(ownerPhoneRes.data || null);
+    setOwnerCommunityName(ownerCommunityRes.data?.name || null);
+    setUserHasPhone(user ? !!profileRes.data?.phone : null);
 
-    // Load owner phone for WhatsApp contact (using security definer function)
-    const { data: ownerPhoneData } = await supabase
-      .rpc("get_pool_owner_phone", { pool_uuid: poolData.id });
-    setOwnerPhone(ownerPhoneData || null);
-
-    // Load community name for this pool's owner
-    const { data: ownerCommunity } = await supabase
-      .from('communities')
-      .select('name')
-      .eq('responsible_user_id', poolData.owner_id)
-      .limit(1)
-      .maybeSingle();
-    setOwnerCommunityName(ownerCommunity?.name || null);
-
-    if (user) {
-      const { data: profileData } = await supabase
-        .from("profiles")
-        .select("phone")
-        .eq("id", user.id)
-        .single();
-      setUserHasPhone(!!profileData?.phone);
-    }
-
-    const { data: participantsDataRaw } = await supabase
-      .from("participants")
-      .select("*, participant_financials(payment_proof, participant_pix_key, pix_key_type, pix_consent, prize_pix_key, prize_pix_key_type, prize_proof_url)")
-      .eq("pool_id", poolId);
+    const participantsDataRaw = participantsRes.data;
 
     const participantsData = (participantsDataRaw || []).map((p: any) => {
       const f = Array.isArray(p.participant_financials) ? p.participant_financials[0] : p.participant_financials;
@@ -609,64 +622,30 @@ const PoolDetail = () => {
 
     setParticipants(participantsData || []);
 
-    // Aggregate points per participant using the BEST prediction set (do not sum sets)
-    const participantIds = (participantsData || []).map((p: any) => p.id);
-    let pointsMap: Record<string, number> = {};
-    if (participantIds.length > 0) {
-      // Paginated fetch to avoid 1000-row Supabase limit
-      let allPreds: any[] = [];
-      const PAGE_SIZE = 1000;
-      let from = 0;
-      let hasMore = true;
-      while (hasMore) {
-        const { data: batch } = await supabase
-          .from("football_predictions")
-          .select("participant_id, prediction_set, points_earned")
-          .in("participant_id", participantIds)
-          .range(from, from + PAGE_SIZE - 1);
-        if (batch && batch.length > 0) {
-          allPreds = allPreds.concat(batch);
-        }
-        if (!batch || batch.length < PAGE_SIZE) {
-          hasMore = false;
-        } else {
-          from += PAGE_SIZE;
-        }
-      }
-
-      const setTotals: Record<string, number> = {};
-      for (const row of allPreds) {
-        const set = row.prediction_set || 1;
-        const setKey = `${row.participant_id}_${set}`;
-        setTotals[setKey] = (setTotals[setKey] || 0) + (row.points_earned || 0);
-      }
-
-      for (const [setKey, total] of Object.entries(setTotals)) {
-        const participantId = setKey.split("_")[0];
-        pointsMap[participantId] = Math.max(pointsMap[participantId] ?? Number.NEGATIVE_INFINITY, total);
-      }
-
-      Object.keys(pointsMap).forEach((pid) => {
-        if (pointsMap[pid] === Number.NEGATIVE_INFINITY) pointsMap[pid] = 0;
-      });
-    }
+    const rankData = rankingRes.data || [];
+    const pointsMap: Record<string, number> = {};
+    (rankData || []).forEach((row: any) => {
+      pointsMap[row.participant_id] = Math.max(pointsMap[row.participant_id] ?? 0, row.total_points || 0);
+    });
     setParticipantsPoints(pointsMap);
+    setRankingData((rankData || []).map((r: any) => ({
+      participant_id: r.participant_id,
+      participant_name: r.participant_name,
+      total_points: r.total_points || 0,
+      prediction_set: r.prediction_set || 1,
+      user_id: r.user_id,
+      exact_scores: r.exact_scores || 0,
+      correct_results: r.correct_results || 0,
+    })));
 
     // Load ALL user entries (multiple independent participants)
     const myEntries = participantsData?.filter(p => p.user_id === user?.id) || [];
     
-    // Compute _hasPredictions for all approved entries (needed for estabelecimento AND referral-reward flows)
+    const participantsWithPredictions = new Set((rankData || []).filter((r: any) => r.has_predictions).map((r: any) => r.participant_id));
+    // Compute _hasPredictions for approved entries without per-entry database calls
     if (myEntries.length > 0) {
       for (const entry of myEntries) {
-        if (entry.status !== 'approved') {
-          (entry as any)._hasPredictions = true; // not relevant for non-approved
-          continue;
-        }
-        const { count } = await supabase
-          .from("football_predictions")
-          .select("id", { count: 'exact', head: true })
-          .eq("participant_id", entry.id);
-        (entry as any)._hasPredictions = (count || 0) > 0;
+        (entry as any)._hasPredictions = entry.status !== 'approved' || participantsWithPredictions.has(entry.id);
       }
     }
 
@@ -677,12 +656,7 @@ const PoolDetail = () => {
     const approvedEntry = myEntries.find(e => e.status === 'approved');
     setCurrentUserParticipant(approvedEntry || myEntries[0] || null);
     
-    // Detect if this pool has football matches (even if pool_type is not set)
-    const { data: matchesData } = await supabase
-      .from("football_matches")
-      .select("id, home_team, away_team, home_team_crest, away_team_crest, home_score, away_score, match_date, championship, status")
-      .eq("pool_id", poolId)
-      .order("match_date", { ascending: true });
+    const matchesData = matchesRes.data;
     setHasFootballMatches((matchesData?.length || 0) > 0);
     setFootballMatches(matchesData || []);
     
@@ -704,75 +678,7 @@ const PoolDetail = () => {
     const startedStatuses = ['1H', '2H', 'HT', 'ET', 'P', 'finished', 'suspended'];
     setAnyMatchStarted(matchesData?.some(m => startedStatuses.includes(m.status)) ?? false);
 
-    // Load participant phones for WhatsApp panel (admin/owner only)
-    const userIds = (participantsData || []).map((p: any) => p.user_id);
-    if (userIds.length > 0) {
-      const { data: profiles } = await supabase
-        .from("profiles")
-        .select("id, phone")
-        .in("id", userIds);
-      const phoneMap: Record<string, string> = {};
-      profiles?.forEach((p: any) => {
-        if (p.phone) phoneMap[p.id] = p.phone;
-      });
-      setParticipantPhones(phoneMap);
-    }
-
-    // Load ranking data for WhatsApp messages
-    if ((matchesData?.length || 0) > 0) {
-      const { data: rankData } = await supabase.rpc("get_football_pool_ranking", { p_pool_id: poolId });
-
-      // Enrich with tiebreaker fields (exact_scores, correct_results) per (participant, prediction_set)
-      const finishedMatches = (matchesData || []).filter((m: any) => m.status === 'finished' && m.home_score !== null && m.away_score !== null);
-      const matchResultsMap: Record<string, { home_score: number; away_score: number }> = {};
-      finishedMatches.forEach((m: any) => { matchResultsMap[m.id] = { home_score: m.home_score, away_score: m.away_score }; });
-
-      const exactScoresMap: Record<string, number> = {};
-      const correctResultsMap: Record<string, number> = {};
-
-      if (finishedMatches.length > 0 && rankData && rankData.length > 0) {
-        const { data: allPredictions } = await supabase
-          .from('football_predictions')
-          .select('participant_id, prediction_set, match_id, home_score_prediction, away_score_prediction')
-          .in('match_id', finishedMatches.map((m: any) => m.id));
-
-        (allPredictions || []).forEach((p: any) => {
-          const key = `${p.participant_id}_${p.prediction_set || 1}`;
-          const result = matchResultsMap[p.match_id];
-          if (!result) return;
-          if (p.home_score_prediction === result.home_score && p.away_score_prediction === result.away_score) {
-            exactScoresMap[key] = (exactScoresMap[key] || 0) + 1;
-          }
-          const predR = p.home_score_prediction > p.away_score_prediction ? 'h' : p.home_score_prediction < p.away_score_prediction ? 'a' : 'd';
-          const actR = result.home_score > result.away_score ? 'h' : result.home_score < result.away_score ? 'a' : 'd';
-          if (predR === actR) correctResultsMap[key] = (correctResultsMap[key] || 0) + 1;
-        });
-      }
-
-      const enriched = (rankData || []).map((r: any) => {
-        const key = `${r.participant_id}_${r.prediction_set || 1}`;
-        return { ...r, exact_scores: exactScoresMap[key] || 0, correct_results: correctResultsMap[key] || 0 };
-      });
-      setRankingData(enriched);
-    }
-
-    // Load all registered users with phone for promotional WhatsApp messages
-    const { data: allProfiles } = await supabase
-      .from("profiles")
-      .select("id, full_name, phone, notify_pool_updates, notify_new_pools")
-      .not("phone", "is", null);
-    if (allProfiles) {
-      setAllUsersWithPhone(allProfiles.filter(p => p.phone).map(p => ({ id: p.id, full_name: p.full_name, phone: p.phone!, notify_pool_updates: p.notify_pool_updates ?? true, notify_new_pools: p.notify_new_pools ?? true })));
-    }
-    
-    // Load pool payment info
-    const { data: paymentInfo } = await supabase
-      .from('pool_payment_info')
-      .select('pix_key')
-      .eq('pool_id', poolId)
-      .maybeSingle();
-    
-    setPool({ ...poolData, pix_key: paymentInfo?.pix_key || null });
+    setPool({ ...poolData, pix_key: paymentInfoRes.data?.pix_key || null });
     
     // Load winners if pool is finished
     if (poolData.status === 'finished') {
