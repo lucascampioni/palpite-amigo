@@ -2,8 +2,6 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Printer, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import jsPDF from "jspdf";
-import QRCode from "qrcode";
 import delfosLogo from "@/assets/delfos-logo.png";
 
 type InfoLine = { label: string; value: string };
@@ -43,6 +41,10 @@ const PrintPosterButton = ({
   const generate = async () => {
     setLoading(true);
     try {
+      const [{ default: jsPDF }, { default: QRCode }] = await Promise.all([
+        import("jspdf"),
+        import("qrcode"),
+      ]);
       const qrDataUrl = await QRCode.toDataURL(url, {
         errorCorrectionLevel: "H",
         margin: 1,
