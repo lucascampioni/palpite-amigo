@@ -156,11 +156,16 @@ const FootballRanking = ({ poolId, pool, approvedParticipantsCount, isOwner }: F
     setLastFrontendRefresh(new Date());
     setLoading(true);
 
-    // Check match statuses
-    const { data: matches } = await supabase
-      .from("football_matches")
-      .select("id, home_score, away_score, status, last_sync_at")
-      .eq("pool_id", poolId);
+    // Parallelize: matches + ranking RPC
+    const [matchesRes, rpcRes] = await Promise.all([
+      supabase
+        .from("football_matches")
+        .select("id, home_score, away_score, status, last_sync_at")
+        .eq("pool_id", poolId),
+      (supabase as any).rpc('get_football_pool_ranking', { p_pool_id: poolId }),
+    ]);
+
+    const matches = matchesRes.data as any[] | null;
 
     // Get the most recent sync timestamp
     if (matches && matches.length > 0) {
@@ -194,9 +199,7 @@ const FootballRanking = ({ poolId, pool, approvedParticipantsCount, isOwner }: F
     // Get the scoring system
     const currentScoringSystem = pool?.scoring_system || scoringSystem || 'standard';
 
-    // Prefer a secured RPC that exposes only public ranking fields (works for everyone)
-    const { data: rpcData, error: rpcError } = await (supabase as any)
-      .rpc('get_football_pool_ranking', { p_pool_id: poolId });
+    const { data: rpcData, error: rpcError } = rpcRes as any;
 
     if (!rpcError && rpcData) {
       // Fetch prize_status for all participants in this pool
