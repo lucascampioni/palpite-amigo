@@ -381,7 +381,7 @@ serve(async (req) => {
       .select('id, external_id, pool_id, home_team, away_team, status, match_date, home_score, away_score, home_team_crest, away_team_crest')
       .or('external_id.like.wc2026_%,external_id.like.fd_%,home_team_crest.is.null,away_team_crest.is.null')
       .gt('match_date', new Date(Date.now() - 60 * 24 * 60 * 60 * 1000).toISOString())
-      .limit(40);
+      .limit(150);
 
     if (needsBackfill && needsBackfill.length > 0) {
       console.log(`🧩 Backfilling ${needsBackfill.length} matches with synthetic IDs or missing crests...`);
