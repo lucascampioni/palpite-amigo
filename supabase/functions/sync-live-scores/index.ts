@@ -149,6 +149,8 @@ serve(async (req) => {
       const mappedStatus = mapApiStatus(apiStatus);
       const homeGoals = fixture.goals?.home ?? null;
       const awayGoals = fixture.goals?.away ?? null;
+      const apiHomeCrest = fixture.teams?.home?.logo || null;
+      const apiAwayCrest = fixture.teams?.away?.logo || null;
 
       for (const dbMatch of matchesToUpdate) {
         const statusChanged = dbMatch.status !== mappedStatus;
@@ -156,8 +158,10 @@ serve(async (req) => {
         const awayScoreChanged = awayGoals !== null && dbMatch.away_score !== awayGoals;
         const scoreChanged = homeScoreChanged || awayScoreChanged;
         const externalIdChanged = dbMatch.external_id !== externalId;
+        const homeCrestChanged = apiHomeCrest && !dbMatch.home_team_crest;
+        const awayCrestChanged = apiAwayCrest && !dbMatch.away_team_crest;
 
-        if (!statusChanged && !scoreChanged && !externalIdChanged) continue;
+        if (!statusChanged && !scoreChanged && !externalIdChanged && !homeCrestChanged && !awayCrestChanged) continue;
 
         const updateData: any = {
           status: mappedStatus,
@@ -166,6 +170,8 @@ serve(async (req) => {
         if (homeGoals !== null) updateData.home_score = homeGoals;
         if (awayGoals !== null) updateData.away_score = awayGoals;
         if (externalIdChanged) updateData.external_id = externalId;
+        if (homeCrestChanged) updateData.home_team_crest = apiHomeCrest;
+        if (awayCrestChanged) updateData.away_team_crest = apiAwayCrest;
 
         const { error: updateError } = await supabase
           .from('football_matches')
