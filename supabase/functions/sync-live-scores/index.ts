@@ -297,7 +297,7 @@ serve(async (req) => {
     const fiveMinAgo = new Date(Date.now() - 5 * 60 * 1000).toISOString();
     const { data: missedScheduled } = await supabase
       .from('football_matches')
-      .select('id, external_id, pool_id, home_team, away_team, status, match_date, home_score, away_score')
+      .select('id, external_id, pool_id, home_team, away_team, status, match_date, home_score, away_score, home_team_crest, away_team_crest')
       .eq('status', 'scheduled')
       .lt('match_date', fiveMinAgo)
       .not('external_id', 'is', null);
@@ -317,6 +317,8 @@ serve(async (req) => {
           const fbStatus = mapApiStatus(fbFixture.fixture?.status?.short);
           const fbHome = fbFixture.goals?.home ?? null;
           const fbAway = fbFixture.goals?.away ?? null;
+          const fbHomeCrest = fbFixture.teams?.home?.logo || null;
+          const fbAwayCrest = fbFixture.teams?.away?.logo || null;
           const resolvedExternalId = provider === 'apifb'
             ? `apifb_${fbFixture.fixture?.id}`
             : missed.external_id;
@@ -324,8 +326,10 @@ serve(async (req) => {
           const statusChanged = fbStatus !== missed.status;
           const scoreChanged = (fbHome !== null && fbHome !== missed.home_score) || (fbAway !== null && fbAway !== missed.away_score);
           const externalIdChanged = provider === 'apifb' && missed.external_id !== resolvedExternalId;
+          const homeCrestChanged = fbHomeCrest && !missed.home_team_crest;
+          const awayCrestChanged = fbAwayCrest && !missed.away_team_crest;
 
-          if (statusChanged || scoreChanged || externalIdChanged) {
+          if (statusChanged || scoreChanged || externalIdChanged || homeCrestChanged || awayCrestChanged) {
             const updateData: any = {
               status: fbStatus,
               last_sync_at: new Date().toISOString(),
@@ -333,6 +337,8 @@ serve(async (req) => {
             if (fbHome !== null) updateData.home_score = fbHome;
             if (fbAway !== null) updateData.away_score = fbAway;
             if (externalIdChanged) updateData.external_id = resolvedExternalId;
+            if (homeCrestChanged) updateData.home_team_crest = fbHomeCrest;
+            if (awayCrestChanged) updateData.away_team_crest = fbAwayCrest;
 
             await supabase
               .from('football_matches')
