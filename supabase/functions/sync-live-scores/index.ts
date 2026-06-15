@@ -198,7 +198,7 @@ serve(async (req) => {
     const liveDbStatuses = ['1H', '2H', 'HT', 'ET', 'P'];
     const { data: stillLiveInDb } = await supabase
       .from('football_matches')
-      .select('id, external_id, pool_id, home_team, away_team, status, match_date, home_score, away_score')
+      .select('id, external_id, pool_id, home_team, away_team, status, match_date, home_score, away_score, home_team_crest, away_team_crest')
       .in('status', liveDbStatuses)
       .not('external_id', 'is', null);
 
