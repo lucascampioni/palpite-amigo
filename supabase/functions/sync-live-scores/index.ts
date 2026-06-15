@@ -149,6 +149,8 @@ serve(async (req) => {
       const mappedStatus = mapApiStatus(apiStatus);
       const homeGoals = fixture.goals?.home ?? null;
       const awayGoals = fixture.goals?.away ?? null;
+      const apiHomeCrest = fixture.teams?.home?.logo || null;
+      const apiAwayCrest = fixture.teams?.away?.logo || null;
 
       for (const dbMatch of matchesToUpdate) {
         const statusChanged = dbMatch.status !== mappedStatus;
@@ -156,8 +158,10 @@ serve(async (req) => {
         const awayScoreChanged = awayGoals !== null && dbMatch.away_score !== awayGoals;
         const scoreChanged = homeScoreChanged || awayScoreChanged;
         const externalIdChanged = dbMatch.external_id !== externalId;
+        const homeCrestChanged = apiHomeCrest && !dbMatch.home_team_crest;
+        const awayCrestChanged = apiAwayCrest && !dbMatch.away_team_crest;
 
-        if (!statusChanged && !scoreChanged && !externalIdChanged) continue;
+        if (!statusChanged && !scoreChanged && !externalIdChanged && !homeCrestChanged && !awayCrestChanged) continue;
 
         const updateData: any = {
           status: mappedStatus,
@@ -166,6 +170,8 @@ serve(async (req) => {
         if (homeGoals !== null) updateData.home_score = homeGoals;
         if (awayGoals !== null) updateData.away_score = awayGoals;
         if (externalIdChanged) updateData.external_id = externalId;
+        if (homeCrestChanged) updateData.home_team_crest = apiHomeCrest;
+        if (awayCrestChanged) updateData.away_team_crest = apiAwayCrest;
 
         const { error: updateError } = await supabase
           .from('football_matches')
@@ -192,7 +198,7 @@ serve(async (req) => {
     const liveDbStatuses = ['1H', '2H', 'HT', 'ET', 'P'];
     const { data: stillLiveInDb } = await supabase
       .from('football_matches')
-      .select('id, external_id, pool_id, home_team, away_team, status, match_date, home_score, away_score')
+      .select('id, external_id, pool_id, home_team, away_team, status, match_date, home_score, away_score, home_team_crest, away_team_crest')
       .in('status', liveDbStatuses)
       .not('external_id', 'is', null);
 
@@ -218,6 +224,8 @@ serve(async (req) => {
               const fbStatus = mapApiStatus(fbFixture.fixture?.status?.short);
               const fbHome = fbFixture.goals?.home ?? null;
               const fbAway = fbFixture.goals?.away ?? null;
+              const fbHomeCrest = fbFixture.teams?.home?.logo || null;
+              const fbAwayCrest = fbFixture.teams?.away?.logo || null;
               const resolvedExternalId = provider === 'apifb'
                 ? `apifb_${fbFixture.fixture?.id}`
                 : missed.external_id;
@@ -225,8 +233,10 @@ serve(async (req) => {
               const statusChanged = missed.status !== fbStatus;
               const scoreChanged = missed.home_score !== fbHome || missed.away_score !== fbAway;
               const externalIdChanged = provider === 'apifb' && missed.external_id !== resolvedExternalId;
+              const homeCrestChanged = fbHomeCrest && !missed.home_team_crest;
+              const awayCrestChanged = fbAwayCrest && !missed.away_team_crest;
 
-              if (statusChanged || scoreChanged || externalIdChanged) {
+              if (statusChanged || scoreChanged || externalIdChanged || homeCrestChanged || awayCrestChanged) {
                 const updateData: any = {
                   status: fbStatus,
                   last_sync_at: new Date().toISOString(),
@@ -236,6 +246,8 @@ serve(async (req) => {
                 if (fbHome !== null) updateData.home_score = fbHome;
                 if (fbAway !== null) updateData.away_score = fbAway;
                 if (externalIdChanged) updateData.external_id = resolvedExternalId;
+                if (homeCrestChanged) updateData.home_team_crest = fbHomeCrest;
+                if (awayCrestChanged) updateData.away_team_crest = fbAwayCrest;
 
                 await supabase
                   .from('football_matches')
@@ -285,7 +297,7 @@ serve(async (req) => {
     const fiveMinAgo = new Date(Date.now() - 5 * 60 * 1000).toISOString();
     const { data: missedScheduled } = await supabase
       .from('football_matches')
-      .select('id, external_id, pool_id, home_team, away_team, status, match_date, home_score, away_score')
+      .select('id, external_id, pool_id, home_team, away_team, status, match_date, home_score, away_score, home_team_crest, away_team_crest')
       .eq('status', 'scheduled')
       .lt('match_date', fiveMinAgo)
       .not('external_id', 'is', null);
@@ -305,6 +317,8 @@ serve(async (req) => {
           const fbStatus = mapApiStatus(fbFixture.fixture?.status?.short);
           const fbHome = fbFixture.goals?.home ?? null;
           const fbAway = fbFixture.goals?.away ?? null;
+          const fbHomeCrest = fbFixture.teams?.home?.logo || null;
+          const fbAwayCrest = fbFixture.teams?.away?.logo || null;
           const resolvedExternalId = provider === 'apifb'
             ? `apifb_${fbFixture.fixture?.id}`
             : missed.external_id;
@@ -312,8 +326,10 @@ serve(async (req) => {
           const statusChanged = fbStatus !== missed.status;
           const scoreChanged = (fbHome !== null && fbHome !== missed.home_score) || (fbAway !== null && fbAway !== missed.away_score);
           const externalIdChanged = provider === 'apifb' && missed.external_id !== resolvedExternalId;
+          const homeCrestChanged = fbHomeCrest && !missed.home_team_crest;
+          const awayCrestChanged = fbAwayCrest && !missed.away_team_crest;
 
-          if (statusChanged || scoreChanged || externalIdChanged) {
+          if (statusChanged || scoreChanged || externalIdChanged || homeCrestChanged || awayCrestChanged) {
             const updateData: any = {
               status: fbStatus,
               last_sync_at: new Date().toISOString(),
@@ -321,6 +337,8 @@ serve(async (req) => {
             if (fbHome !== null) updateData.home_score = fbHome;
             if (fbAway !== null) updateData.away_score = fbAway;
             if (externalIdChanged) updateData.external_id = resolvedExternalId;
+            if (homeCrestChanged) updateData.home_team_crest = fbHomeCrest;
+            if (awayCrestChanged) updateData.away_team_crest = fbAwayCrest;
 
             await supabase
               .from('football_matches')
@@ -354,6 +372,77 @@ serve(async (req) => {
           .eq('id', controlRow.id);
       }
     }
+
+    // 7b. Backfill pass: matches with non-numeric/synthetic external_id (e.g. wc2026_*, fd_*)
+    //     OR missing team crests. Reconcile to real apifb id + save crests + score.
+    //     This covers matches already "finished" by other paths but lacking proper metadata.
+    const { data: needsBackfill } = await supabase
+      .from('football_matches')
+      .select('id, external_id, pool_id, home_team, away_team, status, match_date, home_score, away_score, home_team_crest, away_team_crest')
+      .or('external_id.like.wc2026_%,external_id.like.fd_%,home_team_crest.is.null,away_team_crest.is.null')
+      .gt('match_date', new Date(Date.now() - 60 * 24 * 60 * 60 * 1000).toISOString())
+      .limit(150);
+
+    if (needsBackfill && needsBackfill.length > 0) {
+      console.log(`🧩 Backfilling ${needsBackfill.length} matches with synthetic IDs or missing crests...`);
+
+      for (const m of needsBackfill) {
+        if (dailyCount >= DAILY_LIMIT) break;
+
+        try {
+          const { fixture: bfFixture, provider, requestsMade } = await fetchFixtureWithFallback(m);
+          dailyCount += requestsMade;
+          if (!bfFixture || !provider) continue;
+
+          const bfHomeCrest = bfFixture.teams?.home?.logo || null;
+          const bfAwayCrest = bfFixture.teams?.away?.logo || null;
+          const bfStatus = mapApiStatus(bfFixture.fixture?.status?.short);
+          const bfHome = bfFixture.goals?.home ?? null;
+          const bfAway = bfFixture.goals?.away ?? null;
+          const resolvedExternalId = provider === 'apifb'
+            ? `apifb_${bfFixture.fixture?.id}`
+            : m.external_id;
+
+          const updateData: any = { last_sync_at: new Date().toISOString() };
+          if (bfHomeCrest && !m.home_team_crest) updateData.home_team_crest = bfHomeCrest;
+          if (bfAwayCrest && !m.away_team_crest) updateData.away_team_crest = bfAwayCrest;
+          if (provider === 'apifb' && m.external_id !== resolvedExternalId) {
+            updateData.external_id = resolvedExternalId;
+            updateData.external_source = 'apifb';
+          }
+          // Only update score/status if currently empty or status is scheduled
+          if (m.status === 'scheduled' || m.home_score === null || m.away_score === null) {
+            if (bfHome !== null) updateData.home_score = bfHome;
+            if (bfAway !== null) updateData.away_score = bfAway;
+            if (bfStatus && bfStatus !== m.status) updateData.status = bfStatus;
+          }
+
+          if (Object.keys(updateData).length <= 1) continue;
+
+          await supabase.from('football_matches').update(updateData).eq('id', m.id);
+          updatedCount++;
+          console.log(`🧩 Backfilled: ${m.home_team} vs ${m.away_team} → ${resolvedExternalId} (crests: ${!!bfHomeCrest}/${!!bfAwayCrest})`);
+
+          if (updateData.status === 'finished' && bfHome !== null && bfAway !== null) {
+            const { data: poolData } = await supabase
+              .from('pools').select('scoring_system').eq('id', m.pool_id).single();
+            const withPool = { ...m, pools: { scoring_system: poolData?.scoring_system || 'standard' } };
+            await calculateMatchPoints(supabase, withPool, bfHome, bfAway);
+            finishedPoolIds.add(m.pool_id);
+          }
+        } catch (e) {
+          console.error(`❌ Backfill error for match ${m.id}:`, e);
+        }
+      }
+
+      if (controlRow) {
+        await supabase
+          .from('api_sync_control')
+          .update({ daily_request_count: dailyCount, request_count_date: today })
+          .eq('id', controlRow.id);
+      }
+    }
+
 
     // 8. Check if any pools are now complete
     for (const poolId of finishedPoolIds) {
@@ -449,8 +538,8 @@ const TEAM_NAME_ALIASES: Record<string, string[]> = {
   'croatia': ['croacia'],
   'curacao': ['curacao'],
   'cyprus': ['chipre'],
-  'czech republic': ['republica tcheca'],
-  'czechia': ['republica tcheca'],
+  'czech republic': ['republica tcheca', 'tchequia'],
+  'czechia': ['republica tcheca', 'tchequia'],
   'denmark': ['dinamarca'],
   'djibouti': ['djibuti'],
   'dominican republic': ['republica dominicana'],
@@ -625,7 +714,8 @@ for (const [canonical, aliases] of Object.entries(TEAM_NAME_ALIASES)) {
 }
 
 function getTeamAliases(name: string): string[] {
-  const norm = name.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim();
+  // Strip diacritics AND non-alphanumeric chars (emojis, flags, punctuation)
+  const norm = normalizeTeamName(name);
   return ALIAS_REVERSE_MAP.get(norm) || [];
 }
 
@@ -664,8 +754,8 @@ function scoreTeamSimilarity(apiName: string, targetName: string): number {
   // Check alias mapping (e.g. "Kyrgyzstan" ↔ "Quirguistão")
   const apiAliases = getTeamAliases(apiName);
   const targetAliases = getTeamAliases(targetName);
-  const targetNorm = targetName.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim();
-  const apiNorm = apiName.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim();
+  const targetNorm = normalizeTeamName(targetName);
+  const apiNorm = normalizeTeamName(apiName);
 
   if (apiAliases.includes(targetNorm) || targetAliases.includes(apiNorm)) return 0.99;
   // Check if they share a common alias
@@ -1085,51 +1175,50 @@ async function resolveSecondaryFallback(match: any, requestsMade: number): Promi
 
 async function fetchFixtureWithFallback(match: any): Promise<FixtureLookupResult> {
   const fixtureId = extractApiFixtureId(match.external_id);
-  if (!fixtureId) {
-    console.warn(`⚠️ Invalid external_id for match ${match.id}: ${match.external_id}`);
-    return await resolveSecondaryFallback(match, 0);
-  }
-
   let requestsMade = 0;
 
-  const byIdResp = await fetch(`${API_FOOTBALL_BASE}/fixtures?id=${fixtureId}`, {
-    headers: { 'x-apisports-key': API_FOOTBALL_KEY! },
-  });
-  requestsMade++;
+  if (fixtureId) {
+    const byIdResp = await fetch(`${API_FOOTBALL_BASE}/fixtures?id=${fixtureId}`, {
+      headers: { 'x-apisports-key': API_FOOTBALL_KEY! },
+    });
+    requestsMade++;
 
-  if (byIdResp.ok) {
-    const byIdData = await byIdResp.json();
-    const byIdError = extractApiFootballError(byIdData);
+    if (byIdResp.ok) {
+      const byIdData = await byIdResp.json();
+      const byIdError = extractApiFootballError(byIdData);
 
-    if (byIdError) {
-      console.warn(`⚠️ API-Football fixtures?id=${fixtureId} returned error: ${byIdError}`);
-      if (shouldUseFootballDataFallback(byIdError)) {
-        return await resolveSecondaryFallback(match, requestsMade);
-      }
-    }
-
-    const byIdFixture = byIdData.response?.[0];
-
-    if (byIdFixture) {
-      const byIdHomeScore = scoreTeamSimilarity(byIdFixture.teams?.home?.name || '', match.home_team || '');
-      const byIdAwayScore = scoreTeamSimilarity(byIdFixture.teams?.away?.name || '', match.away_team || '');
-      const byIdTotal = byIdHomeScore + byIdAwayScore;
-
-      if (
-        isStrongTeamMatch(byIdHomeScore, byIdAwayScore, byIdTotal, Number.NEGATIVE_INFINITY) ||
-        isTrustedHighNameMatch(byIdHomeScore, byIdAwayScore, byIdTotal, Number.NEGATIVE_INFINITY)
-      ) {
-        return { fixture: byIdFixture, provider: 'apifb', requestsMade };
+      if (byIdError) {
+        console.warn(`⚠️ API-Football fixtures?id=${fixtureId} returned error: ${byIdError}`);
+        if (shouldUseFootballDataFallback(byIdError)) {
+          return await resolveSecondaryFallback(match, requestsMade);
+        }
       }
 
-      console.warn(
-        `⚠️ Ignoring fixtures?id=${fixtureId} due to low team confidence (${byIdTotal.toFixed(2)}) for ${match.home_team} vs ${match.away_team}. Trying date fallback...`
-      );
+      const byIdFixture = byIdData.response?.[0];
+
+      if (byIdFixture) {
+        const byIdHomeScore = scoreTeamSimilarity(byIdFixture.teams?.home?.name || '', match.home_team || '');
+        const byIdAwayScore = scoreTeamSimilarity(byIdFixture.teams?.away?.name || '', match.away_team || '');
+        const byIdTotal = byIdHomeScore + byIdAwayScore;
+
+        if (
+          isStrongTeamMatch(byIdHomeScore, byIdAwayScore, byIdTotal, Number.NEGATIVE_INFINITY) ||
+          isTrustedHighNameMatch(byIdHomeScore, byIdAwayScore, byIdTotal, Number.NEGATIVE_INFINITY)
+        ) {
+          return { fixture: byIdFixture, provider: 'apifb', requestsMade };
+        }
+
+        console.warn(
+          `⚠️ Ignoring fixtures?id=${fixtureId} due to low team confidence (${byIdTotal.toFixed(2)}) for ${match.home_team} vs ${match.away_team}. Trying date fallback...`
+        );
+      } else {
+        console.warn(`⚠️ Empty response for fixtures?id=${fixtureId}. Trying date fallback...`);
+      }
     } else {
-      console.warn(`⚠️ Empty response for fixtures?id=${fixtureId}. Trying date fallback...`);
+      console.warn(`⚠️ fixtures?id=${fixtureId} returned ${byIdResp.status}. Trying date fallback...`);
     }
   } else {
-    console.warn(`⚠️ fixtures?id=${fixtureId} returned ${byIdResp.status}. Trying date fallback...`);
+    console.log(`ℹ️ Non-numeric external_id (${match.external_id}). Using API-Football date search to reconcile.`);
   }
 
   const baseDate = new Date(match.match_date);
