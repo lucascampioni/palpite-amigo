@@ -1086,51 +1086,50 @@ async function resolveSecondaryFallback(match: any, requestsMade: number): Promi
 
 async function fetchFixtureWithFallback(match: any): Promise<FixtureLookupResult> {
   const fixtureId = extractApiFixtureId(match.external_id);
-  if (!fixtureId) {
-    console.warn(`⚠️ Invalid external_id for match ${match.id}: ${match.external_id}`);
-    return await resolveSecondaryFallback(match, 0);
-  }
-
   let requestsMade = 0;
 
-  const byIdResp = await fetch(`${API_FOOTBALL_BASE}/fixtures?id=${fixtureId}`, {
-    headers: { 'x-apisports-key': API_FOOTBALL_KEY! },
-  });
-  requestsMade++;
+  if (fixtureId) {
+    const byIdResp = await fetch(`${API_FOOTBALL_BASE}/fixtures?id=${fixtureId}`, {
+      headers: { 'x-apisports-key': API_FOOTBALL_KEY! },
+    });
+    requestsMade++;
 
-  if (byIdResp.ok) {
-    const byIdData = await byIdResp.json();
-    const byIdError = extractApiFootballError(byIdData);
+    if (byIdResp.ok) {
+      const byIdData = await byIdResp.json();
+      const byIdError = extractApiFootballError(byIdData);
 
-    if (byIdError) {
-      console.warn(`⚠️ API-Football fixtures?id=${fixtureId} returned error: ${byIdError}`);
-      if (shouldUseFootballDataFallback(byIdError)) {
-        return await resolveSecondaryFallback(match, requestsMade);
-      }
-    }
-
-    const byIdFixture = byIdData.response?.[0];
-
-    if (byIdFixture) {
-      const byIdHomeScore = scoreTeamSimilarity(byIdFixture.teams?.home?.name || '', match.home_team || '');
-      const byIdAwayScore = scoreTeamSimilarity(byIdFixture.teams?.away?.name || '', match.away_team || '');
-      const byIdTotal = byIdHomeScore + byIdAwayScore;
-
-      if (
-        isStrongTeamMatch(byIdHomeScore, byIdAwayScore, byIdTotal, Number.NEGATIVE_INFINITY) ||
-        isTrustedHighNameMatch(byIdHomeScore, byIdAwayScore, byIdTotal, Number.NEGATIVE_INFINITY)
-      ) {
-        return { fixture: byIdFixture, provider: 'apifb', requestsMade };
+      if (byIdError) {
+        console.warn(`⚠️ API-Football fixtures?id=${fixtureId} returned error: ${byIdError}`);
+        if (shouldUseFootballDataFallback(byIdError)) {
+          return await resolveSecondaryFallback(match, requestsMade);
+        }
       }
 
-      console.warn(
-        `⚠️ Ignoring fixtures?id=${fixtureId} due to low team confidence (${byIdTotal.toFixed(2)}) for ${match.home_team} vs ${match.away_team}. Trying date fallback...`
-      );
+      const byIdFixture = byIdData.response?.[0];
+
+      if (byIdFixture) {
+        const byIdHomeScore = scoreTeamSimilarity(byIdFixture.teams?.home?.name || '', match.home_team || '');
+        const byIdAwayScore = scoreTeamSimilarity(byIdFixture.teams?.away?.name || '', match.away_team || '');
+        const byIdTotal = byIdHomeScore + byIdAwayScore;
+
+        if (
+          isStrongTeamMatch(byIdHomeScore, byIdAwayScore, byIdTotal, Number.NEGATIVE_INFINITY) ||
+          isTrustedHighNameMatch(byIdHomeScore, byIdAwayScore, byIdTotal, Number.NEGATIVE_INFINITY)
+        ) {
+          return { fixture: byIdFixture, provider: 'apifb', requestsMade };
+        }
+
+        console.warn(
+          `⚠️ Ignoring fixtures?id=${fixtureId} due to low team confidence (${byIdTotal.toFixed(2)}) for ${match.home_team} vs ${match.away_team}. Trying date fallback...`
+        );
+      } else {
+        console.warn(`⚠️ Empty response for fixtures?id=${fixtureId}. Trying date fallback...`);
+      }
     } else {
-      console.warn(`⚠️ Empty response for fixtures?id=${fixtureId}. Trying date fallback...`);
+      console.warn(`⚠️ fixtures?id=${fixtureId} returned ${byIdResp.status}. Trying date fallback...`);
     }
   } else {
-    console.warn(`⚠️ fixtures?id=${fixtureId} returned ${byIdResp.status}. Trying date fallback...`);
+    console.log(`ℹ️ Non-numeric external_id (${match.external_id}). Using API-Football date search to reconcile.`);
   }
 
   const baseDate = new Date(match.match_date);
