@@ -665,8 +665,8 @@ function scoreTeamSimilarity(apiName: string, targetName: string): number {
   // Check alias mapping (e.g. "Kyrgyzstan" ↔ "Quirguistão")
   const apiAliases = getTeamAliases(apiName);
   const targetAliases = getTeamAliases(targetName);
-  const targetNorm = targetName.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim();
-  const apiNorm = apiName.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim();
+  const targetNorm = normalizeTeamName(targetName);
+  const apiNorm = normalizeTeamName(apiName);
 
   if (apiAliases.includes(targetNorm) || targetAliases.includes(apiNorm)) return 0.99;
   // Check if they share a common alias
