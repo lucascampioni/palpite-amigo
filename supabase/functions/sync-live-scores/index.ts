@@ -625,7 +625,8 @@ for (const [canonical, aliases] of Object.entries(TEAM_NAME_ALIASES)) {
 }
 
 function getTeamAliases(name: string): string[] {
-  const norm = name.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim();
+  // Strip diacritics AND non-alphanumeric chars (emojis, flags, punctuation)
+  const norm = normalizeTeamName(name);
   return ALIAS_REVERSE_MAP.get(norm) || [];
 }
 
