@@ -373,6 +373,77 @@ serve(async (req) => {
       }
     }
 
+    // 7b. Backfill pass: matches with non-numeric/synthetic external_id (e.g. wc2026_*, fd_*)
+    //     OR missing team crests. Reconcile to real apifb id + save crests + score.
+    //     This covers matches already "finished" by other paths but lacking proper metadata.
+    const { data: needsBackfill } = await supabase
+      .from('football_matches')
+      .select('id, external_id, pool_id, home_team, away_team, status, match_date, home_score, away_score, home_team_crest, away_team_crest')
+      .or('external_id.like.wc2026_%,external_id.like.fd_%,home_team_crest.is.null,away_team_crest.is.null')
+      .gt('match_date', new Date(Date.now() - 60 * 24 * 60 * 60 * 1000).toISOString())
+      .limit(40);
+
+    if (needsBackfill && needsBackfill.length > 0) {
+      console.log(`🧩 Backfilling ${needsBackfill.length} matches with synthetic IDs or missing crests...`);
+
+      for (const m of needsBackfill) {
+        if (dailyCount >= DAILY_LIMIT) break;
+
+        try {
+          const { fixture: bfFixture, provider, requestsMade } = await fetchFixtureWithFallback(m);
+          dailyCount += requestsMade;
+          if (!bfFixture || !provider) continue;
+
+          const bfHomeCrest = bfFixture.teams?.home?.logo || null;
+          const bfAwayCrest = bfFixture.teams?.away?.logo || null;
+          const bfStatus = mapApiStatus(bfFixture.fixture?.status?.short);
+          const bfHome = bfFixture.goals?.home ?? null;
+          const bfAway = bfFixture.goals?.away ?? null;
+          const resolvedExternalId = provider === 'apifb'
+            ? `apifb_${bfFixture.fixture?.id}`
+            : m.external_id;
+
+          const updateData: any = { last_sync_at: new Date().toISOString() };
+          if (bfHomeCrest && !m.home_team_crest) updateData.home_team_crest = bfHomeCrest;
+          if (bfAwayCrest && !m.away_team_crest) updateData.away_team_crest = bfAwayCrest;
+          if (provider === 'apifb' && m.external_id !== resolvedExternalId) {
+            updateData.external_id = resolvedExternalId;
+            updateData.external_source = 'apifb';
+          }
+          // Only update score/status if currently empty or status is scheduled
+          if (m.status === 'scheduled' || m.home_score === null || m.away_score === null) {
+            if (bfHome !== null) updateData.home_score = bfHome;
+            if (bfAway !== null) updateData.away_score = bfAway;
+            if (bfStatus && bfStatus !== m.status) updateData.status = bfStatus;
+          }
+
+          if (Object.keys(updateData).length <= 1) continue;
+
+          await supabase.from('football_matches').update(updateData).eq('id', m.id);
+          updatedCount++;
+          console.log(`🧩 Backfilled: ${m.home_team} vs ${m.away_team} → ${resolvedExternalId} (crests: ${!!bfHomeCrest}/${!!bfAwayCrest})`);
+
+          if (updateData.status === 'finished' && bfHome !== null && bfAway !== null) {
+            const { data: poolData } = await supabase
+              .from('pools').select('scoring_system').eq('id', m.pool_id).single();
+            const withPool = { ...m, pools: { scoring_system: poolData?.scoring_system || 'standard' } };
+            await calculateMatchPoints(supabase, withPool, bfHome, bfAway);
+            finishedPoolIds.add(m.pool_id);
+          }
+        } catch (e) {
+          console.error(`❌ Backfill error for match ${m.id}:`, e);
+        }
+      }
+
+      if (controlRow) {
+        await supabase
+          .from('api_sync_control')
+          .update({ daily_request_count: dailyCount, request_count_date: today })
+          .eq('id', controlRow.id);
+      }
+    }
+
+
     // 8. Check if any pools are now complete
     for (const poolId of finishedPoolIds) {
       await checkPoolCompletion(supabase, poolId);
