@@ -1002,6 +1002,24 @@ function formatEspnDate(date: Date): string {
   return `${y}${m}${d}`;
 }
 
+function getEspnSlugsForMatch(match: any): string[] {
+  const champ = String(match?.championship || '').toLowerCase();
+  const slugs: string[] = [];
+  if (champ.includes('copa do mundo') || champ.includes('world cup') || champ.includes('mundial')) {
+    slugs.push('fifa.world');
+  }
+  if (champ.includes('libertadores')) slugs.push('conmebol.libertadores');
+  if (champ.includes('sul-americana') || champ.includes('sudamericana')) slugs.push('conmebol.sudamericana');
+  if (champ.includes('champions')) slugs.push('uefa.champions');
+  if (champ.includes('europa')) slugs.push('uefa.europa');
+  if (champ.includes('premier')) slugs.push('eng.1');
+  if (champ.includes('paulista')) slugs.push('bra.camp.paulista');
+  if (champ.includes('mineiro')) slugs.push('bra.camp.mineiro');
+  if (champ.includes('brasil') || champ.includes('brasileir')) slugs.push('bra.1');
+  if (!slugs.includes('bra.1')) slugs.push('bra.1');
+  return slugs;
+}
+
 async function fetchEspnFixtureByTeamsAndDate(match: any): Promise<any | null> {
   const baseDate = new Date(match.match_date);
   const dateCandidates = [
@@ -1011,6 +1029,7 @@ async function fetchEspnFixtureByTeamsAndDate(match: any): Promise<any | null> {
   ];
 
   const uniqueDates = [...new Set(dateCandidates)];
+  const slugs = getEspnSlugsForMatch(match);
 
   let bestEvent: any = null;
   let bestTotal = Number.NEGATIVE_INFINITY;
@@ -1019,40 +1038,56 @@ async function fetchEspnFixtureByTeamsAndDate(match: any): Promise<any | null> {
   let secondBestTotal = Number.NEGATIVE_INFINITY;
   const targetKickoffTs = new Date(match.match_date).getTime();
 
-  for (const dateParam of uniqueDates) {
-    const response = await fetch(`https://site.api.espn.com/apis/site/v2/sports/soccer/bra.1/scoreboard?dates=${dateParam}`);
-    if (!response.ok) continue;
-
-    const payload = await response.json();
-    const events = payload?.events || [];
-
-    for (const event of events) {
-      const competition = event?.competitions?.[0] || {};
-      const competitors = competition?.competitors || [];
-      const home = competitors.find((c: any) => c?.homeAway === 'home') || competitors[0];
-      const away = competitors.find((c: any) => c?.homeAway === 'away') || competitors[1];
-      if (!home || !away) continue;
-
-      const homeName = home?.team?.displayName || home?.team?.shortDisplayName || '';
-      const awayName = away?.team?.displayName || away?.team?.shortDisplayName || '';
-      const homeScore = scoreTeamSimilarity(homeName, match.home_team || '');
-      const awayScore = scoreTeamSimilarity(awayName, match.away_team || '');
-      if (homeScore === 0 || awayScore === 0) continue;
-
-      const eventKickoffTs = new Date(event?.date || match.match_date).getTime();
-      const minuteDiff = Math.abs(eventKickoffTs - targetKickoffTs) / (1000 * 60);
-      const timePenalty = Math.min(minuteDiff / 720, 0.35);
-      const totalScore = homeScore + awayScore - timePenalty;
-
-      if (totalScore > bestTotal) {
-        secondBestTotal = bestTotal;
-        bestTotal = totalScore;
-        bestEvent = event;
-        bestHomeScore = homeScore;
-        bestAwayScore = awayScore;
-      } else if (totalScore > secondBestTotal) {
-        secondBestTotal = totalScore;
+  for (const slug of slugs) {
+    for (const dateParam of uniqueDates) {
+      let response: Response;
+      try {
+        response = await fetch(`https://site.api.espn.com/apis/site/v2/sports/soccer/${slug}/scoreboard?dates=${dateParam}`);
+      } catch (_e) {
+        continue;
       }
+      if (!response.ok) {
+        try { await response.text(); } catch (_) {}
+        continue;
+      }
+
+      const payload = await response.json();
+      const events = payload?.events || [];
+
+      for (const event of events) {
+        const competition = event?.competitions?.[0] || {};
+        const competitors = competition?.competitors || [];
+        const home = competitors.find((c: any) => c?.homeAway === 'home') || competitors[0];
+        const away = competitors.find((c: any) => c?.homeAway === 'away') || competitors[1];
+        if (!home || !away) continue;
+
+        const homeName = home?.team?.displayName || home?.team?.shortDisplayName || '';
+        const awayName = away?.team?.displayName || away?.team?.shortDisplayName || '';
+        const homeScore = scoreTeamSimilarity(homeName, match.home_team || '');
+        const awayScore = scoreTeamSimilarity(awayName, match.away_team || '');
+        if (homeScore === 0 || awayScore === 0) continue;
+
+        const eventKickoffTs = new Date(event?.date || match.match_date).getTime();
+        const minuteDiff = Math.abs(eventKickoffTs - targetKickoffTs) / (1000 * 60);
+        const timePenalty = Math.min(minuteDiff / 720, 0.35);
+        const totalScore = homeScore + awayScore - timePenalty;
+
+        if (totalScore > bestTotal) {
+          secondBestTotal = bestTotal;
+          bestTotal = totalScore;
+          bestEvent = event;
+          bestHomeScore = homeScore;
+          bestAwayScore = awayScore;
+          (bestEvent as any).__homeLogo = home?.team?.logo || null;
+          (bestEvent as any).__awayLogo = away?.team?.logo || null;
+        } else if (totalScore > secondBestTotal) {
+          secondBestTotal = totalScore;
+        }
+      }
+    }
+    if (bestEvent && (isStrongTeamMatch(bestHomeScore, bestAwayScore, bestTotal, secondBestTotal) ||
+      isTrustedHighNameMatch(bestHomeScore, bestAwayScore, bestTotal, secondBestTotal))) {
+      break;
     }
   }
 
@@ -1063,6 +1098,8 @@ async function fetchEspnFixtureByTeamsAndDate(match: any): Promise<any | null> {
     isTrustedHighNameMatch(bestHomeScore, bestAwayScore, bestTotal, secondBestTotal)
   ) {
     const fixture = buildApiLikeFixtureFromEspnEvent(bestEvent);
+    if ((bestEvent as any).__homeLogo) fixture.teams.home.logo = (bestEvent as any).__homeLogo;
+    if ((bestEvent as any).__awayLogo) fixture.teams.away.logo = (bestEvent as any).__awayLogo;
     console.log(`🛰️ Matched by ESPN fallback: ${fixture.teams?.home?.name} vs ${fixture.teams?.away?.name} (${fixture.fixture?.status?.short})`);
     return fixture;
   }
