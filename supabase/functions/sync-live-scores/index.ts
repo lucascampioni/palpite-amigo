@@ -201,7 +201,7 @@ serve(async (req) => {
 
     // 6. Fallback: check matches stuck as live in DB but missing from live feed
     //    If API lookup by fixture ID fails, fallback to date + team matching and self-heal external_id.
-    const liveDbStatuses = ['1H', '2H', 'HT', 'ET', 'P'];
+    // (liveDbStatuses already declared above)
     const { data: stillLiveInDb } = await supabase
       .from('football_matches')
       .select('id, external_id, pool_id, home_team, away_team, status, match_date, home_score, away_score, home_team_crest, away_team_crest, championship')
