@@ -46,12 +46,14 @@ serve(async (req) => {
     }
 
     if (dailyCount >= DAILY_LIMIT) {
-      console.log(`🛑 Daily limit reached (${dailyCount}/${DAILY_LIMIT}). Skipping.`);
+      console.log(`🛑 API-Football daily limit reached (${dailyCount}/${DAILY_LIMIT}). Falling back to ESPN-only sync.`);
+      const espnResult = await runEspnOnlySync(supabase);
       return new Response(JSON.stringify({
         success: true,
-        skipped: true,
-        reason: 'daily_limit_reached',
+        skipped: false,
+        reason: 'daily_limit_reached_espn_fallback',
         dailyCount,
+        ...espnResult,
       }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
     }
 
