@@ -473,6 +473,91 @@ serve(async (req) => {
   }
 });
 
+// ESPN-only sync used as a fallback when API-Football daily quota is exhausted.
+// Scans matches that are live, today or recently past kickoff and updates them
+// using only the free ESPN endpoints.
+async function runEspnOnlySync(supabase: any) {
+  const liveDbStatuses = ['1H', '2H', 'HT', 'ET', 'P'];
+  const todayStart = new Date();
+  todayStart.setHours(0, 0, 0, 0);
+  const todayEnd = new Date();
+  todayEnd.setHours(23, 59, 59, 999);
+
+  // Live in DB + scheduled matches whose kickoff was within the last 24h or is today
+  const { data: liveRows } = await supabase
+    .from('football_matches')
+    .select('id, external_id, pool_id, home_team, away_team, status, match_date, home_score, away_score, home_team_crest, away_team_crest, championship')
+    .in('status', liveDbStatuses);
+
+  const { data: todayRows } = await supabase
+    .from('football_matches')
+    .select('id, external_id, pool_id, home_team, away_team, status, match_date, home_score, away_score, home_team_crest, away_team_crest, championship')
+    .gte('match_date', new Date(Date.now() - 6 * 60 * 60 * 1000).toISOString())
+    .lte('match_date', todayEnd.toISOString())
+    .neq('status', 'finished')
+    .neq('status', 'cancelled')
+    .neq('status', 'postponed');
+
+  const seen = new Set<string>();
+  const candidates: any[] = [];
+  for (const arr of [liveRows || [], todayRows || []]) {
+    for (const m of arr) {
+      if (seen.has(m.id)) continue;
+      seen.add(m.id);
+      candidates.push(m);
+    }
+  }
+
+  let updated = 0;
+  const finishedPoolIds = new Set<string>();
+
+  for (const m of candidates) {
+    try {
+      const espnFixture = await fetchEspnFixtureByTeamsAndDate(m);
+      if (!espnFixture) continue;
+
+      const newStatus = mapApiStatus(espnFixture.fixture?.status?.short);
+      const newHome = espnFixture.goals?.home ?? null;
+      const newAway = espnFixture.goals?.away ?? null;
+      const newHomeCrest = espnFixture.teams?.home?.logo || null;
+      const newAwayCrest = espnFixture.teams?.away?.logo || null;
+
+      const statusChanged = m.status !== newStatus;
+      const scoreChanged = (newHome !== null && newHome !== m.home_score) || (newAway !== null && newAway !== m.away_score);
+      const homeCrestChanged = newHomeCrest && !m.home_team_crest;
+      const awayCrestChanged = newAwayCrest && !m.away_team_crest;
+      if (!statusChanged && !scoreChanged && !homeCrestChanged && !awayCrestChanged) continue;
+
+      const upd: any = { status: newStatus, last_sync_at: new Date().toISOString() };
+      if (newHome !== null) upd.home_score = newHome;
+      if (newAway !== null) upd.away_score = newAway;
+      if (homeCrestChanged) upd.home_team_crest = newHomeCrest;
+      if (awayCrestChanged) upd.away_team_crest = newAwayCrest;
+
+      const { error: upErr } = await supabase.from('football_matches').update(upd).eq('id', m.id);
+      if (upErr) { console.error('ESPN-only update failed', upErr); continue; }
+      updated++;
+      console.log(`🛰️ ESPN-only: ${m.home_team} ${newHome ?? '-'} x ${newAway ?? '-'} ${m.away_team} [${m.status} → ${newStatus}]`);
+
+      if (newStatus === 'finished' && newHome !== null && newAway !== null) {
+        finishedPoolIds.add(m.pool_id);
+        const { data: poolData } = await supabase.from('pools').select('scoring_system').eq('id', m.pool_id).single();
+        const withPool = { ...m, pools: { scoring_system: poolData?.scoring_system || 'standard' } };
+        await calculateMatchPoints(supabase, withPool, newHome, newAway);
+      }
+    } catch (e) {
+      console.error('ESPN-only error for match', m.id, e);
+    }
+  }
+
+  for (const pid of finishedPoolIds) {
+    try { await checkPoolCompletion(supabase, pid); } catch (e) { console.error(e); }
+  }
+
+  return { espnUpdated: updated, espnCandidates: candidates.length, finishedPools: finishedPoolIds.size };
+}
+
+
 function mapApiStatus(apiStatus: string): string {
   const statusMap: Record<string, string> = {
     'NS': 'scheduled',   // Not Started
