@@ -57,36 +57,40 @@ serve(async (req) => {
       }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
     }
 
-    // 2. Check if there are any live/upcoming matches in the DB
+    // 2. Tight gate: only call API-Football if a match is actually in-window
+    //    (live in DB, or kickoff within the last 4h, or starts in the next 15 min).
+    //    This keeps daily quota usage proportional to real activity.
+    const liveDbStatuses = ['1H', '2H', 'HT', 'ET', 'P'];
+    const windowStart = new Date(Date.now() - 4 * 60 * 60 * 1000).toISOString();
+    const windowEnd = new Date(Date.now() + 15 * 60 * 1000).toISOString();
+
     const { data: liveMatches } = await supabase
       .from('football_matches')
       .select('id, status')
-      .in('status', ['1H', '2H', 'HT', 'ET', 'P', 'scheduled', 'NS'])
-      .not('external_id', 'is', null);
+      .in('status', liveDbStatuses)
+      .not('external_id', 'is', null)
+      .limit(1);
 
-    // Also check if any match is happening today (kickoff within today)
-    const todayStart = new Date();
-    todayStart.setHours(0, 0, 0, 0);
-    const todayEnd = new Date();
-    todayEnd.setHours(23, 59, 59, 999);
-
-    const { data: todayMatches } = await supabase
+    const { data: kickoffWindowMatches } = await supabase
       .from('football_matches')
       .select('id')
-      .gte('match_date', todayStart.toISOString())
-      .lte('match_date', todayEnd.toISOString())
+      .gte('match_date', windowStart)
+      .lte('match_date', windowEnd)
       .neq('status', 'finished')
       .neq('status', 'FT')
-      .not('external_id', 'is', null);
+      .neq('status', 'cancelled')
+      .neq('status', 'postponed')
+      .not('external_id', 'is', null)
+      .limit(1);
 
-    const hasLiveOrToday = (liveMatches && liveMatches.length > 0) || (todayMatches && todayMatches.length > 0);
+    const hasLiveOrInWindow = (liveMatches && liveMatches.length > 0) || (kickoffWindowMatches && kickoffWindowMatches.length > 0);
 
-    if (!hasLiveOrToday) {
-      console.log('⏸️ No live or today matches found. Skipping API call.');
+    if (!hasLiveOrInWindow) {
+      console.log('⏸️ No matches in live window. Skipping API call (saves quota).');
       return new Response(JSON.stringify({
         success: true,
         skipped: true,
-        reason: 'no_live_matches',
+        reason: 'outside_live_window',
       }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
     }
 
