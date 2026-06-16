@@ -497,11 +497,12 @@ async function runEspnOnlySync(supabase: any) {
   const { data: todayRows } = await supabase
     .from('football_matches')
     .select('id, external_id, pool_id, home_team, away_team, status, match_date, home_score, away_score, home_team_crest, away_team_crest, championship')
-    .gte('match_date', new Date(Date.now() - 6 * 60 * 60 * 1000).toISOString())
+    .gte('match_date', new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString())
     .lte('match_date', todayEnd.toISOString())
     .neq('status', 'finished')
     .neq('status', 'cancelled')
-    .neq('status', 'postponed');
+    .neq('status', 'postponed')
+    .limit(80);
 
   const seen = new Set<string>();
   const candidates: any[] = [];
