@@ -378,12 +378,17 @@ serve(async (req) => {
     // 7b. Backfill pass: matches with non-numeric/synthetic external_id (e.g. wc2026_*, fd_*)
     //     OR missing team crests. Reconcile to real apifb id + save crests + score.
     //     This covers matches already "finished" by other paths but lacking proper metadata.
-    const { data: needsBackfill } = await supabase
-      .from('football_matches')
-      .select('id, external_id, pool_id, home_team, away_team, status, match_date, home_score, away_score, home_team_crest, away_team_crest')
-      .or('external_id.like.wc2026_%,external_id.like.fd_%,home_team_crest.is.null,away_team_crest.is.null')
-      .gt('match_date', new Date(Date.now() - 60 * 24 * 60 * 60 * 1000).toISOString())
-      .limit(150);
+    // Only spend quota on backfill when we have plenty left, otherwise we'll
+    // burn the daily limit before live games start.
+    const backfillBudget = DAILY_LIMIT - dailyCount > 400 ? 30 : 0;
+    const { data: needsBackfill } = backfillBudget > 0
+      ? await supabase
+          .from('football_matches')
+          .select('id, external_id, pool_id, home_team, away_team, status, match_date, home_score, away_score, home_team_crest, away_team_crest, championship')
+          .or('external_id.like.wc2026_%,external_id.like.fd_%,home_team_crest.is.null,away_team_crest.is.null')
+          .gt('match_date', new Date(Date.now() - 14 * 24 * 60 * 60 * 1000).toISOString())
+          .limit(backfillBudget)
+      : { data: [] as any[] };
 
     if (needsBackfill && needsBackfill.length > 0) {
       console.log(`🧩 Backfilling ${needsBackfill.length} matches with synthetic IDs or missing crests...`);
