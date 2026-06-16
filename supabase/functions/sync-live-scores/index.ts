@@ -57,36 +57,40 @@ serve(async (req) => {
       }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
     }
 
-    // 2. Check if there are any live/upcoming matches in the DB
+    // 2. Tight gate: only call API-Football if a match is actually in-window
+    //    (live in DB, or kickoff within the last 4h, or starts in the next 15 min).
+    //    This keeps daily quota usage proportional to real activity.
+    const liveDbStatuses = ['1H', '2H', 'HT', 'ET', 'P'];
+    const windowStart = new Date(Date.now() - 4 * 60 * 60 * 1000).toISOString();
+    const windowEnd = new Date(Date.now() + 15 * 60 * 1000).toISOString();
+
     const { data: liveMatches } = await supabase
       .from('football_matches')
       .select('id, status')
-      .in('status', ['1H', '2H', 'HT', 'ET', 'P', 'scheduled', 'NS'])
-      .not('external_id', 'is', null);
+      .in('status', liveDbStatuses)
+      .not('external_id', 'is', null)
+      .limit(1);
 
-    // Also check if any match is happening today (kickoff within today)
-    const todayStart = new Date();
-    todayStart.setHours(0, 0, 0, 0);
-    const todayEnd = new Date();
-    todayEnd.setHours(23, 59, 59, 999);
-
-    const { data: todayMatches } = await supabase
+    const { data: kickoffWindowMatches } = await supabase
       .from('football_matches')
       .select('id')
-      .gte('match_date', todayStart.toISOString())
-      .lte('match_date', todayEnd.toISOString())
+      .gte('match_date', windowStart)
+      .lte('match_date', windowEnd)
       .neq('status', 'finished')
       .neq('status', 'FT')
-      .not('external_id', 'is', null);
+      .neq('status', 'cancelled')
+      .neq('status', 'postponed')
+      .not('external_id', 'is', null)
+      .limit(1);
 
-    const hasLiveOrToday = (liveMatches && liveMatches.length > 0) || (todayMatches && todayMatches.length > 0);
+    const hasLiveOrInWindow = (liveMatches && liveMatches.length > 0) || (kickoffWindowMatches && kickoffWindowMatches.length > 0);
 
-    if (!hasLiveOrToday) {
-      console.log('⏸️ No live or today matches found. Skipping API call.');
+    if (!hasLiveOrInWindow) {
+      console.log('⏸️ No matches in live window. Skipping API call (saves quota).');
       return new Response(JSON.stringify({
         success: true,
         skipped: true,
-        reason: 'no_live_matches',
+        reason: 'outside_live_window',
       }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
     }
 
@@ -197,7 +201,7 @@ serve(async (req) => {
 
     // 6. Fallback: check matches stuck as live in DB but missing from live feed
     //    If API lookup by fixture ID fails, fallback to date + team matching and self-heal external_id.
-    const liveDbStatuses = ['1H', '2H', 'HT', 'ET', 'P'];
+    // (liveDbStatuses already declared above)
     const { data: stillLiveInDb } = await supabase
       .from('football_matches')
       .select('id, external_id, pool_id, home_team, away_team, status, match_date, home_score, away_score, home_team_crest, away_team_crest, championship')
@@ -294,15 +298,23 @@ serve(async (req) => {
       }
     }
 
-    // 7. Proactive check: fetch matches whose kickoff was 5+ min ago but still "scheduled" in DB
-    //    This catches matches that started but weren't in the live feed when we checked
+    // 7. Proactive check: matches whose kickoff was 5min–6h ago but still "scheduled".
+    //    Older than 6h with no live data probably means external_id is bad — leave for
+    //    the (now stricter) backfill pass instead of burning quota every minute.
+    //    Hard cap: at most 8 lookups per run, and only when quota is healthy.
+    const missedBudget = DAILY_LIMIT - dailyCount > 300 ? 8 : 0;
     const fiveMinAgo = new Date(Date.now() - 5 * 60 * 1000).toISOString();
-    const { data: missedScheduled } = await supabase
-      .from('football_matches')
-      .select('id, external_id, pool_id, home_team, away_team, status, match_date, home_score, away_score, home_team_crest, away_team_crest, championship')
-      .eq('status', 'scheduled')
-      .lt('match_date', fiveMinAgo)
-      .not('external_id', 'is', null);
+    const sixHoursAgo = new Date(Date.now() - 6 * 60 * 60 * 1000).toISOString();
+    const { data: missedScheduled } = missedBudget > 0
+      ? await supabase
+          .from('football_matches')
+          .select('id, external_id, pool_id, home_team, away_team, status, match_date, home_score, away_score, home_team_crest, away_team_crest, championship')
+          .eq('status', 'scheduled')
+          .lt('match_date', fiveMinAgo)
+          .gt('match_date', sixHoursAgo)
+          .not('external_id', 'is', null)
+          .limit(missedBudget)
+      : { data: [] as any[] };
 
     if (missedScheduled && missedScheduled.length > 0) {
       console.log(`🕐 Found ${missedScheduled.length} scheduled matches past kickoff. Fetching results...`);
@@ -745,7 +757,9 @@ const TEAM_NAME_ALIASES: Record<string, string[]> = {
   'thailand': ['tailandia'],
   'trinidad and tobago': ['trinidad e tobago'],
   'tunisia': ['tunisia'],
-  'turkey': ['turquia'],
+  'turkey': ['turquia', 'turkiye'],
+  'turkiye': ['turquia', 'turkey'],
+  'türkiye': ['turquia', 'turkey'],
   'turkmenistan': ['turcomenistao'],
   'ukraine': ['ucrania'],
   'united arab emirates': ['emirados arabes'],
