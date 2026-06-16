@@ -298,15 +298,23 @@ serve(async (req) => {
       }
     }
 
-    // 7. Proactive check: fetch matches whose kickoff was 5+ min ago but still "scheduled" in DB
-    //    This catches matches that started but weren't in the live feed when we checked
+    // 7. Proactive check: matches whose kickoff was 5min–6h ago but still "scheduled".
+    //    Older than 6h with no live data probably means external_id is bad — leave for
+    //    the (now stricter) backfill pass instead of burning quota every minute.
+    //    Hard cap: at most 8 lookups per run, and only when quota is healthy.
+    const missedBudget = DAILY_LIMIT - dailyCount > 300 ? 8 : 0;
     const fiveMinAgo = new Date(Date.now() - 5 * 60 * 1000).toISOString();
-    const { data: missedScheduled } = await supabase
-      .from('football_matches')
-      .select('id, external_id, pool_id, home_team, away_team, status, match_date, home_score, away_score, home_team_crest, away_team_crest, championship')
-      .eq('status', 'scheduled')
-      .lt('match_date', fiveMinAgo)
-      .not('external_id', 'is', null);
+    const sixHoursAgo = new Date(Date.now() - 6 * 60 * 60 * 1000).toISOString();
+    const { data: missedScheduled } = missedBudget > 0
+      ? await supabase
+          .from('football_matches')
+          .select('id, external_id, pool_id, home_team, away_team, status, match_date, home_score, away_score, home_team_crest, away_team_crest, championship')
+          .eq('status', 'scheduled')
+          .lt('match_date', fiveMinAgo)
+          .gt('match_date', sixHoursAgo)
+          .not('external_id', 'is', null)
+          .limit(missedBudget)
+      : { data: [] as any[] };
 
     if (missedScheduled && missedScheduled.length > 0) {
       console.log(`🕐 Found ${missedScheduled.length} scheduled matches past kickoff. Fetching results...`);
