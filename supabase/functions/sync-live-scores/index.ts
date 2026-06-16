@@ -46,12 +46,14 @@ serve(async (req) => {
     }
 
     if (dailyCount >= DAILY_LIMIT) {
-      console.log(`🛑 Daily limit reached (${dailyCount}/${DAILY_LIMIT}). Skipping.`);
+      console.log(`🛑 API-Football daily limit reached (${dailyCount}/${DAILY_LIMIT}). Falling back to ESPN-only sync.`);
+      const espnResult = await runEspnOnlySync(supabase);
       return new Response(JSON.stringify({
         success: true,
-        skipped: true,
-        reason: 'daily_limit_reached',
+        skipped: false,
+        reason: 'daily_limit_reached_espn_fallback',
         dailyCount,
+        ...espnResult,
       }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
     }
 
@@ -198,7 +200,7 @@ serve(async (req) => {
     const liveDbStatuses = ['1H', '2H', 'HT', 'ET', 'P'];
     const { data: stillLiveInDb } = await supabase
       .from('football_matches')
-      .select('id, external_id, pool_id, home_team, away_team, status, match_date, home_score, away_score, home_team_crest, away_team_crest')
+      .select('id, external_id, pool_id, home_team, away_team, status, match_date, home_score, away_score, home_team_crest, away_team_crest, championship')
       .in('status', liveDbStatuses)
       .not('external_id', 'is', null);
 
@@ -297,7 +299,7 @@ serve(async (req) => {
     const fiveMinAgo = new Date(Date.now() - 5 * 60 * 1000).toISOString();
     const { data: missedScheduled } = await supabase
       .from('football_matches')
-      .select('id, external_id, pool_id, home_team, away_team, status, match_date, home_score, away_score, home_team_crest, away_team_crest')
+      .select('id, external_id, pool_id, home_team, away_team, status, match_date, home_score, away_score, home_team_crest, away_team_crest, championship')
       .eq('status', 'scheduled')
       .lt('match_date', fiveMinAgo)
       .not('external_id', 'is', null);
@@ -376,12 +378,17 @@ serve(async (req) => {
     // 7b. Backfill pass: matches with non-numeric/synthetic external_id (e.g. wc2026_*, fd_*)
     //     OR missing team crests. Reconcile to real apifb id + save crests + score.
     //     This covers matches already "finished" by other paths but lacking proper metadata.
-    const { data: needsBackfill } = await supabase
-      .from('football_matches')
-      .select('id, external_id, pool_id, home_team, away_team, status, match_date, home_score, away_score, home_team_crest, away_team_crest')
-      .or('external_id.like.wc2026_%,external_id.like.fd_%,home_team_crest.is.null,away_team_crest.is.null')
-      .gt('match_date', new Date(Date.now() - 60 * 24 * 60 * 60 * 1000).toISOString())
-      .limit(150);
+    // Only spend quota on backfill when we have plenty left, otherwise we'll
+    // burn the daily limit before live games start.
+    const backfillBudget = DAILY_LIMIT - dailyCount > 400 ? 30 : 0;
+    const { data: needsBackfill } = backfillBudget > 0
+      ? await supabase
+          .from('football_matches')
+          .select('id, external_id, pool_id, home_team, away_team, status, match_date, home_score, away_score, home_team_crest, away_team_crest, championship')
+          .or('external_id.like.wc2026_%,external_id.like.fd_%,home_team_crest.is.null,away_team_crest.is.null')
+          .gt('match_date', new Date(Date.now() - 14 * 24 * 60 * 60 * 1000).toISOString())
+          .limit(backfillBudget)
+      : { data: [] as any[] };
 
     if (needsBackfill && needsBackfill.length > 0) {
       console.log(`🧩 Backfilling ${needsBackfill.length} matches with synthetic IDs or missing crests...`);
@@ -470,6 +477,92 @@ serve(async (req) => {
     });
   }
 });
+
+// ESPN-only sync used as a fallback when API-Football daily quota is exhausted.
+// Scans matches that are live, today or recently past kickoff and updates them
+// using only the free ESPN endpoints.
+async function runEspnOnlySync(supabase: any) {
+  const liveDbStatuses = ['1H', '2H', 'HT', 'ET', 'P'];
+  const todayStart = new Date();
+  todayStart.setHours(0, 0, 0, 0);
+  const todayEnd = new Date();
+  todayEnd.setHours(23, 59, 59, 999);
+
+  // Live in DB + scheduled matches whose kickoff was within the last 24h or is today
+  const { data: liveRows } = await supabase
+    .from('football_matches')
+    .select('id, external_id, pool_id, home_team, away_team, status, match_date, home_score, away_score, home_team_crest, away_team_crest, championship')
+    .in('status', liveDbStatuses);
+
+  const { data: todayRows } = await supabase
+    .from('football_matches')
+    .select('id, external_id, pool_id, home_team, away_team, status, match_date, home_score, away_score, home_team_crest, away_team_crest, championship')
+    .gte('match_date', new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString())
+    .lte('match_date', todayEnd.toISOString())
+    .neq('status', 'finished')
+    .neq('status', 'cancelled')
+    .neq('status', 'postponed')
+    .limit(80);
+
+  const seen = new Set<string>();
+  const candidates: any[] = [];
+  for (const arr of [liveRows || [], todayRows || []]) {
+    for (const m of arr) {
+      if (seen.has(m.id)) continue;
+      seen.add(m.id);
+      candidates.push(m);
+    }
+  }
+
+  let updated = 0;
+  const finishedPoolIds = new Set<string>();
+
+  for (const m of candidates) {
+    try {
+      const espnFixture = await fetchEspnFixtureByTeamsAndDate(m);
+      if (!espnFixture) continue;
+
+      const newStatus = mapApiStatus(espnFixture.fixture?.status?.short);
+      const newHome = espnFixture.goals?.home ?? null;
+      const newAway = espnFixture.goals?.away ?? null;
+      const newHomeCrest = espnFixture.teams?.home?.logo || null;
+      const newAwayCrest = espnFixture.teams?.away?.logo || null;
+
+      const statusChanged = m.status !== newStatus;
+      const scoreChanged = (newHome !== null && newHome !== m.home_score) || (newAway !== null && newAway !== m.away_score);
+      const homeCrestChanged = newHomeCrest && !m.home_team_crest;
+      const awayCrestChanged = newAwayCrest && !m.away_team_crest;
+      if (!statusChanged && !scoreChanged && !homeCrestChanged && !awayCrestChanged) continue;
+
+      const upd: any = { status: newStatus, last_sync_at: new Date().toISOString() };
+      if (newHome !== null) upd.home_score = newHome;
+      if (newAway !== null) upd.away_score = newAway;
+      if (homeCrestChanged) upd.home_team_crest = newHomeCrest;
+      if (awayCrestChanged) upd.away_team_crest = newAwayCrest;
+
+      const { error: upErr } = await supabase.from('football_matches').update(upd).eq('id', m.id);
+      if (upErr) { console.error('ESPN-only update failed', upErr); continue; }
+      updated++;
+      console.log(`🛰️ ESPN-only: ${m.home_team} ${newHome ?? '-'} x ${newAway ?? '-'} ${m.away_team} [${m.status} → ${newStatus}]`);
+
+      if (newStatus === 'finished' && newHome !== null && newAway !== null) {
+        finishedPoolIds.add(m.pool_id);
+        const { data: poolData } = await supabase.from('pools').select('scoring_system').eq('id', m.pool_id).single();
+        const withPool = { ...m, pools: { scoring_system: poolData?.scoring_system || 'standard' } };
+        await calculateMatchPoints(supabase, withPool, newHome, newAway);
+      }
+    } catch (e) {
+      console.error('ESPN-only error for match', m.id, e);
+    }
+  }
+
+  for (const pid of finishedPoolIds) {
+    try { await checkPoolCompletion(supabase, pid); } catch (e) { console.error(e); }
+  }
+
+  return { espnUpdated: updated, espnCandidates: candidates.length, finishedPools: finishedPoolIds.size };
+}
+
 
 function mapApiStatus(apiStatus: string): string {
   const statusMap: Record<string, string> = {
@@ -1002,6 +1095,24 @@ function formatEspnDate(date: Date): string {
   return `${y}${m}${d}`;
 }
 
+function getEspnSlugsForMatch(match: any): string[] {
+  const champ = String(match?.championship || '').toLowerCase();
+  const slugs: string[] = [];
+  if (champ.includes('copa do mundo') || champ.includes('world cup') || champ.includes('mundial')) {
+    slugs.push('fifa.world');
+  }
+  if (champ.includes('libertadores')) slugs.push('conmebol.libertadores');
+  if (champ.includes('sul-americana') || champ.includes('sudamericana')) slugs.push('conmebol.sudamericana');
+  if (champ.includes('champions')) slugs.push('uefa.champions');
+  if (champ.includes('europa')) slugs.push('uefa.europa');
+  if (champ.includes('premier')) slugs.push('eng.1');
+  if (champ.includes('paulista')) slugs.push('bra.camp.paulista');
+  if (champ.includes('mineiro')) slugs.push('bra.camp.mineiro');
+  if (champ.includes('brasil') || champ.includes('brasileir')) slugs.push('bra.1');
+  if (!slugs.includes('bra.1')) slugs.push('bra.1');
+  return slugs;
+}
+
 async function fetchEspnFixtureByTeamsAndDate(match: any): Promise<any | null> {
   const baseDate = new Date(match.match_date);
   const dateCandidates = [
@@ -1011,6 +1122,7 @@ async function fetchEspnFixtureByTeamsAndDate(match: any): Promise<any | null> {
   ];
 
   const uniqueDates = [...new Set(dateCandidates)];
+  const slugs = getEspnSlugsForMatch(match);
 
   let bestEvent: any = null;
   let bestTotal = Number.NEGATIVE_INFINITY;
@@ -1019,40 +1131,56 @@ async function fetchEspnFixtureByTeamsAndDate(match: any): Promise<any | null> {
   let secondBestTotal = Number.NEGATIVE_INFINITY;
   const targetKickoffTs = new Date(match.match_date).getTime();
 
-  for (const dateParam of uniqueDates) {
-    const response = await fetch(`https://site.api.espn.com/apis/site/v2/sports/soccer/bra.1/scoreboard?dates=${dateParam}`);
-    if (!response.ok) continue;
-
-    const payload = await response.json();
-    const events = payload?.events || [];
-
-    for (const event of events) {
-      const competition = event?.competitions?.[0] || {};
-      const competitors = competition?.competitors || [];
-      const home = competitors.find((c: any) => c?.homeAway === 'home') || competitors[0];
-      const away = competitors.find((c: any) => c?.homeAway === 'away') || competitors[1];
-      if (!home || !away) continue;
-
-      const homeName = home?.team?.displayName || home?.team?.shortDisplayName || '';
-      const awayName = away?.team?.displayName || away?.team?.shortDisplayName || '';
-      const homeScore = scoreTeamSimilarity(homeName, match.home_team || '');
-      const awayScore = scoreTeamSimilarity(awayName, match.away_team || '');
-      if (homeScore === 0 || awayScore === 0) continue;
-
-      const eventKickoffTs = new Date(event?.date || match.match_date).getTime();
-      const minuteDiff = Math.abs(eventKickoffTs - targetKickoffTs) / (1000 * 60);
-      const timePenalty = Math.min(minuteDiff / 720, 0.35);
-      const totalScore = homeScore + awayScore - timePenalty;
-
-      if (totalScore > bestTotal) {
-        secondBestTotal = bestTotal;
-        bestTotal = totalScore;
-        bestEvent = event;
-        bestHomeScore = homeScore;
-        bestAwayScore = awayScore;
-      } else if (totalScore > secondBestTotal) {
-        secondBestTotal = totalScore;
+  for (const slug of slugs) {
+    for (const dateParam of uniqueDates) {
+      let response: Response;
+      try {
+        response = await fetch(`https://site.api.espn.com/apis/site/v2/sports/soccer/${slug}/scoreboard?dates=${dateParam}`);
+      } catch (_e) {
+        continue;
       }
+      if (!response.ok) {
+        try { await response.text(); } catch (_) {}
+        continue;
+      }
+
+      const payload = await response.json();
+      const events = payload?.events || [];
+
+      for (const event of events) {
+        const competition = event?.competitions?.[0] || {};
+        const competitors = competition?.competitors || [];
+        const home = competitors.find((c: any) => c?.homeAway === 'home') || competitors[0];
+        const away = competitors.find((c: any) => c?.homeAway === 'away') || competitors[1];
+        if (!home || !away) continue;
+
+        const homeName = home?.team?.displayName || home?.team?.shortDisplayName || '';
+        const awayName = away?.team?.displayName || away?.team?.shortDisplayName || '';
+        const homeScore = scoreTeamSimilarity(homeName, match.home_team || '');
+        const awayScore = scoreTeamSimilarity(awayName, match.away_team || '');
+        if (homeScore === 0 || awayScore === 0) continue;
+
+        const eventKickoffTs = new Date(event?.date || match.match_date).getTime();
+        const minuteDiff = Math.abs(eventKickoffTs - targetKickoffTs) / (1000 * 60);
+        const timePenalty = Math.min(minuteDiff / 720, 0.35);
+        const totalScore = homeScore + awayScore - timePenalty;
+
+        if (totalScore > bestTotal) {
+          secondBestTotal = bestTotal;
+          bestTotal = totalScore;
+          bestEvent = event;
+          bestHomeScore = homeScore;
+          bestAwayScore = awayScore;
+          (bestEvent as any).__homeLogo = home?.team?.logo || null;
+          (bestEvent as any).__awayLogo = away?.team?.logo || null;
+        } else if (totalScore > secondBestTotal) {
+          secondBestTotal = totalScore;
+        }
+      }
+    }
+    if (bestEvent && (isStrongTeamMatch(bestHomeScore, bestAwayScore, bestTotal, secondBestTotal) ||
+      isTrustedHighNameMatch(bestHomeScore, bestAwayScore, bestTotal, secondBestTotal))) {
+      break;
     }
   }
 
@@ -1063,6 +1191,8 @@ async function fetchEspnFixtureByTeamsAndDate(match: any): Promise<any | null> {
     isTrustedHighNameMatch(bestHomeScore, bestAwayScore, bestTotal, secondBestTotal)
   ) {
     const fixture = buildApiLikeFixtureFromEspnEvent(bestEvent);
+    if ((bestEvent as any).__homeLogo) fixture.teams.home.logo = (bestEvent as any).__homeLogo;
+    if ((bestEvent as any).__awayLogo) fixture.teams.away.logo = (bestEvent as any).__awayLogo;
     console.log(`🛰️ Matched by ESPN fallback: ${fixture.teams?.home?.name} vs ${fixture.teams?.away?.name} (${fixture.fixture?.status?.short})`);
     return fixture;
   }
