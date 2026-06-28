@@ -39,7 +39,9 @@ export const PrizePixSubmission = ({
   const [savePixToProfile, setSavePixToProfile] = useState(false);
   const [replaceProfilePix, setReplaceProfilePix] = useState(false);
 
-  // Load profile PIX key
+  const [autoSubmitting, setAutoSubmitting] = useState(false);
+
+  // Load profile PIX key and auto-submit if already configured
   useEffect(() => {
     const loadProfilePix = async () => {
       const { data: { user } } = await supabase.auth.getUser();
@@ -52,13 +54,62 @@ export const PrizePixSubmission = ({
       if (profile?.pix_key && profile?.pix_key_type) {
         setProfilePixKey(profile.pix_key);
         setProfilePixKeyType(profile.pix_key_type);
-        // Auto-select profile key
         setPixSource('profile');
         setPixKey(profile.pix_key);
+
+        // Auto-submit silently using the profile PIX key
+        setAutoSubmitting(true);
+        try {
+          const { data: partRowArr } = await supabase
+            .from("participants")
+            .select("pool_id, user_id")
+            .eq("id", participantId)
+            .limit(1);
+          const partRow = partRowArr?.[0];
+          if (!partRow) throw new Error("Participação não encontrada");
+
+          const { upsertParticipantFinancials } = await import("@/lib/participant-financials");
+          const { error: finErr } = await upsertParticipantFinancials({
+            participant_id: participantId,
+            pool_id: partRow.pool_id,
+            user_id: partRow.user_id,
+            data: {
+              prize_pix_key: profile.pix_key,
+              prize_pix_key_type: profile.pix_key_type,
+            },
+          });
+          if (finErr) throw finErr;
+
+          const { error: updErr } = await supabase
+            .from("participants")
+            .update({
+              prize_status: "pix_submitted",
+              prize_submitted_at: new Date().toISOString(),
+            })
+            .eq("id", participantId);
+          if (updErr) throw updErr;
+
+          toast.success("Chave PIX do seu perfil enviada automaticamente!");
+          onSuccess?.();
+        } catch (err) {
+          console.error("Auto-submit PIX error:", err);
+          setAutoSubmitting(false);
+        }
       }
     };
     loadProfilePix();
-  }, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [participantId]);
+
+  if (autoSubmitting) {
+    return (
+      <Card className="border-yellow-200 dark:border-yellow-800 bg-yellow-50 dark:bg-yellow-950">
+        <CardContent className="py-6 text-center text-sm text-muted-foreground">
+          Enviando sua chave PIX cadastrada no perfil...
+        </CardContent>
+      </Card>
+    );
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
