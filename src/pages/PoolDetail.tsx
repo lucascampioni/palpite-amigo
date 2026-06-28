@@ -689,9 +689,11 @@ const PoolDetail = () => {
     setUserEntries(myEntries);
     setHasJoined(myEntries.length > 0);
     
-    // Set currentUserParticipant as the best approved entry (for prize logic)
+    // Set currentUserParticipant: prefer an entry that has a prize_status (winner),
+    // otherwise fall back to the first approved entry, otherwise any entry.
+    const prizeEntry = myEntries.find(e => e.status === 'approved' && e.prize_status);
     const approvedEntry = myEntries.find(e => e.status === 'approved');
-    setCurrentUserParticipant(approvedEntry || myEntries[0] || null);
+    setCurrentUserParticipant(prizeEntry || approvedEntry || myEntries[0] || null);
     
     const matchesData = matchesRes.data;
     setHasFootballMatches((matchesData?.length || 0) > 0);
