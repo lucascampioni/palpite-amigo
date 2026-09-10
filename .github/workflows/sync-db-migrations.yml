@@ -18,9 +18,9 @@ jobs:
         with:
           version: latest
 
-      - name: Push migrations (direct DB connection)
+      - name: Push migrations (via transaction pooler)
         run: |
-          supabase db push --db-url "postgresql://postgres:${SUPABASE_DB_PASSWORD}@db.${SUPABASE_PROJECT_ID}.supabase.co:5432/postgres"
+          supabase db push --db-url "postgresql://postgres.${SUPABASE_PROJECT_ID}:${SUPABASE_DB_PASSWORD}@aws-0-us-east-2.pooler.supabase.com:6543/postgres"
         env:
           SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
           SUPABASE_PROJECT_ID: qdpfqjaggqxhmifqhsfh
