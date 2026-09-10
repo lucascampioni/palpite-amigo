@@ -19,7 +19,7 @@ SELECT cron.schedule(
   $$
   SELECT
     net.http_post(
-      url:='https://aqpkkdhkbklhmjjiicsn.supabase.co/functions/v1/sync-match-results',
+      url:='https://qdpfqjaggqxhmifqhsfh.supabase.co/functions/v1/sync-match-results',
       headers:='{"Content-Type": "application/json", "Authorization": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFxcGtrZGhrYmtsaG1qamlpY3NuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjAwMTA5NDYsImV4cCI6MjA3NTU4Njk0Nn0.u6x34-kzFb-82Ww7VcxqgU2zoG6NRZ0UiZjMZM8Pq9Q"}'::jsonb,
       body:='{}'::jsonb
     ) as request_id;
