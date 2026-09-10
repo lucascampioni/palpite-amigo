@@ -81,7 +81,7 @@ const Landing = () => {
             Bolões com seus amigos, sem complicação
           </h1>
           <p className="text-base md:text-lg text-muted-foreground max-w-xl mx-auto mb-10 leading-relaxed">
-            Crie e participe de bolões, dê seus palpites e acompanhe o ranking em tempo real — com pagamento automático via PIX e notificações no WhatsApp.
+            Crie e participe de bolões, dê seus palpites e acompanhe o ranking em tempo real — com pagamento automático via PIX.
           </p>
           <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
             <Button size="lg" onClick={() => navigate("/entrar?mode=signup")} className="min-w-44">
